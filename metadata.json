@@ -1,0 +1,8 @@
+{
+  "name": "VendPro",
+  "description": "Catálogo digital premium de beleza e cosméticos com inteligência artificial e gestão profissional.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}

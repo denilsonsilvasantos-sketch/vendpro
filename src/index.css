@@ -1,0 +1,40 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  
+  --color-primary: var(--vendpro-primary, #0072FF);
+  --color-primary-light: var(--vendpro-primary-light, #F0F7FF);
+  --color-primary-dark: var(--vendpro-primary-dark, #0056B3);
+  
+  --color-nude: #FDFBFB;
+  --color-gold: #00D2FF;
+  --color-gold-soft: #E0F7FA;
+  
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+}
+
+@layer base {
+  body {
+    @apply bg-nude text-slate-800 font-sans;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display;
+  }
+}
+
+.glass-effect {
+  @apply bg-white/80 backdrop-blur-md border border-white/20;
+}
+
+.card-shadow {
+  @apply shadow-[0_8px_30px_rgb(0,0,0,0.04)];
+}
+
+.blue-gradient {
+  @apply bg-gradient-to-br from-primary to-primary-dark;
+}

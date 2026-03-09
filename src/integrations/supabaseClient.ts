@@ -1,3 +1,12 @@
-// Este arquivo será usado para a integração com o Supabase futuramente.
-// Atualmente, não há lógica implementada.
-export const supabase = null;
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error("Supabase URL ou Key não configurados.");
+}
+
+export const supabase = supabaseUrl && supabaseAnonKey 
+  ? createClient(supabaseUrl, supabaseAnonKey) 
+  : null;

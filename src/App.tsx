@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getProducts } from "./services/productService";
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   LayoutGrid, 
@@ -57,9 +58,13 @@ export default function App() {
   };
 
   useEffect(() => {
-    // Mock data fetching
-    setLoading(false);
-  }, [role]);
+    async function loadProducts() {
+      const products = await getProducts();
+      console.log("Produtos:", products);
+    }
+
+    loadProducts();
+  }, []);
 
   const handleLogin = (selectedRole: UserRole, userData: any, companies: any[] = []) => {
     setRole(selectedRole);
@@ -180,7 +185,7 @@ export default function App() {
               <CheckCircle2 size={18} />
             </div>
           )}
-          <h1 className="text-xl font-bold tracking-tight text-slate-900">{company?.nome || 'VendPro'}</h1>
+          <h1 className="text-xl font-bold tracking-tight text-slate-900">VendPro conectado</h1>
         </div>
         <div className="w-10" /> {/* Spacer */}
       </header>

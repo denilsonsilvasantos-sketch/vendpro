@@ -520,7 +520,12 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
         if (data && data.length > 0) {
           onLogin('company', data[0], [data[0]]);
         } else {
-          alert('Nenhuma empresa cadastrada no sistema.');
+          const { data: newCompany, error } = await supabase.from('companies').insert([{ nome: 'VendPro Matriz' }]).select().single();
+          if (newCompany) {
+            onLogin('company', newCompany, [newCompany]);
+          } else {
+            alert('Erro ao criar empresa padrão: ' + (error?.message || 'Erro desconhecido'));
+          }
         }
       }
       return;
@@ -566,7 +571,12 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
         if (data && data.length > 0) {
           onLogin('company', data[0]);
         } else {
-          alert('Nenhuma empresa cadastrada no sistema.');
+          const { data: newCompany, error } = await supabase.from('companies').insert([{ nome: 'VendPro Matriz' }]).select().single();
+          if (newCompany) {
+            onLogin('company', newCompany);
+          } else {
+            alert('Erro ao criar empresa padrão: ' + (error?.message || 'Erro desconhecido'));
+          }
         }
       }
       return;

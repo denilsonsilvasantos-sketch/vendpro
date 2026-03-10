@@ -33,7 +33,7 @@ import { Product, Category, Seller, Customer, UserRole, CartItem, Company } from
 import { mockProducts, mockCategories, mockCompany } from './lib/mockData';
 import { Card } from './components/Card';
 import { Badge } from './components/Badge';
-import { Dashboard, Produtos, Clientes, Pedidos, Configuracoes } from './pages';
+import { Dashboard, Produtos, Clientes, Pedidos, Configuracoes, Marcas, Upload, Pendencias } from './pages';
 import CartScreen from './pages/CartScreen';
 
 // --- Helper Components ---
@@ -319,6 +319,9 @@ export default function App() {
                 <SidebarItem icon={<LayoutGrid size={20}/>} label="Catálogo" active={activeTab === 'catalog'} onClick={() => { setActiveTab('catalog'); setIsSidebarOpen(false); }} />
                 <SidebarItem icon={<LayoutGrid size={20}/>} label="Dashboard" active={activeTab === 'dashboard'} onClick={() => { setActiveTab('dashboard'); setIsSidebarOpen(false); }} />
                 <SidebarItem icon={<Package size={20}/>} label="Produtos" active={activeTab === 'produtos'} onClick={() => { setActiveTab('produtos'); setIsSidebarOpen(false); }} />
+                <SidebarItem icon={<Upload size={20}/>} label="Upload" active={activeTab === 'upload'} onClick={() => { setActiveTab('upload'); setIsSidebarOpen(false); }} />
+                <SidebarItem icon={<AlertTriangle size={20}/>} label="Pendências" active={activeTab === 'pendencias'} onClick={() => { setActiveTab('pendencias'); setIsSidebarOpen(false); }} />
+                <SidebarItem icon={<Tag size={20}/>} label="Marcas" active={activeTab === 'marcas'} onClick={() => { setActiveTab('marcas'); setIsSidebarOpen(false); }} />
                 <SidebarItem icon={<Users size={20}/>} label="Clientes" active={activeTab === 'clientes'} onClick={() => { setActiveTab('clientes'); setIsSidebarOpen(false); }} />
                 <SidebarItem icon={<FileText size={20}/>} label="Pedidos" active={activeTab === 'pedidos'} onClick={() => { setActiveTab('pedidos'); setIsSidebarOpen(false); }} />
                 <SidebarItem icon={<Settings size={20}/>} label="Configurações" active={activeTab === 'configuracoes'} onClick={() => { setActiveTab('configuracoes'); setIsSidebarOpen(false); }} />
@@ -367,6 +370,9 @@ export default function App() {
         {activeTab === 'cart' && <CartScreen cart={cart} total={total} onUpdateQuantity={updateQuantity} onRemove={removeFromCart} onSendOrder={clearCart} />}
         {activeTab === 'dashboard' && <Dashboard />}
         {activeTab === 'produtos' && <Produtos />}
+        {activeTab === 'upload' && <Upload />}
+        {activeTab === 'pendencias' && <Pendencias />}
+        {activeTab === 'marcas' && <Marcas />}
         {activeTab === 'clientes' && <Clientes />}
         {activeTab === 'pedidos' && <Pedidos />}
         {activeTab === 'configuracoes' && <Configuracoes />}

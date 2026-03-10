@@ -3,3 +3,6 @@ export { default as Produtos } from './Produtos';
 export { default as Clientes } from './Clientes';
 export { default as Pedidos } from './Pedidos';
 export { default as Configuracoes } from './Configuracoes';
+export { default as Marcas } from './Marcas';
+export { default as Upload } from './Upload';
+export { default as Pendencias } from './Pendencias';

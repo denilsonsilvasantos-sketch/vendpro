@@ -4,6 +4,9 @@ export interface Brand {
   nome: string;
   margin_percentage: number;
   minimum_order_value: number;
+  shipping_policy?: string;
+  free_shipping_threshold?: number;
+  payment_methods?: string[];
 }
 
 export interface Company {

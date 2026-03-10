@@ -1,17 +1,19 @@
 import { v2 as cloudinary } from 'cloudinary';
+import 'dotenv/config';
 
 // Configure
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
+  cloud_name: process.env.VITE_CLOUDINARY_CLOUD_NAME,
+  upload_preset: process.env.VITE_CLOUDINARY_UPLOAD_PRESET,
+  api_key: process.env.VITE_CLOUDINARY_API_KEY,
+  api_secret: process.env.VITE_CLOUDINARY_API_SECRET,
 });
 
 async function testUpload() {
   try {
     console.log('Iniciando upload...');
     const result = await cloudinary.uploader.upload(
-      'https://cloudinary-devs.github.io/cld-docs-assets/assets/images/logo.png',
+      'https://res.cloudinary.com/demo/image/upload/sample.jpg',
       { public_id: 'test_image_vendpro' }
     );
     console.log('Upload bem-sucedido!');

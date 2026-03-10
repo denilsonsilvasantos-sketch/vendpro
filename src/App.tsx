@@ -33,6 +33,8 @@ import { Product, Category, Seller, Customer, UserRole, CartItem, Company } from
 import { mockProducts, mockCategories, mockCompany } from './lib/mockData';
 import { Card } from './components/Card';
 import { Badge } from './components/Badge';
+import { Dashboard, Produtos, Clientes, Pedidos, Configuracoes } from './pages';
+import CartScreen from './pages/CartScreen';
 
 // --- Helper Components ---
 
@@ -71,8 +73,24 @@ function getHeaders() {
 }
 
 export default function App() {
-  const [role, setRole] = useState<UserRole>(() => localStorage.getItem('vendpro_role') as UserRole || null);
-  const [user, setUser] = useState<any>(() => JSON.parse(localStorage.getItem('vendpro_user') || 'null'));
+  const [role, setRole] = useState<UserRole>(null);
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        setUser(session.user);
+        // Fetch role from profiles table
+        supabase.from('profiles').select('role').eq('user_id', session.user.id).single().then(({ data }) => {
+          setRole(data?.role || 'customer');
+        });
+      } else {
+        setUser(null);
+        setRole(null);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, []);
   const [activeTab, setActiveTab] = useState('catalog');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [products, setProducts] = useState<Product[]>(mockProducts);
@@ -245,7 +263,16 @@ export default function App() {
           )}
           <h1 className="text-xl font-bold tracking-tight text-slate-900">VendPro</h1>
         </div>
-        <div className="w-10" /> {/* Spacer */}
+        <div className="flex items-center gap-4">
+          <button onClick={() => setActiveTab('cart')} className="relative p-2 text-slate-600 hover:text-primary transition-colors">
+            <ShoppingCart size={24} />
+            {cart.length > 0 && (
+              <span className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full shadow-sm">
+                {cart.length}
+              </span>
+            )}
+          </button>
+        </div>
       </header>
 
       {/* Sidebar */}
@@ -281,40 +308,11 @@ export default function App() {
 
               <nav className="space-y-1.5 flex-1">
                 <SidebarItem icon={<LayoutGrid size={20}/>} label="Catálogo" active={activeTab === 'catalog'} onClick={() => { setActiveTab('catalog'); setIsSidebarOpen(false); }} />
-                
-                {role === 'company' && (
-                  <>
-                    <div className="h-px bg-slate-100 my-6 mx-2" />
-                    <p className="text-[10px] uppercase tracking-[0.2em] font-bold text-slate-400 px-4 mb-3">Administração</p>
-                    <SidebarItem icon={<LayoutGrid size={20}/>} label="Minhas Marcas" active={activeTab === 'admin-companies'} onClick={() => { setActiveTab('admin-companies'); setIsSidebarOpen(false); }} />
-                    <SidebarItem icon={<Users size={20}/>} label="Vendedores" active={activeTab === 'admin-sellers'} onClick={() => { setActiveTab('admin-sellers'); setIsSidebarOpen(false); }} />
-                    <SidebarItem icon={<Users size={20}/>} label="Clientes" active={activeTab === 'admin-customers'} onClick={() => { setActiveTab('admin-customers'); setIsSidebarOpen(false); }} />
-                    <SidebarItem icon={<Package size={20}/>} label="Categorias" active={activeTab === 'admin-categories'} onClick={() => { setActiveTab('admin-categories'); setIsSidebarOpen(false); }} />
-                    <SidebarItem icon={<Upload size={20}/>} label="Upload Catálogo" active={activeTab === 'admin-upload'} onClick={() => { setActiveTab('admin-upload'); setIsSidebarOpen(false); }} />
-                    <SidebarItem icon={<AlertCircle size={20}/>} label="Pendências" active={activeTab === 'admin-pending'} onClick={() => { setActiveTab('admin-pending'); setIsSidebarOpen(false); }} />
-                  </>
-                )}
-
-                {role === 'seller' && (
-                  <>
-                    <div className="h-px bg-slate-100 my-6 mx-2" />
-                    <p className="text-[10px] uppercase tracking-[0.2em] font-bold text-slate-400 px-4 mb-3">Vendedor</p>
-                    <SidebarItem icon={<Users size={20}/>} label="Meus Clientes" active={activeTab === 'seller-customers'} onClick={() => { setActiveTab('seller-customers'); setIsSidebarOpen(false); }} />
-                    <SidebarItem icon={<Package size={20}/>} label="Pedidos Recebidos" active={activeTab === 'seller-orders'} onClick={() => { setActiveTab('seller-orders'); setIsSidebarOpen(false); }} />
-                    <SidebarItem icon={<Share2 size={20}/>} label="Compartilhar App" active={false} onClick={() => { 
-                      if (navigator.share) {
-                        navigator.share({
-                          title: 'VendPro Catálogo',
-                          text: `Use meu código de vendedor: ${user?.codigo_vinculo}`,
-                          url: window.location.origin
-                        });
-                      } else {
-                        alert(`Compartilhe o link: ${window.location.origin}\nSeu código: ${user?.codigo_vinculo}`);
-                      }
-                      setIsSidebarOpen(false);
-                    }} />
-                  </>
-                )}
+                <SidebarItem icon={<LayoutGrid size={20}/>} label="Dashboard" active={activeTab === 'dashboard'} onClick={() => { setActiveTab('dashboard'); setIsSidebarOpen(false); }} />
+                <SidebarItem icon={<Package size={20}/>} label="Produtos" active={activeTab === 'produtos'} onClick={() => { setActiveTab('produtos'); setIsSidebarOpen(false); }} />
+                <SidebarItem icon={<Users size={20}/>} label="Clientes" active={activeTab === 'clientes'} onClick={() => { setActiveTab('clientes'); setIsSidebarOpen(false); }} />
+                <SidebarItem icon={<FileText size={20}/>} label="Pedidos" active={activeTab === 'pedidos'} onClick={() => { setActiveTab('pedidos'); setIsSidebarOpen(false); }} />
+                <SidebarItem icon={<Settings size={20}/>} label="Configurações" active={activeTab === 'configuracoes'} onClick={() => { setActiveTab('configuracoes'); setIsSidebarOpen(false); }} />
 
                 <div className="h-px bg-slate-100 my-6 mx-2" />
                 <SidebarItem icon={<User size={20}/>} label="Minha Conta" active={activeTab === 'account'} onClick={() => { setActiveTab('account'); setIsSidebarOpen(false); }} />
@@ -357,16 +355,12 @@ export default function App() {
             onZoom={setZoomImage}
           />
         )}
-        {/* {activeTab === 'cart' && <CartScreen cart={cart} total={total} onUpdateQuantity={updateQuantity} onRemove={removeFromCart} onSendOrder={clearCart} user={user} role={role} minOrder={company?.minimum_order_value || 0} />} */}
-        {/* {activeTab === 'admin-companies' && <AdminCompaniesScreen onRefresh={() => {}} />} */}
-        {/* {activeTab === 'admin-sellers' && <AdminSellersScreen companyId={company?.id || 1} />} */}
-        {/* {activeTab === 'admin-customers' && <AdminCustomersScreen companyId={company?.id || 1} />} */}
-        {/* {activeTab === 'admin-categories' && <AdminCategoriesScreen categories={categories} onRefresh={() => {}} companyId={company?.id || 1} />} */}
-        {/* {activeTab === 'admin-upload' && <AdminUploadScreen categories={categories} onRefresh={() => {}} companyId={company?.id || 1} />} */}
-        {/* {activeTab === 'admin-pending' && <AdminPendingScreen products={products} categories={categories} onRefresh={() => {}} onEdit={setEditingProduct} />} */}
-        {/* {activeTab === 'seller-customers' && <SellerCustomersScreen user={user} />} */}
-        {/* {activeTab === 'seller-orders' && <SellerOrdersScreen user={user} />} */}
-        {/* {activeTab === 'account' && <AccountScreen user={user} role={role} />} */}
+        {activeTab === 'cart' && <CartScreen cart={cart} total={total} onUpdateQuantity={updateQuantity} onRemove={removeFromCart} onSendOrder={clearCart} />}
+        {activeTab === 'dashboard' && <Dashboard />}
+        {activeTab === 'produtos' && <Produtos />}
+        {activeTab === 'clientes' && <Clientes />}
+        {activeTab === 'pedidos' && <Pedidos />}
+        {activeTab === 'configuracoes' && <Configuracoes />}
       </main>
 
       <AnimatePresence>
@@ -380,12 +374,7 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* Bottom Tabs */}
-      <nav className="fixed bottom-0 inset-x-0 glass-effect px-8 py-4 flex items-center justify-around z-40 rounded-t-[32px] shadow-[0_-8px_30px_rgb(0,0,0,0.04)]">
-        <TabItem icon={<LayoutGrid size={24} />} label="Catálogo" active={activeTab === 'catalog'} onClick={() => setActiveTab('catalog')} />
-        <TabItem icon={<ShoppingCart size={24} />} label="Carrinho" active={activeTab === 'cart'} badge={cart.length > 0 ? cart.length : undefined} onClick={() => setActiveTab('cart')} />
-        <TabItem icon={<Settings size={24} />} label="Menu" active={activeTab.startsWith('admin')} onClick={() => setIsSidebarOpen(true)} />
-      </nav>
+      {/* Bottom Tabs removed */}
     </div>
   );
 }

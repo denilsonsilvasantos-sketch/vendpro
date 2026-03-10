@@ -1,10 +1,74 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { supabase } from '../integrations/supabaseClient';
+import { Card } from '../components/Card';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { Package, Users, ShoppingCart, TrendingUp } from 'lucide-react';
 
 export default function Dashboard() {
+  const [stats, setStats] = useState({ products: 0, customers: 0, orders: 0, revenue: 0 });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchStats() {
+      if (!supabase) return;
+      
+      // Fetch counts
+      const { count: productCount } = await supabase.from('products').select('*', { count: 'exact', head: true });
+      const { count: customerCount } = await supabase.from('customers').select('*', { count: 'exact', head: true });
+      const { count: orderCount } = await supabase.from('orders').select('*', { count: 'exact', head: true });
+      
+      // Fetch total revenue
+      const { data: orders } = await supabase.from('orders').select('total');
+      const totalRevenue = orders?.reduce((acc, order) => acc + (order.total || 0), 0) || 0;
+
+      setStats({
+        products: productCount || 0,
+        customers: customerCount || 0,
+        orders: orderCount || 0,
+        revenue: totalRevenue
+      });
+      setLoading(false);
+    }
+    fetchStats();
+  }, []);
+
+  const data = [
+    { name: 'Produtos', value: stats.products },
+    { name: 'Clientes', value: stats.customers },
+    { name: 'Pedidos', value: stats.orders },
+  ];
+
+  if (loading) return <div className="p-6">Carregando...</div>;
+
   return (
-    <div className="p-6">
+    <div className="p-6 space-y-6">
       <h1 className="text-2xl font-bold">Dashboard</h1>
-      <p>Bem-vindo ao VendPro.</p>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card title="Produtos" value={stats.products} icon={<Package className="text-blue-500" />} />
+        <Card title="Clientes" value={stats.customers} icon={<Users className="text-green-500" />} />
+        <Card title="Pedidos" value={stats.orders} icon={<ShoppingCart className="text-purple-500" />} />
+        <Card title="Receita Total" value={`R$ ${stats.revenue.toFixed(2)}`} icon={<TrendingUp className="text-orange-500" />} />
+      </div>
+
+      <div className="bg-white p-6 rounded-xl shadow">
+        <h2 className="text-lg font-bold mb-4">Visão Geral</h2>
+        <div className="h-64">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" />
+              <YAxis />
+              <Tooltip />
+              <Bar dataKey="value">
+                {data.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={['#3b82f6', '#22c55e', '#a855f7'][index]} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
     </div>
   );
 }

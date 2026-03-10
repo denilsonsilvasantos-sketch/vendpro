@@ -1,3 +1,10 @@
+export interface Brand {
+  id: number;
+  company_id: number;
+  nome: string;
+  margin_percentage: number;
+}
+
 export interface Company {
   id: number;
   nome: string;
@@ -42,6 +49,7 @@ export interface Product {
   id: number;
   company_id: number;
   categoria_id?: number;
+  brand_id?: number;
   sku: string;
   nome: string;
   descricao?: string;
@@ -63,6 +71,7 @@ export interface Product {
   last_box_qty?: number;
   ativo: boolean;
   categoria_nome?: string;
+  brand_nome?: string;
 }
 
 export interface CartItem extends Product {

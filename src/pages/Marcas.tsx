@@ -32,14 +32,14 @@ export default function Marcas({ companyId }: { companyId: number | null }) {
   };
 
   const handleDeleteBrand = async (id: number) => {
-    if (!confirm('Tem certeza que deseja excluir esta marca? Todos os produtos vinculados serão afetados.')) return;
+    if (!supabase || !confirm('Tem certeza que deseja excluir esta marca? Todos os produtos vinculados serão afetados.')) return;
     await supabase.from('brands').delete().eq('id', id);
     fetchData();
   };
 
   const handleAddCategory = async (brandId: number) => {
     const nome = newCategoryName[brandId];
-    if (!nome || !companyId) return;
+    if (!supabase || !nome || !companyId) return;
 
     await supabase.from('categories').insert([{
       company_id: companyId,
@@ -53,7 +53,7 @@ export default function Marcas({ companyId }: { companyId: number | null }) {
   };
 
   const handleDeleteCategory = async (id: number) => {
-    if (!confirm('Excluir esta categoria?')) return;
+    if (!supabase || !confirm('Excluir esta categoria?')) return;
     await supabase.from('categories').delete().eq('id', id);
     fetchData();
   };

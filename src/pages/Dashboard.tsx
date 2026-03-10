@@ -72,7 +72,9 @@ export default function Dashboard({ companyId }: { companyId: number | null }) {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      if (supabase && channel) {
+        supabase.removeChannel(channel);
+      }
     };
   }, [companyId]);
 
@@ -128,7 +130,7 @@ export default function Dashboard({ companyId }: { companyId: number | null }) {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis type="number" />
                 <YAxis dataKey="name" type="category" width={100} />
-                <Tooltip formatter={(value: number) => `R$ ${value.toFixed(2)}`} />
+                <Tooltip formatter={(value: any) => `R$ ${Number(value).toFixed(2)}`} />
                 <Bar dataKey="value" fill="#f59e0b" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>

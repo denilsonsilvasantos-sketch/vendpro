@@ -79,6 +79,8 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
     
     const dataToSave = { ...formData, company_id: companyId };
 
+    if (!supabase) return;
+
     if (product) {
       await supabase.from('products').update(dataToSave).eq('id', product.id);
     } else {

@@ -16,6 +16,7 @@ export default function Pedidos() {
     }
     fetchOrders();
 
+    if (!supabase) return;
     const channel = supabase
       .channel('schema-db-changes')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, (payload) => {
@@ -25,7 +26,9 @@ export default function Pedidos() {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      if (supabase && channel) {
+        supabase.removeChannel(channel);
+      }
     };
   }, []);
 

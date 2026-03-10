@@ -10,6 +10,7 @@ export default function CustomerFormModal({ onClose, onSave, customer }: { onClo
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    if (!supabase) return;
     if (customer) {
       await supabase.from('customers').update(formData).eq('id', customer.id);
     } else {

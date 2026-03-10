@@ -92,9 +92,11 @@ export default function App() {
       if (session) {
         setUser(session.user);
         // Fetch role from profiles table
-        supabase.from('profiles').select('role').eq('user_id', session.user.id).single().then(({ data }) => {
-          setRole(data?.role || 'customer');
-        });
+        if (supabase) {
+          supabase.from('profiles').select('role').eq('user_id', session.user.id).single().then(({ data }) => {
+            setRole(data?.role || 'customer');
+          });
+        }
       } else {
         setUser(null);
         setRole(null);
@@ -137,6 +139,7 @@ export default function App() {
 
     loadProducts();
 
+    if (!supabase) return;
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
       if (!session) {
@@ -849,7 +852,7 @@ function ProductCard({ product, onAdd, onEdit, role, onZoom, ...props }: { produ
   const [qty, setQty] = useState(product.venda_somente_box ? 1 : (product.multiplo_venda || 1));
   return (
     <Card className="p-4 flex flex-col group hover:border-primary/20 transition-all">
-      <div className="relative aspect-square mb-4 rounded-2xl overflow-hidden bg-slate-50 cursor-zoom-in" onClick={() => onZoom(product.imagem)}>
+      <div className="relative aspect-square mb-4 rounded-2xl overflow-hidden bg-slate-50 cursor-zoom-in" onClick={() => onZoom(product.imagem || '')}>
         <img src={product.imagem || `https://picsum.photos/seed/${product.sku}/400/400`} className="w-full h-full object-cover" alt={product.nome} referrerPolicy="no-referrer" />
       </div>
       <h3 className="font-bold text-slate-800 text-sm leading-tight mb-1 line-clamp-2">{product.nome}</h3>

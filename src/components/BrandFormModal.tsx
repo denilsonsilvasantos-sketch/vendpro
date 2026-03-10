@@ -59,6 +59,8 @@ export default function BrandFormModal({ onClose, onSave, brand, companyId }: { 
     
     const dataToSave = { ...formData, company_id: companyId };
 
+    if (!supabase) return;
+
     if (brand) {
       await supabase.from('brands').update(dataToSave).eq('id', brand.id);
     } else {

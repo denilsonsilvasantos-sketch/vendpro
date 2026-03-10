@@ -15,6 +15,18 @@ export default function Pedidos() {
       setLoading(false);
     }
     fetchOrders();
+
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, (payload) => {
+        console.log('Novo pedido!', payload);
+        setOrders(prev => [payload.new as any, ...prev]);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   if (loading) return <div className="p-6">Carregando...</div>;

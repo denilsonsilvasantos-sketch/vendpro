@@ -7,6 +7,7 @@ import { Package, Users, ShoppingCart, TrendingUp } from 'lucide-react';
 export default function Dashboard() {
   const [stats, setStats] = useState({ products: 0, customers: 0, orders: 0, revenue: 0 });
   const [loading, setLoading] = useState(true);
+  const [newOrder, setNewOrder] = useState<any>(null);
 
   useEffect(() => {
     async function fetchStats() {
@@ -30,6 +31,19 @@ export default function Dashboard() {
       setLoading(false);
     }
     fetchStats();
+
+    if (!supabase) return;
+    const channel = supabase
+      .channel('new-orders')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, (payload) => {
+        setNewOrder(payload.new);
+        setTimeout(() => setNewOrder(null), 5000); // Hide after 5s
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const data = [
@@ -42,6 +56,11 @@ export default function Dashboard() {
 
   return (
     <div className="p-6 space-y-6">
+      {newOrder && (
+        <div className="fixed top-20 right-6 bg-green-500 text-white p-4 rounded-xl shadow-lg z-50">
+          Novo pedido recebido! #{newOrder.id}
+        </div>
+      )}
       <h1 className="text-2xl font-bold">Dashboard</h1>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

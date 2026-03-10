@@ -77,6 +77,15 @@ export default function App() {
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('vincular');
+    if (code) {
+      localStorage.setItem('vendpro_seller_code', code);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!supabase) return;
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) {
         setUser(session.user);

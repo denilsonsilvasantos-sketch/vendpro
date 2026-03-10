@@ -3,6 +3,7 @@ export interface Brand {
   company_id: number;
   nome: string;
   margin_percentage: number;
+  minimum_order_value: number;
 }
 
 export interface Company {

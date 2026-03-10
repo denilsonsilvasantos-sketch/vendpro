@@ -4,15 +4,15 @@ import { Product } from '../types';
 import { Package, Edit, Trash2, Plus } from 'lucide-react';
 import ProductFormModal from '../components/ProductFormModal';
 
-export default function Produtos() {
+export default function Produtos({ companyId }: { companyId: number | null }) {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | undefined>();
 
   async function fetchProducts() {
-    if (!supabase) return;
-    const { data, error } = await supabase.from('products').select('*');
+    if (!supabase || !companyId) return;
+    const { data, error } = await supabase.from('products').select('*').eq('company_id', companyId);
     if (error) console.error(error);
     else setProducts(data || []);
     setLoading(false);
@@ -20,7 +20,7 @@ export default function Produtos() {
 
   useEffect(() => {
     fetchProducts();
-  }, []);
+  }, [companyId]);
 
   const handleDelete = async (id: number) => {
     if (!supabase) return;

@@ -4,22 +4,30 @@ import { Card } from '../components/Card';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { Package, Users, ShoppingCart, TrendingUp } from 'lucide-react';
 
-export default function Dashboard() {
+export default function Dashboard({ companyId }: { companyId: number | null }) {
   const [stats, setStats] = useState({ products: 0, customers: 0, orders: 0, revenue: 0 });
   const [loading, setLoading] = useState(true);
   const [newOrder, setNewOrder] = useState<any>(null);
 
   useEffect(() => {
     async function fetchStats() {
-      if (!supabase) return;
+      if (!supabase || !companyId) return;
       
       // Fetch counts
-      const { count: productCount } = await supabase.from('products').select('*', { count: 'exact', head: true });
-      const { count: customerCount } = await supabase.from('customers').select('*', { count: 'exact', head: true });
-      const { count: orderCount } = await supabase.from('orders').select('*', { count: 'exact', head: true });
+      const { count: productCount } = await supabase.from('products').select('*', { count: 'exact', head: true }).eq('company_id', companyId);
+      
+      // Clientes estão vinculados a vendedores, que estão vinculados a empresas
+      const { data: sellers } = await supabase.from('sellers').select('id').eq('company_id', companyId);
+      const sellerIds = sellers?.map(s => s.id) || [];
+      
+      const { count: customerCount } = sellerIds.length > 0 
+        ? await supabase.from('customers').select('*', { count: 'exact', head: true }).in('seller_id', sellerIds)
+        : { count: 0 };
+
+      const { count: orderCount } = await supabase.from('orders').select('*', { count: 'exact', head: true }).eq('company_id', companyId);
       
       // Fetch total revenue
-      const { data: orders } = await supabase.from('orders').select('total');
+      const { data: orders } = await supabase.from('orders').select('total').eq('company_id', companyId);
       const totalRevenue = orders?.reduce((acc, order) => acc + (order.total || 0), 0) || 0;
 
       setStats({
@@ -32,10 +40,10 @@ export default function Dashboard() {
     }
     fetchStats();
 
-    if (!supabase) return;
+    if (!supabase || !companyId) return;
     const channel = supabase
       .channel('new-orders')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, (payload) => {
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders', filter: `company_id=eq.${companyId}` }, (payload) => {
         setNewOrder(payload.new);
         setTimeout(() => setNewOrder(null), 5000); // Hide after 5s
       })
@@ -44,7 +52,7 @@ export default function Dashboard() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [companyId]);
 
   const data = [
     { name: 'Produtos', value: stats.products },

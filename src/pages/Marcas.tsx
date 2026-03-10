@@ -4,7 +4,7 @@ import { Brand, Category } from '../types';
 import { Edit, Trash2, Plus, ChevronDown, ChevronUp } from 'lucide-react';
 import BrandFormModal from '../components/BrandFormModal';
 
-export default function Marcas() {
+export default function Marcas({ companyId }: { companyId: number | null }) {
   const [brands, setBrands] = useState<Brand[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -12,16 +12,16 @@ export default function Marcas() {
   const [expandedBrands, setExpandedBrands] = useState<number[]>([]);
 
   async function fetchData() {
-    if (!supabase) return;
-    const { data: bData } = await supabase.from('brands').select('*');
-    const { data: cData } = await supabase.from('categories').select('*');
+    if (!supabase || !companyId) return;
+    const { data: bData } = await supabase.from('brands').select('*').eq('company_id', companyId);
+    const { data: cData } = await supabase.from('categories').select('*').eq('company_id', companyId);
     setBrands(bData || []);
     setCategories(cData || []);
   }
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [companyId]);
 
   const toggleExpand = (id: number) => {
     setExpandedBrands(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);

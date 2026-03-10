@@ -13,6 +13,7 @@ import {
   Package, 
   Users, 
   Upload, 
+  Tag,
   AlertTriangle,
   AlertCircle,
   LogOut,
@@ -369,11 +370,11 @@ export default function App() {
           />
         )}
         {activeTab === 'cart' && <CartScreen cart={cart} total={total} onUpdateQuantity={updateQuantity} onRemove={removeFromCart} onSendOrder={clearCart} />}
-        {activeTab === 'dashboard' && <Dashboard />}
-        {activeTab === 'produtos' && <Produtos />}
-        {activeTab === 'upload' && <Upload />}
-        {activeTab === 'pendencias' && <Pendencias />}
-        {activeTab === 'marcas' && <Marcas />}
+        {activeTab === 'dashboard' && <Dashboard companyId={activeCompanyId} />}
+        {activeTab === 'produtos' && <Produtos companyId={activeCompanyId} />}
+        {activeTab === 'upload' && <Upload companyId={activeCompanyId} />}
+        {activeTab === 'pendencias' && <Pendencias companyId={activeCompanyId} />}
+        {activeTab === 'marcas' && <Marcas companyId={activeCompanyId} />}
         {activeTab === 'clientes' && <Clientes />}
         {activeTab === 'pedidos' && <Pedidos />}
         {activeTab === 'configuracoes' && <Configuracoes />}

@@ -35,7 +35,7 @@ import { Product, Category, Seller, Customer, UserRole, CartItem, Company } from
 import { mockProducts, mockCategories, mockCompany } from './lib/mockData';
 import { Card } from './components/Card';
 import { Badge } from './components/Badge';
-import { Dashboard, Produtos, Clientes, Pedidos, Configuracoes, Marcas, Upload, Pendencias, Account } from './pages';
+import { Dashboard, Produtos, Clientes, Pedidos, Configuracoes, Marcas, Upload, Pendencias, Account, Vendedores } from './pages';
 import CartScreen from './pages/CartScreen';
 
 // --- Helper Components ---
@@ -352,6 +352,7 @@ export default function App() {
                 <SidebarItem icon={<UploadIcon size={20}/>} label="Upload" active={activeTab === 'upload'} onClick={() => { setActiveTab('upload'); setIsSidebarOpen(false); }} />
                 <SidebarItem icon={<AlertTriangle size={20}/>} label="Pendências" active={activeTab === 'pendencias'} onClick={() => { setActiveTab('pendencias'); setIsSidebarOpen(false); }} />
                 <SidebarItem icon={<Tag size={20}/>} label="Marcas" active={activeTab === 'marcas'} onClick={() => { setActiveTab('marcas'); setIsSidebarOpen(false); }} />
+                <SidebarItem icon={<Users size={20}/>} label="Vendedores" active={activeTab === 'vendedores'} onClick={() => { setActiveTab('vendedores'); setIsSidebarOpen(false); }} />
                 <SidebarItem icon={<Users size={20}/>} label="Clientes" active={activeTab === 'clientes'} onClick={() => { setActiveTab('clientes'); setIsSidebarOpen(false); }} />
                 <SidebarItem icon={<FileText size={20}/>} label="Pedidos" active={activeTab === 'pedidos'} onClick={() => { setActiveTab('pedidos'); setIsSidebarOpen(false); }} />
                 <SidebarItem icon={<Settings size={20}/>} label="Configurações" active={activeTab === 'configuracoes'} onClick={() => { setActiveTab('configuracoes'); setIsSidebarOpen(false); }} />
@@ -403,6 +404,7 @@ export default function App() {
         {activeTab === 'upload' && <Upload companyId={activeCompanyId} />}
         {activeTab === 'pendencias' && <Pendencias companyId={activeCompanyId} />}
         {activeTab === 'marcas' && <Marcas companyId={activeCompanyId} />}
+        {activeTab === 'vendedores' && <Vendedores companyId={activeCompanyId} />}
         {activeTab === 'clientes' && <Clientes companyId={activeCompanyId} />}
         {activeTab === 'pedidos' && <Pedidos companyId={activeCompanyId} />}
         {activeTab === 'configuracoes' && <Configuracoes companyId={activeCompanyId} />}

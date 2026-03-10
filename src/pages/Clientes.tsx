@@ -14,7 +14,15 @@ export default function Clientes({ companyId }: { companyId: number | null }) {
     if (!supabase || companyId === null) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase.from('customers').select('*').eq('company_id', companyId);
+      const { data: sellers } = await supabase.from('sellers').select('id').eq('company_id', companyId);
+      const sellerIds = sellers?.map(s => s.id) || [];
+      
+      if (sellerIds.length === 0) {
+        setCustomers([]);
+        return;
+      }
+
+      const { data, error } = await supabase.from('customers').select('*').in('seller_id', sellerIds);
       if (error) throw error;
       setCustomers(data || []);
     } catch (error: any) {

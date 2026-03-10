@@ -38,7 +38,7 @@ export default function CustomerFormModal({ onClose, onSave, customer, companyId
         const { error: updateError } = await supabase.from('customers').update(updateData).eq('id', customer.id);
         error = updateError;
       } else {
-        const { error: insertError } = await supabase.from('customers').insert([{ ...dataToSave, company_id: companyId }]);
+        const { error: insertError } = await supabase.from('customers').insert([dataToSave]);
         error = insertError;
       }
 
@@ -74,8 +74,9 @@ export default function CustomerFormModal({ onClose, onSave, customer, companyId
             className="w-full p-2 border rounded" 
             value={formData.seller_id || ''} 
             onChange={e => setFormData({...formData, seller_id: e.target.value ? parseInt(e.target.value) : ''})}
+            required
           >
-            <option value="">Sem Vendedor Vinculado</option>
+            <option value="">Selecione um Vendedor</option>
             {sellers.map(s => (
               <option key={s.id} value={s.id}>{s.nome}</option>
             ))}

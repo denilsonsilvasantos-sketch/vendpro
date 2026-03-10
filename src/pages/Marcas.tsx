@@ -17,7 +17,7 @@ export default function Marcas({ companyId }: { companyId: number | null }) {
     if (!supabase || companyId === null) return;
     setLoading(true);
     try {
-      const { data: bData, error: bError } = await supabase.from('brands').select('*').eq('company_id', companyId).order('nome');
+      const { data: bData, error: bError } = await supabase.from('brands').select('*').eq('company_id', companyId).order('name');
       const { data: cData, error: cError } = await supabase.from('categories').select('*').eq('company_id', companyId).order('nome');
       
       if (bError) throw bError;
@@ -126,13 +126,13 @@ export default function Marcas({ companyId }: { companyId: number | null }) {
                 <div className="flex items-center gap-4 cursor-pointer flex-1" onClick={() => toggleExpand(brand.id)}>
                   <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center overflow-hidden border border-slate-100 shrink-0">
                     {brand.logo_url ? (
-                      <img src={brand.logo_url} alt={brand.nome} className="w-full h-full object-contain p-1" />
+                      <img src={brand.logo_url} alt={brand.name} className="w-full h-full object-contain p-1" />
                     ) : (
                       <Tag className="text-slate-300" size={20} />
                     )}
                   </div>
                   <div>
-                    <h3 className="font-bold text-slate-900 text-lg">{brand.nome}</h3>
+                    <h3 className="font-bold text-slate-900 text-lg">{brand.name}</h3>
                     <div className="flex items-center gap-3 text-xs text-slate-500 mt-0.5">
                       <span className="flex items-center gap-1"><Tag size={12} /> {categories.filter(c => c.brand_id === brand.id).length} categorias</span>
                       <span className="w-1 h-1 bg-slate-300 rounded-full" />
@@ -166,7 +166,7 @@ export default function Marcas({ companyId }: { companyId: number | null }) {
               
               {expandedBrands.includes(brand.id) && (
                 <div className="px-5 pb-6 space-y-6 animate-in fade-in slide-in-from-top-2">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-1">
                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Pedido Mínimo</p>
                       <p className="text-lg font-bold text-slate-900">R$ {brand.minimum_order_value.toFixed(2)}</p>
@@ -174,10 +174,6 @@ export default function Marcas({ companyId }: { companyId: number | null }) {
                     <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-1">
                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Margem de Venda</p>
                       <p className="text-lg font-bold text-slate-900">{brand.margin_percentage}%</p>
-                    </div>
-                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-1">
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Frete Grátis</p>
-                      <p className="text-lg font-bold text-slate-900">R$ {brand.free_shipping_threshold?.toFixed(2) || '0.00'}</p>
                     </div>
                   </div>
 

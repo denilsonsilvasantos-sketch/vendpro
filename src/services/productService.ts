@@ -46,7 +46,7 @@ export async function getProducts(companyId: string): Promise<Product[]> {
     return {
       ...item,
       preco_unitario: finalPrice,
-      brand_nome: brand?.nome,
+      brand_nome: brand?.name,
       brand_id: brand?.id
     };
   });

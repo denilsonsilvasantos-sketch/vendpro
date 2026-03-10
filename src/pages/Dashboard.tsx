@@ -17,7 +17,13 @@ export default function Dashboard({ companyId }: { companyId: number | null }) {
       // Fetch counts
       const { count: productCount } = await supabase.from('products').select('*', { count: 'exact', head: true }).eq('company_id', companyId);
       
-      const { count: customerCount } = await supabase.from('customers').select('*', { count: 'exact', head: true }).eq('company_id', companyId);
+      // Clientes estão vinculados a vendedores, que estão vinculados a empresas
+      const { data: sellers } = await supabase.from('sellers').select('id').eq('company_id', companyId);
+      const sellerIds = sellers?.map(s => s.id) || [];
+      
+      const { count: customerCount } = sellerIds.length > 0 
+        ? await supabase.from('customers').select('*', { count: 'exact', head: true }).in('seller_id', sellerIds)
+        : { count: 0 };
 
       const { count: orderCount } = await supabase.from('orders').select('*', { count: 'exact', head: true }).eq('company_id', companyId);
       
@@ -32,14 +38,14 @@ export default function Dashboard({ companyId }: { companyId: number | null }) {
           subtotal,
           product:product_id (
             brand:brand_id (
-              nome
+              name
             )
           )
         `);
       
       const brandMap: Record<string, number> = {};
       orderItems?.forEach((item: any) => {
-        const brandName = item.product?.brand?.nome || 'Sem Marca';
+        const brandName = item.product?.brand?.name || 'Sem Marca';
         brandMap[brandName] = (brandMap[brandName] || 0) + (item.subtotal || 0);
       });
 

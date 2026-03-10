@@ -19,7 +19,7 @@ export default function Produtos({ companyId }: { companyId: number | null }) {
     setLoading(true);
     
     const { data: pData } = await supabase.from('products').select('*').eq('company_id', companyId).order('nome');
-    const { data: bData } = await supabase.from('brands').select('*').eq('company_id', companyId).order('nome');
+    const { data: bData } = await supabase.from('brands').select('*').eq('company_id', companyId).order('name');
     const { data: cData } = await supabase.from('categories').select('*').eq('company_id', companyId).order('nome');
     
     setProducts(pData || []);
@@ -88,7 +88,7 @@ export default function Produtos({ companyId }: { companyId: number | null }) {
             onChange={e => setFilterBrand(e.target.value ? parseInt(e.target.value) : null)}
           >
             <option value="">Todas as Marcas</option>
-            {brands.map(b => <option key={b.id} value={b.id}>{b.nome}</option>)}
+            {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
           </select>
         </div>
       </div>
@@ -124,7 +124,7 @@ export default function Produtos({ companyId }: { companyId: number | null }) {
               <div className="p-5 space-y-4">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-[10px] font-bold text-primary uppercase tracking-wider">{brands.find(b => b.id === product.brand_id)?.nome}</span>
+                    <span className="text-[10px] font-bold text-primary uppercase tracking-wider">{brands.find(b => b.id === product.brand_id)?.name}</span>
                     <span className="w-1 h-1 bg-slate-300 rounded-full" />
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{categories.find(c => c.id === product.categoria_id)?.nome}</span>
                   </div>

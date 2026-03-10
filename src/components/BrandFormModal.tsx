@@ -5,13 +5,12 @@ import { X, Upload, Loader2, Image as ImageIcon } from 'lucide-react';
 
 export default function BrandFormModal({ onClose, onSave, brand, companyId }: { onClose: () => void, onSave: () => void, brand?: Brand, companyId: number | null }) {
   const [formData, setFormData] = useState<Partial<Brand>>(brand || { 
-    nome: '', 
+    name: '', 
     margin_percentage: 0, 
     minimum_order_value: 0, 
     shipping_policy: '', 
     payment_policy: '',
     stock_policy: '',
-    free_shipping_threshold: 0, 
     logo_url: ''
   });
   const [loading, setLoading] = useState(false);
@@ -128,7 +127,7 @@ export default function BrandFormModal({ onClose, onSave, brand, companyId }: { 
           <div className="space-y-4">
             <div className="space-y-1">
               <label className="text-xs font-bold text-slate-500 uppercase">Nome da Marca</label>
-              <input className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none" placeholder="Ex: Nike, Adidas..." value={formData.nome} onChange={e => setFormData({...formData, nome: e.target.value})} required />
+              <input className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none" placeholder="Ex: Nike, Adidas..." value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required />
             </div>
 
             <div className="grid grid-cols-2 gap-4">

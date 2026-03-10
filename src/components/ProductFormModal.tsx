@@ -27,7 +27,7 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
   useEffect(() => {
     async function fetchData() {
       if (!supabase || !companyId) return;
-      const { data: bData } = await supabase.from('brands').select('*').eq('company_id', companyId).order('nome');
+      const { data: bData } = await supabase.from('brands').select('*').eq('company_id', companyId).order('name');
       setBrands(bData || []);
       
       if (formData.brand_id) {
@@ -186,7 +186,7 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
                     required
                   >
                     <option value="">Selecionar Marca</option>
-                    {brands.map(b => <option key={b.id} value={b.id}>{b.nome}</option>)}
+                    {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                   </select>
                 </div>
                 <div className="space-y-1">

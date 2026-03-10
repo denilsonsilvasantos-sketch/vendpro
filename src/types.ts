@@ -1,14 +1,13 @@
 export interface Brand {
   id: number;
   company_id: number;
-  nome: string;
+  name: string;
   logo_url?: string;
   margin_percentage: number;
   minimum_order_value: number;
   shipping_policy?: string;
   payment_policy?: string;
   stock_policy?: string;
-  free_shipping_threshold?: number;
   payment_methods?: string[];
 }
 

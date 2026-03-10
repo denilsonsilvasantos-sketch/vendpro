@@ -219,7 +219,7 @@ export default function UploadPage({ companyId }: { companyId: number | null }) 
                 onChange={(e) => setSelectedBrandId(Number(e.target.value))}
               >
                 {brands.map(brand => (
-                  <option key={brand.id} value={brand.id}>{brand.nome}</option>
+                  <option key={brand.id} value={brand.id}>{brand.name}</option>
                 ))}
               </select>
             </div>

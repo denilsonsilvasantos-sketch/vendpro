@@ -14,17 +14,12 @@ export default defineConfig(({mode}) => {
         registerType: 'autoUpdate',
         includeAssets: ['pwa-192x192.png', 'pwa-512x512.png'],
         manifest: {
-          name: 'VendPro Catálogo',
+          name: 'VendPro',
           short_name: 'VendPro',
-          description: 'Catálogo Premium de Beleza e Vendas',
-          theme_color: '#0f172a',
-          background_color: '#f5f5f4',
+          theme_color: '#000000',
+          background_color: '#ffffff',
           display: 'standalone',
           start_url: '/',
-          scope: '/',
-          lang: 'pt-BR',
-          orientation: 'portrait',
-          categories: ['shopping', 'business'],
           icons: [
             {
               src: 'pwa-192x192.png',
@@ -35,12 +30,6 @@ export default defineConfig(({mode}) => {
               src: 'pwa-512x512.png',
               sizes: '512x512',
               type: 'image/png'
-            },
-            {
-              src: 'pwa-512x512.png',
-              sizes: '512x512',
-              type: 'image/png',
-              purpose: 'any maskable'
             }
           ]
         }

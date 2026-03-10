@@ -1,65 +1,176 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../integrations/supabaseClient';
-import { Product } from '../types';
-import { Package, Edit, Trash2, Plus } from 'lucide-react';
+import { Product, Brand, Category } from '../types';
+import { Package, Edit, Trash2, Plus, Search, Filter, Tag, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 import ProductFormModal from '../components/ProductFormModal';
 
 export default function Produtos({ companyId }: { companyId: number | null }) {
   const [products, setProducts] = useState<Product[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | undefined>();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterBrand, setFilterBrand] = useState<number | null>(null);
 
-  async function fetchProducts() {
+  async function fetchData() {
     if (!supabase || !companyId) return;
-    const { data, error } = await supabase.from('products').select('*').eq('company_id', companyId);
-    if (error) console.error(error);
-    else setProducts(data || []);
+    setLoading(true);
+    
+    const { data: pData } = await supabase.from('products').select('*').eq('company_id', companyId).order('nome');
+    const { data: bData } = await supabase.from('brands').select('*').eq('company_id', companyId).order('nome');
+    const { data: cData } = await supabase.from('categories').select('*').eq('company_id', companyId).order('nome');
+    
+    setProducts(pData || []);
+    setBrands(bData || []);
+    setCategories(cData || []);
     setLoading(false);
   }
 
   useEffect(() => {
-    fetchProducts();
+    fetchData();
   }, [companyId]);
 
   const handleDelete = async (id: number) => {
+    if (!confirm('Excluir este produto permanentemente?')) return;
     if (!supabase) return;
     await supabase.from('products').delete().eq('id', id);
-    fetchProducts();
+    fetchData();
   };
 
-  if (loading) return <div className="p-6">Carregando...</div>;
+  const filteredProducts = products.filter(p => {
+    const matchesSearch = p.nome.toLowerCase().includes(searchTerm.toLowerCase()) || p.sku.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesBrand = filterBrand ? p.brand_id === filterBrand : true;
+    return matchesSearch && matchesBrand;
+  });
+
+  if (loading && products.length === 0) {
+    return (
+      <div className="p-6 flex flex-col items-center justify-center min-h-[400px] gap-4">
+        <Loader2 className="animate-spin text-primary" size={40} />
+        <p className="text-slate-500 font-medium">Carregando catálogo de produtos...</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Produtos</h1>
-        <button onClick={() => { setEditingProduct(undefined); setIsModalOpen(true); }} className="bg-primary text-white px-4 py-2 rounded-lg flex items-center gap-2">
+    <div className="p-6 space-y-6 max-w-6xl mx-auto">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Produtos</h1>
+          <p className="text-slate-500 text-sm mt-1">Gerencie seu catálogo completo de itens.</p>
+        </div>
+        <button 
+          onClick={() => { setEditingProduct(undefined); setIsModalOpen(true); }} 
+          className="bg-primary text-white px-6 py-3 rounded-2xl flex items-center gap-2 font-bold shadow-lg shadow-primary/20 hover:-translate-y-0.5 transition-all active:scale-95 w-full md:w-auto justify-center"
+        >
           <Plus size={20} /> Novo Produto
         </button>
       </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {products.map(product => (
-          <div key={product.id} className="bg-white p-4 rounded-xl shadow flex items-center gap-4">
-            <img src={product.imagem || 'https://via.placeholder.com/150'} alt={product.nome} className="w-16 h-16 rounded-lg object-cover" />
-            <div className="flex-1">
-              <h3 className="font-bold">{product.nome}</h3>
-              <p className="text-sm text-slate-500">R$ {product.preco_unitario}</p>
-            </div>
-            <div className="flex gap-2">
-              <button onClick={() => { setEditingProduct(product); setIsModalOpen(true); }} className="p-2 text-slate-400 hover:text-primary"><Edit size={18} /></button>
-              <button onClick={() => handleDelete(product.id)} className="p-2 text-slate-400 hover:text-red-500"><Trash2 size={18} /></button>
-            </div>
-          </div>
-        ))}
+
+      <div className="flex flex-col md:flex-row gap-4 bg-white p-4 rounded-3xl border border-slate-100 shadow-sm">
+        <div className="relative flex-1">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+          <input 
+            type="text" 
+            placeholder="Buscar por nome ou SKU..."
+            className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+          />
+        </div>
+        <div className="relative min-w-[200px]">
+          <Filter className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+          <select 
+            className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-2 focus:ring-primary/20 transition-all appearance-none text-slate-600"
+            value={filterBrand || ''}
+            onChange={e => setFilterBrand(e.target.value ? parseInt(e.target.value) : null)}
+          >
+            <option value="">Todas as Marcas</option>
+            {brands.map(b => <option key={b.id} value={b.id}>{b.nome}</option>)}
+          </select>
+        </div>
       </div>
+      
+      {filteredProducts.length === 0 ? (
+        <div className="bg-white p-12 rounded-3xl border-2 border-dashed border-slate-200 text-center space-y-4">
+          <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto">
+            <Package className="text-slate-300" size={40} />
+          </div>
+          <div className="space-y-1">
+            <h2 className="text-xl font-bold text-slate-900">Nenhum produto encontrado</h2>
+            <p className="text-slate-500 max-w-xs mx-auto">Tente ajustar seus filtros ou cadastre um novo produto.</p>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {filteredProducts.map(product => (
+            <div key={product.id} className={`bg-white rounded-3xl overflow-hidden border transition-all hover:shadow-xl hover:shadow-slate-200/50 group ${!product.ativo ? 'opacity-60 grayscale' : 'border-slate-100'}`}>
+              <div className="aspect-square relative overflow-hidden bg-slate-50">
+                <img 
+                  src={product.imagem || 'https://picsum.photos/seed/product/400/400'} 
+                  alt={product.nome} 
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                  referrerPolicy="no-referrer"
+                />
+                <div className="absolute top-3 right-3 flex flex-col gap-2">
+                  {!product.ativo && <span className="bg-slate-900/80 text-white text-[10px] font-bold px-2 py-1 rounded-lg backdrop-blur-md">Inativo</span>}
+                  {product.is_last_units && <span className="bg-rose-500 text-white text-[10px] font-bold px-2 py-1 rounded-lg shadow-lg">Últimas Unidades</span>}
+                  {product.venda_somente_box && <span className="bg-amber-500 text-white text-[10px] font-bold px-2 py-1 rounded-lg shadow-lg">Somente Box</span>}
+                </div>
+              </div>
+              
+              <div className="p-5 space-y-4">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-[10px] font-bold text-primary uppercase tracking-wider">{brands.find(b => b.id === product.brand_id)?.nome}</span>
+                    <span className="w-1 h-1 bg-slate-300 rounded-full" />
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{categories.find(c => c.id === product.categoria_id)?.nome}</span>
+                  </div>
+                  <h3 className="font-bold text-slate-900 line-clamp-1 group-hover:text-primary transition-colors">{product.nome}</h3>
+                  <p className="text-[10px] font-mono text-slate-400 mt-0.5">SKU: {product.sku}</p>
+                </div>
+
+                <div className="flex items-end justify-between">
+                  <div className="space-y-0.5">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase">Preço Unitário</p>
+                    <p className="text-xl font-bold text-slate-900">R$ {product.preco_unitario.toFixed(2)}</p>
+                  </div>
+                  <div className="flex gap-1">
+                    <button 
+                      onClick={() => { setEditingProduct(product); setIsModalOpen(true); }} 
+                      className="p-2.5 text-slate-400 hover:text-primary hover:bg-primary/5 rounded-xl transition-all"
+                    >
+                      <Edit size={18} />
+                    </button>
+                    <button 
+                      onClick={() => handleDelete(product.id)} 
+                      className="p-2.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
+                </div>
+
+                {product.has_box_discount && (
+                  <div className="pt-3 border-t border-slate-50 flex items-center gap-2 text-[10px] font-bold text-emerald-600">
+                    <CheckCircle2 size={12} />
+                    <span>Desconto no Box: R$ {product.preco_box.toFixed(2)} ({product.qtd_box} un)</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {isModalOpen && (
         <ProductFormModal 
           onClose={() => setIsModalOpen(false)} 
-          onSave={() => { fetchProducts(); setIsModalOpen(false); }} 
+          onSave={() => { fetchData(); setIsModalOpen(false); }} 
           product={editingProduct}
+          companyId={companyId}
         />
       )}
     </div>

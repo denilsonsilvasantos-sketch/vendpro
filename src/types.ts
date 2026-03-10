@@ -2,9 +2,12 @@ export interface Brand {
   id: number;
   company_id: number;
   nome: string;
+  logo_url?: string;
   margin_percentage: number;
   minimum_order_value: number;
   shipping_policy?: string;
+  payment_policy?: string;
+  stock_policy?: string;
   free_shipping_threshold?: number;
   payment_methods?: string[];
 }
@@ -31,6 +34,11 @@ export interface Seller {
   ativo: boolean;
 }
 
+export interface SellerBrand {
+  seller_id: number;
+  brand_id: number;
+}
+
 export interface Customer {
   id: number;
   seller_id: number;
@@ -39,6 +47,7 @@ export interface Customer {
   telefone?: string;
   responsavel?: string;
   ativo: boolean;
+  seller_nome?: string;
 }
 
 export interface Category {
@@ -63,6 +72,8 @@ export interface Product {
   preco_box: number;
   qtd_box: number;
   venda_somente_box: boolean;
+  has_box_discount: boolean;
+  is_last_units: boolean;
   multiplo_venda?: number;
   status_estoque: 'normal' | 'baixo' | 'ultimas' | 'esgotado';
   sugestao_revenda_max?: number;
@@ -81,6 +92,32 @@ export interface Product {
 
 export interface CartItem extends Product {
   quantity: number;
+}
+
+export interface Order {
+  id: number;
+  company_id: number;
+  customer_id: number;
+  seller_id: number;
+  brand_id: number;
+  total: number;
+  status: 'pending' | 'attended' | 'finished' | 'cancelled';
+  whatsapp_sent: boolean;
+  created_at: string;
+  items: OrderItem[];
+  customer_nome?: string;
+  brand_nome?: string;
+}
+
+export interface OrderItem {
+  id: number;
+  order_id: number;
+  product_id: number;
+  sku: string;
+  nome: string;
+  quantidade: number;
+  preco_unitario: number;
+  preco_total: number;
 }
 
 export type UserRole = 'company' | 'seller' | 'customer' | null;

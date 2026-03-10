@@ -28,7 +28,12 @@ export async function extractProductsFromMedia(base64Data: string, mimeType: str
   if (!process.env.GEMINI_API_KEY) return [];
 
   const prompt = `Analise este catálogo e extraia todos os produtos visíveis. 
-  Para cada produto, identifique: nome, SKU (se houver), preço unitário, preço da caixa (box), quantidade na caixa (qtd_box) e se é venda somente por caixa.
+  Para cada produto, identifique: nome, SKU (se houver), preço unitário, preço da caixa (box), quantidade na caixa (qtd_box).
+  Identifique também as seguintes condições:
+  - "venda_somente_box": true se houver expressões como "somente no box", "venda fechada", "apenas caixa".
+  - "is_last_units": true se houver expressões como "últimas unidades", "queima de estoque", "fim de linha".
+  - "has_box_discount": true se o preço unitário for menor ao comprar a caixa fechada.
+  
   Retorne os dados em formato JSON seguindo este esquema:
   Array<{
     sku: string,
@@ -37,7 +42,9 @@ export async function extractProductsFromMedia(base64Data: string, mimeType: str
     preco_unitario: number,
     preco_box: number,
     qtd_box: number,
-    venda_somente_box: boolean
+    venda_somente_box: boolean,
+    has_box_discount: boolean,
+    is_last_units: boolean
   }>`;
 
   try {
@@ -65,7 +72,9 @@ export async function extractProductsFromMedia(base64Data: string, mimeType: str
               preco_unitario: { type: Type.NUMBER },
               preco_box: { type: Type.NUMBER },
               qtd_box: { type: Type.INTEGER },
-              venda_somente_box: { type: Type.BOOLEAN }
+              venda_somente_box: { type: Type.BOOLEAN },
+              has_box_discount: { type: Type.BOOLEAN },
+              is_last_units: { type: Type.BOOLEAN }
             },
             required: ["nome", "preco_unitario"]
           }

@@ -6,6 +6,7 @@ import { Package, Users, ShoppingCart, TrendingUp } from 'lucide-react';
 
 export default function Dashboard({ companyId }: { companyId: number | null }) {
   const [stats, setStats] = useState({ products: 0, customers: 0, orders: 0, revenue: 0 });
+  const [brandRevenue, setBrandRevenue] = useState<{ name: string, value: number }[]>([]);
   const [loading, setLoading] = useState(true);
   const [newOrder, setNewOrder] = useState<any>(null);
 
@@ -26,9 +27,29 @@ export default function Dashboard({ companyId }: { companyId: number | null }) {
 
       const { count: orderCount } = await supabase.from('orders').select('*', { count: 'exact', head: true }).eq('company_id', companyId);
       
-      // Fetch total revenue
-      const { data: orders } = await supabase.from('orders').select('total').eq('company_id', companyId);
+      // Fetch total revenue and breakdown by brand
+      const { data: orders } = await supabase.from('orders').select('id, total').eq('company_id', companyId);
       const totalRevenue = orders?.reduce((acc, order) => acc + (order.total || 0), 0) || 0;
+
+      // Fetch order items to calculate revenue by brand
+      const { data: orderItems } = await supabase
+        .from('order_items')
+        .select(`
+          subtotal,
+          product:product_id (
+            brand:brand_id (
+              nome
+            )
+          )
+        `);
+      
+      const brandMap: Record<string, number> = {};
+      orderItems?.forEach((item: any) => {
+        const brandName = item.product?.brand?.nome || 'Sem Marca';
+        brandMap[brandName] = (brandMap[brandName] || 0) + (item.subtotal || 0);
+      });
+
+      const brandData = Object.entries(brandMap).map(([name, value]) => ({ name, value }));
 
       setStats({
         products: productCount || 0,
@@ -36,6 +57,7 @@ export default function Dashboard({ companyId }: { companyId: number | null }) {
         orders: orderCount || 0,
         revenue: totalRevenue
       });
+      setBrandRevenue(brandData);
       setLoading(false);
     }
     fetchStats();
@@ -78,22 +100,39 @@ export default function Dashboard({ companyId }: { companyId: number | null }) {
         <Card title="Receita Total" value={`R$ ${stats.revenue.toFixed(2)}`} icon={<TrendingUp className="text-orange-500" />} />
       </div>
 
-      <div className="bg-white p-6 rounded-xl shadow">
-        <h2 className="text-lg font-bold mb-4">Visão Geral</h2>
-        <div className="h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="value">
-                {data.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={['#3b82f6', '#22c55e', '#a855f7'][index]} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white p-6 rounded-xl shadow">
+          <h2 className="text-lg font-bold mb-4">Visão Geral</h2>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={data}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="value">
+                  {data.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={['#3b82f6', '#22c55e', '#a855f7'][index]} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-xl shadow">
+          <h2 className="text-lg font-bold mb-4">Faturamento por Marca</h2>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={brandRevenue} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis type="number" />
+                <YAxis dataKey="name" type="category" width={100} />
+                <Tooltip formatter={(value: number) => `R$ ${value.toFixed(2)}`} />
+                <Bar dataKey="value" fill="#f59e0b" radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       </div>
     </div>

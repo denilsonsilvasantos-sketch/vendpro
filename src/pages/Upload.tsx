@@ -17,6 +17,9 @@ export default function UploadPage({ companyId }: { companyId: number | null }) 
   const [missingProducts, setMissingProducts] = useState<Product[]>([]);
   const [showMissingAlert, setShowMissingAlert] = useState(false);
   
+  const [priceChanges, setPriceChanges] = useState<{ sku: string, old: number, new: number }[]>([]);
+  const [showPriceAlert, setShowPriceAlert] = useState(false);
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -103,13 +106,29 @@ export default function UploadPage({ companyId }: { companyId: number | null }) 
             preco_box: extracted.preco_box || 0,
             qtd_box: extracted.qtd_box || 1,
             venda_somente_box: extracted.venda_somente_box || false,
+            has_box_discount: extracted.has_box_discount || false,
+            is_last_units: extracted.is_last_units || false,
             categoria_id: categoriaId,
             categoria_pendente: categoriaPendente,
-            imagem_pendente: true, // Sempre pendente para revisão de imagem
+            imagem_pendente: true,
             last_seen_date: new Date().toISOString(),
             last_seen_catalog_type: catalogType,
             ativo: true
           };
+
+          // Se for reposição, verificar mudança de preço
+          if (catalogType === 'replenishment') {
+            const { data: existing } = await supabase
+              .from('products')
+              .select('preco_unitario')
+              .eq('company_id', companyId)
+              .eq('sku', sku)
+              .single();
+            
+            if (existing && existing.preco_unitario !== extracted.preco_unitario) {
+              setPriceChanges(prev => [...prev, { sku: sku, old: existing.preco_unitario, new: extracted.preco_unitario }]);
+            }
+          }
 
           await supabase.from('products').upsert(productData, { onConflict: 'company_id, sku' });
         }
@@ -136,6 +155,11 @@ export default function UploadPage({ companyId }: { companyId: number | null }) 
 
       setIsUploading(false);
       setUploadedFiles([]);
+      
+      if (priceChanges.length > 0) {
+        setShowPriceAlert(true);
+      }
+
       setStatus({ 
         type: 'success', 
         message: `Processamento concluído! ${totalProducts} produtos identificados e enviados para pendências.` 
@@ -327,6 +351,39 @@ export default function UploadPage({ companyId }: { companyId: number | null }) 
                 Manter como Ativos
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showPriceAlert && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl max-w-md w-full p-8 shadow-2xl space-y-6 animate-in zoom-in-95">
+            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
+              <AlertCircle size={32} className="text-blue-600" />
+            </div>
+            <div className="text-center space-y-2">
+              <h2 className="text-xl font-bold">Mudanças de Preço Detectadas</h2>
+              <p className="text-slate-500 text-sm">
+                Identificamos <strong>{priceChanges.length} produtos</strong> com alteração de preço neste catálogo de reposição.
+              </p>
+            </div>
+            <div className="max-h-[200px] overflow-y-auto border border-slate-100 rounded-xl p-4 space-y-2">
+              {priceChanges.map((pc, idx) => (
+                <div key={idx} className="flex justify-between text-xs">
+                  <span className="font-mono text-slate-500">{pc.sku}</span>
+                  <div className="flex gap-2">
+                    <span className="text-slate-400 line-through">R$ {pc.old.toFixed(2)}</span>
+                    <span className="font-bold text-primary">R$ {pc.new.toFixed(2)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button 
+              onClick={() => { setShowPriceAlert(false); setPriceChanges([]); }}
+              className="w-full py-3 bg-primary text-white rounded-xl font-bold hover:bg-primary/60 transition-colors"
+            >
+              Entendido
+            </button>
           </div>
         </div>
       )}

@@ -73,7 +73,7 @@ export default function CustomerFormModal({ onClose, onSave, customer, companyId
           <select 
             className="w-full p-2 border rounded" 
             value={formData.seller_id || ''} 
-            onChange={e => setFormData({...formData, seller_id: e.target.value ? parseInt(e.target.value) : ''})}
+            onChange={e => setFormData({...formData, seller_id: e.target.value})}
             required
           >
             <option value="">Selecione um Vendedor</option>

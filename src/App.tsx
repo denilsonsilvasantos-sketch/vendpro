@@ -77,6 +77,15 @@ function getHeaders() {
 export default function App() {
   const [role, setRole] = useState<UserRole>(() => {
     const saved = localStorage.getItem('vendpro_role');
+    const activeCompanyId = localStorage.getItem('vendpro_active_company_id');
+    const isValidUUID = activeCompanyId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(activeCompanyId);
+    
+    if (activeCompanyId && !isValidUUID) {
+      localStorage.removeItem('vendpro_active_company_id');
+      localStorage.removeItem('vendpro_role');
+      localStorage.removeItem('vendpro_user');
+      return null;
+    }
     return saved ? (saved as UserRole) : null;
   });
   const [user, setUser] = useState<any>(() => {
@@ -101,6 +110,13 @@ export default function App() {
   const [availableCompanies, setAvailableCompanies] = useState<any[]>(() => JSON.parse(localStorage.getItem('vendpro_available_companies') || '[]'));
   const [activeCompanyId, setActiveCompanyId] = useState<string | null>(() => {
     const saved = localStorage.getItem('vendpro_active_company_id');
+    const isValidUUID = saved && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(saved);
+    if (saved && !isValidUUID) {
+      localStorage.removeItem('vendpro_active_company_id');
+      localStorage.removeItem('vendpro_role');
+      localStorage.removeItem('vendpro_user');
+      return null;
+    }
     return saved ? saved : null;
   });
   const [showCompanyInfo, setShowCompanyInfo] = useState(false);
@@ -499,7 +515,14 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
   const handleSellerCodeSubmit = async () => {
     const code = sellerCode.trim().toUpperCase();
     if (code === 'ADMIN') {
-      onLogin('company', { id: 1, nome: 'Admin' }, [{ id: 1, nome: 'Admin' }]);
+      if (supabase) {
+        const { data } = await supabase.from('companies').select('*').limit(1);
+        if (data && data.length > 0) {
+          onLogin('company', data[0], [data[0]]);
+        } else {
+          alert('Nenhuma empresa cadastrada no sistema.');
+        }
+      }
       return;
     }
     
@@ -538,7 +561,14 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
   const handleCompanyLogin = async () => {
     const nome = companyLoginNome.trim();
     if (nome.toUpperCase() === 'ADMIN') {
-      onLogin('company', { id: '1', nome: 'VendPro Matriz' });
+      if (supabase) {
+        const { data } = await supabase.from('companies').select('*').limit(1);
+        if (data && data.length > 0) {
+          onLogin('company', data[0]);
+        } else {
+          alert('Nenhuma empresa cadastrada no sistema.');
+        }
+      }
       return;
     }
     const result = await loginCompany(nome);
@@ -881,7 +911,7 @@ function ProductEditModal({ product, categories, onClose, onSave }: { product: P
           pending_status: 'none', // Manual save resolves pendencies
           categoria_pendente: false,
           imagem_pendente: false,
-          company_id: data.company_id || parseInt(localStorage.getItem('vendpro_active_company_id') || '1')
+          company_id: data.company_id || localStorage.getItem('vendpro_active_company_id')
         })
       });
       

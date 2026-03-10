@@ -13,6 +13,7 @@ import {
   Package, 
   Users, 
   Upload, 
+  AlertTriangle,
   AlertCircle,
   LogOut,
   ChevronRight,

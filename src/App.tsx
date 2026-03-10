@@ -98,7 +98,7 @@ export default function App() {
           supabase.from('profiles').select('*').eq('user_id', session.user.id).single().then(({ data }) => {
             setProfile(data);
             setRole(data?.role || 'customer');
-            if (data?.company_id && !activeCompanyId) {
+            if (data?.company_id) {
               setActiveCompanyId(data.company_id);
               localStorage.setItem('vendpro_active_company_id', data.company_id.toString());
             }
@@ -137,6 +137,7 @@ export default function App() {
   };
 
   useEffect(() => {
+    console.log("Active Company ID:", activeCompanyId);
     async function loadData() {
       if (activeCompanyId) {
         setLoading(true);

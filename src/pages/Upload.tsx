@@ -24,7 +24,7 @@ export default function UploadPage({ companyId }: { companyId: number | null }) 
 
   useEffect(() => {
     async function fetchBrands() {
-      if (!supabase || !companyId) return;
+      if (!supabase || companyId === null) return;
       const { data } = await supabase.from('brands').select('*').eq('company_id', companyId);
       setBrands(data || []);
       if (data && data.length > 0) setSelectedBrandId(data[0].id);

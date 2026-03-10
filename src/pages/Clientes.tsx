@@ -11,11 +11,18 @@ export default function Clientes({ companyId }: { companyId: number | null }) {
   const [editingCustomer, setEditingCustomer] = useState<Customer | undefined>();
 
   async function fetchCustomers() {
-    if (!supabase || !companyId) return;
-    const { data, error } = await supabase.from('customers').select('*').eq('company_id', companyId);
-    if (error) console.error(error);
-    else setCustomers(data || []);
-    setLoading(false);
+    if (!supabase || companyId === null) return;
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.from('customers').select('*').eq('company_id', companyId);
+      if (error) throw error;
+      setCustomers(data || []);
+    } catch (error: any) {
+      console.error("Erro ao buscar clientes:", error);
+      alert("Erro ao carregar clientes: " + error.message);
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => {

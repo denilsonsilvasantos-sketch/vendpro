@@ -74,21 +74,40 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!companyId) return;
+    if (!supabase) return;
+    if (!companyId) {
+      alert('Erro: Empresa não identificada. Por favor, recarregue a página.');
+      return;
+    }
     setLoading(true);
     
     const dataToSave = { ...formData, company_id: companyId };
+    
+    try {
+      let error;
+      if (product) {
+        const { id, created_at, ...updateData } = dataToSave as any;
+        const { error: updateError } = await supabase.from('products').update(updateData).eq('id', product.id);
+        error = updateError;
+      } else {
+        const { error: insertError } = await supabase.from('products').insert([dataToSave]);
+        error = insertError;
+      }
 
-    if (!supabase) return;
-
-    if (product) {
-      await supabase.from('products').update(dataToSave).eq('id', product.id);
-    } else {
-      await supabase.from('products').insert([dataToSave]);
+      if (error) {
+        console.error('Erro ao salvar produto:', error);
+        alert('Erro ao salvar produto: ' + error.message);
+      } else {
+        alert('Produto salvo com sucesso!');
+        onSave();
+        onClose();
+      }
+    } catch (err: any) {
+      console.error('Erro inesperado:', err);
+      alert('Erro inesperado ao salvar produto.');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-    onSave();
-    onClose();
   };
 
   return (

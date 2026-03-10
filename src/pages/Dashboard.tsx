@@ -12,18 +12,12 @@ export default function Dashboard({ companyId }: { companyId: number | null }) {
 
   useEffect(() => {
     async function fetchStats() {
-      if (!supabase || !companyId) return;
+      if (!supabase || companyId === null) return;
       
       // Fetch counts
       const { count: productCount } = await supabase.from('products').select('*', { count: 'exact', head: true }).eq('company_id', companyId);
       
-      // Clientes estão vinculados a vendedores, que estão vinculados a empresas
-      const { data: sellers } = await supabase.from('sellers').select('id').eq('company_id', companyId);
-      const sellerIds = sellers?.map(s => s.id) || [];
-      
-      const { count: customerCount } = sellerIds.length > 0 
-        ? await supabase.from('customers').select('*', { count: 'exact', head: true }).in('seller_id', sellerIds)
-        : { count: 0 };
+      const { count: customerCount } = await supabase.from('customers').select('*', { count: 'exact', head: true }).eq('company_id', companyId);
 
       const { count: orderCount } = await supabase.from('orders').select('*', { count: 'exact', head: true }).eq('company_id', companyId);
       

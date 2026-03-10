@@ -54,21 +54,40 @@ export default function BrandFormModal({ onClose, onSave, brand, companyId }: { 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!companyId) return;
+    if (!supabase) return;
+    if (!companyId) {
+      alert('Erro: Empresa não identificada. Por favor, recarregue a página.');
+      return;
+    }
     setLoading(true);
     
     const dataToSave = { ...formData, company_id: companyId };
+    
+    try {
+      let error;
+      if (brand) {
+        const { id, created_at, ...updateData } = dataToSave as any;
+        const { error: updateError } = await supabase.from('brands').update(updateData).eq('id', brand.id);
+        error = updateError;
+      } else {
+        const { error: insertError } = await supabase.from('brands').insert([dataToSave]);
+        error = insertError;
+      }
 
-    if (!supabase) return;
-
-    if (brand) {
-      await supabase.from('brands').update(dataToSave).eq('id', brand.id);
-    } else {
-      await supabase.from('brands').insert([dataToSave]);
+      if (error) {
+        console.error('Erro ao salvar marca:', error);
+        alert('Erro ao salvar marca: ' + error.message);
+      } else {
+        alert('Marca salva com sucesso!');
+        onSave();
+        onClose();
+      }
+    } catch (err: any) {
+      console.error('Erro inesperado:', err);
+      alert('Erro inesperado ao salvar marca.');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-    onSave();
-    onClose();
   };
 
   return (

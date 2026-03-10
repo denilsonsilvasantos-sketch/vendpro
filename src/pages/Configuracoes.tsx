@@ -18,7 +18,7 @@ export default function Configuracoes({ companyId }: { companyId: number | null 
 
   useEffect(() => {
     async function fetchCompany() {
-      if (!supabase || !companyId) return;
+      if (!supabase || companyId === null) return;
       const { data } = await supabase.from('companies').select('*').eq('id', companyId).single();
       if (data) {
         setCompany(data);

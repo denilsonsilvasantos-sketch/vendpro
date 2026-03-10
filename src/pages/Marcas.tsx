@@ -14,13 +14,23 @@ export default function Marcas({ companyId }: { companyId: number | null }) {
   const [newCategoryName, setNewCategoryName] = useState<{ [brandId: number]: string }>({});
 
   async function fetchData() {
-    if (!supabase || !companyId) return;
+    if (!supabase || companyId === null) return;
     setLoading(true);
-    const { data: bData } = await supabase.from('brands').select('*').eq('company_id', companyId).order('nome');
-    const { data: cData } = await supabase.from('categories').select('*').eq('company_id', companyId).order('nome');
-    setBrands(bData || []);
-    setCategories(cData || []);
-    setLoading(false);
+    try {
+      const { data: bData, error: bError } = await supabase.from('brands').select('*').eq('company_id', companyId).order('nome');
+      const { data: cData, error: cError } = await supabase.from('categories').select('*').eq('company_id', companyId).order('nome');
+      
+      if (bError) throw bError;
+      if (cError) throw cError;
+      
+      setBrands(bData || []);
+      setCategories(cData || []);
+    } catch (error: any) {
+      console.error("Erro ao buscar dados:", error);
+      alert("Erro ao carregar marcas: " + error.message);
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => {
@@ -41,15 +51,25 @@ export default function Marcas({ companyId }: { companyId: number | null }) {
     const nome = newCategoryName[brandId];
     if (!supabase || !nome || !companyId) return;
 
-    await supabase.from('categories').insert([{
-      company_id: companyId,
-      brand_id: brandId,
-      nome: nome,
-      ativo: true
-    }]);
+    try {
+      const { error } = await supabase.from('categories').insert([{
+        company_id: companyId,
+        brand_id: brandId,
+        nome: nome,
+        ativo: true
+      }]);
 
-    setNewCategoryName(prev => ({ ...prev, [brandId]: '' }));
-    fetchData();
+      if (error) {
+        console.error('Erro ao adicionar categoria:', error);
+        alert('Erro ao adicionar categoria: ' + error.message);
+      } else {
+        setNewCategoryName(prev => ({ ...prev, [brandId]: '' }));
+        fetchData();
+      }
+    } catch (err: any) {
+      console.error('Erro inesperado:', err);
+      alert('Erro inesperado ao adicionar categoria.');
+    }
   };
 
   const handleDeleteCategory = async (id: number) => {

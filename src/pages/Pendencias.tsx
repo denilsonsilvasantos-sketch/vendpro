@@ -13,7 +13,7 @@ export default function Pendencias({ companyId }: { companyId: number | null }) 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   async function fetchPendencies() {
-    if (!supabase || !companyId) return;
+    if (!supabase || companyId === null) return;
     const { data, error } = await supabase
       .from('products')
       .select('*')

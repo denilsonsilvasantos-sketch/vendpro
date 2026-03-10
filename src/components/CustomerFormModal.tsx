@@ -1,24 +1,61 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../integrations/supabaseClient';
-import { Customer } from '../types';
+import { Customer, Seller } from '../types';
 import { X } from 'lucide-react';
 
 export default function CustomerFormModal({ onClose, onSave, customer, companyId }: { onClose: () => void, onSave: () => void, customer?: Customer, companyId: number | null }) {
-  const [formData, setFormData] = useState(customer || { empresa: '', telefone: '', cnpj: '' });
+  const [formData, setFormData] = useState<any>(customer || { empresa: '', telefone: '', cnpj: '', ativo: true, seller_id: '' });
   const [loading, setLoading] = useState(false);
+  const [sellers, setSellers] = useState<Seller[]>([]);
+
+  useEffect(() => {
+    async function fetchSellers() {
+      if (!supabase || !companyId) return;
+      const { data } = await supabase.from('sellers').select('*').eq('company_id', companyId);
+      setSellers(data || []);
+    }
+    fetchSellers();
+  }, [companyId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    if (!supabase || !companyId) return;
-    if (customer) {
-      await supabase.from('customers').update(formData).eq('id', customer.id);
-    } else {
-      await supabase.from('customers').insert([{ ...formData, company_id: companyId }]);
+    if (!supabase) return;
+    if (!companyId) {
+      alert('Erro: Empresa não identificada. Por favor, recarregue a página.');
+      return;
     }
-    setLoading(false);
-    onSave();
-    onClose();
+    setLoading(true);
+
+    try {
+      let error;
+      const dataToSave = { ...formData };
+      if (dataToSave.seller_id === '') {
+        delete dataToSave.seller_id;
+      }
+
+      if (customer) {
+        const { id, created_at, seller_nome, ...updateData } = dataToSave as any;
+        const { error: updateError } = await supabase.from('customers').update(updateData).eq('id', customer.id);
+        error = updateError;
+      } else {
+        const { error: insertError } = await supabase.from('customers').insert([{ ...dataToSave, company_id: companyId }]);
+        error = insertError;
+      }
+
+      if (error) {
+        console.error('Erro ao salvar cliente:', error);
+        alert('Erro ao salvar cliente: ' + error.message);
+      } else {
+        alert('Cliente salvo com sucesso!');
+        onSave();
+        onClose();
+      }
+    } catch (err: any) {
+      console.error('Erro inesperado:', err);
+      alert('Erro inesperado ao salvar cliente.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -32,6 +69,18 @@ export default function CustomerFormModal({ onClose, onSave, customer, companyId
           <input className="w-full p-2 border rounded" placeholder="Nome da Empresa" value={formData.empresa} onChange={e => setFormData({...formData, empresa: e.target.value})} required />
           <input className="w-full p-2 border rounded" placeholder="Telefone" value={formData.telefone} onChange={e => setFormData({...formData, telefone: e.target.value})} />
           <input className="w-full p-2 border rounded" placeholder="CNPJ" value={formData.cnpj} onChange={e => setFormData({...formData, cnpj: e.target.value})} />
+          
+          <select 
+            className="w-full p-2 border rounded" 
+            value={formData.seller_id || ''} 
+            onChange={e => setFormData({...formData, seller_id: e.target.value ? parseInt(e.target.value) : ''})}
+          >
+            <option value="">Sem Vendedor Vinculado</option>
+            {sellers.map(s => (
+              <option key={s.id} value={s.id}>{s.nome}</option>
+            ))}
+          </select>
+
           <button type="submit" className="w-full bg-primary text-white p-2 rounded" disabled={loading}>{loading ? 'Salvando...' : 'Salvar'}</button>
         </form>
       </div>

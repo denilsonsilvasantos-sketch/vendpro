@@ -8,7 +8,7 @@ export default function Pedidos({ companyId }: { companyId: number | null }) {
 
   useEffect(() => {
     async function fetchOrders() {
-      if (!supabase || !companyId) return;
+      if (!supabase || companyId === null) return;
       const { data, error } = await supabase.from('orders').select('*, customers(empresa)').eq('company_id', companyId);
       if (error) console.error(error);
       else setOrders(data || []);
@@ -16,7 +16,7 @@ export default function Pedidos({ companyId }: { companyId: number | null }) {
     }
     fetchOrders();
 
-    if (!supabase || !companyId) return;
+    if (!supabase || companyId === null) return;
     const channel = supabase
       .channel('schema-db-changes')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders', filter: `company_id=eq.${companyId}` }, (payload) => {

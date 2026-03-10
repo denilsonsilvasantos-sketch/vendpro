@@ -12,7 +12,7 @@ import {
   Settings, 
   Package, 
   Users, 
-  Upload, 
+  Upload as UploadIcon, 
   Tag,
   AlertTriangle,
   AlertCircle,
@@ -321,7 +321,7 @@ export default function App() {
                 <SidebarItem icon={<LayoutGrid size={20}/>} label="Catálogo" active={activeTab === 'catalog'} onClick={() => { setActiveTab('catalog'); setIsSidebarOpen(false); }} />
                 <SidebarItem icon={<LayoutGrid size={20}/>} label="Dashboard" active={activeTab === 'dashboard'} onClick={() => { setActiveTab('dashboard'); setIsSidebarOpen(false); }} />
                 <SidebarItem icon={<Package size={20}/>} label="Produtos" active={activeTab === 'produtos'} onClick={() => { setActiveTab('produtos'); setIsSidebarOpen(false); }} />
-                <SidebarItem icon={<Upload size={20}/>} label="Upload" active={activeTab === 'upload'} onClick={() => { setActiveTab('upload'); setIsSidebarOpen(false); }} />
+                <SidebarItem icon={<UploadIcon size={20}/>} label="Upload" active={activeTab === 'upload'} onClick={() => { setActiveTab('upload'); setIsSidebarOpen(false); }} />
                 <SidebarItem icon={<AlertTriangle size={20}/>} label="Pendências" active={activeTab === 'pendencias'} onClick={() => { setActiveTab('pendencias'); setIsSidebarOpen(false); }} />
                 <SidebarItem icon={<Tag size={20}/>} label="Marcas" active={activeTab === 'marcas'} onClick={() => { setActiveTab('marcas'); setIsSidebarOpen(false); }} />
                 <SidebarItem icon={<Users size={20}/>} label="Clientes" active={activeTab === 'clientes'} onClick={() => { setActiveTab('clientes'); setIsSidebarOpen(false); }} />
@@ -957,7 +957,7 @@ function ProductEditModal({ product, categories, onClose, onSave }: { product: P
                     onChange={handleImageUpload}
                   />
                   <label htmlFor="edit-img-upload" className="w-full p-4 bg-primary text-white rounded-2xl text-xs font-bold flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-primary/20 hover:bg-primary-dark transition-all active:scale-95">
-                    <Upload size={16} />
+                    <UploadIcon size={16} />
                     Upload Arquivo
                   </label>
                 </div>

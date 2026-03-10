@@ -2,21 +2,31 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../integrations/supabaseClient';
 import { Product } from '../types';
 import { Package, Edit, Trash2, Plus } from 'lucide-react';
+import ProductFormModal from '../components/ProductFormModal';
 
 export default function Produtos() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | undefined>();
+
+  async function fetchProducts() {
+    if (!supabase) return;
+    const { data, error } = await supabase.from('products').select('*');
+    if (error) console.error(error);
+    else setProducts(data || []);
+    setLoading(false);
+  }
 
   useEffect(() => {
-    async function fetchProducts() {
-      if (!supabase) return;
-      const { data, error } = await supabase.from('products').select('*');
-      if (error) console.error(error);
-      else setProducts(data || []);
-      setLoading(false);
-    }
     fetchProducts();
   }, []);
+
+  const handleDelete = async (id: number) => {
+    if (!supabase) return;
+    await supabase.from('products').delete().eq('id', id);
+    fetchProducts();
+  };
 
   if (loading) return <div className="p-6">Carregando...</div>;
 
@@ -24,7 +34,7 @@ export default function Produtos() {
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Produtos</h1>
-        <button className="bg-primary text-white px-4 py-2 rounded-lg flex items-center gap-2">
+        <button onClick={() => { setEditingProduct(undefined); setIsModalOpen(true); }} className="bg-primary text-white px-4 py-2 rounded-lg flex items-center gap-2">
           <Plus size={20} /> Novo Produto
         </button>
       </div>
@@ -38,12 +48,20 @@ export default function Produtos() {
               <p className="text-sm text-slate-500">R$ {product.preco_unitario}</p>
             </div>
             <div className="flex gap-2">
-              <button className="p-2 text-slate-400 hover:text-primary"><Edit size={18} /></button>
-              <button className="p-2 text-slate-400 hover:text-red-500"><Trash2 size={18} /></button>
+              <button onClick={() => { setEditingProduct(product); setIsModalOpen(true); }} className="p-2 text-slate-400 hover:text-primary"><Edit size={18} /></button>
+              <button onClick={() => handleDelete(product.id)} className="p-2 text-slate-400 hover:text-red-500"><Trash2 size={18} /></button>
             </div>
           </div>
         ))}
       </div>
+
+      {isModalOpen && (
+        <ProductFormModal 
+          onClose={() => setIsModalOpen(false)} 
+          onSave={() => { fetchProducts(); setIsModalOpen(false); }} 
+          product={editingProduct}
+        />
+      )}
     </div>
   );
 }

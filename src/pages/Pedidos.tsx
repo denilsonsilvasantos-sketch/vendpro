@@ -52,7 +52,13 @@ export default function Pedidos() {
                 <td className="p-4">{order.customers?.empresa}</td>
                 <td className="p-4">R$ {order.total?.toFixed(2)}</td>
                 <td className="p-4">
-                  <span className="px-2 py-1 bg-slate-100 rounded-full text-xs">{order.status}</span>
+                  <span className={`px-2 py-1 rounded-full text-xs ${
+                    order.status === 'WhatsApp' ? 'bg-blue-100 text-blue-800' :
+                    order.status === 'Atendido' ? 'bg-yellow-100 text-yellow-800' :
+                    order.status === 'Finalizado' ? 'bg-green-100 text-green-800' : 'bg-slate-100'
+                  }`}>
+                    {order.status}
+                  </span>
                 </td>
               </tr>
             ))}

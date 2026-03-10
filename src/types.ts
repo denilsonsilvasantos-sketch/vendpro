@@ -41,6 +41,7 @@ export interface Customer {
 export interface Category {
   id: number;
   company_id: number;
+  brand_id: number;
   nome: string;
   palavras_chave?: string;
   ativo: boolean;

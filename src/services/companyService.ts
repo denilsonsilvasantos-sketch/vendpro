@@ -8,7 +8,7 @@ export async function registerCompany(companyData: any) {
 
   const { data, error } = await supabase
     .from("companies")
-    .insert([companyData])
+    .insert([{ nome: companyData.nome }])
     .select()
     .single();
 
@@ -20,7 +20,7 @@ export async function registerCompany(companyData: any) {
   return { success: true, company: data };
 }
 
-export async function loginCompany(cnpj: string) {
+export async function loginCompany(nome: string) {
   if (!supabase) {
     console.error("Supabase não inicializado.");
     return { success: false };
@@ -29,7 +29,7 @@ export async function loginCompany(cnpj: string) {
   const { data, error } = await supabase
     .from("companies")
     .select("*")
-    .eq("cnpj", cnpj)
+    .ilike("nome", nome)
     .single();
 
   if (error) {
@@ -40,7 +40,7 @@ export async function loginCompany(cnpj: string) {
   return { success: true, company: data };
 }
 
-export async function getCompanyById(id: number) {
+export async function getCompanyById(id: string) {
   if (!supabase) return null;
   const { data, error } = await supabase.from('companies').select('*').eq('id', id).single();
   if (error) {

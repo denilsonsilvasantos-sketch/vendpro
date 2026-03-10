@@ -1,6 +1,5 @@
 import React from 'react';
 import { User, Mail, Shield, Calendar, LogOut } from 'lucide-react';
-import { signOut } from '../services/authService';
 
 export default function Account({ user, role, onLogout }: { user: any, role: string | null, onLogout: () => void }) {
   if (!user) return <div className="p-6">Carregando...</div>;
@@ -24,8 +23,8 @@ export default function Account({ user, role, onLogout }: { user: any, role: str
               <Mail size={24} />
             </div>
             <div className="flex-1">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">E-mail</p>
-              <p className="font-bold text-slate-900">{user.email}</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Nome</p>
+              <p className="font-bold text-slate-900">{user.nome || user.empresa || user.email || 'Usuário'}</p>
             </div>
           </div>
 
@@ -46,7 +45,7 @@ export default function Account({ user, role, onLogout }: { user: any, role: str
             <div className="flex-1">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Membro desde</p>
               <p className="font-bold text-slate-900">
-                {new Date(user.created_at).toLocaleDateString('pt-BR')}
+                {user.created_at ? new Date(user.created_at).toLocaleDateString('pt-BR') : 'N/A'}
               </p>
             </div>
           </div>

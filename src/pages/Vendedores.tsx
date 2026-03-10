@@ -4,7 +4,7 @@ import { Seller } from '../types';
 import { Plus, Edit, Trash2, Users, Loader2 } from 'lucide-react';
 import SellerFormModal from '../components/SellerFormModal';
 
-export default function Vendedores({ companyId }: { companyId: number | null }) {
+export default function Vendedores({ companyId }: { companyId: string | null }) {
   const [sellers, setSellers] = useState<Seller[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -29,7 +29,7 @@ export default function Vendedores({ companyId }: { companyId: number | null }) 
     fetchSellers();
   }, [companyId]);
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     if (!supabase || !confirm('Tem certeza que deseja excluir este vendedor?')) return;
     try {
       const { error } = await supabase.from('sellers').delete().eq('id', id);

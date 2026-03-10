@@ -3,54 +3,16 @@ import { supabase } from '../integrations/supabaseClient';
 import { Brand } from '../types';
 import { X, Upload, Loader2, Image as ImageIcon } from 'lucide-react';
 
-export default function BrandFormModal({ onClose, onSave, brand, companyId }: { onClose: () => void, onSave: () => void, brand?: Brand, companyId: number | null }) {
+export default function BrandFormModal({ onClose, onSave, brand, companyId }: { onClose: () => void, onSave: () => void, brand?: Brand, companyId: string | null }) {
   const [formData, setFormData] = useState<Partial<Brand>>(brand || { 
     name: '', 
     margin_percentage: 0, 
     minimum_order_value: 0, 
     shipping_policy: '', 
     payment_policy: '',
-    stock_policy: '',
-    logo_url: ''
+    stock_policy: ''
   });
   const [loading, setLoading] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
-    const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
-
-    if (!cloudName || !uploadPreset) {
-      alert('Configurações do Cloudinary não encontradas.');
-      return;
-    }
-
-    setIsUploading(true);
-    const formDataUpload = new FormData();
-    formDataUpload.append('file', file);
-    formDataUpload.append('upload_preset', uploadPreset);
-
-    try {
-      const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
-        method: 'POST',
-        body: formDataUpload,
-      });
-      const data = await response.json();
-      if (data.secure_url) {
-        setFormData(prev => ({ ...prev, logo_url: data.secure_url }));
-      }
-    } catch (error) {
-      console.error('Erro no upload:', error);
-      alert('Erro ao fazer upload do logo.');
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!supabase) return;
@@ -61,6 +23,7 @@ export default function BrandFormModal({ onClose, onSave, brand, companyId }: { 
     setLoading(true);
     
     const dataToSave = { ...formData, company_id: companyId };
+    delete dataToSave.logo_url;
     
     try {
       let error;
@@ -98,32 +61,6 @@ export default function BrandFormModal({ onClose, onSave, brand, companyId }: { 
         </div>
         
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="flex flex-col items-center gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
-            <div className="relative group">
-              <div className="w-24 h-24 bg-white rounded-2xl flex items-center justify-center overflow-hidden border border-slate-200 shadow-sm">
-                {formData.logo_url ? (
-                  <img src={formData.logo_url} alt="Logo" className="w-full h-full object-contain p-2" />
-                ) : (
-                  <ImageIcon className="text-slate-300" size={32} />
-                )}
-                {isUploading && (
-                  <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
-                    <Loader2 className="animate-spin text-primary" />
-                  </div>
-                )}
-              </div>
-              <button 
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="absolute -bottom-2 -right-2 bg-primary text-white p-2 rounded-full shadow-lg hover:scale-110 transition-transform"
-              >
-                <Upload size={16} />
-              </button>
-            </div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Logo da Marca</p>
-            <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
-          </div>
-
           <div className="space-y-4">
             <div className="space-y-1">
               <label className="text-xs font-bold text-slate-500 uppercase">Nome da Marca</label>
@@ -157,7 +94,7 @@ export default function BrandFormModal({ onClose, onSave, brand, companyId }: { 
             </div>
           </div>
 
-          <button type="submit" className="w-full bg-primary text-white py-4 rounded-xl font-bold shadow-lg shadow-primary/20 hover:-translate-y-0.5 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed" disabled={loading || isUploading}>
+          <button type="submit" className="w-full bg-primary text-white py-4 rounded-xl font-bold shadow-lg shadow-primary/20 hover:-translate-y-0.5 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed" disabled={loading}>
             {loading ? <Loader2 className="animate-spin mx-auto" /> : (brand ? 'Atualizar Marca' : 'Cadastrar Marca')}
           </button>
         </form>

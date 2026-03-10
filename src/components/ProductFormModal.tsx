@@ -3,7 +3,7 @@ import { supabase } from '../integrations/supabaseClient';
 import { Product, Brand, Category } from '../types';
 import { X, Upload, Loader2, Image as ImageIcon, Link as LinkIcon } from 'lucide-react';
 
-export default function ProductFormModal({ onClose, onSave, product, companyId }: { onClose: () => void, onSave: () => void, product?: Product, companyId: number | null }) {
+export default function ProductFormModal({ onClose, onSave, product, companyId }: { onClose: () => void, onSave: () => void, product?: Product, companyId: string | null }) {
   const [formData, setFormData] = useState<Partial<Product>>(product || { 
     nome: '', 
     sku: '', 
@@ -182,7 +182,7 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
                   <select 
                     className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none appearance-none"
                     value={formData.brand_id || ''}
-                    onChange={e => setFormData({...formData, brand_id: parseInt(e.target.value), categoria_id: undefined})}
+                    onChange={e => setFormData({...formData, brand_id: e.target.value, categoria_id: undefined})}
                     required
                   >
                     <option value="">Selecionar Marca</option>
@@ -194,7 +194,7 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
                   <select 
                     className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none appearance-none"
                     value={formData.categoria_id || ''}
-                    onChange={e => setFormData({...formData, categoria_id: parseInt(e.target.value)})}
+                    onChange={e => setFormData({...formData, categoria_id: e.target.value})}
                     disabled={!formData.brand_id}
                   >
                     <option value="">Selecionar Categoria</option>

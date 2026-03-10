@@ -4,7 +4,7 @@ import { Card } from '../components/Card';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { Package, Users, ShoppingCart, TrendingUp } from 'lucide-react';
 
-export default function Dashboard({ companyId }: { companyId: number | null }) {
+export default function Dashboard({ companyId }: { companyId: string | null }) {
   const [stats, setStats] = useState({ products: 0, customers: 0, orders: 0, revenue: 0 });
   const [brandRevenue, setBrandRevenue] = useState<{ name: string, value: number }[]>([]);
   const [loading, setLoading] = useState(true);

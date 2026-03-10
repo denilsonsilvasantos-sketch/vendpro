@@ -13,11 +13,14 @@ if (!supabaseUrl || !supabaseAnonKey) {
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 async function checkSchema() {
-  const { data: brands, error: err1 } = await supabase.from('brands').select('*').limit(1);
-  console.log('Brands:', brands, err1);
+  const { data: companies, error: err1 } = await supabase.from('companies').select('*').limit(1);
+  console.log('Companies:', companies, err1);
   
-  const { data: customers, error: err2 } = await supabase.from('customers').select('*').limit(1);
-  console.log('Customers:', customers, err2);
+  const { data: sellers, error: err2 } = await supabase.from('sellers').select('*').limit(1);
+  console.log('Sellers:', sellers, err2);
+
+  const { data: brands, error: err3 } = await supabase.from('brands').select('*').limit(1);
+  console.log('Brands:', brands, err3);
 }
 
 checkSchema();

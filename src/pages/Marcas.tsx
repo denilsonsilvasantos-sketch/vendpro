@@ -4,14 +4,14 @@ import { Brand, Category } from '../types';
 import { Edit, Trash2, Plus, ChevronDown, ChevronUp, Tag, Info, AlertCircle, Loader2 } from 'lucide-react';
 import BrandFormModal from '../components/BrandFormModal';
 
-export default function Marcas({ companyId }: { companyId: number | null }) {
+export default function Marcas({ companyId }: { companyId: string | null }) {
   const [brands, setBrands] = useState<Brand[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBrand, setEditingBrand] = useState<Brand | undefined>();
-  const [expandedBrands, setExpandedBrands] = useState<number[]>([]);
+  const [expandedBrands, setExpandedBrands] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-  const [newCategoryName, setNewCategoryName] = useState<{ [brandId: number]: string }>({});
+  const [newCategoryName, setNewCategoryName] = useState<{ [brandId: string]: string }>({});
 
   async function fetchData() {
     if (!supabase || companyId === null) return;
@@ -37,17 +37,17 @@ export default function Marcas({ companyId }: { companyId: number | null }) {
     fetchData();
   }, [companyId]);
 
-  const toggleExpand = (id: number) => {
+  const toggleExpand = (id: string) => {
     setExpandedBrands(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
   };
 
-  const handleDeleteBrand = async (id: number) => {
+  const handleDeleteBrand = async (id: string) => {
     if (!supabase || !confirm('Tem certeza que deseja excluir esta marca? Todos os produtos vinculados serão afetados.')) return;
     await supabase.from('brands').delete().eq('id', id);
     fetchData();
   };
 
-  const handleAddCategory = async (brandId: number) => {
+  const handleAddCategory = async (brandId: string) => {
     const nome = newCategoryName[brandId];
     if (!supabase || !nome || !companyId) return;
 
@@ -72,7 +72,7 @@ export default function Marcas({ companyId }: { companyId: number | null }) {
     }
   };
 
-  const handleDeleteCategory = async (id: number) => {
+  const handleDeleteCategory = async (id: string) => {
     if (!supabase || !confirm('Excluir esta categoria?')) return;
     await supabase.from('categories').delete().eq('id', id);
     fetchData();
@@ -125,11 +125,7 @@ export default function Marcas({ companyId }: { companyId: number | null }) {
               <div className="p-5 flex justify-between items-center">
                 <div className="flex items-center gap-4 cursor-pointer flex-1" onClick={() => toggleExpand(brand.id)}>
                   <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center overflow-hidden border border-slate-100 shrink-0">
-                    {brand.logo_url ? (
-                      <img src={brand.logo_url} alt={brand.name} className="w-full h-full object-contain p-1" />
-                    ) : (
-                      <Tag className="text-slate-300" size={20} />
-                    )}
+                    <Tag className="text-slate-300" size={20} />
                   </div>
                   <div>
                     <h3 className="font-bold text-slate-900 text-lg">{brand.name}</h3>

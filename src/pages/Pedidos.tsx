@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../integrations/supabaseClient';
 import { FileText } from 'lucide-react';
 
-export default function Pedidos({ companyId }: { companyId: number | null }) {
+export default function Pedidos({ companyId }: { companyId: string | null }) {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 

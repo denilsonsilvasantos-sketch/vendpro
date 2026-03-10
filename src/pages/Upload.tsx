@@ -6,12 +6,12 @@ import { Brand, Product } from '../types';
 
 type CatalogType = 'weekly' | 'replenishment';
 
-export default function UploadPage({ companyId }: { companyId: number | null }) {
+export default function UploadPage({ companyId }: { companyId: string | null }) {
   const [isUploading, setIsUploading] = useState(false);
   const [status, setStatus] = useState<{ type: 'success' | 'error' | 'info' | 'warning', message: string } | null>(null);
   const [progress, setProgress] = useState(0);
   const [catalogType, setCatalogType] = useState<CatalogType>('weekly');
-  const [selectedBrandId, setSelectedBrandId] = useState<number | null>(null);
+  const [selectedBrandId, setSelectedBrandId] = useState<string | null>(null);
   const [brands, setBrands] = useState<Brand[]>([]);
   const [uploadedFiles, setUploadedFiles] = useState<{ file: File, base64: string }[]>([]);
   const [missingProducts, setMissingProducts] = useState<Product[]>([]);
@@ -216,7 +216,7 @@ export default function UploadPage({ companyId }: { companyId: number | null }) 
               <select 
                 className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none"
                 value={selectedBrandId || ''}
-                onChange={(e) => setSelectedBrandId(Number(e.target.value))}
+                onChange={(e) => setSelectedBrandId(e.target.value)}
               >
                 {brands.map(brand => (
                   <option key={brand.id} value={brand.id}>{brand.name}</option>

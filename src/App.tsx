@@ -3,7 +3,6 @@ import { getProducts } from "./services/productService";
 import { validateSellerCode } from './services/sellerService';
 import { registerCompany, loginCompany, getCompanyById } from './services/companyService';
 import { supabase } from './integrations/supabaseClient';
-import { signOut } from './services/authService';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   LayoutGrid, 
@@ -36,6 +35,7 @@ import { mockProducts, mockCategories, mockCompany } from './lib/mockData';
 import { Card } from './components/Card';
 import { Badge } from './components/Badge';
 import { Dashboard, Produtos, Clientes, Pedidos, Configuracoes, Marcas, Upload, Pendencias, Account, Vendedores } from './pages';
+import ProductFormModal from './components/ProductFormModal';
 import CartScreen from './pages/CartScreen';
 
 // --- Helper Components ---
@@ -75,8 +75,14 @@ function getHeaders() {
 }
 
 export default function App() {
-  const [role, setRole] = useState<UserRole>(null);
-  const [user, setUser] = useState<any>(null);
+  const [role, setRole] = useState<UserRole>(() => {
+    const saved = localStorage.getItem('vendpro_role');
+    return saved ? (saved as UserRole) : null;
+  });
+  const [user, setUser] = useState<any>(() => {
+    const saved = localStorage.getItem('vendpro_user');
+    return saved ? JSON.parse(saved) : null;
+  });
 
   const [profile, setProfile] = useState<any>(null);
 
@@ -87,40 +93,15 @@ export default function App() {
       localStorage.setItem('vendpro_seller_code', code);
     }
   }, []);
-
-  useEffect(() => {
-    if (!supabase) return;
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) {
-        setUser(session.user);
-        // Fetch profile
-        if (supabase) {
-          supabase.from('profiles').select('*').eq('user_id', session.user.id).single().then(({ data }) => {
-            setProfile(data);
-            setRole(data?.role || 'customer');
-            if (data?.company_id) {
-              setActiveCompanyId(data.company_id);
-              localStorage.setItem('vendpro_active_company_id', data.company_id.toString());
-            }
-          });
-        }
-      } else {
-        setUser(null);
-        setRole(null);
-        setProfile(null);
-      }
-    });
-    return () => subscription.unsubscribe();
-  }, []);
   const [activeTab, setActiveTab] = useState('catalog');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [company, setCompany] = useState<any>(null);
   const [availableCompanies, setAvailableCompanies] = useState<any[]>(() => JSON.parse(localStorage.getItem('vendpro_available_companies') || '[]'));
-  const [activeCompanyId, setActiveCompanyId] = useState<number | null>(() => {
+  const [activeCompanyId, setActiveCompanyId] = useState<string | null>(() => {
     const saved = localStorage.getItem('vendpro_active_company_id');
-    return saved ? parseInt(saved) : null;
+    return saved ? saved : null;
   });
   const [showCompanyInfo, setShowCompanyInfo] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -163,21 +144,6 @@ export default function App() {
     }
 
     loadData();
-
-    if (!supabase) return;
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      if (!session) {
-        setRole(null);
-        localStorage.removeItem('vendpro_role');
-        localStorage.removeItem('vendpro_user');
-        localStorage.removeItem('vendpro_seller_code');
-        localStorage.removeItem('vendpro_available_companies');
-        localStorage.removeItem('vendpro_active_company_id');
-      }
-    });
-
-    return () => subscription.unsubscribe();
   }, [activeCompanyId]);
 
   const handleLogin = (selectedRole: UserRole, userData: any, companies: any[] = []) => {
@@ -203,7 +169,6 @@ export default function App() {
   };
 
   const handleLogout = async () => {
-    await signOut();
     setRole(null);
     setUser(null);
     setAvailableCompanies([]);
@@ -216,7 +181,11 @@ export default function App() {
   };
 
   if (!role) {
-    return <LoginScreen onLogin={handleLogin} />;
+    return (
+      <>
+        <LoginScreen onLogin={handleLogin} />
+      </>
+    );
   }
 
   const isMultiBrand = role !== 'company' && availableCompanies.length > 1;
@@ -413,9 +382,9 @@ export default function App() {
 
       <AnimatePresence>
         {editingProduct && (
-          <ProductEditModal 
+          <ProductFormModal 
             product={editingProduct} 
-            categories={categories} 
+            companyId={activeCompanyId}
             onClose={() => setEditingProduct(null)} 
             onSave={() => { setEditingProduct(null); }} 
           />
@@ -523,7 +492,7 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
   const [sellerCode, setSellerCode] = useState('');
   const [customerData, setCustomerData] = useState({ empresa: '', cnpj: '', telefone: '', responsavel: '' });
   const [companyData, setCompanyData] = useState({ nome: '', cnpj: '', telefone: '' });
-  const [companyLoginCnpj, setCompanyLoginCnpj] = useState('');
+  const [companyLoginNome, setCompanyLoginNome] = useState('');
   const [sellerInfo, setSellerInfo] = useState<any>(null);
   const [availableCompanies, setAvailableCompanies] = useState<any[]>([]);
 
@@ -567,12 +536,12 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
   };
 
   const handleCompanyLogin = async () => {
-    const cnpj = companyLoginCnpj.trim().toUpperCase();
-    if (cnpj === 'ADMIN') {
-      onLogin('company', { id: 1, nome: 'VendPro Matriz' });
+    const nome = companyLoginNome.trim();
+    if (nome.toUpperCase() === 'ADMIN') {
+      onLogin('company', { id: '1', nome: 'VendPro Matriz' });
       return;
     }
-    const result = await loginCompany(cnpj);
+    const result = await loginCompany(nome);
     if (result.success) {
       onLogin('company', result.company);
     } else {
@@ -631,10 +600,10 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
             </p>
             <input 
               type="text" 
-              placeholder="CNPJ da Empresa" 
+              placeholder="Nome da Empresa" 
               className="w-full p-4 bg-white rounded-2xl border border-slate-100 focus:ring-2 focus:ring-primary outline-none text-center font-bold uppercase text-slate-700 shadow-sm"
-              value={companyLoginCnpj}
-              onChange={e => setCompanyLoginCnpj(e.target.value)}
+              value={companyLoginNome}
+              onChange={e => setCompanyLoginNome(e.target.value)}
             />
             <button 
               onClick={handleCompanyLogin}
@@ -657,8 +626,6 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
             <p className="font-bold text-sm mb-6 text-center text-slate-700">Cadastro de Empresa</p>
             <div className="space-y-3">
               <input placeholder="Nome da Empresa" className="w-full p-4 bg-white rounded-xl border border-slate-100 font-medium focus:ring-2 focus:ring-primary outline-none shadow-sm" onChange={e => setCompanyData({...companyData, nome: e.target.value})} />
-              <input placeholder="CNPJ" className="w-full p-4 bg-white rounded-xl border border-slate-100 font-medium focus:ring-2 focus:ring-primary outline-none shadow-sm" onChange={e => setCompanyData({...companyData, cnpj: e.target.value})} />
-              <input placeholder="Telefone" className="w-full p-4 bg-white rounded-xl border border-slate-100 font-medium focus:ring-2 focus:ring-primary outline-none shadow-sm" onChange={e => setCompanyData({...companyData, telefone: e.target.value})} />
             </div>
             <button 
               onClick={handleCompanyRegister}
@@ -717,7 +684,7 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
 
 function CatalogScreen({ products, categories, onAddToCart, onEdit, role, onZoom }: { products: Product[], categories: Category[], onAddToCart: (p: Product, q: number) => void, onEdit: (p: Product) => void, role: UserRole, onZoom: (img: string) => void }) {
   const [search, setSearch] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [itemsPerPage, setItemsPerPage] = useState(24);
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -1064,7 +1031,7 @@ function ProductEditModal({ product, categories, onClose, onSave }: { product: P
               <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Categoria</label>
               <select 
                 value={data.categoria_id || ''} 
-                onChange={e => setData({...data, categoria_id: parseInt(e.target.value), categoria_pendente: false})}
+                onChange={e => setData({...data, categoria_id: e.target.value, categoria_pendente: false})}
                 className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-100 text-sm font-semibold outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all appearance-none"
               >
                 <option value="">Sem Categoria</option>

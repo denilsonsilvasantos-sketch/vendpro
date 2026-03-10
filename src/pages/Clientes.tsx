@@ -4,7 +4,7 @@ import { Customer } from '../types';
 import { Edit, Trash2, Plus } from 'lucide-react';
 import CustomerFormModal from '../components/CustomerFormModal';
 
-export default function Clientes({ companyId }: { companyId: number | null }) {
+export default function Clientes({ companyId }: { companyId: string | null }) {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -37,7 +37,7 @@ export default function Clientes({ companyId }: { companyId: number | null }) {
     fetchCustomers();
   }, [companyId]);
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     if (!supabase) return;
     await supabase.from('customers').delete().eq('id', id);
     fetchCustomers();

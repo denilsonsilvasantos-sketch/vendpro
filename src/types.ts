@@ -1,6 +1,6 @@
 export interface Brand {
-  id: number;
-  company_id: number;
+  id: string;
+  company_id: string;
   name: string;
   logo_url?: string;
   margin_percentage: number;
@@ -12,7 +12,7 @@ export interface Brand {
 }
 
 export interface Company {
-  id: number;
+  id: string;
   nome: string;
   cnpj?: string;
   telefone?: string;
@@ -24,8 +24,8 @@ export interface Company {
 }
 
 export interface Seller {
-  id: number;
-  company_id: number;
+  id: string;
+  company_id: string;
   nome: string;
   telefone?: string;
   whatsapp?: string;
@@ -34,13 +34,13 @@ export interface Seller {
 }
 
 export interface SellerBrand {
-  seller_id: number;
-  brand_id: number;
+  seller_id: string;
+  brand_id: string;
 }
 
 export interface Customer {
-  id: number;
-  seller_id: number;
+  id: string;
+  seller_id: string;
   empresa: string;
   cnpj?: string;
   telefone?: string;
@@ -50,19 +50,19 @@ export interface Customer {
 }
 
 export interface Category {
-  id: number;
-  company_id: number;
-  brand_id: number;
+  id: string;
+  company_id: string;
+  brand_id: string;
   nome: string;
   palavras_chave?: string;
   ativo: boolean;
 }
 
 export interface Product {
-  id: number;
-  company_id: number;
-  categoria_id?: number;
-  brand_id?: number;
+  id: string;
+  company_id: string;
+  categoria_id?: string;
+  brand_id?: string;
   sku: string;
   nome: string;
   descricao?: string;
@@ -94,11 +94,11 @@ export interface CartItem extends Product {
 }
 
 export interface Order {
-  id: number;
-  company_id: number;
-  customer_id: number;
-  seller_id: number;
-  brand_id: number;
+  id: string;
+  company_id: string;
+  customer_id: string;
+  seller_id: string;
+  brand_id: string;
   total: number;
   status: 'pending' | 'attended' | 'finished' | 'cancelled';
   whatsapp_sent: boolean;
@@ -109,9 +109,9 @@ export interface Order {
 }
 
 export interface OrderItem {
-  id: number;
-  order_id: number;
-  product_id: number;
+  id: string;
+  order_id: string;
+  product_id: string;
   sku: string;
   nome: string;
   quantidade: number;

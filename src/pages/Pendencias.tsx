@@ -3,11 +3,11 @@ import { supabase } from '../integrations/supabaseClient';
 import { Product, Category } from '../types';
 import { AlertTriangle, Edit, Check, X, Image as ImageIcon, Tag, Upload, Loader2, Link as LinkIcon } from 'lucide-react';
 
-export default function Pendencias({ companyId }: { companyId: number | null }) {
+export default function Pendencias({ companyId }: { companyId: string | null }) {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [editData, setEditData] = useState<Partial<Product>>({});
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -33,7 +33,7 @@ export default function Pendencias({ companyId }: { companyId: number | null }) 
     fetchPendencies();
   }, [companyId]);
 
-  const handleSave = async (id: number) => {
+  const handleSave = async (id: string) => {
     if (!supabase) return;
     
     const updates: any = { ...editData };
@@ -156,7 +156,7 @@ export default function Pendencias({ companyId }: { companyId: number | null }) 
                         <select 
                           className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none text-sm appearance-none"
                           value={editData.categoria_id || ''}
-                          onChange={e => setEditData({...editData, categoria_id: parseInt(e.target.value)})}
+                          onChange={e => setEditData({...editData, categoria_id: e.target.value})}
                         >
                           <option value="">Selecionar Categoria</option>
                           {categories.map(cat => (

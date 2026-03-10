@@ -4,7 +4,7 @@ import { Seller } from '../types';
 import { X, Save, Loader2, AlertCircle } from 'lucide-react';
 import { motion } from 'motion/react';
 
-export default function SellerFormModal({ onClose, onSave, seller, companyId }: { onClose: () => void, onSave: () => void, seller?: Seller, companyId: number | null }) {
+export default function SellerFormModal({ onClose, onSave, seller, companyId }: { onClose: () => void, onSave: () => void, seller?: Seller, companyId: string | null }) {
   const [formData, setFormData] = useState<Partial<Seller>>(seller || { 
     nome: '', 
     codigo_vinculo: '', 

@@ -3,7 +3,7 @@ import { supabase } from '../integrations/supabaseClient';
 import { Customer, Seller } from '../types';
 import { X } from 'lucide-react';
 
-export default function CustomerFormModal({ onClose, onSave, customer, companyId }: { onClose: () => void, onSave: () => void, customer?: Customer, companyId: number | null }) {
+export default function CustomerFormModal({ onClose, onSave, customer, companyId }: { onClose: () => void, onSave: () => void, customer?: Customer, companyId: string | null }) {
   const [formData, setFormData] = useState<any>(customer || { empresa: '', telefone: '', cnpj: '', ativo: true, seller_id: '' });
   const [loading, setLoading] = useState(false);
   const [sellers, setSellers] = useState<Seller[]>([]);

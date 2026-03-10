@@ -4,8 +4,8 @@ import { CartItem } from '../types';
 export default function CartScreen({ cart, total, onUpdateQuantity, onRemove, onSendOrder }: { 
   cart: CartItem[], 
   total: number, 
-  onUpdateQuantity: (id: number, q: number) => void, 
-  onRemove: (id: number) => void, 
+  onUpdateQuantity: (id: string, q: number) => void, 
+  onRemove: (id: string) => void, 
   onSendOrder: () => void 
 }) {
   return (

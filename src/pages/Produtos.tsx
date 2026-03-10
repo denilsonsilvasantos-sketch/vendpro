@@ -4,7 +4,7 @@ import { Product, Brand, Category } from '../types';
 import { Package, Edit, Trash2, Plus, Search, Filter, Tag, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 import ProductFormModal from '../components/ProductFormModal';
 
-export default function Produtos({ companyId }: { companyId: number | null }) {
+export default function Produtos({ companyId }: { companyId: string | null }) {
   const [products, setProducts] = useState<Product[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -12,7 +12,7 @@ export default function Produtos({ companyId }: { companyId: number | null }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | undefined>();
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterBrand, setFilterBrand] = useState<number | null>(null);
+  const [filterBrand, setFilterBrand] = useState<string | null>(null);
 
   async function fetchData() {
     if (!supabase || !companyId) return;
@@ -32,7 +32,7 @@ export default function Produtos({ companyId }: { companyId: number | null }) {
     fetchData();
   }, [companyId]);
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     if (!confirm('Excluir este produto permanentemente?')) return;
     if (!supabase) return;
     await supabase.from('products').delete().eq('id', id);
@@ -85,7 +85,7 @@ export default function Produtos({ companyId }: { companyId: number | null }) {
           <select 
             className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-2 focus:ring-primary/20 transition-all appearance-none text-slate-600"
             value={filterBrand || ''}
-            onChange={e => setFilterBrand(e.target.value ? parseInt(e.target.value) : null)}
+            onChange={e => setFilterBrand(e.target.value || null)}
           >
             <option value="">Todas as Marcas</option>
             {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}

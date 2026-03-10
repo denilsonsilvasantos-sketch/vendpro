@@ -2,24 +2,24 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../integrations/supabaseClient';
 import { FileText } from 'lucide-react';
 
-export default function Pedidos() {
+export default function Pedidos({ companyId }: { companyId: number | null }) {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchOrders() {
-      if (!supabase) return;
-      const { data, error } = await supabase.from('orders').select('*, customers(empresa)');
+      if (!supabase || !companyId) return;
+      const { data, error } = await supabase.from('orders').select('*, customers(empresa)').eq('company_id', companyId);
       if (error) console.error(error);
       else setOrders(data || []);
       setLoading(false);
     }
     fetchOrders();
 
-    if (!supabase) return;
+    if (!supabase || !companyId) return;
     const channel = supabase
       .channel('schema-db-changes')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, (payload) => {
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders', filter: `company_id=eq.${companyId}` }, (payload) => {
         console.log('Novo pedido!', payload);
         setOrders(prev => [payload.new as any, ...prev]);
       })

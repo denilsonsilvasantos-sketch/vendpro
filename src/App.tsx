@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getProducts } from "./services/productService";
 import { validateSellerCode } from './services/sellerService';
-import { registerCompany, loginCompany } from './services/companyService';
+import { registerCompany, loginCompany, getCompanyById } from './services/companyService';
 import { supabase } from './integrations/supabaseClient';
 import { signOut } from './services/authService';
 import { motion, AnimatePresence } from 'motion/react';
@@ -35,7 +35,7 @@ import { Product, Category, Seller, Customer, UserRole, CartItem, Company } from
 import { mockProducts, mockCategories, mockCompany } from './lib/mockData';
 import { Card } from './components/Card';
 import { Badge } from './components/Badge';
-import { Dashboard, Produtos, Clientes, Pedidos, Configuracoes, Marcas, Upload, Pendencias } from './pages';
+import { Dashboard, Produtos, Clientes, Pedidos, Configuracoes, Marcas, Upload, Pendencias, Account } from './pages';
 import CartScreen from './pages/CartScreen';
 
 // --- Helper Components ---
@@ -78,6 +78,8 @@ export default function App() {
   const [role, setRole] = useState<UserRole>(null);
   const [user, setUser] = useState<any>(null);
 
+  const [profile, setProfile] = useState<any>(null);
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const code = params.get('vincular');
@@ -91,24 +93,30 @@ export default function App() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) {
         setUser(session.user);
-        // Fetch role from profiles table
+        // Fetch profile
         if (supabase) {
-          supabase.from('profiles').select('role').eq('user_id', session.user.id).single().then(({ data }) => {
+          supabase.from('profiles').select('*').eq('user_id', session.user.id).single().then(({ data }) => {
+            setProfile(data);
             setRole(data?.role || 'customer');
+            if (data?.company_id && !activeCompanyId) {
+              setActiveCompanyId(data.company_id);
+              localStorage.setItem('vendpro_active_company_id', data.company_id.toString());
+            }
           });
         }
       } else {
         setUser(null);
         setRole(null);
+        setProfile(null);
       }
     });
     return () => subscription.unsubscribe();
   }, []);
   const [activeTab, setActiveTab] = useState('catalog');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [products, setProducts] = useState<Product[]>(mockProducts);
-  const [categories, setCategories] = useState<Category[]>(mockCategories);
-  const [company, setCompany] = useState<any>(mockCompany);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [company, setCompany] = useState<any>(null);
   const [availableCompanies, setAvailableCompanies] = useState<any[]>(() => JSON.parse(localStorage.getItem('vendpro_available_companies') || '[]'));
   const [activeCompanyId, setActiveCompanyId] = useState<number | null>(() => {
     const saved = localStorage.getItem('vendpro_active_company_id');
@@ -129,15 +137,31 @@ export default function App() {
   };
 
   useEffect(() => {
-    async function loadProducts() {
+    async function loadData() {
       if (activeCompanyId) {
-        const products = await getProducts(activeCompanyId.toString());
-        setProducts(products);
-        console.log("Produtos:", products);
+        setLoading(true);
+        try {
+          const [fetchedProducts, fetchedCompany] = await Promise.all([
+            getProducts(activeCompanyId.toString()),
+            getCompanyById(activeCompanyId)
+          ]);
+          setProducts(fetchedProducts);
+          setCompany(fetchedCompany);
+          
+          // Also fetch categories for this company
+          if (supabase) {
+            const { data: catData } = await supabase.from('categories').select('*').eq('company_id', activeCompanyId);
+            setCategories(catData || []);
+          }
+        } catch (error) {
+          console.error("Erro ao carregar dados:", error);
+        } finally {
+          setLoading(false);
+        }
       }
     }
 
-    loadProducts();
+    loadData();
 
     if (!supabase) return;
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -320,7 +344,7 @@ export default function App() {
                 <button onClick={() => setIsSidebarOpen(false)} className="p-2 text-slate-400 hover:text-primary transition-colors"><X size={24} /></button>
               </div>
 
-              <nav className="space-y-1.5 flex-1">
+              <nav className="space-y-1.5 flex-1 overflow-y-auto pr-2 custom-scrollbar">
                 <SidebarItem icon={<LayoutGrid size={20}/>} label="Catálogo" active={activeTab === 'catalog'} onClick={() => { setActiveTab('catalog'); setIsSidebarOpen(false); }} />
                 <SidebarItem icon={<LayoutGrid size={20}/>} label="Dashboard" active={activeTab === 'dashboard'} onClick={() => { setActiveTab('dashboard'); setIsSidebarOpen(false); }} />
                 <SidebarItem icon={<Package size={20}/>} label="Produtos" active={activeTab === 'produtos'} onClick={() => { setActiveTab('produtos'); setIsSidebarOpen(false); }} />
@@ -378,9 +402,10 @@ export default function App() {
         {activeTab === 'upload' && <Upload companyId={activeCompanyId} />}
         {activeTab === 'pendencias' && <Pendencias companyId={activeCompanyId} />}
         {activeTab === 'marcas' && <Marcas companyId={activeCompanyId} />}
-        {activeTab === 'clientes' && <Clientes />}
-        {activeTab === 'pedidos' && <Pedidos />}
-        {activeTab === 'configuracoes' && <Configuracoes />}
+        {activeTab === 'clientes' && <Clientes companyId={activeCompanyId} />}
+        {activeTab === 'pedidos' && <Pedidos companyId={activeCompanyId} />}
+        {activeTab === 'configuracoes' && <Configuracoes companyId={activeCompanyId} />}
+        {activeTab === 'account' && <Account user={user} role={role} onLogout={handleLogout} />}
       </main>
 
       <AnimatePresence>

@@ -39,3 +39,13 @@ export async function loginCompany(cnpj: string) {
 
   return { success: true, company: data };
 }
+
+export async function getCompanyById(id: number) {
+  if (!supabase) return null;
+  const { data, error } = await supabase.from('companies').select('*').eq('id', id).single();
+  if (error) {
+    console.error("Erro ao buscar empresa:", error);
+    return null;
+  }
+  return data;
+}

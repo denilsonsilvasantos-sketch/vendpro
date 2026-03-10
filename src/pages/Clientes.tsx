@@ -4,15 +4,15 @@ import { Customer } from '../types';
 import { Edit, Trash2, Plus } from 'lucide-react';
 import CustomerFormModal from '../components/CustomerFormModal';
 
-export default function Clientes() {
+export default function Clientes({ companyId }: { companyId: number | null }) {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | undefined>();
 
   async function fetchCustomers() {
-    if (!supabase) return;
-    const { data, error } = await supabase.from('customers').select('*');
+    if (!supabase || !companyId) return;
+    const { data, error } = await supabase.from('customers').select('*').eq('company_id', companyId);
     if (error) console.error(error);
     else setCustomers(data || []);
     setLoading(false);
@@ -20,7 +20,7 @@ export default function Clientes() {
 
   useEffect(() => {
     fetchCustomers();
-  }, []);
+  }, [companyId]);
 
   const handleDelete = async (id: number) => {
     if (!supabase) return;
@@ -68,6 +68,7 @@ export default function Clientes() {
           onClose={() => setIsModalOpen(false)} 
           onSave={() => { fetchCustomers(); setIsModalOpen(false); }} 
           customer={editingCustomer}
+          companyId={companyId}
         />
       )}
     </div>

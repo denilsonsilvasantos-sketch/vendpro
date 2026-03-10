@@ -3,18 +3,18 @@ import { supabase } from '../integrations/supabaseClient';
 import { Customer } from '../types';
 import { X } from 'lucide-react';
 
-export default function CustomerFormModal({ onClose, onSave, customer }: { onClose: () => void, onSave: () => void, customer?: Customer }) {
+export default function CustomerFormModal({ onClose, onSave, customer, companyId }: { onClose: () => void, onSave: () => void, customer?: Customer, companyId: number | null }) {
   const [formData, setFormData] = useState(customer || { empresa: '', telefone: '', cnpj: '' });
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    if (!supabase) return;
+    if (!supabase || !companyId) return;
     if (customer) {
       await supabase.from('customers').update(formData).eq('id', customer.id);
     } else {
-      await supabase.from('customers').insert([formData]);
+      await supabase.from('customers').insert([{ ...formData, company_id: companyId }]);
     }
     setLoading(false);
     onSave();

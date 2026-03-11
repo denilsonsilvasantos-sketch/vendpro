@@ -920,9 +920,13 @@ function ProductCard({ product, onAdd, onEdit, role, onZoom, ...props }: { produ
       <h3 className="font-bold text-slate-800 text-sm leading-tight mb-1 line-clamp-2">{product.nome}</h3>
       <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-4">SKU: {product.sku}</p>
 
-      {product.has_box_discount && !product.venda_somente_box && (
+      {(product.has_box_discount || product.venda_somente_box) && (
         <div className="mb-3 pt-3 border-t border-slate-50 text-[11px] font-bold text-emerald-600">
-          A partir de {product.qtd_box} un: R$ {product.preco_box.toFixed(2)} (R$ {(product.qtd_box > 0 ? product.preco_box / product.qtd_box : 0).toFixed(2)} un)
+          {!product.venda_somente_box ? (
+            `A partir de ${product.qtd_box} un: R$ ${(product.qtd_box > 0 ? product.preco_box / product.qtd_box : 0).toFixed(2)} un`
+          ) : (
+            `Box com ${product.qtd_box} un: R$ ${product.preco_box.toFixed(2)}`
+          )}
         </div>
       )}
 

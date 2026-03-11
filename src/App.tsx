@@ -750,7 +750,7 @@ function CatalogScreen({ products, categories, onAddToCart, onEdit, role, onZoom
 
   const filtered = products.filter(p => {
     const matchesSearch = p.nome.toLowerCase().includes(search.toLowerCase()) || p.sku.toLowerCase().includes(search.toLowerCase());
-    const matchesCategory = selectedCategory ? p.categoria_id === selectedCategory : true;
+    const matchesCategory = selectedCategory ? p.category_id === selectedCategory : true;
     return matchesSearch && matchesCategory;
   });
 
@@ -1080,8 +1080,8 @@ function ProductEditModal({ product, categories, onClose, onSave }: { product: P
             <div className="space-y-2">
               <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Categoria</label>
               <select 
-                value={data.categoria_id || ''} 
-                onChange={e => setData({...data, categoria_id: e.target.value, categoria_pendente: false})}
+                value={data.category_id || ''} 
+                onChange={e => setData({...data, category_id: e.target.value, categoria_pendente: false})}
                 className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-100 text-sm font-semibold outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all appearance-none"
               >
                 <option value="">Sem Categoria</option>

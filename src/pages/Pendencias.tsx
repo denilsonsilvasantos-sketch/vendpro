@@ -37,7 +37,7 @@ export default function Pendencias({ companyId }: { companyId: string | null }) 
     if (!supabase) return;
     
     const updates: any = { ...editData };
-    if (editData.categoria_id) updates.categoria_pendente = false;
+    if (editData.category_id) updates.categoria_pendente = false;
     if (editData.imagem) updates.imagem_pendente = false;
 
     const { error } = await supabase.from('products').update(updates).eq('id', id);
@@ -155,8 +155,8 @@ export default function Pendencias({ companyId }: { companyId: string | null }) 
                         <Tag className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                         <select 
                           className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none text-sm appearance-none"
-                          value={editData.categoria_id || ''}
-                          onChange={e => setEditData({...editData, categoria_id: e.target.value})}
+                          value={editData.category_id || ''}
+                          onChange={e => setEditData({...editData, category_id: e.target.value})}
                         >
                           <option value="">Selecionar Categoria</option>
                           {categories.map(cat => (
@@ -183,7 +183,7 @@ export default function Pendencias({ companyId }: { companyId: string | null }) 
                   <div className="flex flex-wrap gap-4 text-sm text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-100">
                     <div className="flex items-center gap-2">
                       <Tag size={14} className="text-slate-400" />
-                      <span className="font-medium">{categories.find(c => c.id === product.categoria_id)?.nome || <span className="italic text-slate-400">Não definida</span>}</span>
+                      <span className="font-medium">{categories.find(c => c.id === product.category_id)?.nome || <span className="italic text-slate-400">Não definida</span>}</span>
                     </div>
                     {product.descricao && (
                       <div className="flex items-center gap-2 border-l border-slate-200 pl-4">
@@ -214,7 +214,7 @@ export default function Pendencias({ companyId }: { companyId: string | null }) 
                   <button 
                     onClick={() => {
                       setEditingId(product.id);
-                      setEditData({ categoria_id: product.categoria_id, imagem: product.imagem });
+                      setEditData({ category_id: product.category_id, imagem: product.imagem });
                     }}
                     className="w-full p-3 text-primary bg-primary/5 hover:bg-primary hover:text-white rounded-xl transition-all flex items-center justify-center gap-2 font-bold text-sm"
                   >

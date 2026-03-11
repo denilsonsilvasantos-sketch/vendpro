@@ -61,7 +61,7 @@ export interface Category {
 export interface Product {
   id: string;
   company_id: string;
-  categoria_id?: string;
+  category_id?: string;
   brand_id?: string;
   sku: string;
   nome: string;

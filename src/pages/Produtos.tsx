@@ -125,7 +125,7 @@ export default function Produtos({ companyId }: { companyId: string | null }) {
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-[10px] font-bold text-primary uppercase tracking-wider">{brands.find(b => b.id === product.brand_id)?.name}</span>
                     <span className="w-1 h-1 bg-slate-300 rounded-full" />
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{categories.find(c => c.id === product.categoria_id)?.nome}</span>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{categories.find(c => c.id === product.category_id)?.nome}</span>
                   </div>
                   <h3 className="font-bold text-slate-900 line-clamp-1 group-hover:text-primary transition-colors">{product.nome}</h3>
                   <p className="text-[10px] font-mono text-slate-400 mt-0.5">SKU: {product.sku}</p>

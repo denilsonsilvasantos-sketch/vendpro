@@ -15,7 +15,7 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
     is_last_units: false,
     imagem: '',
     brand_id: undefined,
-    categoria_id: undefined
+    category_id: undefined
   });
   const [brands, setBrands] = useState<Brand[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -181,7 +181,7 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
                   <select 
                     className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none appearance-none"
                     value={formData.brand_id || ''}
-                    onChange={e => setFormData({...formData, brand_id: e.target.value, categoria_id: undefined})}
+                    onChange={e => setFormData({...formData, brand_id: e.target.value, category_id: undefined})}
                     required
                   >
                     <option value="">Selecionar Marca</option>
@@ -192,8 +192,8 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
                   <label className="text-xs font-bold text-slate-500 uppercase">Categoria</label>
                   <select 
                     className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none appearance-none"
-                    value={formData.categoria_id || ''}
-                    onChange={e => setFormData({...formData, categoria_id: e.target.value})}
+                    value={formData.category_id || ''}
+                    onChange={e => setFormData({...formData, category_id: e.target.value})}
                     disabled={!formData.brand_id}
                   >
                     <option value="">Selecionar Categoria</option>

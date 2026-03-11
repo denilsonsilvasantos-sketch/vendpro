@@ -8,7 +8,13 @@ export async function registerCompany(companyData: any) {
 
   const { data, error } = await supabase
     .from("companies")
-    .insert([{ nome: companyData.nome }])
+    .insert([{ 
+      nome: companyData.nome,
+      cnpj: companyData.cnpj,
+      responsavel: companyData.responsavel,
+      telefone: companyData.telefone,
+      senha: companyData.senha
+    }])
     .select()
     .single();
 
@@ -20,21 +26,36 @@ export async function registerCompany(companyData: any) {
   return { success: true, company: data };
 }
 
-export async function loginCompany(nome: string) {
+export async function loginCompany(cnpj: string, senha?: string) {
   if (!supabase) {
     console.error("Supabase não inicializado.");
     return { success: false };
   }
 
+  // Se for admin, faz login pelo nome
+  if (cnpj.toUpperCase() === 'ADMIN') {
+    const { data, error } = await supabase
+      .from("companies")
+      .select("*")
+      .ilike("nome", cnpj)
+      .single();
+    
+    if (error) {
+      return { success: false, message: "Empresa não encontrada" };
+    }
+    return { success: true, company: data };
+  }
+
   const { data, error } = await supabase
     .from("companies")
     .select("*")
-    .ilike("nome", nome)
+    .eq("cnpj", cnpj)
+    .eq("senha", senha)
     .single();
 
   if (error) {
     console.error("Erro ao fazer login:", error);
-    return { success: false, message: "Empresa não encontrada" };
+    return { success: false, message: "CNPJ ou senha incorretos" };
   }
 
   return { success: true, company: data };

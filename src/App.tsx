@@ -507,8 +507,9 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
   const [loginType, setLoginType] = useState<'seller' | 'customer' | 'admin' | 'company' | null>(null);
   const [sellerCode, setSellerCode] = useState('');
   const [customerData, setCustomerData] = useState({ empresa: '', cnpj: '', telefone: '', responsavel: '' });
-  const [companyData, setCompanyData] = useState({ nome: '', cnpj: '', telefone: '' });
-  const [companyLoginNome, setCompanyLoginNome] = useState('');
+  const [companyData, setCompanyData] = useState({ nome: '', cnpj: '', telefone: '', responsavel: '', senha: '' });
+  const [companyLoginCnpj, setCompanyLoginCnpj] = useState('');
+  const [companyLoginSenha, setCompanyLoginSenha] = useState('');
   const [sellerInfo, setSellerInfo] = useState<any>(null);
   const [availableCompanies, setAvailableCompanies] = useState<any[]>([]);
 
@@ -564,8 +565,10 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
   };
 
   const handleCompanyLogin = async () => {
-    const nome = companyLoginNome.trim();
-    if (nome.toUpperCase() === 'ADMIN') {
+    const cnpj = companyLoginCnpj.trim();
+    const senha = companyLoginSenha.trim();
+    
+    if (cnpj.toUpperCase() === 'ADMIN') {
       if (supabase) {
         const { data } = await supabase.from('companies').select('*').limit(1);
         if (data && data.length > 0) {
@@ -581,11 +584,17 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
       }
       return;
     }
-    const result = await loginCompany(nome);
+    
+    if (!cnpj || !senha) {
+      alert('Preencha o CNPJ e a senha.');
+      return;
+    }
+
+    const result = await loginCompany(cnpj, senha);
     if (result.success) {
       onLogin('company', result.company);
     } else {
-      alert(result.message || 'Empresa não encontrada');
+      alert(result.message || 'Empresa não encontrada ou senha incorreta');
     }
   };
 
@@ -640,10 +649,17 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
             </p>
             <input 
               type="text" 
-              placeholder="Nome da Empresa" 
+              placeholder="CNPJ" 
               className="w-full p-4 bg-white rounded-2xl border border-slate-100 focus:ring-2 focus:ring-primary outline-none text-center font-bold uppercase text-slate-700 shadow-sm"
-              value={companyLoginNome}
-              onChange={e => setCompanyLoginNome(e.target.value)}
+              value={companyLoginCnpj}
+              onChange={e => setCompanyLoginCnpj(e.target.value)}
+            />
+            <input 
+              type="password" 
+              placeholder="Senha" 
+              className="w-full p-4 bg-white rounded-2xl border border-slate-100 focus:ring-2 focus:ring-primary outline-none text-center font-bold text-slate-700 shadow-sm"
+              value={companyLoginSenha}
+              onChange={e => setCompanyLoginSenha(e.target.value)}
             />
             <button 
               onClick={handleCompanyLogin}
@@ -665,7 +681,11 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
           <div className="space-y-3 text-left">
             <p className="font-bold text-sm mb-6 text-center text-slate-700">Cadastro de Empresa</p>
             <div className="space-y-3">
-              <input placeholder="Nome da Empresa" className="w-full p-4 bg-white rounded-xl border border-slate-100 font-medium focus:ring-2 focus:ring-primary outline-none shadow-sm" onChange={e => setCompanyData({...companyData, nome: e.target.value})} />
+              <input placeholder="Nome da Empresa" className="w-full p-4 bg-white rounded-xl border border-slate-100 font-medium focus:ring-2 focus:ring-primary outline-none shadow-sm" value={companyData.nome} onChange={e => setCompanyData({...companyData, nome: e.target.value})} />
+              <input placeholder="CNPJ" className="w-full p-4 bg-white rounded-xl border border-slate-100 font-medium focus:ring-2 focus:ring-primary outline-none shadow-sm" value={companyData.cnpj} onChange={e => setCompanyData({...companyData, cnpj: e.target.value})} />
+              <input placeholder="Responsável" className="w-full p-4 bg-white rounded-xl border border-slate-100 font-medium focus:ring-2 focus:ring-primary outline-none shadow-sm" value={companyData.responsavel} onChange={e => setCompanyData({...companyData, responsavel: e.target.value})} />
+              <input placeholder="Telefone" className="w-full p-4 bg-white rounded-xl border border-slate-100 font-medium focus:ring-2 focus:ring-primary outline-none shadow-sm" value={companyData.telefone} onChange={e => setCompanyData({...companyData, telefone: e.target.value})} />
+              <input type="password" placeholder="Senha de Acesso" className="w-full p-4 bg-white rounded-xl border border-slate-100 font-medium focus:ring-2 focus:ring-primary outline-none shadow-sm" value={companyData.senha} onChange={e => setCompanyData({...companyData, senha: e.target.value})} />
             </div>
             <button 
               onClick={handleCompanyRegister}

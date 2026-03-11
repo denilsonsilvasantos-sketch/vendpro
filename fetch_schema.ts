@@ -19,8 +19,8 @@ async function checkSchema() {
   const { data: sellers, error: err2 } = await supabase.from('sellers').select('*').limit(1);
   console.log('Sellers:', sellers, err2);
 
-  const { data: brands, error: err3 } = await supabase.from('brands').select('*').limit(1);
-  console.log('Brands:', brands, err3);
+  const { data: products, error: err4 } = await supabase.from('products').select('*').limit(1);
+  console.log('Products:', products, err4);
 }
 
 checkSchema();

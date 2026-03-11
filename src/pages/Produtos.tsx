@@ -106,7 +106,7 @@ export default function Produtos({ companyId }: { companyId: string | null }) {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredProducts.map(product => (
-            <div key={product.id} className={`bg-white rounded-3xl overflow-hidden border transition-all hover:shadow-xl hover:shadow-slate-200/50 group ${!product.ativo ? 'opacity-60 grayscale' : 'border-slate-100'}`}>
+            <div key={product.id} className={`bg-white rounded-3xl overflow-hidden border transition-all hover:shadow-xl hover:shadow-slate-200/50 group border-slate-100`}>
               <div className="aspect-square relative overflow-hidden bg-slate-50">
                 <img 
                   src={product.imagem || 'https://picsum.photos/seed/product/400/400'} 
@@ -115,7 +115,6 @@ export default function Produtos({ companyId }: { companyId: string | null }) {
                   referrerPolicy="no-referrer"
                 />
                 <div className="absolute top-3 right-3 flex flex-col gap-2">
-                  {!product.ativo && <span className="bg-slate-900/80 text-white text-[10px] font-bold px-2 py-1 rounded-lg backdrop-blur-md">Inativo</span>}
                   {product.is_last_units && <span className="bg-rose-500 text-white text-[10px] font-bold px-2 py-1 rounded-lg shadow-lg">Últimas Unidades</span>}
                   {product.venda_somente_box && <span className="bg-amber-500 text-white text-[10px] font-bold px-2 py-1 rounded-lg shadow-lg">Somente Box</span>}
                 </div>

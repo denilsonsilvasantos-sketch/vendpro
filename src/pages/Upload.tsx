@@ -22,6 +22,9 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+
   useEffect(() => {
     async function fetchBrands() {
       if (!supabase || companyId === null) return;
@@ -86,6 +89,14 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
           mimeType = 'application/pdf';
         }
         const extractedProducts = await extractProductsFromMedia(base64, mimeType);
+        
+        if (extractedProducts.length === 0) {
+          console.warn(`Nenhum produto encontrado no arquivo ${file.name}`);
+          setStatus({ type: 'warning', message: `Nenhum produto encontrado no arquivo ${file.name}. Verifique se o arquivo está legível.` });
+          // Wait a bit so the user can see the message
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+
         totalProducts += extractedProducts.length;
 
         for (const extracted of extractedProducts) {
@@ -116,8 +127,7 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
             categoria_pendente: categoriaPendente,
             imagem_pendente: true,
             last_seen_date: new Date().toISOString(),
-            last_seen_catalog_type: catalogType,
-            ativo: true
+            last_seen_catalog_type: catalogType
           };
 
           // Se for reposição, verificar mudança de preço
@@ -149,8 +159,7 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
           .from('products')
           .select('*')
           .eq('company_id', companyId)
-          .eq('brand_id', selectedBrandId)
-          .eq('ativo', true);
+          .eq('brand_id', selectedBrandId);
 
         if (existingProducts) {
           const missing = existingProducts.filter(p => !processedSkus.includes(p.sku));
@@ -184,8 +193,8 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
 
     if (inactivate) {
       const ids = missingProducts.map(p => p.id);
-      await supabase.from('products').update({ ativo: false }).in('id', ids);
-      setStatus({ type: 'success', message: `${missingProducts.length} produtos foram inativados.` });
+      // await supabase.from('products').update({ ativo: false }).in('id', ids);
+      setStatus({ type: 'success', message: `${missingProducts.length} produtos foram identificados como ausentes (inativação não suportada pelo banco de dados atual).` });
     } else {
       setStatus({ type: 'info', message: `Os produtos ausentes foram mantidos como ativos.` });
     }
@@ -194,11 +203,43 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
     setShowMissingAlert(false);
   };
 
+  const handleResetCatalog = async () => {
+    if (!supabase || !companyId) return;
+    
+    setIsResetting(true);
+    try {
+      let query = supabase.from('products').delete().eq('company_id', companyId);
+      
+      if (selectedBrandId) {
+        query = query.eq('brand_id', selectedBrandId);
+      }
+      
+      const { error } = await query;
+      
+      if (error) throw error;
+      
+      setStatus({ type: 'success', message: `Catálogo ${selectedBrandId ? 'da marca' : 'completo'} resetado com sucesso!` });
+      setShowResetConfirm(false);
+    } catch (error: any) {
+      console.error(error);
+      setStatus({ type: 'error', message: `Erro ao resetar catálogo: ${error.message}` });
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
   return (
     <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <h1 className="text-2xl font-bold">Upload de Catálogo</h1>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <button 
+            onClick={() => setShowResetConfirm(true)}
+            className="px-4 py-2 rounded-lg text-sm font-bold transition-all bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 flex items-center gap-2"
+          >
+            <Trash2 size={16} />
+            Resetar Catálogo
+          </button>
           <button 
             onClick={() => setCatalogType('weekly')}
             className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${catalogType === 'weekly' ? 'bg-primary text-white shadow-lg' : 'bg-slate-100 text-slate-600'}`}
@@ -395,6 +436,39 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
           </div>
         </div>
       )}
+      {showResetConfirm && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl max-w-md w-full p-8 shadow-2xl space-y-6 animate-in zoom-in-95">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto">
+              <AlertTriangle size={32} className="text-red-600" />
+            </div>
+            <div className="text-center space-y-2">
+              <h2 className="text-xl font-bold text-slate-900">Resetar Catálogo?</h2>
+              <p className="text-slate-500 text-sm">
+                Tem certeza que deseja apagar <strong>TODOS</strong> os produtos {selectedBrandId ? 'desta marca' : 'do catálogo'}? Esta ação não pode ser desfeita.
+              </p>
+            </div>
+            <div className="flex flex-col gap-3">
+              <button 
+                onClick={handleResetCatalog}
+                disabled={isResetting}
+                className="w-full py-3 bg-red-500 text-white rounded-xl font-bold hover:bg-red-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {isResetting ? <Loader2 size={20} className="animate-spin" /> : <Trash2 size={20} />}
+                Sim, Apagar Tudo
+              </button>
+              <button 
+                onClick={() => setShowResetConfirm(false)}
+                disabled={isResetting}
+                className="w-full py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition-colors"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

@@ -84,7 +84,6 @@ export interface Product {
   last_seen_catalog_type?: 'full' | 'partial';
   last_price?: number;
   last_box_qty?: number;
-  ativo: boolean;
   categoria_nome?: string;
   brand_nome?: string;
 }

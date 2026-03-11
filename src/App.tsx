@@ -776,7 +776,7 @@ function CatalogScreen({ products, categories, onAddToCart, onEdit, role, onZoom
           <div className="flex gap-3">
             {role === 'company' && (
               <button 
-                onClick={() => onEdit({ id: 0, company_id: 0, sku: '', nome: '', preco_unitario: 0, preco_box: 0, qtd_box: 0, venda_somente_box: false, status_estoque: 'normal', categoria_pendente: false, imagem_pendente: false, ativo: true } as any)}
+                onClick={() => onEdit({ id: 0, company_id: 0, sku: '', nome: '', preco_unitario: 0, preco_box: 0, qtd_box: 0, venda_somente_box: false, status_estoque: 'normal', categoria_pendente: false, imagem_pendente: false } as any)}
                 className="bg-white text-primary px-6 py-2.5 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-lg active:scale-95 transition-transform flex items-center gap-2"
               >
                 <Plus size={14} />
@@ -1059,16 +1059,6 @@ function ProductEditModal({ product, categories, onClose, onSave }: { product: P
                 type="checkbox" 
                 checked={!!data.venda_somente_box} 
                 onChange={e => setData({...data, venda_somente_box: e.target.checked})}
-                className="w-6 h-6 accent-primary rounded-lg"
-              />
-            </div>
-
-            <div className="flex items-center justify-between p-5 bg-slate-50 rounded-2xl border border-slate-100">
-              <span className="text-sm font-bold text-slate-700">Produto Ativo</span>
-              <input 
-                type="checkbox" 
-                checked={data.ativo !== false} 
-                onChange={e => setData({...data, ativo: e.target.checked})}
                 className="w-6 h-6 accent-primary rounded-lg"
               />
             </div>

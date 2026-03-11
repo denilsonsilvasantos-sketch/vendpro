@@ -3,7 +3,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
 
 export async function classifyCategory(productName: string, categories: { id: number, nome: string }[]) {
-  if (!process.env.GEMINI_API_KEY || categories.length === 0) return null;
+  if (categories.length === 0) return null;
 
   const prompt = `Classifique o produto "${productName}" em uma das seguintes categorias: ${categories.map(c => c.nome).join(', ')}. 
   Retorne apenas o nome da categoria ou "pendente" se não tiver certeza.`;
@@ -25,7 +25,6 @@ export async function classifyCategory(productName: string, categories: { id: nu
 }
 
 export async function extractProductsFromMedia(base64Data: string, mimeType: string) {
-  if (!process.env.GEMINI_API_KEY) return [];
 
   const prompt = `Analise este catálogo e extraia todos os produtos visíveis. 
   Para cada produto, identifique: nome, SKU (se houver), preço unitário, preço da caixa (box), quantidade na caixa (qtd_box).
@@ -78,7 +77,7 @@ export async function extractProductsFromMedia(base64Data: string, mimeType: str
               has_box_discount: { type: Type.BOOLEAN },
               is_last_units: { type: Type.BOOLEAN }
             },
-            required: ["nome", "preco_unitario"]
+            required: ["nome"]
           }
         }
       }

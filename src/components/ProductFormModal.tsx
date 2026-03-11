@@ -13,7 +13,6 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
     venda_somente_box: false,
     has_box_discount: false,
     is_last_units: false,
-    ativo: true,
     imagem: '',
     brand_id: undefined,
     categoria_id: undefined
@@ -241,14 +240,6 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
                   </div>
                   <input type="checkbox" className="hidden" checked={formData.is_last_units} onChange={e => setFormData({...formData, is_last_units: e.target.checked})} />
                   <span className="text-sm font-bold text-slate-700">Últimas Unidades</span>
-                </label>
-
-                <label className="flex items-center gap-3 cursor-pointer group">
-                  <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${formData.ativo ? 'bg-emerald-500 border-emerald-500' : 'border-slate-200 group-hover:border-emerald-500/50'}`}>
-                    {formData.ativo && <X size={14} className="text-white rotate-45" />}
-                  </div>
-                  <input type="checkbox" className="hidden" checked={formData.ativo} onChange={e => setFormData({...formData, ativo: e.target.checked})} />
-                  <span className="text-sm font-bold text-slate-700">Ativo</span>
                 </label>
               </div>
             </div>

@@ -188,15 +188,15 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
     }
   };
 
-  const handleInactivateMissing = async (inactivate: boolean) => {
+  const handleInactivateMissing = async (markAsOutOfStock: boolean) => {
     if (!supabase || missingProducts.length === 0) return;
 
-    if (inactivate) {
+    if (markAsOutOfStock) {
       const ids = missingProducts.map(p => p.id);
-      // await supabase.from('products').update({ ativo: false }).in('id', ids);
-      setStatus({ type: 'success', message: `${missingProducts.length} produtos foram identificados como ausentes (inativação não suportada pelo banco de dados atual).` });
+      await supabase.from('products').update({ status_estoque: 'esgotado' }).in('id', ids);
+      setStatus({ type: 'success', message: `${missingProducts.length} produtos foram identificados como ausentes e marcados como esgotados.` });
     } else {
-      setStatus({ type: 'info', message: `Os produtos ausentes foram mantidos como ativos.` });
+      setStatus({ type: 'info', message: `Os produtos ausentes foram mantidos com o estoque inalterado.` });
     }
     
     setMissingProducts([]);
@@ -391,13 +391,13 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
                 onClick={() => handleInactivateMissing(true)}
                 className="w-full py-3 bg-red-500 text-white rounded-xl font-bold hover:bg-red-600 transition-colors"
               >
-                Inativar Produtos Ausentes
+                Marcar como Esgotados
               </button>
               <button 
                 onClick={() => handleInactivateMissing(false)}
                 className="w-full py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition-colors"
               >
-                Manter como Ativos
+                Manter Estoque Inalterado
               </button>
             </div>
           </div>

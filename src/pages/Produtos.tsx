@@ -10,6 +10,7 @@ export default function Produtos({ companyId }: { companyId: string | null }) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [zoomImage, setZoomImage] = useState<string | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | undefined>();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterBrand, setFilterBrand] = useState<string | null>(null);
@@ -105,18 +106,24 @@ export default function Produtos({ companyId }: { companyId: string | null }) {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredProducts.map(product => (
-            <div key={product.id} className={`bg-white rounded-3xl overflow-hidden border transition-all hover:shadow-xl hover:shadow-slate-200/50 group border-slate-100`}>
-              <div className="aspect-square relative overflow-hidden bg-slate-50">
+          {filteredProducts.map(product => {
+            const isEsgotado = product.status_estoque === 'esgotado';
+            return (
+            <div key={product.id} className={`bg-white rounded-3xl overflow-hidden border transition-all hover:shadow-xl hover:shadow-slate-200/50 group border-slate-100 ${isEsgotado ? 'opacity-75 grayscale-[0.5]' : ''}`}>
+              <div 
+                className="aspect-square relative overflow-hidden bg-slate-50 cursor-zoom-in"
+                onClick={() => setZoomImage(product.imagem || `https://picsum.photos/seed/${product.sku}/400/400`)}
+              >
                 <img 
-                  src={product.imagem || 'https://picsum.photos/seed/product/400/400'} 
+                  src={product.imagem || `https://picsum.photos/seed/${product.sku}/400/400`} 
                   alt={product.nome} 
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                   referrerPolicy="no-referrer"
                 />
-                <div className="absolute top-3 right-3 flex flex-col gap-2">
-                  {product.is_last_units && <span className="bg-rose-500 text-white text-[10px] font-bold px-2 py-1 rounded-lg shadow-lg">Últimas Unidades</span>}
-                  {product.venda_somente_box && <span className="bg-amber-500 text-white text-[10px] font-bold px-2 py-1 rounded-lg shadow-lg">Somente Box</span>}
+                <div className="absolute top-3 right-3 flex flex-col gap-2 items-end">
+                  {isEsgotado && <span className="bg-slate-800 text-white text-[10px] font-bold px-2 py-1 rounded-lg shadow-lg uppercase tracking-wider">Esgotado</span>}
+                  {!isEsgotado && product.is_last_units && <span className="bg-rose-500 text-white text-[10px] font-bold px-2 py-1 rounded-lg shadow-lg uppercase tracking-wider">Últimas Unidades</span>}
+                  {product.venda_somente_box && <span className="bg-amber-500 text-white text-[10px] font-bold px-2 py-1 rounded-lg shadow-lg uppercase tracking-wider">Somente Box</span>}
                 </div>
               </div>
               
@@ -152,15 +159,15 @@ export default function Produtos({ companyId }: { companyId: string | null }) {
                   </div>
                 </div>
 
-                {product.has_box_discount && (
+                {product.has_box_discount && !product.venda_somente_box && (
                   <div className="pt-3 border-t border-slate-50 flex items-center gap-2 text-[10px] font-bold text-emerald-600">
                     <CheckCircle2 size={12} />
-                    <span>Desconto no Box: R$ {product.preco_box.toFixed(2)} ({product.qtd_box} un)</span>
+                    <span>A partir de {product.qtd_box} un: R$ {product.preco_box.toFixed(2)}</span>
                   </div>
                 )}
               </div>
             </div>
-          ))}
+          )})}
         </div>
       )}
 
@@ -171,6 +178,20 @@ export default function Produtos({ companyId }: { companyId: string | null }) {
           product={editingProduct}
           companyId={companyId}
         />
+      )}
+
+      {zoomImage && (
+        <div 
+          className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/90 backdrop-blur-md cursor-zoom-out"
+          onClick={() => setZoomImage(null)}
+        >
+          <img 
+            src={zoomImage} 
+            className="max-w-full max-h-full rounded-2xl shadow-2xl object-contain"
+            alt="Zoom"
+            referrerPolicy="no-referrer"
+          />
+        </div>
       )}
     </div>
   );

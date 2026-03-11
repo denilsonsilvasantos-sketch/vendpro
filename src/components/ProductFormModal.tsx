@@ -20,6 +20,7 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
   const [brands, setBrands] = useState<Brand[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
+  const [zoomImage, setZoomImage] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -125,7 +126,10 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
             {/* Image Column */}
             <div className="space-y-4">
               <div className="relative group">
-                <div className="aspect-square bg-slate-50 rounded-3xl flex items-center justify-center overflow-hidden border border-slate-200 shadow-inner">
+                <div 
+                  className="aspect-square bg-slate-50 rounded-3xl flex items-center justify-center overflow-hidden border border-slate-200 shadow-inner cursor-zoom-in"
+                  onClick={() => formData.imagem && setZoomImage(formData.imagem)}
+                >
                   {formData.imagem ? (
                     <img src={formData.imagem} alt="Produto" className="w-full h-full object-cover" />
                   ) : (
@@ -255,6 +259,20 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
           </div>
         </form>
       </div>
+
+      {zoomImage && (
+        <div 
+          className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/90 backdrop-blur-md cursor-zoom-out"
+          onClick={() => setZoomImage(null)}
+        >
+          <img 
+            src={zoomImage} 
+            className="max-w-full max-h-full rounded-2xl shadow-2xl object-contain"
+            alt="Zoom"
+            referrerPolicy="no-referrer"
+          />
+        </div>
+      )}
     </div>
   );
 }

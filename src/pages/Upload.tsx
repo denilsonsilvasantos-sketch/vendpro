@@ -123,6 +123,7 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
             venda_somente_box: extracted.venda_somente_box || false,
             has_box_discount: extracted.has_box_discount || false,
             is_last_units: extracted.is_last_units || false,
+            status_estoque: extracted.status_estoque || 'normal',
             category_id: categoriaId,
             categoria_pendente: categoriaPendente,
             imagem_pendente: true,

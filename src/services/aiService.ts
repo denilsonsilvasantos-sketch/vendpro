@@ -27,11 +27,18 @@ export async function classifyCategory(productName: string, categories: { id: nu
 export async function extractProductsFromMedia(base64Data: string, mimeType: string) {
 
   const prompt = `Analise este catálogo e extraia todos os produtos visíveis. 
-  Para cada produto, identifique: nome, SKU (se houver), preço unitário, preço da caixa (box), quantidade na caixa (qtd_box).
-  Identifique também as seguintes condições:
-  - "venda_somente_box": true se houver expressões como "somente no box", "venda fechada", "apenas caixa".
-  - "is_last_units": true se houver expressões como "últimas unidades", "queima de estoque", "fim de linha".
-  - "has_box_discount": true se o preço unitário for menor ao comprar a caixa fechada.
+  Para cada produto, identifique: nome, SKU/Cód (se houver), preço unitário, preço da caixa (box), quantidade na caixa (qtd_box).
+  
+  REGRAS IMPORTANTES DE EXTRAÇÃO:
+  1. PREÇOS: Preste muita atenção aos preços. Se houver "Avulso", esse é o preço unitário. Se houver "A partir de X un", esse é o preço de atacado/box (preco_box) e X é a quantidade (qtd_box).
+  2. STATUS DE ESTOQUE (status_estoque): 
+     - Se houver uma tarja ou texto "Esgotado", defina status_estoque como "esgotado".
+     - Se houver "Últimas Unidades", defina status_estoque como "ultimas".
+     - Se houver "Estoque Baixo", defina status_estoque como "baixo".
+     - Caso contrário, defina como "normal".
+  3. DESCONTO NO BOX (has_box_discount): true se houver a expressão "A partir de X un" ou se o preço unitário for menor ao comprar a caixa fechada.
+  4. SOMENTE BOX (venda_somente_box): true se houver expressões como "somente no box", "venda fechada", "apenas caixa".
+  5. ÚLTIMAS UNIDADES (is_last_units): true se o status_estoque for "ultimas" ou "baixo".
   
   Retorne os dados em formato JSON seguindo este esquema:
   Array<{
@@ -43,7 +50,8 @@ export async function extractProductsFromMedia(base64Data: string, mimeType: str
     qtd_box: number,
     venda_somente_box: boolean,
     has_box_discount: boolean,
-    is_last_units: boolean
+    is_last_units: boolean,
+    status_estoque: string
   }>`;
 
   try {
@@ -75,7 +83,8 @@ export async function extractProductsFromMedia(base64Data: string, mimeType: str
               qtd_box: { type: Type.INTEGER },
               venda_somente_box: { type: Type.BOOLEAN },
               has_box_discount: { type: Type.BOOLEAN },
-              is_last_units: { type: Type.BOOLEAN }
+              is_last_units: { type: Type.BOOLEAN },
+              status_estoque: { type: Type.STRING }
             },
             required: ["nome"]
           }

@@ -905,16 +905,35 @@ function CatalogScreen({ products, categories, onAddToCart, onEdit, role, onZoom
 
 function ProductCard({ product, onAdd, onEdit, role, onZoom, ...props }: { product: Product, onAdd: (p: Product, q: number) => void, onEdit: (p: Product) => void, role: UserRole, onZoom: (img: string) => void, [key: string]: any }) {
   const [qty, setQty] = useState(product.venda_somente_box ? 1 : (product.multiplo_venda || 1));
+  const isEsgotado = product.status_estoque === 'esgotado';
+
   return (
-    <Card className="p-4 flex flex-col group hover:border-primary/20 transition-all">
+    <Card className={`p-4 flex flex-col group hover:border-primary/20 transition-all ${isEsgotado ? 'opacity-75 grayscale-[0.5]' : ''}`}>
       <div className="relative aspect-square mb-4 rounded-2xl overflow-hidden bg-slate-50 cursor-zoom-in" onClick={() => onZoom(product.imagem || '')}>
         <img src={product.imagem || `https://picsum.photos/seed/${product.sku}/400/400`} className="w-full h-full object-cover" alt={product.nome} referrerPolicy="no-referrer" />
+        <div className="absolute top-2 right-2 flex flex-col gap-1.5 items-end">
+          {isEsgotado && <span className="bg-slate-800 text-white text-[10px] font-bold px-2 py-1 rounded-lg shadow-lg uppercase tracking-wider">Esgotado</span>}
+          {!isEsgotado && product.is_last_units && <span className="bg-rose-500 text-white text-[10px] font-bold px-2 py-1 rounded-lg shadow-lg uppercase tracking-wider">Últimas Unidades</span>}
+          {product.venda_somente_box && <span className="bg-amber-500 text-white text-[10px] font-bold px-2 py-1 rounded-lg shadow-lg uppercase tracking-wider">Somente Box</span>}
+        </div>
       </div>
       <h3 className="font-bold text-slate-800 text-sm leading-tight mb-1 line-clamp-2">{product.nome}</h3>
       <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-4">SKU: {product.sku}</p>
+      
+      {product.has_box_discount && !product.venda_somente_box && (
+        <div className="mb-2 p-2 bg-emerald-50 rounded-xl border border-emerald-100/50 flex items-center gap-2">
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+          <p className="text-[10px] font-bold text-emerald-700">A partir de {product.qtd_box} un: R$ {product.preco_box.toFixed(2)}</p>
+        </div>
+      )}
+
       <div className="mt-auto flex items-center justify-between">
         <p className="text-lg font-black text-primary">R$ {product.preco_unitario.toFixed(2)}</p>
-        <button onClick={() => onAdd(product, qty)} className="p-3 bg-primary text-white rounded-xl shadow-lg shadow-primary/20 active:scale-95 transition-all">
+        <button 
+          onClick={() => onAdd(product, qty)} 
+          disabled={isEsgotado}
+          className="p-3 bg-primary text-white rounded-xl shadow-lg shadow-primary/20 active:scale-95 transition-all disabled:opacity-50 disabled:active:scale-100"
+        >
           <Plus size={20} />
         </button>
       </div>

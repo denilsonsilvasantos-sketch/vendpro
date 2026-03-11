@@ -124,7 +124,10 @@ export default function App() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [zoomImage, setZoomImage] = useState<string | null>(null);
   const [showCartDisclaimer, setShowCartDisclaimer] = useState(false);
+  const [viewMode, setViewMode] = useState<'admin' | 'customer'>('admin');
   const { cart, addToCart, removeFromCart, updateQuantity, clearCart, total } = useCart();
+
+  const effectiveRole = viewMode === 'customer' ? 'customer' : role;
 
   const handleAddToCart = (product: Product, quantity: number) => {
     if (cart.length === 0) {
@@ -332,15 +335,33 @@ export default function App() {
 
               <nav className="space-y-1.5 flex-1 overflow-y-auto pr-2 custom-scrollbar">
                 <SidebarItem icon={<LayoutGrid size={20}/>} label="Catálogo" active={activeTab === 'catalog'} onClick={() => { setActiveTab('catalog'); setIsSidebarOpen(false); }} />
-                <SidebarItem icon={<LayoutGrid size={20}/>} label="Dashboard" active={activeTab === 'dashboard'} onClick={() => { setActiveTab('dashboard'); setIsSidebarOpen(false); }} />
-                <SidebarItem icon={<Package size={20}/>} label="Produtos" active={activeTab === 'produtos'} onClick={() => { setActiveTab('produtos'); setIsSidebarOpen(false); }} />
-                <SidebarItem icon={<UploadIcon size={20}/>} label="Upload" active={activeTab === 'upload'} onClick={() => { setActiveTab('upload'); setIsSidebarOpen(false); }} />
-                <SidebarItem icon={<AlertTriangle size={20}/>} label="Pendências" active={activeTab === 'pendencias'} onClick={() => { setActiveTab('pendencias'); setIsSidebarOpen(false); }} />
-                <SidebarItem icon={<Tag size={20}/>} label="Marcas" active={activeTab === 'marcas'} onClick={() => { setActiveTab('marcas'); setIsSidebarOpen(false); }} />
-                <SidebarItem icon={<Users size={20}/>} label="Vendedores" active={activeTab === 'vendedores'} onClick={() => { setActiveTab('vendedores'); setIsSidebarOpen(false); }} />
-                <SidebarItem icon={<Users size={20}/>} label="Clientes" active={activeTab === 'clientes'} onClick={() => { setActiveTab('clientes'); setIsSidebarOpen(false); }} />
-                <SidebarItem icon={<FileText size={20}/>} label="Pedidos" active={activeTab === 'pedidos'} onClick={() => { setActiveTab('pedidos'); setIsSidebarOpen(false); }} />
-                <SidebarItem icon={<Settings size={20}/>} label="Configurações" active={activeTab === 'configuracoes'} onClick={() => { setActiveTab('configuracoes'); setIsSidebarOpen(false); }} />
+                
+                {effectiveRole !== 'customer' && (
+                  <>
+                    <SidebarItem icon={<LayoutGrid size={20}/>} label="Dashboard" active={activeTab === 'dashboard'} onClick={() => { setActiveTab('dashboard'); setIsSidebarOpen(false); }} />
+                    <SidebarItem icon={<Package size={20}/>} label="Produtos" active={activeTab === 'produtos'} onClick={() => { setActiveTab('produtos'); setIsSidebarOpen(false); }} />
+                    <SidebarItem icon={<UploadIcon size={20}/>} label="Upload" active={activeTab === 'upload'} onClick={() => { setActiveTab('upload'); setIsSidebarOpen(false); }} />
+                    <SidebarItem icon={<AlertTriangle size={20}/>} label="Pendências" active={activeTab === 'pendencias'} onClick={() => { setActiveTab('pendencias'); setIsSidebarOpen(false); }} />
+                    <SidebarItem icon={<Tag size={20}/>} label="Marcas" active={activeTab === 'marcas'} onClick={() => { setActiveTab('marcas'); setIsSidebarOpen(false); }} />
+                    <SidebarItem icon={<Users size={20}/>} label="Vendedores" active={activeTab === 'vendedores'} onClick={() => { setActiveTab('vendedores'); setIsSidebarOpen(false); }} />
+                    <SidebarItem icon={<Users size={20}/>} label="Clientes" active={activeTab === 'clientes'} onClick={() => { setActiveTab('clientes'); setIsSidebarOpen(false); }} />
+                    <SidebarItem icon={<FileText size={20}/>} label="Pedidos" active={activeTab === 'pedidos'} onClick={() => { setActiveTab('pedidos'); setIsSidebarOpen(false); }} />
+                    <SidebarItem icon={<Settings size={20}/>} label="Configurações" active={activeTab === 'configuracoes'} onClick={() => { setActiveTab('configuracoes'); setIsSidebarOpen(false); }} />
+                    
+                    <div className="h-px bg-slate-100 my-6 mx-2" />
+                    
+                    <SidebarItem 
+                      icon={<User size={20}/>} 
+                      label="Visão do Cliente" 
+                      active={false} 
+                      onClick={() => { 
+                        setViewMode('customer'); 
+                        setActiveTab('catalog');
+                        setIsSidebarOpen(false); 
+                      }} 
+                    />
+                  </>
+                )}
 
                 <div className="h-px bg-slate-100 my-6 mx-2" />
                 <SidebarItem icon={<User size={20}/>} label="Minha Conta" active={activeTab === 'account'} onClick={() => { setActiveTab('account'); setIsSidebarOpen(false); }} />
@@ -372,14 +393,24 @@ export default function App() {
       </AnimatePresence>
 
       {/* Main Content */}
-      <main className="p-4 max-w-5xl mx-auto">
+      <main className="p-4 max-w-5xl mx-auto relative">
+        {viewMode === 'customer' && role !== 'customer' && (
+          <button
+            onClick={() => setViewMode('admin')}
+            className="fixed bottom-6 left-6 z-50 bg-slate-800 text-white px-4 py-2 rounded-full text-xs font-bold shadow-xl hover:bg-slate-700 transition-all flex items-center gap-2 opacity-50 hover:opacity-100"
+          >
+            <LogOut size={14} className="rotate-180" />
+            Voltar para Admin
+          </button>
+        )}
+
         {activeTab === 'catalog' && (
           <CatalogScreen 
             products={products} 
             categories={categories} 
             onAddToCart={handleAddToCart} 
             onEdit={setEditingProduct} 
-            role={role} 
+            role={effectiveRole} 
             onZoom={setZoomImage}
           />
         )}

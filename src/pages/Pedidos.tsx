@@ -9,7 +9,7 @@ export default function Pedidos({ companyId }: { companyId: string | null }) {
   useEffect(() => {
     async function fetchOrders() {
       if (!supabase || companyId === null) return;
-      const { data, error } = await supabase.from('orders').select('*, customers(empresa)').eq('company_id', companyId);
+      const { data, error } = await supabase.from('orders').select('*, customers(nome)').eq('company_id', companyId);
       if (error) console.error(error);
       else setOrders(data || []);
       setLoading(false);
@@ -52,7 +52,7 @@ export default function Pedidos({ companyId }: { companyId: string | null }) {
             {orders.map(order => (
               <tr key={order.id} className="border-t">
                 <td className="p-4">#{order.id}</td>
-                <td className="p-4">{order.customers?.empresa}</td>
+                <td className="p-4">{order.customers?.nome}</td>
                 <td className="p-4">R$ {order.total?.toFixed(2)}</td>
                 <td className="p-4">
                   <span className={`px-2 py-1 rounded-full text-xs ${

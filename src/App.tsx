@@ -506,7 +506,7 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
   const [view, setView] = useState<'role' | 'seller-code' | 'customer-form' | 'company-login' | 'company-register'>('role');
   const [loginType, setLoginType] = useState<'seller' | 'customer' | 'admin' | 'company' | null>(null);
   const [sellerCode, setSellerCode] = useState('');
-  const [customerData, setCustomerData] = useState({ empresa: '', cnpj: '', telefone: '', responsavel: '' });
+  const [customerData, setCustomerData] = useState({ nome: '', cnpj: '', telefone: '', responsavel: '' });
   const [companyData, setCompanyData] = useState({ nome: '', cnpj: '', telefone: '', responsavel: '', senha: '' });
   const [companyLoginCnpj, setCompanyLoginCnpj] = useState('');
   const [companyLoginSenha, setCompanyLoginSenha] = useState('');
@@ -723,7 +723,7 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
           <div className="space-y-3 text-left">
             <p className="font-bold text-sm mb-6 text-center text-slate-700">Complete seu cadastro</p>
             <div className="space-y-3">
-              <input placeholder="Nome da Empresa" className="w-full p-4 bg-white rounded-xl border border-slate-100 font-medium focus:ring-2 focus:ring-primary outline-none shadow-sm" onChange={e => setCustomerData({...customerData, empresa: e.target.value})} />
+              <input placeholder="Nome da Empresa" className="w-full p-4 bg-white rounded-xl border border-slate-100 font-medium focus:ring-2 focus:ring-primary outline-none shadow-sm" onChange={e => setCustomerData({...customerData, nome: e.target.value})} />
               <input placeholder="CNPJ" className="w-full p-4 bg-white rounded-xl border border-slate-100 font-medium focus:ring-2 focus:ring-primary outline-none shadow-sm" onChange={e => setCustomerData({...customerData, cnpj: e.target.value})} />
               <input placeholder="Telefone" className="w-full p-4 bg-white rounded-xl border border-slate-100 font-medium focus:ring-2 focus:ring-primary outline-none shadow-sm" onChange={e => setCustomerData({...customerData, telefone: e.target.value})} />
               <input placeholder="Seu Nome" className="w-full p-4 bg-white rounded-xl border border-slate-100 font-medium focus:ring-2 focus:ring-primary outline-none shadow-sm" onChange={e => setCustomerData({...customerData, responsavel: e.target.value})} />

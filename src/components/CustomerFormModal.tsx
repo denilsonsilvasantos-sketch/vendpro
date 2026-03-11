@@ -4,7 +4,7 @@ import { Customer, Seller } from '../types';
 import { X } from 'lucide-react';
 
 export default function CustomerFormModal({ onClose, onSave, customer, companyId }: { onClose: () => void, onSave: () => void, customer?: Customer, companyId: string | null }) {
-  const [formData, setFormData] = useState<any>(customer || { empresa: '', telefone: '', cnpj: '', ativo: true, seller_id: '' });
+  const [formData, setFormData] = useState<any>(customer || { nome: '', telefone: '', cnpj: '', ativo: true, seller_id: '' });
   const [loading, setLoading] = useState(false);
   const [sellers, setSellers] = useState<Seller[]>([]);
 
@@ -66,7 +66,7 @@ export default function CustomerFormModal({ onClose, onSave, customer, companyId
           <button onClick={onClose}><X /></button>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <input className="w-full p-2 border rounded" placeholder="Nome da Empresa" value={formData.empresa} onChange={e => setFormData({...formData, empresa: e.target.value})} required />
+          <input className="w-full p-2 border rounded" placeholder="Nome da Empresa" value={formData.nome} onChange={e => setFormData({...formData, nome: e.target.value})} required />
           <input className="w-full p-2 border rounded" placeholder="Telefone" value={formData.telefone} onChange={e => setFormData({...formData, telefone: e.target.value})} />
           <input className="w-full p-2 border rounded" placeholder="CNPJ" value={formData.cnpj} onChange={e => setFormData({...formData, cnpj: e.target.value})} />
           

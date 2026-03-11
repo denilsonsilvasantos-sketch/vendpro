@@ -66,7 +66,7 @@ export default function Clientes({ companyId }: { companyId: string | null }) {
           <tbody>
             {customers.map(customer => (
               <tr key={customer.id} className="border-t">
-                <td className="p-4">{customer.empresa}</td>
+                <td className="p-4">{customer.nome}</td>
                 <td className="p-4">{customer.telefone}</td>
                 <td className="p-4 flex gap-2">
                   <button onClick={() => { setEditingCustomer(customer); setIsModalOpen(true); }} className="p-2 text-slate-400 hover:text-primary"><Edit size={18} /></button>

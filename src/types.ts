@@ -41,7 +41,7 @@ export interface SellerBrand {
 export interface Customer {
   id: string;
   seller_id: string;
-  empresa: string;
+  nome: string;
   cnpj?: string;
   telefone?: string;
   responsavel?: string;

@@ -160,9 +160,8 @@ export default function Produtos({ companyId }: { companyId: string | null }) {
                 </div>
 
                 {product.has_box_discount && !product.venda_somente_box && (
-                  <div className="pt-3 border-t border-slate-50 flex items-center gap-2 text-[10px] font-bold text-emerald-600">
-                    <CheckCircle2 size={12} />
-                    <span>A partir de {product.qtd_box} un: R$ {product.preco_box.toFixed(2)}</span>
+                  <div className="pt-3 border-t border-slate-50 text-[11px] font-bold text-emerald-600">
+                    A partir de {product.qtd_box} un: R$ {product.preco_box.toFixed(2)} (R$ {(product.qtd_box > 0 ? product.preco_box / product.qtd_box : 0).toFixed(2)} un)
                   </div>
                 )}
               </div>

@@ -81,7 +81,11 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
         const { file, base64 } = uploadedFiles[i];
         setStatus({ type: 'info', message: `Analisando arquivo ${i + 1} de ${uploadedFiles.length}: ${file.name}` });
         
-        const extractedProducts = await extractProductsFromMedia(base64, file.type);
+        let mimeType = file.type;
+        if (!mimeType && file.name.toLowerCase().endsWith('.pdf')) {
+          mimeType = 'application/pdf';
+        }
+        const extractedProducts = await extractProductsFromMedia(base64, mimeType);
         totalProducts += extractedProducts.length;
 
         for (const extracted of extractedProducts) {
@@ -102,9 +106,9 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
             sku: sku,
             nome: extracted.nome,
             descricao: extracted.descricao,
-            preco_unitario: extracted.preco_unitario,
-            preco_box: extracted.preco_box || 0,
-            qtd_box: extracted.qtd_box || 1,
+            preco_unitario: Number(extracted.preco_unitario) || 0,
+            preco_box: Number(extracted.preco_box) || 0,
+            qtd_box: Number(extracted.qtd_box) || 1,
             venda_somente_box: extracted.venda_somente_box || false,
             has_box_discount: extracted.has_box_discount || false,
             is_last_units: extracted.is_last_units || false,
@@ -130,7 +134,11 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
             }
           }
 
-          await supabase.from('products').upsert(productData, { onConflict: 'company_id, sku' });
+          const { error: upsertError } = await supabase.from('products').upsert(productData, { onConflict: 'company_id, sku' });
+          if (upsertError) {
+            console.error('Erro ao salvar produto:', upsertError);
+            throw new Error(`Erro ao salvar produto ${sku}: ${upsertError.message}`);
+          }
         }
         setProgress(Math.round(((i + 1) / uploadedFiles.length) * 100));
       }

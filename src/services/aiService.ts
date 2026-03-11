@@ -49,16 +49,18 @@ export async function extractProductsFromMedia(base64Data: string, mimeType: str
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: [
-        {
-          inlineData: {
-            data: base64Data,
-            mimeType: mimeType
-          }
-        },
-        { text: prompt }
-      ],
+      model: "gemini-3.1-pro-preview",
+      contents: {
+        parts: [
+          {
+            inlineData: {
+              data: base64Data,
+              mimeType: mimeType
+            }
+          },
+          { text: prompt }
+        ]
+      },
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -82,9 +84,13 @@ export async function extractProductsFromMedia(base64Data: string, mimeType: str
       }
     });
 
-    return JSON.parse(response.text || "[]");
-  } catch (error) {
+    let jsonText = response.text || "[]";
+    // Remove markdown code blocks if present
+    jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    
+    return JSON.parse(jsonText);
+  } catch (error: any) {
     console.error("Erro ao extrair produtos da mídia:", error);
-    return [];
+    throw new Error(error.message || "Erro desconhecido ao processar o arquivo com a IA.");
   }
 }

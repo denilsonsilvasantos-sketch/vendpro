@@ -17,14 +17,14 @@ export default function Marcas({ companyId }: { companyId: string | null }) {
     if (!supabase || companyId === null) return;
     setLoading(true);
     try {
-      const { data: bData, error: bError } = await supabase.from('brands').select('*').eq('company_id', companyId).order('order_index', { ascending: true }).order('name');
-      const { data: cData, error: cError } = await supabase.from('categories').select('*').eq('company_id', companyId).order('order_index', { ascending: true }).order('nome');
+      const { data: bData, error: bError } = await supabase.from('brands').select('*').eq('company_id', companyId).order('name');
+      const { data: cData, error: cError } = await supabase.from('categories').select('*').eq('company_id', companyId).order('nome');
       
       if (bError) throw bError;
       if (cError) throw cError;
       
-      setBrands(bData || []);
-      setCategories(cData || []);
+      setBrands((bData || []).sort((a, b) => (a.order_index || 0) - (b.order_index || 0)));
+      setCategories((cData || []).sort((a, b) => (a.order_index || 0) - (b.order_index || 0)));
     } catch (error: any) {
       console.error("Erro ao buscar dados:", error);
       alert("Erro ao carregar marcas: " + error.message);
@@ -55,13 +55,21 @@ export default function Marcas({ companyId }: { companyId: string | null }) {
       const brandCategories = categories.filter(c => c.brand_id === brandId);
       const nextIndex = brandCategories.length > 0 ? Math.max(...brandCategories.map(c => c.order_index || 0)) + 1 : 0;
 
-      const { error } = await supabase.from('categories').insert([{
+      let insertData: any = {
         company_id: companyId,
         brand_id: brandId,
         nome: nome,
         ativo: true,
         order_index: nextIndex
-      }]);
+      };
+
+      let { error } = await supabase.from('categories').insert([insertData]);
+
+      if (error && error.message?.includes('order_index does not exist')) {
+        delete insertData.order_index;
+        const retry = await supabase.from('categories').insert([insertData]);
+        error = retry.error;
+      }
 
       if (error) {
         console.error('Erro ao adicionar categoria:', error);
@@ -102,7 +110,8 @@ export default function Marcas({ companyId }: { companyId: string | null }) {
     // Update order_index in DB
     const updates = newBrands.map((b, i) => ({ id: b.id, order_index: i }));
     for (const update of updates) {
-      await supabase.from('brands').update({ order_index: update.order_index }).eq('id', update.id);
+      const { error } = await supabase.from('brands').update({ order_index: update.order_index }).eq('id', update.id);
+      if (error) console.warn('Could not update order_index:', error.message);
     }
   };
 
@@ -134,7 +143,8 @@ export default function Marcas({ companyId }: { companyId: string | null }) {
     // Update order_index in DB
     const updates = brandCategories.map((c, i) => ({ id: c.id, order_index: i }));
     for (const update of updates) {
-      await supabase.from('categories').update({ order_index: update.order_index }).eq('id', update.id);
+      const { error } = await supabase.from('categories').update({ order_index: update.order_index }).eq('id', update.id);
+      if (error) console.warn('Could not update order_index:', error.message);
     }
   };
 

@@ -20,12 +20,12 @@ export default function Produtos({ companyId }: { companyId: string | null }) {
     setLoading(true);
     
     const { data: pData } = await supabase.from('products').select('*').eq('company_id', companyId).order('nome');
-    const { data: bData } = await supabase.from('brands').select('*').eq('company_id', companyId).order('order_index');
-    const { data: cData } = await supabase.from('categories').select('*').eq('company_id', companyId).order('order_index');
+    const { data: bData } = await supabase.from('brands').select('*').eq('company_id', companyId).order('name');
+    const { data: cData } = await supabase.from('categories').select('*').eq('company_id', companyId).order('nome');
     
     setProducts(pData || []);
-    setBrands(bData || []);
-    setCategories(cData || []);
+    setBrands((bData || []).sort((a, b) => (a.order_index || 0) - (b.order_index || 0)));
+    setCategories((cData || []).sort((a, b) => (a.order_index || 0) - (b.order_index || 0)));
     setLoading(false);
   }
 

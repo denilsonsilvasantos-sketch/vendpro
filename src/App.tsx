@@ -179,10 +179,10 @@ export default function App() {
           
           // Also fetch categories and brands for this company
           if (supabase) {
-            const { data: catData } = await supabase.from('categories').select('*').eq('company_id', activeCompanyId).order('order_index');
-            setCategories(catData || []);
-            const { data: brandData } = await supabase.from('brands').select('*').eq('company_id', activeCompanyId).order('order_index');
-            setBrands(brandData || []);
+            const { data: catData } = await supabase.from('categories').select('*').eq('company_id', activeCompanyId).order('nome');
+            setCategories((catData || []).sort((a, b) => (a.order_index || 0) - (b.order_index || 0)));
+            const { data: brandData } = await supabase.from('brands').select('*').eq('company_id', activeCompanyId).order('name');
+            setBrands((brandData || []).sort((a, b) => (a.order_index || 0) - (b.order_index || 0)));
           }
         } catch (error) {
           console.error("Erro ao carregar dados:", error);

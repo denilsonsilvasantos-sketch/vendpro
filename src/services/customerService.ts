@@ -14,6 +14,24 @@ export async function getCustomers(companyId: string) {
   return data;
 }
 
+export async function getCustomerByCnpj(cnpj: string, sellerId: string) {
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from("customers")
+    .select("*")
+    .eq("cnpj", cnpj)
+    .eq("seller_id", sellerId)
+    .single();
+
+  if (error) {
+    if (error.code !== 'PGRST116') { // Not found error
+      console.error("Erro ao buscar cliente por CNPJ:", error);
+    }
+    return null;
+  }
+  return data;
+}
+
 export async function createCustomer(companyId: string, customerData: any) {
   if (!supabase) return null;
   const { data, error } = await supabase

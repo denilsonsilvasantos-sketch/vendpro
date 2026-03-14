@@ -1,87 +1,140 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../integrations/supabaseClient';
-import { Settings, Building2, Phone, Mail, FileText, Save, Loader2 } from 'lucide-react';
+import { Save, Building2, Phone, Mail, MapPin, Loader2 } from 'lucide-react';
 
-export default function Configuracoes({ companyId }: { companyId: string | null }) {
-  const [company, setCompany] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+export default function Configuracoes({ companyId }: { companyId: string }) {
+  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [formData, setFormData] = useState({
-    nome: ''
-  });
+  const [company, setCompany] = useState<any>(null);
 
   useEffect(() => {
-    async function fetchCompany() {
-      if (!supabase || companyId === null) return;
+    async function loadCompany() {
+      if (!supabase) return;
+      setLoading(true);
       const { data } = await supabase.from('companies').select('*').eq('id', companyId).single();
-      if (data) {
-        setCompany(data);
-        setFormData({
-          nome: data.nome || ''
-        });
-      }
+      if (data) setCompany(data);
       setLoading(false);
     }
-    fetchCompany();
+    loadCompany();
   }, [companyId]);
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!supabase || !companyId) return;
+  const handleSave = async () => {
+    if (!supabase || !company) return;
     setSaving(true);
-    const { error } = await supabase.from('companies').update(formData).eq('id', companyId);
+    const { error } = await supabase.from('companies').update({
+      nome: company.nome,
+      cnpj: company.cnpj,
+      responsavel: company.responsavel,
+      telefone: company.telefone,
+      minimum_order_value: company.minimum_order_value,
+      payment_policy: company.payment_policy,
+      shipping_policy: company.shipping_policy,
+    }).eq('id', companyId);
+    
+    setSaving(false);
     if (error) {
-      alert('Erro ao salvar configurações: ' + error.message);
+      alert('Erro ao salvar configurações');
     } else {
       alert('Configurações salvas com sucesso!');
     }
-    setSaving(false);
   };
 
-  if (loading) return <div className="p-6 flex items-center justify-center min-h-[400px]"><Loader2 className="animate-spin text-primary" size={40} /></div>;
+  if (loading) return <div className="p-6 flex justify-center"><Loader2 className="animate-spin text-primary" /></div>;
+  if (!company) return null;
 
   return (
-    <div className="p-6 space-y-8 max-w-4xl mx-auto pb-20">
-      <div className="flex items-center gap-4">
+    <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden max-w-2xl mx-auto p-6 space-y-6">
+      <div className="flex items-center gap-4 mb-6">
         <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary">
-          <Settings size={28} />
+          <Building2 size={24} />
         </div>
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Configurações</h1>
-          <p className="text-slate-500 text-sm">Gerencie as informações da sua empresa e políticas de venda.</p>
+          <h2 className="text-xl font-bold text-slate-900">Dados da Empresa</h2>
+          <p className="text-sm text-slate-500">Informações e políticas comerciais</p>
         </div>
       </div>
 
-      <form onSubmit={handleSave} className="space-y-6">
-        <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
-          <div className="p-6 border-b border-slate-50 flex items-center gap-3">
-            <Building2 className="text-primary" size={20} />
-            <h2 className="font-bold text-slate-900">Informações da Empresa</h2>
+      <div className="space-y-4">
+        <div>
+          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Nome da Empresa</label>
+          <input 
+            type="text" 
+            className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl font-medium focus:ring-2 focus:ring-primary/20 outline-none"
+            value={company.nome || ''}
+            onChange={e => setCompany({...company, nome: e.target.value})}
+          />
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">CNPJ</label>
+            <input 
+              type="text" 
+              className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl font-medium focus:ring-2 focus:ring-primary/20 outline-none"
+              value={company.cnpj || ''}
+              onChange={e => setCompany({...company, cnpj: e.target.value})}
+            />
           </div>
-          <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-500 uppercase">Nome da Empresa</label>
-              <input 
-                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none" 
-                value={formData.nome} 
-                onChange={e => setFormData({...formData, nome: e.target.value})} 
-                required 
-              />
-            </div>
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Telefone</label>
+            <input 
+              type="text" 
+              className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl font-medium focus:ring-2 focus:ring-primary/20 outline-none"
+              value={company.telefone || ''}
+              onChange={e => setCompany({...company, telefone: e.target.value})}
+            />
           </div>
         </div>
 
-        <div className="flex justify-end">
-          <button 
-            type="submit"
-            disabled={saving}
-            className="bg-primary text-white px-8 py-4 rounded-2xl font-bold shadow-lg shadow-primary/20 hover:-translate-y-0.5 transition-all active:scale-95 flex items-center gap-2 disabled:opacity-50"
-          >
-            {saving ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
-            {saving ? 'Salvando...' : 'Salvar Alterações'}
-          </button>
+        <div>
+          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Responsável</label>
+          <input 
+            type="text" 
+            className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl font-medium focus:ring-2 focus:ring-primary/20 outline-none"
+            value={company.responsavel || ''}
+            onChange={e => setCompany({...company, responsavel: e.target.value})}
+          />
         </div>
-      </form>
+
+        <div>
+          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Pedido Mínimo (R$)</label>
+          <input 
+            type="number" 
+            className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl font-medium focus:ring-2 focus:ring-primary/20 outline-none"
+            value={company.minimum_order_value || 0}
+            onChange={e => setCompany({...company, minimum_order_value: Number(e.target.value)})}
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Política de Pagamento</label>
+          <textarea 
+            className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl font-medium focus:ring-2 focus:ring-primary/20 outline-none min-h-[100px]"
+            value={company.payment_policy || ''}
+            onChange={e => setCompany({...company, payment_policy: e.target.value})}
+            placeholder="Ex: Pagamento via PIX com 5% de desconto..."
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Política de Envio</label>
+          <textarea 
+            className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl font-medium focus:ring-2 focus:ring-primary/20 outline-none min-h-[100px]"
+            value={company.shipping_policy || ''}
+            onChange={e => setCompany({...company, shipping_policy: e.target.value})}
+            placeholder="Ex: Frete grátis para compras acima de R$ 500,00..."
+          />
+        </div>
+      </div>
+
+      <button 
+        onClick={handleSave}
+        disabled={saving}
+        className="w-full py-4 bg-primary text-white rounded-2xl font-bold shadow-lg shadow-primary/20 flex items-center justify-center gap-2 hover:bg-primary-dark active:scale-95 transition-all disabled:opacity-50"
+      >
+        {saving ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
+        Salvar Configurações
+      </button>
     </div>
   );
 }

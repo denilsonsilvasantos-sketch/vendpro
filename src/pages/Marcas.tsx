@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../integrations/supabaseClient';
 import { Brand, Category } from '../types';
-import { Edit, Trash2, Plus, ChevronDown, ChevronUp, Tag, Info, AlertCircle, Loader2 } from 'lucide-react';
+import { Edit, Trash2, Plus, ChevronDown, ChevronUp, Tag, Info, AlertCircle, Loader2, ArrowUp, ArrowDown } from 'lucide-react';
 import BrandFormModal from '../components/BrandFormModal';
 
 export default function Marcas({ companyId }: { companyId: string | null }) {
@@ -17,8 +17,8 @@ export default function Marcas({ companyId }: { companyId: string | null }) {
     if (!supabase || companyId === null) return;
     setLoading(true);
     try {
-      const { data: bData, error: bError } = await supabase.from('brands').select('*').eq('company_id', companyId).order('name');
-      const { data: cData, error: cError } = await supabase.from('categories').select('*').eq('company_id', companyId).order('nome');
+      const { data: bData, error: bError } = await supabase.from('brands').select('*').eq('company_id', companyId).order('ordem', { ascending: true }).order('name');
+      const { data: cData, error: cError } = await supabase.from('categories').select('*').eq('company_id', companyId).order('ordem', { ascending: true }).order('nome');
       
       if (bError) throw bError;
       if (cError) throw cError;
@@ -45,6 +45,64 @@ export default function Marcas({ companyId }: { companyId: string | null }) {
     if (!supabase || !confirm('Tem certeza que deseja excluir esta marca? Todos os produtos vinculados serão afetados.')) return;
     await supabase.from('brands').delete().eq('id', id);
     fetchData();
+  };
+
+  const handleReorderBrand = async (index: number, direction: 'up' | 'down') => {
+    if (!supabase) return;
+    const newBrands = [...brands];
+    if (direction === 'up' && index > 0) {
+      const temp = newBrands[index];
+      newBrands[index] = newBrands[index - 1];
+      newBrands[index - 1] = temp;
+    } else if (direction === 'down' && index < newBrands.length - 1) {
+      const temp = newBrands[index];
+      newBrands[index] = newBrands[index + 1];
+      newBrands[index + 1] = temp;
+    } else {
+      return;
+    }
+
+    setBrands(newBrands);
+    
+    // Update all orders in DB
+    const updates = newBrands.map((b, i) => ({
+      id: b.id,
+      ordem: i
+    }));
+
+    for (const update of updates) {
+      await supabase.from('brands').update({ ordem: update.ordem }).eq('id', update.id);
+    }
+  };
+
+  const handleReorderCategory = async (brandId: string, index: number, direction: 'up' | 'down') => {
+    if (!supabase) return;
+    const brandCategories = categories.filter(c => c.brand_id === brandId);
+    if (direction === 'up' && index > 0) {
+      const temp = brandCategories[index];
+      brandCategories[index] = brandCategories[index - 1];
+      brandCategories[index - 1] = temp;
+    } else if (direction === 'down' && index < brandCategories.length - 1) {
+      const temp = brandCategories[index];
+      brandCategories[index] = brandCategories[index + 1];
+      brandCategories[index + 1] = temp;
+    } else {
+      return;
+    }
+
+    // Update local state
+    const otherCategories = categories.filter(c => c.brand_id !== brandId);
+    setCategories([...otherCategories, ...brandCategories]);
+
+    // Update all orders in DB
+    const updates = brandCategories.map((c, i) => ({
+      id: c.id,
+      ordem: i
+    }));
+
+    for (const update of updates) {
+      await supabase.from('categories').update({ ordem: update.ordem }).eq('id', update.id);
+    }
   };
 
   const handleAddCategory = async (brandId: string) => {
@@ -120,10 +178,14 @@ export default function Marcas({ companyId }: { companyId: string | null }) {
         </div>
       ) : (
         <div className="space-y-4">
-          {brands.map(brand => (
+          {brands.map((brand, bIndex) => (
             <div key={brand.id} className={`bg-white rounded-3xl shadow-sm border transition-all ${expandedBrands.includes(brand.id) ? 'border-primary ring-4 ring-primary/5' : 'border-slate-100'}`}>
               <div className="p-5 flex justify-between items-center">
                 <div className="flex items-center gap-4 cursor-pointer flex-1" onClick={() => toggleExpand(brand.id)}>
+                  <div className="flex flex-col gap-1 mr-2" onClick={e => e.stopPropagation()}>
+                    <button onClick={() => handleReorderBrand(bIndex, 'up')} disabled={bIndex === 0} className="p-1 text-slate-300 hover:text-primary disabled:opacity-30"><ArrowUp size={16} /></button>
+                    <button onClick={() => handleReorderBrand(bIndex, 'down')} disabled={bIndex === brands.length - 1} className="p-1 text-slate-300 hover:text-primary disabled:opacity-30"><ArrowDown size={16} /></button>
+                  </div>
                   <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center overflow-hidden border border-slate-100 shrink-0">
                     <Tag className="text-slate-300" size={20} />
                   </div>
@@ -195,9 +257,15 @@ export default function Marcas({ companyId }: { companyId: string | null }) {
                     <div className="space-y-4">
                       <h4 className="font-bold text-slate-900 flex items-center gap-2"><Tag size={16} className="text-primary" /> Categorias</h4>
                       <div className="space-y-2">
-                        {categories.filter(c => c.brand_id === brand.id).map(cat => (
+                        {categories.filter(c => c.brand_id === brand.id).map((cat, cIndex, arr) => (
                           <div key={cat.id} className="flex justify-between items-center p-3 bg-white border border-slate-100 rounded-xl group hover:border-primary/20 transition-all">
-                            <span className="text-sm font-medium text-slate-700">{cat.nome}</span>
+                            <div className="flex items-center gap-3">
+                              <div className="flex flex-col">
+                                <button onClick={() => handleReorderCategory(brand.id, cIndex, 'up')} disabled={cIndex === 0} className="text-slate-300 hover:text-primary disabled:opacity-30"><ArrowUp size={12} /></button>
+                                <button onClick={() => handleReorderCategory(brand.id, cIndex, 'down')} disabled={cIndex === arr.length - 1} className="text-slate-300 hover:text-primary disabled:opacity-30"><ArrowDown size={12} /></button>
+                              </div>
+                              <span className="text-sm font-medium text-slate-700">{cat.nome}</span>
+                            </div>
                             <button 
                               onClick={() => handleDeleteCategory(cat.id)}
                               className="text-slate-300 hover:text-rose-500 p-1 opacity-0 group-hover:opacity-100 transition-all"

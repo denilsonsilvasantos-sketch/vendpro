@@ -117,13 +117,13 @@ export default function Produtos({ companyId }: { companyId: string | null }) {
                 <img 
                   src={product.imagem || `https://picsum.photos/seed/${product.sku}/400/400`} 
                   alt={product.nome} 
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                  className="w-full h-full object-contain p-2 group-hover:scale-110 transition-transform duration-500"
                   referrerPolicy="no-referrer"
                 />
-                <div className="absolute top-3 right-3 flex flex-col gap-2 items-end">
-                  {isEsgotado && <span className="bg-slate-800 text-white text-[10px] font-bold px-2 py-1 rounded-lg shadow-lg uppercase tracking-wider">Esgotado</span>}
-                  {!isEsgotado && product.is_last_units && <span className="bg-rose-500 text-white text-[10px] font-bold px-2 py-1 rounded-lg shadow-lg uppercase tracking-wider">Últimas Unidades</span>}
-                  {product.venda_somente_box && <span className="bg-amber-500 text-white text-[10px] font-bold px-2 py-1 rounded-lg shadow-lg uppercase tracking-wider">Somente Box</span>}
+                <div className="absolute top-2 left-1/2 -translate-x-1/2 flex flex-col gap-1.5 items-center w-full px-2">
+                  {isEsgotado && <span className="bg-slate-800 text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-lg uppercase tracking-wider text-center">Esgotado</span>}
+                  {!isEsgotado && product.is_last_units && <span className="bg-rose-500 text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-lg uppercase tracking-wider text-center">Últimas Unidades</span>}
+                  {product.venda_somente_box && <span className="bg-amber-500 text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-lg uppercase tracking-wider text-center">Somente Box</span>}
                 </div>
               </div>
               
@@ -134,16 +134,32 @@ export default function Produtos({ companyId }: { companyId: string | null }) {
                     <span className="w-1 h-1 bg-slate-300 rounded-full" />
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{categories.find(c => c.id === product.category_id)?.nome}</span>
                   </div>
-                  <h3 className="font-bold text-slate-900 line-clamp-1 group-hover:text-primary transition-colors">{product.nome}</h3>
+                  <h3 className="font-bold text-slate-900 group-hover:text-primary transition-colors">{product.nome}</h3>
                   <p className="text-[10px] font-mono text-slate-400 mt-0.5">SKU: {product.sku}</p>
                 </div>
 
-                <div className="flex items-end justify-between">
-                  <div className="space-y-0.5">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase">Preço Unitário</p>
-                    <p className="text-xl font-bold text-slate-900">R$ {product.preco_unitario.toFixed(2)}</p>
-                  </div>
-                  <div className="flex gap-1">
+                <div className="flex flex-col gap-4">
+                  {!isEsgotado && (
+                    <div className="space-y-0.5">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase">Preço Unitário</p>
+                      <p className="text-xl font-bold text-slate-900">R$ {product.venda_somente_box ? product.preco_box.toFixed(2) : product.preco_unitario.toFixed(2)}</p>
+                    </div>
+                  )}
+                  
+                  {!isEsgotado && (product.has_box_discount || product.venda_somente_box) && (
+                    <div className="pt-3 border-t border-slate-50 text-sm font-bold text-emerald-600">
+                      {!product.venda_somente_box ? (
+                        `A partir de ${product.qtd_box} un: R$ ${(product.qtd_box > 0 ? product.preco_box / product.qtd_box : 0).toFixed(2)} un`
+                      ) : (
+                        <div className="flex flex-col gap-0.5">
+                          <span>Box com {product.qtd_box} un: R$ {product.preco_box.toFixed(2)}</span>
+                          <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">R$ {(product.qtd_box > 0 ? product.preco_box / product.qtd_box : 0).toFixed(2)} por unidade</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="flex gap-2 justify-end pt-2">
                     <button 
                       onClick={() => { setEditingProduct(product); setIsModalOpen(true); }} 
                       className="p-2.5 text-slate-400 hover:text-primary hover:bg-primary/5 rounded-xl transition-all"

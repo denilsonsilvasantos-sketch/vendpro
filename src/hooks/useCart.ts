@@ -69,12 +69,13 @@ export function useCart() {
 
   const total = cart.reduce((acc, item) => {
     if (item.venda_somente_box) {
-      // In this mode, quantity represents boxes
-      return acc + (item.quantity * item.preco_box);
+      // quantity represents units, but it must be a multiple of qtd_box
+      const boxes = item.qtd_box > 0 ? item.quantity / item.qtd_box : item.quantity;
+      return acc + (boxes * item.preco_box);
     }
     
     let price = item.preco_unitario;
-    if (item.quantity >= item.qtd_box && item.qtd_box > 0) {
+    if (item.has_box_discount && item.quantity >= item.qtd_box && item.qtd_box > 0) {
       price = item.preco_box / item.qtd_box;
     }
     return acc + (item.quantity * price);

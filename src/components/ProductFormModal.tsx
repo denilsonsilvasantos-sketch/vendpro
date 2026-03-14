@@ -239,11 +239,19 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
                 </label>
 
                 <label className="flex items-center gap-3 cursor-pointer group">
-                  <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${formData.is_last_units ? 'bg-rose-500 border-rose-500' : 'border-slate-200 group-hover:border-rose-500/50'}`}>
+                  <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${formData.is_last_units ? 'bg-amber-500 border-amber-500' : 'border-slate-200 group-hover:border-amber-500/50'}`}>
                     {formData.is_last_units && <X size={14} className="text-white rotate-45" />}
                   </div>
-                  <input type="checkbox" className="hidden" checked={formData.is_last_units} onChange={e => setFormData({...formData, is_last_units: e.target.checked})} />
+                  <input type="checkbox" className="hidden" checked={formData.is_last_units} onChange={e => setFormData({...formData, is_last_units: e.target.checked, status_estoque: e.target.checked ? 'ultimas' : 'normal'})} />
                   <span className="text-sm font-bold text-slate-700">Últimas Unidades</span>
+                </label>
+
+                <label className="flex items-center gap-3 cursor-pointer group">
+                  <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${formData.status_estoque === 'esgotado' ? 'bg-rose-500 border-rose-500' : 'border-slate-200 group-hover:border-rose-500/50'}`}>
+                    {formData.status_estoque === 'esgotado' && <X size={14} className="text-white rotate-45" />}
+                  </div>
+                  <input type="checkbox" className="hidden" checked={formData.status_estoque === 'esgotado'} onChange={e => setFormData({...formData, status_estoque: e.target.checked ? 'esgotado' : 'normal'})} />
+                  <span className="text-sm font-bold text-slate-700">Esgotado</span>
                 </label>
               </div>
             </div>

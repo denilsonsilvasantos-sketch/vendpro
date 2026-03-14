@@ -9,6 +9,7 @@ export interface Brand {
   payment_policy?: string;
   stock_policy?: string;
   payment_methods?: string[];
+  ordem?: number;
 }
 
 export interface Company {
@@ -56,6 +57,7 @@ export interface Category {
   nome: string;
   palavras_chave?: string;
   ativo: boolean;
+  ordem?: number;
 }
 
 export interface Product {

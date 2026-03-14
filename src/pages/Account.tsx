@@ -1,11 +1,23 @@
-import React from 'react';
-import { User, Mail, Shield, Calendar, LogOut } from 'lucide-react';
+import React, { useState } from 'react';
+import { User, Mail, Shield, Calendar, LogOut, Link as LinkIcon, Check } from 'lucide-react';
+import Configuracoes from './Configuracoes';
 
-export default function Account({ user, role, onLogout }: { user: any, role: string | null, onLogout: () => void }) {
+export default function Account({ user, role, companyId, onLogout }: { user: any, role: string | null, companyId: string | null, onLogout: () => void }) {
+  const [copied, setCopied] = useState(false);
+
   if (!user) return <div className="p-6">Carregando...</div>;
 
+  const handleCopyLink = () => {
+    if (user.codigo_vinculo) {
+      const link = `${window.location.origin}?vincular=${user.codigo_vinculo}`;
+      navigator.clipboard.writeText(link);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
   return (
-    <div className="p-6 space-y-8 max-w-2xl mx-auto">
+    <div className="p-6 space-y-8 max-w-4xl mx-auto pb-20">
       <div className="flex flex-col items-center text-center space-y-4">
         <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center text-primary border-4 border-white shadow-xl">
           <User size={48} />
@@ -16,7 +28,13 @@ export default function Account({ user, role, onLogout }: { user: any, role: str
         </div>
       </div>
 
-      <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
+      {(role === 'company' || role === 'admin') && companyId ? (
+        <div className="mb-8">
+          <Configuracoes companyId={companyId} />
+        </div>
+      ) : null}
+
+      <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden max-w-2xl mx-auto">
         <div className="p-6 space-y-6">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400">
@@ -49,6 +67,32 @@ export default function Account({ user, role, onLogout }: { user: any, role: str
               </p>
             </div>
           </div>
+
+          {role === 'seller' && user.codigo_vinculo && (
+            <div className="flex items-center gap-4 pt-4 border-t border-slate-100">
+              <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary">
+                <LinkIcon size={24} />
+              </div>
+              <div className="flex-1">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Link para Clientes</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <code className="bg-slate-50 px-3 py-1.5 rounded-lg text-sm font-mono text-slate-600 truncate max-w-[200px] sm:max-w-xs border border-slate-100">
+                    {`${window.location.origin}?vincular=${user.codigo_vinculo}`}
+                  </code>
+                  <button 
+                    onClick={handleCopyLink}
+                    className="p-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors shadow-sm"
+                    title="Copiar Link"
+                  >
+                    {copied ? <Check size={16} /> : <LinkIcon size={16} />}
+                  </button>
+                </div>
+                <p className="text-xs text-slate-500 mt-2">
+                  Envie este link para seus clientes. Eles serão vinculados automaticamente a você.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="p-6 bg-slate-50 border-t border-slate-100">

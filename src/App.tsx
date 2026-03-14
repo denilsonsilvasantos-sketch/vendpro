@@ -1145,7 +1145,7 @@ function ProductCard({ product, onAdd, onEdit, role, onZoom, ...props }: { produ
           {!product.venda_somente_box ? (
             `A partir de ${product.qtd_box} un: R$ ${product.preco_box.toFixed(2)}`
           ) : (
-            `Box com ${product.qtd_box} un: R$ ${(product.preco_box * product.qtd_box).toFixed(2)}`
+            `Box com ${product.qtd_box} un: R$ ${product.preco_box.toFixed(2)}`
           )}
         </div>
       )}

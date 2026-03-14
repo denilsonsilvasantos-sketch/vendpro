@@ -71,7 +71,7 @@ export function useCart() {
     let price = item.preco_unitario;
     
     if (item.venda_somente_box) {
-      price = item.preco_box; // preco_box is the unit price
+      price = item.qtd_box && item.qtd_box > 0 ? item.preco_box / item.qtd_box : item.preco_box;
     } else if (item.has_box_discount && item.quantity >= (item.qtd_box || 0) && (item.qtd_box || 0) > 0) {
       price = item.preco_box; // preco_box is the unit price when discount applies
     }

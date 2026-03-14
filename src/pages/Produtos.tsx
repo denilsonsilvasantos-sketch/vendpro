@@ -136,7 +136,7 @@ export default function Produtos({ companyId }: { companyId: string | null }) {
                 <img 
                   src={product.imagem || `https://picsum.photos/seed/${product.sku}/400/400`} 
                   alt={product.nome} 
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                  className="w-full h-full object-contain p-4 group-hover:scale-110 transition-transform duration-500"
                   referrerPolicy="no-referrer"
                 />
                 <div className="absolute top-3 right-3 flex flex-col gap-2 items-end">
@@ -187,7 +187,7 @@ export default function Produtos({ companyId }: { companyId: string | null }) {
                     {!product.venda_somente_box ? (
                       `A partir de ${product.qtd_box} un: R$ ${product.preco_box.toFixed(2)}`
                     ) : (
-                      `Box com ${product.qtd_box} un: R$ ${(product.preco_box * product.qtd_box).toFixed(2)}`
+                      `Box com ${product.qtd_box} un: R$ ${product.preco_box.toFixed(2)}`
                     )}
                   </div>
                 )}

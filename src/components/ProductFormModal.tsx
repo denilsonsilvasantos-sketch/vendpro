@@ -209,11 +209,11 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Preço Unitário (R$)</label>
+                  <label className="text-xs font-bold text-slate-500 uppercase">Preço Unitário</label>
                   <input type="number" step="0.01" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none font-bold text-primary" value={formData.preco_unitario} onChange={e => setFormData({...formData, preco_unitario: parseFloat(e.target.value)})} required />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Preço Box (R$)</label>
+                  <label className="text-xs font-bold text-slate-500 uppercase">Preço Box</label>
                   <input type="number" step="0.01" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none" value={formData.preco_box} onChange={e => setFormData({...formData, preco_box: parseFloat(e.target.value)})} />
                 </div>
                 <div className="space-y-1">

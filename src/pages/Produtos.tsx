@@ -185,9 +185,9 @@ export default function Produtos({ companyId }: { companyId: string | null }) {
                 {(product.has_box_discount || product.venda_somente_box) && !isEsgotado && (
                   <div className="pt-3 border-t border-slate-50 text-[11px] font-bold text-emerald-600">
                     {!product.venda_somente_box ? (
-                      `A partir de ${product.qtd_box} un: R$ ${(product.qtd_box > 0 ? product.preco_box / product.qtd_box : 0).toFixed(2)} un`
+                      `A partir de ${product.qtd_box} un: R$ ${product.preco_box.toFixed(2)}`
                     ) : (
-                      `Box com ${product.qtd_box} un: R$ ${product.preco_box.toFixed(2)}`
+                      `Box com ${product.qtd_box} un: R$ ${(product.preco_box * product.qtd_box).toFixed(2)}`
                     )}
                   </div>
                 )}

@@ -13,6 +13,7 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
     venda_somente_box: false,
     has_box_discount: false,
     is_last_units: false,
+    multiplo_venda: 1,
     imagem: '',
     brand_id: undefined,
     category_id: undefined
@@ -219,6 +220,34 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
                   <label className="text-xs font-bold text-slate-500 uppercase">Qtd por Box</label>
                   <input type="number" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none" value={formData.qtd_box} onChange={e => setFormData({...formData, qtd_box: parseInt(e.target.value)})} />
                 </div>
+              </div>
+
+              <div className="flex flex-wrap gap-6 pt-2">
+                <label className="flex items-center gap-3 cursor-pointer group">
+                  <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${formData.multiplo_venda && formData.multiplo_venda > 1 ? 'bg-primary border-primary' : 'border-slate-200 group-hover:border-primary/50'}`}>
+                    {formData.multiplo_venda && formData.multiplo_venda > 1 && <Check size={14} className="text-white" />}
+                  </div>
+                  <input 
+                    type="checkbox" 
+                    className="hidden" 
+                    checked={!!(formData.multiplo_venda && formData.multiplo_venda > 1)} 
+                    onChange={e => setFormData({...formData, multiplo_venda: e.target.checked ? 2 : 1})} 
+                  />
+                  <span className="text-sm font-bold text-slate-700">Vender em Múltiplos</span>
+                </label>
+
+                {formData.multiplo_venda && formData.multiplo_venda > 1 && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-slate-500">Múltiplo de:</span>
+                    <input 
+                      type="number" 
+                      className="w-20 p-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none text-center font-bold" 
+                      value={formData.multiplo_venda} 
+                      onChange={e => setFormData({...formData, multiplo_venda: parseInt(e.target.value) || 2})} 
+                      min="2"
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="flex flex-wrap gap-6 pt-2">

@@ -1143,9 +1143,9 @@ function ProductCard({ product, onAdd, onEdit, role, onZoom, ...props }: { produ
       {(product.has_box_discount || product.venda_somente_box) && !isEsgotado && (
         <div className="mb-4 pt-3 border-t border-slate-50 text-sm font-bold text-emerald-600 text-center">
           {!product.venda_somente_box ? (
-            `A partir de ${product.qtd_box} un: R$ ${(product.qtd_box > 0 ? product.preco_box / product.qtd_box : 0).toFixed(2)} un`
+            `A partir de ${product.qtd_box} un: R$ ${product.preco_box.toFixed(2)}`
           ) : (
-            `Box com ${product.qtd_box} un: R$ ${product.preco_box.toFixed(2)}`
+            `Box com ${product.qtd_box} un: R$ ${(product.preco_box * product.qtd_box).toFixed(2)}`
           )}
         </div>
       )}

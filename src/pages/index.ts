@@ -6,5 +6,4 @@ export { default as Configuracoes } from './Configuracoes';
 export { default as Marcas } from './Marcas';
 export { default as Upload } from './Upload';
 export { default as Pendencias } from './Pendencias';
-export { default as Account } from './Account';
 export { default as Vendedores } from './Vendedores';

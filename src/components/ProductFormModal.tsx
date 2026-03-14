@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../integrations/supabaseClient';
 import { Product, Brand, Category } from '../types';
-import { X, Upload, Loader2, Image as ImageIcon, Link as LinkIcon } from 'lucide-react';
+import { X, Upload, Loader2, Image as ImageIcon, Link as LinkIcon, Check } from 'lucide-react';
 
 export default function ProductFormModal({ onClose, onSave, product, companyId }: { onClose: () => void, onSave: () => void, product?: Product, companyId: string | null }) {
   const [formData, setFormData] = useState<Partial<Product>>(product || { 
@@ -224,7 +224,7 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
               <div className="flex flex-wrap gap-6 pt-2">
                 <label className="flex items-center gap-3 cursor-pointer group">
                   <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${formData.venda_somente_box ? 'bg-primary border-primary' : 'border-slate-200 group-hover:border-primary/50'}`}>
-                    {formData.venda_somente_box && <X size={14} className="text-white rotate-45" />}
+                    {formData.venda_somente_box && <Check size={14} className="text-white" />}
                   </div>
                   <input type="checkbox" className="hidden" checked={formData.venda_somente_box} onChange={e => setFormData({...formData, venda_somente_box: e.target.checked})} />
                   <span className="text-sm font-bold text-slate-700">Somente no Box</span>
@@ -232,23 +232,22 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
 
                 <label className="flex items-center gap-3 cursor-pointer group">
                   <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${formData.has_box_discount ? 'bg-primary border-primary' : 'border-slate-200 group-hover:border-primary/50'}`}>
-                    {formData.has_box_discount && <X size={14} className="text-white rotate-45" />}
+                    {formData.has_box_discount && <Check size={14} className="text-white" />}
                   </div>
                   <input type="checkbox" className="hidden" checked={formData.has_box_discount} onChange={e => setFormData({...formData, has_box_discount: e.target.checked})} />
                   <span className="text-sm font-bold text-slate-700">Desconto no Box</span>
                 </label>
 
                 <label className="flex items-center gap-3 cursor-pointer group">
-                  <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${formData.is_last_units ? 'bg-amber-500 border-amber-500' : 'border-slate-200 group-hover:border-amber-500/50'}`}>
-                    {formData.is_last_units && <X size={14} className="text-white rotate-45" />}
+                  <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${formData.is_last_units ? 'bg-rose-500 border-rose-500' : 'border-slate-200 group-hover:border-rose-500/50'}`}>
+                    {formData.is_last_units && <Check size={14} className="text-white" />}
                   </div>
-                  <input type="checkbox" className="hidden" checked={formData.is_last_units} onChange={e => setFormData({...formData, is_last_units: e.target.checked, status_estoque: e.target.checked ? 'ultimas' : 'normal'})} />
+                  <input type="checkbox" className="hidden" checked={formData.is_last_units} onChange={e => setFormData({...formData, is_last_units: e.target.checked})} />
                   <span className="text-sm font-bold text-slate-700">Últimas Unidades</span>
                 </label>
-
                 <label className="flex items-center gap-3 cursor-pointer group">
-                  <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${formData.status_estoque === 'esgotado' ? 'bg-rose-500 border-rose-500' : 'border-slate-200 group-hover:border-rose-500/50'}`}>
-                    {formData.status_estoque === 'esgotado' && <X size={14} className="text-white rotate-45" />}
+                  <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${formData.status_estoque === 'esgotado' ? 'bg-slate-800 border-slate-800' : 'border-slate-200 group-hover:border-slate-800/50'}`}>
+                    {formData.status_estoque === 'esgotado' && <Check size={14} className="text-white" />}
                   </div>
                   <input type="checkbox" className="hidden" checked={formData.status_estoque === 'esgotado'} onChange={e => setFormData({...formData, status_estoque: e.target.checked ? 'esgotado' : 'normal'})} />
                   <span className="text-sm font-bold text-slate-700">Esgotado</span>

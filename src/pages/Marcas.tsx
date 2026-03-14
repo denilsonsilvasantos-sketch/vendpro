@@ -17,8 +17,8 @@ export default function Marcas({ companyId }: { companyId: string | null }) {
     if (!supabase || companyId === null) return;
     setLoading(true);
     try {
-      const { data: bData, error: bError } = await supabase.from('brands').select('*').eq('company_id', companyId).order('ordem', { ascending: true }).order('name');
-      const { data: cData, error: cError } = await supabase.from('categories').select('*').eq('company_id', companyId).order('ordem', { ascending: true }).order('nome');
+      const { data: bData, error: bError } = await supabase.from('brands').select('*').eq('company_id', companyId).order('order_index', { ascending: true }).order('name');
+      const { data: cData, error: cError } = await supabase.from('categories').select('*').eq('company_id', companyId).order('order_index', { ascending: true }).order('nome');
       
       if (bError) throw bError;
       if (cError) throw cError;
@@ -47,74 +47,20 @@ export default function Marcas({ companyId }: { companyId: string | null }) {
     fetchData();
   };
 
-  const handleReorderBrand = async (index: number, direction: 'up' | 'down') => {
-    if (!supabase) return;
-    const newBrands = [...brands];
-    if (direction === 'up' && index > 0) {
-      const temp = newBrands[index];
-      newBrands[index] = newBrands[index - 1];
-      newBrands[index - 1] = temp;
-    } else if (direction === 'down' && index < newBrands.length - 1) {
-      const temp = newBrands[index];
-      newBrands[index] = newBrands[index + 1];
-      newBrands[index + 1] = temp;
-    } else {
-      return;
-    }
-
-    setBrands(newBrands);
-    
-    // Update all orders in DB
-    const updates = newBrands.map((b, i) => ({
-      id: b.id,
-      ordem: i
-    }));
-
-    for (const update of updates) {
-      await supabase.from('brands').update({ ordem: update.ordem }).eq('id', update.id);
-    }
-  };
-
-  const handleReorderCategory = async (brandId: string, index: number, direction: 'up' | 'down') => {
-    if (!supabase) return;
-    const brandCategories = categories.filter(c => c.brand_id === brandId);
-    if (direction === 'up' && index > 0) {
-      const temp = brandCategories[index];
-      brandCategories[index] = brandCategories[index - 1];
-      brandCategories[index - 1] = temp;
-    } else if (direction === 'down' && index < brandCategories.length - 1) {
-      const temp = brandCategories[index];
-      brandCategories[index] = brandCategories[index + 1];
-      brandCategories[index + 1] = temp;
-    } else {
-      return;
-    }
-
-    // Update local state
-    const otherCategories = categories.filter(c => c.brand_id !== brandId);
-    setCategories([...otherCategories, ...brandCategories]);
-
-    // Update all orders in DB
-    const updates = brandCategories.map((c, i) => ({
-      id: c.id,
-      ordem: i
-    }));
-
-    for (const update of updates) {
-      await supabase.from('categories').update({ ordem: update.ordem }).eq('id', update.id);
-    }
-  };
-
   const handleAddCategory = async (brandId: string) => {
     const nome = newCategoryName[brandId];
     if (!supabase || !nome || !companyId) return;
 
     try {
+      const brandCategories = categories.filter(c => c.brand_id === brandId);
+      const nextIndex = brandCategories.length > 0 ? Math.max(...brandCategories.map(c => c.order_index || 0)) + 1 : 0;
+
       const { error } = await supabase.from('categories').insert([{
         company_id: companyId,
         brand_id: brandId,
         nome: nome,
-        ativo: true
+        ativo: true,
+        order_index: nextIndex
       }]);
 
       if (error) {
@@ -134,6 +80,62 @@ export default function Marcas({ companyId }: { companyId: string | null }) {
     if (!supabase || !confirm('Excluir esta categoria?')) return;
     await supabase.from('categories').delete().eq('id', id);
     fetchData();
+  };
+
+  const moveBrand = async (index: number, direction: 'up' | 'down') => {
+    if (!supabase) return;
+    const newBrands = [...brands];
+    if (direction === 'up' && index > 0) {
+      const temp = newBrands[index];
+      newBrands[index] = newBrands[index - 1];
+      newBrands[index - 1] = temp;
+    } else if (direction === 'down' && index < newBrands.length - 1) {
+      const temp = newBrands[index];
+      newBrands[index] = newBrands[index + 1];
+      newBrands[index + 1] = temp;
+    } else {
+      return;
+    }
+
+    setBrands(newBrands);
+    
+    // Update order_index in DB
+    const updates = newBrands.map((b, i) => ({ id: b.id, order_index: i }));
+    for (const update of updates) {
+      await supabase.from('brands').update({ order_index: update.order_index }).eq('id', update.id);
+    }
+  };
+
+  const moveCategory = async (brandId: string, index: number, direction: 'up' | 'down') => {
+    if (!supabase) return;
+    const brandCategories = categories.filter(c => c.brand_id === brandId);
+    if (direction === 'up' && index > 0) {
+      const temp = brandCategories[index];
+      brandCategories[index] = brandCategories[index - 1];
+      brandCategories[index - 1] = temp;
+    } else if (direction === 'down' && index < brandCategories.length - 1) {
+      const temp = brandCategories[index];
+      brandCategories[index] = brandCategories[index + 1];
+      brandCategories[index + 1] = temp;
+    } else {
+      return;
+    }
+
+    // Update local state immediately for smooth UI
+    const newCategories = categories.map(c => {
+      const updatedCat = brandCategories.find(bc => bc.id === c.id);
+      if (updatedCat) {
+        return { ...c, order_index: brandCategories.indexOf(updatedCat) };
+      }
+      return c;
+    });
+    setCategories(newCategories.sort((a, b) => (a.order_index || 0) - (b.order_index || 0)));
+
+    // Update order_index in DB
+    const updates = brandCategories.map((c, i) => ({ id: c.id, order_index: i }));
+    for (const update of updates) {
+      await supabase.from('categories').update({ order_index: update.order_index }).eq('id', update.id);
+    }
   };
 
   if (loading && brands.length === 0) {
@@ -178,14 +180,10 @@ export default function Marcas({ companyId }: { companyId: string | null }) {
         </div>
       ) : (
         <div className="space-y-4">
-          {brands.map((brand, bIndex) => (
+          {brands.map((brand, brandIndex) => (
             <div key={brand.id} className={`bg-white rounded-3xl shadow-sm border transition-all ${expandedBrands.includes(brand.id) ? 'border-primary ring-4 ring-primary/5' : 'border-slate-100'}`}>
               <div className="p-5 flex justify-between items-center">
                 <div className="flex items-center gap-4 cursor-pointer flex-1" onClick={() => toggleExpand(brand.id)}>
-                  <div className="flex flex-col gap-1 mr-2" onClick={e => e.stopPropagation()}>
-                    <button onClick={() => handleReorderBrand(bIndex, 'up')} disabled={bIndex === 0} className="p-1 text-slate-300 hover:text-primary disabled:opacity-30"><ArrowUp size={16} /></button>
-                    <button onClick={() => handleReorderBrand(bIndex, 'down')} disabled={bIndex === brands.length - 1} className="p-1 text-slate-300 hover:text-primary disabled:opacity-30"><ArrowDown size={16} /></button>
-                  </div>
                   <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center overflow-hidden border border-slate-100 shrink-0">
                     <Tag className="text-slate-300" size={20} />
                   </div>
@@ -199,6 +197,10 @@ export default function Marcas({ companyId }: { companyId: string | null }) {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
+                  <div className="flex flex-col mr-2">
+                    <button onClick={() => moveBrand(brandIndex, 'up')} disabled={brandIndex === 0} className="text-slate-300 hover:text-primary disabled:opacity-30"><ArrowUp size={16} /></button>
+                    <button onClick={() => moveBrand(brandIndex, 'down')} disabled={brandIndex === brands.length - 1} className="text-slate-300 hover:text-primary disabled:opacity-30"><ArrowDown size={16} /></button>
+                  </div>
                   <button 
                     onClick={() => { setEditingBrand(brand); setIsModalOpen(true); }} 
                     className="p-3 text-slate-400 hover:text-primary hover:bg-primary/5 rounded-xl transition-all"
@@ -257,21 +259,19 @@ export default function Marcas({ companyId }: { companyId: string | null }) {
                     <div className="space-y-4">
                       <h4 className="font-bold text-slate-900 flex items-center gap-2"><Tag size={16} className="text-primary" /> Categorias</h4>
                       <div className="space-y-2">
-                        {categories.filter(c => c.brand_id === brand.id).map((cat, cIndex, arr) => (
+                        {categories.filter(c => c.brand_id === brand.id).map((cat, catIndex, arr) => (
                           <div key={cat.id} className="flex justify-between items-center p-3 bg-white border border-slate-100 rounded-xl group hover:border-primary/20 transition-all">
-                            <div className="flex items-center gap-3">
-                              <div className="flex flex-col">
-                                <button onClick={() => handleReorderCategory(brand.id, cIndex, 'up')} disabled={cIndex === 0} className="text-slate-300 hover:text-primary disabled:opacity-30"><ArrowUp size={12} /></button>
-                                <button onClick={() => handleReorderCategory(brand.id, cIndex, 'down')} disabled={cIndex === arr.length - 1} className="text-slate-300 hover:text-primary disabled:opacity-30"><ArrowDown size={12} /></button>
-                              </div>
-                              <span className="text-sm font-medium text-slate-700">{cat.nome}</span>
+                            <span className="text-sm font-medium text-slate-700">{cat.nome}</span>
+                            <div className="flex items-center gap-1">
+                              <button onClick={() => moveCategory(brand.id, catIndex, 'up')} disabled={catIndex === 0} className="text-slate-300 hover:text-primary disabled:opacity-30 p-1"><ArrowUp size={14} /></button>
+                              <button onClick={() => moveCategory(brand.id, catIndex, 'down')} disabled={catIndex === arr.length - 1} className="text-slate-300 hover:text-primary disabled:opacity-30 p-1"><ArrowDown size={14} /></button>
+                              <button 
+                                onClick={() => handleDeleteCategory(cat.id)}
+                                className="text-slate-300 hover:text-rose-500 p-1 opacity-0 group-hover:opacity-100 transition-all ml-2"
+                              >
+                                <Trash2 size={14} />
+                              </button>
                             </div>
-                            <button 
-                              onClick={() => handleDeleteCategory(cat.id)}
-                              className="text-slate-300 hover:text-rose-500 p-1 opacity-0 group-hover:opacity-100 transition-all"
-                            >
-                              <Trash2 size={14} />
-                            </button>
                           </div>
                         ))}
                         

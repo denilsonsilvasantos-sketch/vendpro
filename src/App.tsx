@@ -95,6 +95,31 @@ export default function App() {
 
   const [profile, setProfile] = useState<any>(null);
 
+  const handleCompanyChange = (newCompanyId: string) => {
+    if (cart.length > 0) {
+      setPendingCompanyId(newCompanyId);
+      setShowCompanyWarning(true);
+    } else {
+      setActiveCompanyId(newCompanyId);
+      localStorage.setItem('vendpro_active_company_id', newCompanyId);
+    }
+  };
+
+  const confirmCompanyChange = () => {
+    if (pendingCompanyId) {
+      clearCart();
+      setActiveCompanyId(pendingCompanyId);
+      localStorage.setItem('vendpro_active_company_id', pendingCompanyId);
+      setPendingCompanyId(null);
+      setShowCompanyWarning(false);
+    }
+  };
+
+  const cancelCompanyChange = () => {
+    setPendingCompanyId(null);
+    setShowCompanyWarning(false);
+  };
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const code = params.get('vincular');
@@ -125,6 +150,8 @@ export default function App() {
   const [zoomImage, setZoomImage] = useState<string | null>(null);
   const [showCartDisclaimer, setShowCartDisclaimer] = useState(false);
   const [viewMode, setViewMode] = useState<'admin' | 'customer'>('admin');
+  const [pendingCompanyId, setPendingCompanyId] = useState<string | null>(null);
+  const [showCompanyWarning, setShowCompanyWarning] = useState(false);
   const { cart, addToCart, removeFromCart, updateQuantity, clearCart, total } = useCart();
 
   const effectiveRole = viewMode === 'customer' ? 'customer' : role;
@@ -271,6 +298,41 @@ export default function App() {
       </AnimatePresence>
 
       <AnimatePresence>
+        {showCompanyWarning && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" />
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-sm rounded-[32px] shadow-2xl relative z-10 p-8 text-center space-y-6">
+              <div className="w-20 h-20 bg-rose-50 rounded-full flex items-center justify-center mx-auto text-rose-500">
+                <AlertTriangle size={40} />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-xl font-bold text-slate-900 tracking-tight text-center">Atenção</h3>
+                <p className="text-slate-500 text-sm leading-relaxed">
+                  Você tem itens no carrinho. Cada marca opera individualmente com suas próprias políticas comerciais.
+                  <br/><br/>
+                  Ao mudar de marca, seu carrinho atual será esvaziado. Deseja continuar?
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <button 
+                  onClick={cancelCompanyChange}
+                  className="flex-1 py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-200 transition-all"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  onClick={confirmCompanyChange}
+                  className="flex-1 py-4 bg-rose-500 text-white rounded-2xl font-bold shadow-lg shadow-rose-500/20 active:scale-95 transition-all"
+                >
+                  Esvaziar e Mudar
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
         {showCompanyInfo && company && (
           <CompanyInfoModal company={company} onClose={() => setShowCompanyInfo(false)} />
         )}
@@ -280,15 +342,28 @@ export default function App() {
         <button onClick={() => setIsSidebarOpen(true)} className="p-2 -ml-2 text-slate-600 hover:text-primary transition-colors">
           <Menu size={24} />
         </button>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-1 ml-2">
           {company?.logo_url ? (
             <img src={company.logo_url} alt={company.nome} className="w-8 h-8 rounded-lg object-cover shadow-sm" />
           ) : (
-            <div className="w-8 h-8 blue-gradient rounded-lg flex items-center justify-center text-white shadow-sm">
+            <div className="w-8 h-8 blue-gradient rounded-lg flex items-center justify-center text-white shadow-sm shrink-0">
               <CheckCircle2 size={18} />
             </div>
           )}
-          <h1 className="text-xl font-bold tracking-tight text-slate-900">VendPro</h1>
+          
+          {availableCompanies.length > 1 ? (
+            <select 
+              value={activeCompanyId || ''} 
+              onChange={(e) => handleCompanyChange(e.target.value)}
+              className="bg-transparent text-xl font-bold tracking-tight text-slate-900 outline-none cursor-pointer appearance-none truncate max-w-[150px] sm:max-w-xs"
+            >
+              {availableCompanies.map(c => (
+                <option key={c.id} value={c.id}>{c.nome}</option>
+              ))}
+            </select>
+          ) : (
+            <h1 className="text-xl font-bold tracking-tight text-slate-900 truncate">{company?.nome || 'VendPro'}</h1>
+          )}
         </div>
         <div className="flex items-center gap-4">
           <button onClick={() => setActiveTab('cart')} className="relative p-2 text-slate-600 hover:text-primary transition-colors">
@@ -935,20 +1010,31 @@ function CatalogScreen({ products, categories, onAddToCart, onEdit, role, onZoom
 }
 
 function ProductCard({ product, onAdd, onEdit, role, onZoom, ...props }: { product: Product, onAdd: (p: Product, q: number) => void, onEdit: (p: Product) => void, role: UserRole, onZoom: (img: string) => void, [key: string]: any }) {
-  const [qty, setQty] = useState(product.venda_somente_box ? 1 : (product.multiplo_venda || 1));
+  const [qty, setQty] = useState(product.venda_somente_box ? (product.qtd_box || 1) : (product.multiplo_venda || 1));
   const isEsgotado = product.status_estoque === 'esgotado';
+
+  const handleAddQty = () => {
+    setQty(prev => prev + (product.venda_somente_box ? (product.qtd_box || 1) : (product.multiplo_venda || 1)));
+  };
+
+  const handleSubQty = () => {
+    setQty(prev => {
+      const step = product.venda_somente_box ? (product.qtd_box || 1) : (product.multiplo_venda || 1);
+      return prev > step ? prev - step : step;
+    });
+  };
 
   return (
     <Card className={`p-4 flex flex-col group hover:border-primary/20 transition-all ${isEsgotado ? 'opacity-75 grayscale-[0.5]' : ''}`}>
       <div className="relative aspect-square mb-4 rounded-2xl overflow-hidden bg-slate-50 cursor-zoom-in" onClick={() => onZoom(product.imagem || '')}>
-        <img src={product.imagem || `https://picsum.photos/seed/${product.sku}/400/400`} className="w-full h-full object-cover" alt={product.nome} referrerPolicy="no-referrer" />
+        <img src={product.imagem || `https://picsum.photos/seed/${product.sku}/400/400`} className="w-full h-full object-contain p-2" alt={product.nome} referrerPolicy="no-referrer" />
         <div className="absolute top-2 right-2 flex flex-col gap-1.5 items-end">
           {isEsgotado && <span className="bg-slate-800 text-white text-[10px] font-bold px-2 py-1 rounded-lg shadow-lg uppercase tracking-wider">Esgotado</span>}
           {!isEsgotado && product.is_last_units && <span className="bg-rose-500 text-white text-[10px] font-bold px-2 py-1 rounded-lg shadow-lg uppercase tracking-wider">Últimas Unidades</span>}
           {product.venda_somente_box && <span className="bg-amber-500 text-white text-[10px] font-bold px-2 py-1 rounded-lg shadow-lg uppercase tracking-wider">Somente Box</span>}
         </div>
       </div>
-      <h3 className="font-bold text-slate-800 text-sm leading-tight mb-1 line-clamp-2">{product.nome}</h3>
+      <h3 className="font-bold text-slate-800 text-sm leading-tight mb-1">{product.nome}</h3>
       <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-4">SKU: {product.sku}</p>
 
       {(product.has_box_discount || product.venda_somente_box) && (
@@ -963,13 +1049,20 @@ function ProductCard({ product, onAdd, onEdit, role, onZoom, ...props }: { produ
 
       <div className="mt-auto flex items-center justify-between">
         <p className="text-lg font-black text-primary">R$ {product.preco_unitario.toFixed(2)}</p>
-        <button 
-          onClick={() => onAdd(product, qty)} 
-          disabled={isEsgotado}
-          className="p-3 bg-primary text-white rounded-xl shadow-lg shadow-primary/20 active:scale-95 transition-all disabled:opacity-50 disabled:active:scale-100"
-        >
-          <Plus size={20} />
-        </button>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center bg-slate-100 rounded-lg p-1">
+            <button onClick={handleSubQty} disabled={isEsgotado} className="p-1 text-slate-600 hover:bg-white rounded-md disabled:opacity-50"><Minus size={16}/></button>
+            <span className="text-xs font-bold w-6 text-center">{qty}</span>
+            <button onClick={handleAddQty} disabled={isEsgotado} className="p-1 text-slate-600 hover:bg-white rounded-md disabled:opacity-50"><Plus size={16}/></button>
+          </div>
+          <button 
+            onClick={() => onAdd(product, qty)} 
+            disabled={isEsgotado}
+            className="p-2 bg-primary text-white rounded-lg shadow-lg shadow-primary/20 active:scale-95 transition-all disabled:opacity-50 disabled:active:scale-100"
+          >
+            <ShoppingCart size={18} />
+          </button>
+        </div>
       </div>
     </Card>
   );

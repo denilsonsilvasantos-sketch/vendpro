@@ -21,10 +21,10 @@ export default function CartScreen({ cart, total, onUpdateQuantity, onRemove, on
         <>
           <div className="space-y-4">
             {cart.map(item => {
-              const step = item.venda_somente_box ? (item.qtd_box || 1) : (item.multiplo_venda || 1);
+              const step = item.venda_somente_box ? 1 : (item.multiplo_venda || 1);
               const isBoxDiscount = item.has_box_discount && !item.venda_somente_box && item.quantity >= (item.qtd_box || 0);
               const unitPrice = item.venda_somente_box 
-                ? (item.qtd_box && item.qtd_box > 0 ? item.preco_box / item.qtd_box : item.preco_box)
+                ? item.preco_box
                 : (isBoxDiscount ? item.preco_box : item.preco_unitario);
               const subtotal = unitPrice * item.quantity;
 
@@ -33,7 +33,7 @@ export default function CartScreen({ cart, total, onUpdateQuantity, onRemove, on
                   <div className="flex-1">
                     <h3 className="font-bold text-slate-800 text-sm">{item.nome}</h3>
                     <p className="text-xs text-slate-500 mt-1">
-                      {item.quantity} x R$ {unitPrice.toFixed(2)} = <span className="font-bold text-primary">R$ {subtotal.toFixed(2)}</span>
+                      {item.quantity} {item.venda_somente_box ? 'box' : 'un'} x R$ {unitPrice.toFixed(2)} = <span className="font-bold text-primary">R$ {subtotal.toFixed(2)}</span>
                     </p>
                   </div>
                   

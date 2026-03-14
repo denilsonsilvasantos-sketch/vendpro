@@ -55,7 +55,7 @@ export function useCart() {
     }
 
     const item = cart.find(i => i.id === productId);
-    if (item?.multiplo_venda && quantity % item.multiplo_venda !== 0) {
+    if (item && !item.venda_somente_box && item.multiplo_venda && quantity % item.multiplo_venda !== 0) {
       // Don't update if not multiple
       return;
     }
@@ -71,7 +71,7 @@ export function useCart() {
     let price = item.preco_unitario;
     
     if (item.venda_somente_box) {
-      price = item.qtd_box && item.qtd_box > 0 ? item.preco_box / item.qtd_box : item.preco_box;
+      price = item.preco_box; // quantity is the number of boxes, and preco_box is the price of one box
     } else if (item.has_box_discount && item.quantity >= (item.qtd_box || 0) && (item.qtd_box || 0) > 0) {
       price = item.preco_box; // preco_box is the unit price when discount applies
     }

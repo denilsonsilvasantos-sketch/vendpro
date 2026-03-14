@@ -1106,16 +1106,16 @@ function CatalogScreen({ products, categories, brands, onAddToCart, onEdit, role
 }
 
 function ProductCard({ product, onAdd, onEdit, role, onZoom, ...props }: { product: Product, onAdd: (p: Product, q: number) => void, onEdit: (p: Product) => void, role: UserRole, onZoom: (img: string) => void, [key: string]: any }) {
-  const [qty, setQty] = useState(product.venda_somente_box ? (product.qtd_box || 1) : (product.multiplo_venda || 1));
+  const [qty, setQty] = useState(product.venda_somente_box ? 1 : (product.multiplo_venda || 1));
   const isEsgotado = product.status_estoque === 'esgotado';
 
   const handleAddQty = () => {
-    setQty(prev => prev + (product.venda_somente_box ? (product.qtd_box || 1) : (product.multiplo_venda || 1)));
+    setQty(prev => prev + (product.venda_somente_box ? 1 : (product.multiplo_venda || 1)));
   };
 
   const handleSubQty = () => {
     setQty(prev => {
-      const step = product.venda_somente_box ? (product.qtd_box || 1) : (product.multiplo_venda || 1);
+      const step = product.venda_somente_box ? 1 : (product.multiplo_venda || 1);
       return prev > step ? prev - step : step;
     });
   };

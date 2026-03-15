@@ -10,3 +10,10 @@ if (!supabaseUrl || !supabaseAnonKey) {
 export const supabase = supabaseUrl && supabaseAnonKey 
   ? createClient(supabaseUrl, supabaseAnonKey) 
   : null;
+
+// Temporary debug to check columns
+if (supabase) {
+  supabase.from('companies').select('*').limit(1).then(res => {
+    console.log('Companies columns:', res.data ? Object.keys(res.data[0] || {}) : res.error);
+  });
+}

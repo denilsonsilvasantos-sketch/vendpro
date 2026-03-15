@@ -21,11 +21,12 @@ export default function Configuracoes({ companyId, user, role, onLogout }: { com
       const { data } = await supabase.from('companies').select('*').eq('id', companyId).single();
       if (data) {
         setCompany(data);
+        const savedLogo = localStorage.getItem(`vendpro_company_logo_${companyId}`);
         setFormData({
           nome: data.nome || '',
           cnpj: data.cnpj || '',
           senha: data.senha || '',
-          logo_url: data.logo_url || ''
+          logo_url: data.logo_url || savedLogo || ''
         });
       }
       setLoading(false);
@@ -37,10 +38,19 @@ export default function Configuracoes({ companyId, user, role, onLogout }: { com
     e.preventDefault();
     if (!supabase || !companyId) return;
     setSaving(true);
-    const { error } = await supabase.from('companies').update(formData).eq('id', companyId);
+    
+    // Create a copy of formData and remove logo_url since it's not in the database schema yet
+    const dataToSave = { ...formData };
+    delete (dataToSave as any).logo_url;
+
+    const { error } = await supabase.from('companies').update(dataToSave).eq('id', companyId);
     if (error) {
       alert('Erro ao salvar configurações: ' + error.message);
     } else {
+      // Save logo_url locally as a fallback since it's not in the DB
+      if (formData.logo_url) {
+        localStorage.setItem(`vendpro_company_logo_${companyId}`, formData.logo_url);
+      }
       alert('Configurações salvas com sucesso!');
     }
     setSaving(false);

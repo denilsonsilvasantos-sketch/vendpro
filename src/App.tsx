@@ -175,6 +175,14 @@ export default function App() {
             getCompanyById(activeCompanyId)
           ]);
           setProducts(fetchedProducts);
+          
+          // Apply local logo if present
+          if (fetchedCompany) {
+            const savedLogo = localStorage.getItem(`vendpro_company_logo_${activeCompanyId}`);
+            if (savedLogo && !fetchedCompany.logo_url) {
+              fetchedCompany.logo_url = savedLogo;
+            }
+          }
           setCompany(fetchedCompany);
           
           // Also fetch categories and brands for this company

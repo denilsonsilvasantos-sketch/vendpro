@@ -148,22 +148,14 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
 
           const { data: existing } = await supabase
             .from('products')
-            .select('nome, preco_unitario')
+            .select('nome, preco_unitario, imagem')
             .eq('company_id', companyId)
             .eq('sku', sku)
             .single();
 
-          let nomePendente = false;
-          let novoNome = null;
           let finalNome = extracted.nome;
 
           if (existing) {
-            finalNome = existing.nome;
-            if (existing.nome.trim().toLowerCase() !== extracted.nome.trim().toLowerCase()) {
-              nomePendente = true;
-              novoNome = extracted.nome;
-            }
-            
             const newPrecoUnitario = parseNumber(extracted.preco_unitario);
             if (catalogType === 'replenishment' && existing.preco_unitario !== newPrecoUnitario) {
               setPriceChanges(prev => [...prev, { sku: sku, old: existing.preco_unitario, new: newPrecoUnitario }]);
@@ -185,17 +177,15 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
             status_estoque: extracted.status_estoque || 'normal',
             category_id: categoriaId,
             categoria_pendente: categoriaPendente,
-            nome_pendente: nomePendente,
-            novo_nome: novoNome,
+            nome_pendente: false,
+            novo_nome: null,
             variacoes: extracted.variacoes || '',
             qtd_variacoes: parseNumber(extracted.qtd_variacoes, 0),
             last_seen_date: new Date().toISOString(),
             last_seen_catalog_type: catalogType
           };
 
-          if (!existing) {
-            productData.imagem_pendente = true;
-          }
+          productData.imagem_pendente = !existing?.imagem;
 
           const { error: upsertError } = await supabase.from('products').upsert(productData, { onConflict: 'company_id, sku' });
           if (upsertError) {

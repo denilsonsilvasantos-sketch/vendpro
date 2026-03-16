@@ -132,7 +132,7 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
                   onClick={() => formData.imagem && setZoomImage(formData.imagem)}
                 >
                   {formData.imagem ? (
-                    <img src={formData.imagem} alt="Produto" className="w-full h-full object-cover" />
+                    <img src={formData.imagem} alt="Produto" className="w-full h-full object-contain p-2 bg-white" />
                   ) : (
                     <ImageIcon className="text-slate-300" size={48} />
                   )}

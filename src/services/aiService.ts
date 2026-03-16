@@ -31,7 +31,7 @@ export async function extractProductsFromMedia(base64Data: string, mimeType: str
   
   REGRAS IMPORTANTES DE EXTRAÇÃO:
   1. NOME COMPLETO: Extraia o nome completo do produto exatamente como está no PDF, sem abreviar e sem omitir nenhuma parte.
-  2. PREÇOS: Preste muita atenção aos preços. Extraia o preço unitário e o preço box como TEXTO (ex: "10,50"). Se houver "Avulso: x,xx", esse é o preço unitário e o item DEVE ter has_box_discount = true. Se houver "A partir de X un", esse é o preço de atacado/box (preco_box) e X é a quantidade (qtd_box).
+  2. PREÇOS: Preste muita atenção aos preços. Extraia o preço unitário e o preço box APENAS COMO NÚMEROS E VÍRGULAS (ex: "10,50"). NÃO INCLUA "R$" ou textos como "Avulso". Se o preço estiver faltando, retorne "0". Se houver "Avulso: x,xx", esse é o preço unitário e o item DEVE ter has_box_discount = true. Se houver "A partir de X un", esse é o preço de atacado/box (preco_box) e X é a quantidade (qtd_box).
   3. VARIAÇÕES: Se o produto tiver variações (ex: cores, tamanhos, modelos), extraia a lista de variações (variacoes) e a quantidade de variações (qtd_variacoes).
   4. STATUS DE ESTOQUE (status_estoque): 
      - Se houver uma tarja ou texto "Esgotado", defina status_estoque como "esgotado".

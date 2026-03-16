@@ -81,6 +81,10 @@ export interface Product {
   imagem?: string;
   categoria_pendente: boolean;
   imagem_pendente: boolean;
+  nome_pendente?: boolean;
+  novo_nome?: string;
+  variacoes?: string;
+  qtd_variacoes?: number;
   pending_status?: 'none' | 'not_found_full' | 'price_changed' | 'box_changed';
   last_seen_date?: string;
   last_seen_catalog_type?: 'full' | 'partial';

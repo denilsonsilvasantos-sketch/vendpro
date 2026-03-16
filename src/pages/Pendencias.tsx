@@ -18,7 +18,7 @@ export default function Pendencias({ companyId }: { companyId: string | null }) 
       .from('products')
       .select('*')
       .eq('company_id', companyId)
-      .or('categoria_pendente.eq.true,imagem_pendente.eq.true');
+      .or('categoria_pendente.eq.true,imagem_pendente.eq.true,nome_pendente.eq.true');
     
     if (error) console.error(error);
     else setProducts(data || []);
@@ -39,6 +39,8 @@ export default function Pendencias({ companyId }: { companyId: string | null }) 
     const updates: any = { ...editData };
     if (editData.category_id) updates.categoria_pendente = false;
     if (editData.imagem) updates.imagem_pendente = false;
+    // If we are saving, and there's a pending name, we don't automatically clear it unless they explicitly accepted it.
+    // We'll handle name acceptance in a separate function.
 
     const { error } = await supabase.from('products').update(updates).eq('id', id);
     if (error) {
@@ -47,6 +49,29 @@ export default function Pendencias({ companyId }: { companyId: string | null }) 
       setEditingId(null);
       fetchPendencies();
     }
+  };
+
+  const handleAcceptName = async (id: string, newName: string) => {
+    if (!supabase) return;
+    const { error } = await supabase.from('products').update({
+      nome: newName,
+      nome_pendente: false,
+      novo_nome: null
+    }).eq('id', id);
+    
+    if (error) alert('Erro ao atualizar nome: ' + error.message);
+    else fetchPendencies();
+  };
+
+  const handleRejectName = async (id: string) => {
+    if (!supabase) return;
+    const { error } = await supabase.from('products').update({
+      nome_pendente: false,
+      novo_nome: null
+    }).eq('id', id);
+    
+    if (error) alert('Erro ao rejeitar nome: ' + error.message);
+    else fetchPendencies();
   };
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -102,7 +127,7 @@ export default function Pendencias({ companyId }: { companyId: string | null }) 
             <Check className="text-green-500" size={40} />
           </div>
           <h2 className="text-xl font-bold text-green-800">Tudo revisado!</h2>
-          <p className="text-green-600">Não há produtos pendentes de categoria ou imagem no momento.</p>
+          <p className="text-green-600">Não há produtos pendentes de revisão no momento.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4">
@@ -135,13 +160,37 @@ export default function Pendencias({ companyId }: { companyId: string | null }) 
               <div className="flex-1 space-y-4">
                 <div className="flex justify-between items-start">
                   <div>
-                    <h3 className="font-bold text-lg text-slate-900 leading-tight">{product.nome}</h3>
+                    <h3 className="font-bold text-lg text-slate-900 leading-tight">
+                      {product.nome}
+                    </h3>
+                    {product.nome_pendente && product.novo_nome && (
+                      <div className="mt-2 p-3 bg-blue-50 border border-blue-100 rounded-xl">
+                        <p className="text-sm text-blue-800 mb-2">
+                          <span className="font-bold">Novo nome sugerido:</span> {product.novo_nome}
+                        </p>
+                        <div className="flex gap-2">
+                          <button 
+                            onClick={() => handleAcceptName(product.id, product.novo_nome!)}
+                            className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                          >
+                            Aceitar
+                          </button>
+                          <button 
+                            onClick={() => handleRejectName(product.id)}
+                            className="text-xs bg-white text-slate-600 border border-slate-200 px-3 py-1.5 rounded-lg font-medium hover:bg-slate-50 transition-colors"
+                          >
+                            Manter Atual
+                          </button>
+                        </div>
+                      </div>
+                    )}
                     <div className="flex items-center gap-3 mt-1">
                       <span className="text-xs font-mono bg-slate-100 text-slate-500 px-2 py-0.5 rounded">SKU: {product.sku}</span>
                       <span className="text-xs font-bold text-primary">R$ {product.preco_unitario.toFixed(2)}</span>
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2 justify-end">
+                    {product.nome_pendente && <span className="text-[10px] uppercase tracking-wider bg-blue-100 text-blue-800 px-2 py-1 rounded-md font-bold border border-blue-200">Nome Pendente</span>}
                     {product.categoria_pendente && <span className="text-[10px] uppercase tracking-wider bg-yellow-100 text-yellow-800 px-2 py-1 rounded-md font-bold border border-yellow-200">Categoria Pendente</span>}
                     {product.imagem_pendente && <span className="text-[10px] uppercase tracking-wider bg-red-100 text-red-800 px-2 py-1 rounded-md font-bold border border-red-200">Imagem Pendente</span>}
                   </div>

@@ -27,18 +27,20 @@ export async function classifyCategory(productName: string, categories: { id: nu
 export async function extractProductsFromMedia(base64Data: string, mimeType: string) {
 
   const prompt = `Analise este catálogo e extraia todos os produtos visíveis. 
-  Para cada produto, identifique: nome, SKU/Cód (se houver), preço unitário, preço da caixa (box), quantidade na caixa (qtd_box).
+  Para cada produto, identifique: nome, SKU/Cód (se houver), preço unitário, preço da caixa (box), quantidade na caixa (qtd_box), variações e quantidade de variações.
   
   REGRAS IMPORTANTES DE EXTRAÇÃO:
-  1. PREÇOS: Preste muita atenção aos preços. Se houver "Avulso", esse é o preço unitário. Se houver "A partir de X un", esse é o preço de atacado/box (preco_box) e X é a quantidade (qtd_box).
-  2. STATUS DE ESTOQUE (status_estoque): 
+  1. NOME COMPLETO: Extraia o nome completo do produto exatamente como está no PDF, sem abreviar e sem omitir nenhuma parte.
+  2. PREÇOS: Preste muita atenção aos preços. Extraia o preço unitário e o preço box. Se houver "Avulso: x,xx", esse é o preço unitário e o item DEVE ter has_box_discount = true. Se houver "A partir de X un", esse é o preço de atacado/box (preco_box) e X é a quantidade (qtd_box).
+  3. VARIAÇÕES: Se o produto tiver variações (ex: cores, tamanhos, modelos), extraia a lista de variações (variacoes) e a quantidade de variações (qtd_variacoes).
+  4. STATUS DE ESTOQUE (status_estoque): 
      - Se houver uma tarja ou texto "Esgotado", defina status_estoque como "esgotado".
      - Se houver "Últimas Unidades", defina status_estoque como "ultimas".
      - Se houver "Estoque Baixo", defina status_estoque como "baixo".
      - Caso contrário, defina como "normal".
-  3. DESCONTO NO BOX (has_box_discount): true se houver a expressão "A partir de X un" ou se o preço unitário for menor ao comprar a caixa fechada.
-  4. SOMENTE BOX (venda_somente_box): true se houver expressões como "somente no box", "venda fechada", "apenas caixa".
-  5. ÚLTIMAS UNIDADES (is_last_units): true se o status_estoque for "ultimas" ou "baixo".
+  5. DESCONTO NO BOX (has_box_discount): true se houver a expressão "A partir de X un", "Avulso", ou se o preço unitário for menor ao comprar a caixa fechada.
+  6. SOMENTE BOX (venda_somente_box): true se houver expressões como "somente no box", "venda fechada", "apenas caixa".
+  7. ÚLTIMAS UNIDADES (is_last_units): true se o status_estoque for "ultimas" ou "baixo".
   
   Retorne os dados em formato JSON seguindo este esquema:
   Array<{
@@ -51,7 +53,9 @@ export async function extractProductsFromMedia(base64Data: string, mimeType: str
     venda_somente_box: boolean,
     has_box_discount: boolean,
     is_last_units: boolean,
-    status_estoque: string
+    status_estoque: string,
+    variacoes: string,
+    qtd_variacoes: number
   }>`;
 
   try {
@@ -84,7 +88,9 @@ export async function extractProductsFromMedia(base64Data: string, mimeType: str
               venda_somente_box: { type: Type.BOOLEAN },
               has_box_discount: { type: Type.BOOLEAN },
               is_last_units: { type: Type.BOOLEAN },
-              status_estoque: { type: Type.STRING }
+              status_estoque: { type: Type.STRING },
+              variacoes: { type: Type.STRING },
+              qtd_variacoes: { type: Type.INTEGER }
             },
             required: ["nome"]
           }

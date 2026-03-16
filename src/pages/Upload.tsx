@@ -76,7 +76,8 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
     setProgress(0);
 
     try {
-      const { data: categories } = await supabase.from('categories').select('id, nome').eq('company_id', companyId).eq('brand_id', selectedBrandId);
+      const { data: initialCategories } = await supabase.from('categories').select('id, nome').eq('company_id', companyId).eq('brand_id', selectedBrandId);
+      let categories = initialCategories || [];
       const processedSkus: string[] = [];
       let totalProducts = 0;
 
@@ -88,6 +89,34 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
         if (!mimeType && file.name.toLowerCase().endsWith('.pdf')) {
           mimeType = 'application/pdf';
         }
+
+        // Extrair categoria do nome do arquivo
+        const fileName = file.name.replace(/\.[^/.]+$/, ""); // remove extensão
+        const categoryNameMatch = fileName.replace(/[0-9]/g, '').trim(); // remove números
+        const categoryName = categoryNameMatch || "Geral";
+
+        let categoriaId = null;
+        let categoriaPendente = false;
+
+        const existingCat = categories.find(c => c.nome.toLowerCase() === categoryName.toLowerCase());
+        if (existingCat) {
+          categoriaId = existingCat.id;
+        } else {
+          const { data: newCat } = await supabase.from('categories').insert([{
+            company_id: companyId,
+            brand_id: selectedBrandId,
+            nome: categoryName,
+            ativo: true
+          }]).select().single();
+          
+          if (newCat) {
+            categoriaId = newCat.id;
+            categories.push(newCat);
+          } else {
+            categoriaPendente = true;
+          }
+        }
+
         const extractedProducts = await extractProductsFromMedia(base64, mimeType);
         
         if (extractedProducts.length === 0) {
@@ -103,19 +132,34 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
           const sku = extracted.sku || `SKU-${Math.random().toString(36).substr(2, 9)}`;
           processedSkus.push(sku);
 
-          let categoriaId = null;
-          let categoriaPendente = true;
+          const { data: existing } = await supabase
+            .from('products')
+            .select('nome, preco_unitario')
+            .eq('company_id', companyId)
+            .eq('sku', sku)
+            .single();
 
-          if (categories && categories.length > 0) {
-            categoriaId = await classifyCategory(extracted.nome, categories);
-            if (categoriaId) categoriaPendente = false;
+          let nomePendente = false;
+          let novoNome = null;
+          let finalNome = extracted.nome;
+
+          if (existing) {
+            finalNome = existing.nome;
+            if (existing.nome.trim().toLowerCase() !== extracted.nome.trim().toLowerCase()) {
+              nomePendente = true;
+              novoNome = extracted.nome;
+            }
+            
+            if (catalogType === 'replenishment' && existing.preco_unitario !== extracted.preco_unitario) {
+              setPriceChanges(prev => [...prev, { sku: sku, old: existing.preco_unitario, new: extracted.preco_unitario }]);
+            }
           }
 
-          const productData = {
+          const productData: any = {
             company_id: companyId,
             brand_id: selectedBrandId,
             sku: sku,
-            nome: extracted.nome,
+            nome: finalNome,
             descricao: extracted.descricao,
             preco_unitario: Number(extracted.preco_unitario) || 0,
             preco_box: Number(extracted.preco_box) || 0,
@@ -126,23 +170,16 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
             status_estoque: extracted.status_estoque || 'normal',
             category_id: categoriaId,
             categoria_pendente: categoriaPendente,
-            imagem_pendente: true,
+            nome_pendente: nomePendente,
+            novo_nome: novoNome,
+            variacoes: extracted.variacoes || '',
+            qtd_variacoes: Number(extracted.qtd_variacoes) || 0,
             last_seen_date: new Date().toISOString(),
             last_seen_catalog_type: catalogType
           };
 
-          // Se for reposição, verificar mudança de preço
-          if (catalogType === 'replenishment') {
-            const { data: existing } = await supabase
-              .from('products')
-              .select('preco_unitario')
-              .eq('company_id', companyId)
-              .eq('sku', sku)
-              .single();
-            
-            if (existing && existing.preco_unitario !== extracted.preco_unitario) {
-              setPriceChanges(prev => [...prev, { sku: sku, old: existing.preco_unitario, new: extracted.preco_unitario }]);
-            }
+          if (!existing) {
+            productData.imagem_pendente = true;
           }
 
           const { error: upsertError } = await supabase.from('products').upsert(productData, { onConflict: 'company_id, sku' });

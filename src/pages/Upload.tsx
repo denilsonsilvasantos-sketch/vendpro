@@ -47,6 +47,20 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
     });
   };
 
+  const parseNumber = (val: any, fallback = 0): number => {
+    if (typeof val === 'number') return val;
+    if (!val) return fallback;
+    const str = String(val).trim();
+    let cleanStr = str.replace(/[^\d.,-]/g, '');
+    if (cleanStr.includes('.') && cleanStr.includes(',')) {
+      cleanStr = cleanStr.replace(/\./g, '').replace(',', '.');
+    } else if (cleanStr.includes(',')) {
+      cleanStr = cleanStr.replace(',', '.');
+    }
+    const num = parseFloat(cleanStr);
+    return isNaN(num) ? fallback : num;
+  };
+
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
@@ -150,8 +164,9 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
               novoNome = extracted.nome;
             }
             
-            if (catalogType === 'replenishment' && existing.preco_unitario !== extracted.preco_unitario) {
-              setPriceChanges(prev => [...prev, { sku: sku, old: existing.preco_unitario, new: extracted.preco_unitario }]);
+            const newPrecoUnitario = parseNumber(extracted.preco_unitario);
+            if (catalogType === 'replenishment' && existing.preco_unitario !== newPrecoUnitario) {
+              setPriceChanges(prev => [...prev, { sku: sku, old: existing.preco_unitario, new: newPrecoUnitario }]);
             }
           }
 
@@ -161,9 +176,9 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
             sku: sku,
             nome: finalNome,
             descricao: extracted.descricao,
-            preco_unitario: Number(extracted.preco_unitario) || 0,
-            preco_box: Number(extracted.preco_box) || 0,
-            qtd_box: Number(extracted.qtd_box) || 1,
+            preco_unitario: parseNumber(extracted.preco_unitario, 0),
+            preco_box: parseNumber(extracted.preco_box, 0),
+            qtd_box: parseNumber(extracted.qtd_box, 1),
             venda_somente_box: extracted.venda_somente_box || false,
             has_box_discount: extracted.has_box_discount || false,
             is_last_units: extracted.is_last_units || false,
@@ -173,7 +188,7 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
             nome_pendente: nomePendente,
             novo_nome: novoNome,
             variacoes: extracted.variacoes || '',
-            qtd_variacoes: Number(extracted.qtd_variacoes) || 0,
+            qtd_variacoes: parseNumber(extracted.qtd_variacoes, 0),
             last_seen_date: new Date().toISOString(),
             last_seen_catalog_type: catalogType
           };

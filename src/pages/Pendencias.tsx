@@ -3,8 +3,6 @@ import { supabase } from '../integrations/supabaseClient';
 import { Product, Category } from '../types';
 import { AlertTriangle, Edit, Check, X, Image as ImageIcon, Tag, Upload, Loader2, Link as LinkIcon } from 'lucide-react';
 
-import { getProducts } from '../services/productService';
-
 export default function Pendencias({ companyId }: { companyId: string | null }) {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -16,30 +14,26 @@ export default function Pendencias({ companyId }: { companyId: string | null }) 
 
   async function fetchPendencies() {
     if (!supabase || companyId === null) return;
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('company_id', companyId)
+      .or('categoria_pendente.eq.true,imagem_pendente.eq.true');
     
-    const allProducts = await getProducts(companyId);
-    const pendencies = allProducts.filter(p => 
-      p.categoria_pendente || 
-      p.imagem_pendente || 
-      !p.imagem || 
-      p.pending_status === 'price_changed' || 
-      p.pending_status === 'box_changed' || 
-      p.pending_status === 'not_found_full'
-    );
-    
-    const sortedData = pendencies.sort((a, b) => {
-      const aNeedsImage = a.imagem_pendente || !a.imagem;
-      const bNeedsImage = b.imagem_pendente || !b.imagem;
-      
-      if (aNeedsImage && !bNeedsImage) return -1;
-      if (!aNeedsImage && bNeedsImage) return 1;
-      
-      // Secondary sort: newest first
-      const dateA = new Date(a.created_at || 0).getTime();
-      const dateB = new Date(b.created_at || 0).getTime();
-      return dateB - dateA;
-    });
-    setProducts(sortedData);
+    if (error) {
+      console.error(error);
+    } else {
+      const sortedData = (data || []).sort((a, b) => {
+        if (a.imagem_pendente && !b.imagem_pendente) return -1;
+        if (!a.imagem_pendente && b.imagem_pendente) return 1;
+        
+        // Secondary sort: newest first
+        const dateA = new Date(a.created_at || 0).getTime();
+        const dateB = new Date(b.created_at || 0).getTime();
+        return dateB - dateA;
+      });
+      setProducts(sortedData);
+    }
     
     const { data: catData } = await supabase.from('categories').select('*').eq('company_id', companyId);
     setCategories(catData || []);
@@ -57,7 +51,6 @@ export default function Pendencias({ companyId }: { companyId: string | null }) 
     const updates: any = { ...editData };
     if (editData.category_id) updates.categoria_pendente = false;
     if (editData.imagem) updates.imagem_pendente = false;
-    updates.pending_status = 'none';
 
     const { error } = await supabase.from('products').update(updates).eq('id', id);
     if (error) {
@@ -159,13 +152,12 @@ export default function Pendencias({ companyId }: { companyId: string | null }) 
                     </h3>
                     <div className="flex items-center gap-3 mt-1">
                       <span className="text-xs font-mono bg-slate-100 text-slate-500 px-2 py-0.5 rounded">SKU: {product.sku}</span>
-                      <span className="text-xs font-bold text-primary">R$ {(product.preco_unitario * (1 + (product.margin_percentage || 0) / 100)).toFixed(2)}</span>
+                      <span className="text-xs font-bold text-primary">R$ {product.preco_unitario.toFixed(2)}</span>
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2 justify-end">
                     {product.categoria_pendente && <span className="text-[10px] uppercase tracking-wider bg-yellow-100 text-yellow-800 px-2 py-1 rounded-md font-bold border border-yellow-200">Categoria Pendente</span>}
                     {product.imagem_pendente && <span className="text-[10px] uppercase tracking-wider bg-red-100 text-red-800 px-2 py-1 rounded-md font-bold border border-red-200">Imagem Pendente</span>}
-                    {product.pending_status === 'price_changed' && <span className="text-[10px] uppercase tracking-wider bg-blue-100 text-blue-800 px-2 py-1 rounded-md font-bold border border-blue-200">Preço Alterado</span>}
                   </div>
                 </div>
 

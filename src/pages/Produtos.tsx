@@ -62,6 +62,14 @@ export default function Produtos({ companyId }: { companyId: string | null }) {
     if (orderA !== orderB) {
       return orderA - orderB;
     }
+
+    // Sort out of stock items to the end of the category
+    const isEsgotadoA = a.status_estoque === 'esgotado';
+    const isEsgotadoB = b.status_estoque === 'esgotado';
+    
+    if (isEsgotadoA && !isEsgotadoB) return 1;
+    if (!isEsgotadoA && isEsgotadoB) return -1;
+
     return a.nome.localeCompare(b.nome);
   });
 

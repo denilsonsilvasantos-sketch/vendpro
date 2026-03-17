@@ -227,10 +227,17 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
         setShowPriceAlert(true);
       }
 
-      setStatus({ 
-        type: 'success', 
-        message: `Processamento concluído! ${totalProducts} produtos identificados e enviados para pendências.` 
-      });
+      if (totalProducts === 0) {
+        setStatus({ 
+          type: 'warning', 
+          message: `Processamento concluído, mas NENHUM produto foi identificado nos arquivos enviados.` 
+        });
+      } else {
+        setStatus({ 
+          type: 'success', 
+          message: `Processamento concluído! ${totalProducts} produtos identificados e enviados para pendências.` 
+        });
+      }
     } catch (error: any) {
       console.error(error);
       setIsUploading(false);

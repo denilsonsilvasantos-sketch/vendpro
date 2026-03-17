@@ -43,20 +43,24 @@ export async function extractProductsFromMedia(base64Data: string, mimeType: str
   7. ÚLTIMAS UNIDADES (is_last_units): true se o status_estoque for "ultimas" ou "baixo".
   
   Retorne os dados em formato JSON seguindo este esquema:
-  Array<{
-    sku: string,
-    nome: string,
-    descricao: string,
-    preco_unitario: string,
-    preco_box: string,
-    qtd_box: string,
-    venda_somente_box: boolean,
-    has_box_discount: boolean,
-    is_last_units: boolean,
-    status_estoque: string,
-    variacoes: string,
-    qtd_variacoes: string
-  }>`;
+  {
+    "products": [
+      {
+        "sku": string,
+        "nome": string,
+        "descricao": string,
+        "preco_unitario": string,
+        "preco_box": string,
+        "qtd_box": string,
+        "venda_somente_box": boolean,
+        "has_box_discount": boolean,
+        "is_last_units": boolean,
+        "status_estoque": string,
+        "variacoes": string,
+        "qtd_variacoes": string
+      }
+    ]
+  }`;
 
   try {
     const response = await ai.models.generateContent({
@@ -75,34 +79,41 @@ export async function extractProductsFromMedia(base64Data: string, mimeType: str
       config: {
         responseMimeType: "application/json",
         responseSchema: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: {
-              sku: { type: Type.STRING },
-              nome: { type: Type.STRING },
-              descricao: { type: Type.STRING },
-              preco_unitario: { type: Type.STRING },
-              preco_box: { type: Type.STRING },
-              qtd_box: { type: Type.STRING },
-              venda_somente_box: { type: Type.BOOLEAN },
-              has_box_discount: { type: Type.BOOLEAN },
-              is_last_units: { type: Type.BOOLEAN },
-              status_estoque: { type: Type.STRING },
-              variacoes: { type: Type.STRING },
-              qtd_variacoes: { type: Type.STRING }
-            },
-            required: ["nome"]
-          }
+          type: Type.OBJECT,
+          properties: {
+            products: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  sku: { type: Type.STRING },
+                  nome: { type: Type.STRING },
+                  descricao: { type: Type.STRING },
+                  preco_unitario: { type: Type.STRING },
+                  preco_box: { type: Type.STRING },
+                  qtd_box: { type: Type.STRING },
+                  venda_somente_box: { type: Type.BOOLEAN },
+                  has_box_discount: { type: Type.BOOLEAN },
+                  is_last_units: { type: Type.BOOLEAN },
+                  status_estoque: { type: Type.STRING },
+                  variacoes: { type: Type.STRING },
+                  qtd_variacoes: { type: Type.STRING }
+                },
+                required: ["nome"]
+              }
+            }
+          },
+          required: ["products"]
         }
       }
     });
 
-    let jsonText = response.text || "[]";
+    let jsonText = response.text || "{}";
     // Remove markdown code blocks if present
     jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     
-    return JSON.parse(jsonText);
+    const parsed = JSON.parse(jsonText);
+    return parsed.products || [];
   } catch (error: any) {
     console.error("Erro ao extrair produtos da mídia:", error);
     throw new Error(error.message || "Erro desconhecido ao processar o arquivo com a IA.");

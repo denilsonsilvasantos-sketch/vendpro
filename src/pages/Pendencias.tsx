@@ -3,6 +3,8 @@ import { supabase } from '../integrations/supabaseClient';
 import { Product, Category } from '../types';
 import { AlertTriangle, Edit, Check, X, Image as ImageIcon, Tag, Upload, Loader2, Link as LinkIcon } from 'lucide-react';
 
+import { getProducts } from '../services/productService';
+
 export default function Pendencias({ companyId }: { companyId: string | null }) {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -14,26 +16,20 @@ export default function Pendencias({ companyId }: { companyId: string | null }) 
 
   async function fetchPendencies() {
     if (!supabase || companyId === null) return;
-    const { data, error } = await supabase
-      .from('products')
-      .select('*')
-      .eq('company_id', companyId)
-      .or('categoria_pendente.eq.true,imagem_pendente.eq.true');
     
-    if (error) {
-      console.error(error);
-    } else {
-      const sortedData = (data || []).sort((a, b) => {
-        if (a.imagem_pendente && !b.imagem_pendente) return -1;
-        if (!a.imagem_pendente && b.imagem_pendente) return 1;
-        
-        // Secondary sort: newest first
-        const dateA = new Date(a.created_at || 0).getTime();
-        const dateB = new Date(b.created_at || 0).getTime();
-        return dateB - dateA;
-      });
-      setProducts(sortedData);
-    }
+    const allProducts = await getProducts(companyId);
+    const pendencies = allProducts.filter(p => p.categoria_pendente || p.imagem_pendente);
+    
+    const sortedData = pendencies.sort((a, b) => {
+      if (a.imagem_pendente && !b.imagem_pendente) return -1;
+      if (!a.imagem_pendente && b.imagem_pendente) return 1;
+      
+      // Secondary sort: newest first
+      const dateA = new Date(a.created_at || 0).getTime();
+      const dateB = new Date(b.created_at || 0).getTime();
+      return dateB - dateA;
+    });
+    setProducts(sortedData);
     
     const { data: catData } = await supabase.from('categories').select('*').eq('company_id', companyId);
     setCategories(catData || []);
@@ -152,7 +148,7 @@ export default function Pendencias({ companyId }: { companyId: string | null }) 
                     </h3>
                     <div className="flex items-center gap-3 mt-1">
                       <span className="text-xs font-mono bg-slate-100 text-slate-500 px-2 py-0.5 rounded">SKU: {product.sku}</span>
-                      <span className="text-xs font-bold text-primary">R$ {product.preco_unitario.toFixed(2)}</span>
+                      <span className="text-xs font-bold text-primary">R$ {(product.preco_unitario * (1 + (product.margin_percentage || 0) / 100)).toFixed(2)}</span>
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2 justify-end">

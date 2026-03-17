@@ -12,6 +12,21 @@ export default function Marcas({ companyId }: { companyId: string | null }) {
   const [expandedBrands, setExpandedBrands] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [newCategoryName, setNewCategoryName] = useState<{ [brandId: string]: string }>({});
+  const [deleteModal, setDeleteModal] = useState<{
+    isOpen: boolean;
+    type: 'brand' | 'category';
+    idToDelete: string;
+    productCount: number;
+    targetId: string;
+    action: 'delete' | 'transfer';
+  }>({
+    isOpen: false,
+    type: 'brand',
+    idToDelete: '',
+    productCount: 0,
+    targetId: '',
+    action: 'transfer'
+  });
 
   async function fetchData() {
     if (!supabase || companyId === null) return;
@@ -42,9 +57,30 @@ export default function Marcas({ companyId }: { companyId: string | null }) {
   };
 
   const handleDeleteBrand = async (id: string) => {
-    if (!supabase || !confirm('Tem certeza que deseja excluir esta marca? Todos os produtos vinculados serão afetados.')) return;
-    await supabase.from('brands').delete().eq('id', id);
-    fetchData();
+    if (!supabase) return;
+    try {
+      const { count, error } = await supabase.from('products').select('*', { count: 'exact', head: true }).eq('brand_id', id);
+      if (error) throw error;
+      
+      if (count && count > 0) {
+        setDeleteModal({
+          isOpen: true,
+          type: 'brand',
+          idToDelete: id,
+          productCount: count,
+          targetId: '',
+          action: 'transfer'
+        });
+      } else {
+        if (confirm('Tem certeza que deseja excluir esta marca?')) {
+          await supabase.from('brands').delete().eq('id', id);
+          fetchData();
+        }
+      }
+    } catch (err: any) {
+      console.error(err);
+      alert('Erro ao verificar produtos da marca.');
+    }
   };
 
   const handleAddCategory = async (brandId: string) => {
@@ -85,9 +121,30 @@ export default function Marcas({ companyId }: { companyId: string | null }) {
   };
 
   const handleDeleteCategory = async (id: string) => {
-    if (!supabase || !confirm('Excluir esta categoria?')) return;
-    await supabase.from('categories').delete().eq('id', id);
-    fetchData();
+    if (!supabase) return;
+    try {
+      const { count, error } = await supabase.from('products').select('*', { count: 'exact', head: true }).eq('category_id', id);
+      if (error) throw error;
+      
+      if (count && count > 0) {
+        setDeleteModal({
+          isOpen: true,
+          type: 'category',
+          idToDelete: id,
+          productCount: count,
+          targetId: '',
+          action: 'transfer'
+        });
+      } else {
+        if (confirm('Excluir esta categoria?')) {
+          await supabase.from('categories').delete().eq('id', id);
+          fetchData();
+        }
+      }
+    } catch (err: any) {
+      console.error(err);
+      alert('Erro ao verificar produtos da categoria.');
+    }
   };
 
   const moveBrand = async (index: number, direction: 'up' | 'down') => {
@@ -145,6 +202,40 @@ export default function Marcas({ companyId }: { companyId: string | null }) {
     for (const update of updates) {
       const { error } = await supabase.from('categories').update({ order_index: update.order_index }).eq('id', update.id);
       if (error) console.warn('Could not update order_index:', error.message);
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!supabase) return;
+    const { type, idToDelete, action, targetId } = deleteModal;
+
+    if (action === 'transfer' && !targetId) {
+      alert('Selecione um destino para transferir os produtos.');
+      return;
+    }
+
+    try {
+      if (type === 'brand') {
+        if (action === 'transfer') {
+          await supabase.from('products').update({ brand_id: targetId, category_id: null }).eq('brand_id', idToDelete);
+        } else {
+          await supabase.from('products').delete().eq('brand_id', idToDelete);
+        }
+        await supabase.from('brands').delete().eq('id', idToDelete);
+      } else {
+        if (action === 'transfer') {
+          await supabase.from('products').update({ category_id: targetId }).eq('category_id', idToDelete);
+        } else {
+          await supabase.from('products').delete().eq('category_id', idToDelete);
+        }
+        await supabase.from('categories').delete().eq('id', idToDelete);
+      }
+      
+      setDeleteModal({ ...deleteModal, isOpen: false });
+      fetchData();
+    } catch (err: any) {
+      console.error(err);
+      alert('Erro ao processar a exclusão: ' + err.message);
     }
   };
 
@@ -207,26 +298,26 @@ export default function Marcas({ companyId }: { companyId: string | null }) {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="flex flex-col mr-2">
-                    <button onClick={() => moveBrand(brandIndex, 'up')} disabled={brandIndex === 0} className="text-slate-300 hover:text-primary disabled:opacity-30"><ArrowUp size={16} /></button>
-                    <button onClick={() => moveBrand(brandIndex, 'down')} disabled={brandIndex === brands.length - 1} className="text-slate-300 hover:text-primary disabled:opacity-30"><ArrowDown size={16} /></button>
+                  <div className="flex items-center gap-1 mr-2">
+                    <button onClick={(e) => { e.stopPropagation(); moveBrand(brandIndex, 'up'); }} disabled={brandIndex === 0} className="text-slate-300 hover:text-primary disabled:opacity-30 p-1"><ArrowUp size={18} /></button>
+                    <button onClick={(e) => { e.stopPropagation(); moveBrand(brandIndex, 'down'); }} disabled={brandIndex === brands.length - 1} className="text-slate-300 hover:text-primary disabled:opacity-30 p-1"><ArrowDown size={18} /></button>
                   </div>
                   <button 
-                    onClick={() => { setEditingBrand(brand); setIsModalOpen(true); }} 
+                    onClick={(e) => { e.stopPropagation(); setEditingBrand(brand); setIsModalOpen(true); }} 
                     className="p-3 text-slate-400 hover:text-primary hover:bg-primary/5 rounded-xl transition-all"
                     title="Editar Marca"
                   >
                     <Edit size={20} />
                   </button>
                   <button 
-                    onClick={() => handleDeleteBrand(brand.id)}
+                    onClick={(e) => { e.stopPropagation(); handleDeleteBrand(brand.id); }}
                     className="p-3 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
                     title="Excluir Marca"
                   >
                     <Trash2 size={20} />
                   </button>
                   <button 
-                    onClick={() => toggleExpand(brand.id)}
+                    onClick={(e) => { e.stopPropagation(); toggleExpand(brand.id); }}
                     className="p-3 text-slate-400 hover:text-slate-900 rounded-xl transition-all"
                   >
                     {expandedBrands.includes(brand.id) ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
@@ -320,6 +411,82 @@ export default function Marcas({ companyId }: { companyId: string | null }) {
           brand={editingBrand}
           companyId={companyId}
         />
+      )}
+
+      {deleteModal.isOpen && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-3 text-rose-500 mb-4">
+              <AlertCircle size={24} />
+              <h2 className="text-xl font-bold text-slate-900">Atenção</h2>
+            </div>
+            
+            <p className="text-slate-600 mb-6">
+              Existem <strong className="text-slate-900">{deleteModal.productCount}</strong> produtos vinculados a esta {deleteModal.type === 'brand' ? 'marca' : 'categoria'}. O que deseja fazer com eles?
+            </p>
+
+            <div className="space-y-3 mb-6">
+              <label className="flex items-center gap-3 p-3 border rounded-xl cursor-pointer hover:bg-slate-50 transition-colors">
+                <input 
+                  type="radio" 
+                  name="deleteAction" 
+                  value="transfer" 
+                  checked={deleteModal.action === 'transfer'}
+                  onChange={() => setDeleteModal({ ...deleteModal, action: 'transfer' })}
+                  className="w-4 h-4 text-primary"
+                />
+                <span className="text-slate-700 font-medium">Transferir para outra {deleteModal.type === 'brand' ? 'marca' : 'categoria'}</span>
+              </label>
+
+              {deleteModal.action === 'transfer' && (
+                <div className="pl-8">
+                  <select 
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary/20"
+                    value={deleteModal.targetId}
+                    onChange={(e) => setDeleteModal({ ...deleteModal, targetId: e.target.value })}
+                  >
+                    <option value="">Selecione o destino...</option>
+                    {deleteModal.type === 'brand' 
+                      ? brands.filter(b => b.id !== deleteModal.idToDelete).map(b => (
+                          <option key={b.id} value={b.id}>{b.name}</option>
+                        ))
+                      : categories.filter(c => c.id !== deleteModal.idToDelete && c.brand_id === categories.find(cat => cat.id === deleteModal.idToDelete)?.brand_id).map(c => (
+                          <option key={c.id} value={c.id}>{c.nome}</option>
+                        ))
+                    }
+                  </select>
+                </div>
+              )}
+
+              <label className="flex items-center gap-3 p-3 border rounded-xl cursor-pointer hover:bg-rose-50 hover:border-rose-200 transition-colors">
+                <input 
+                  type="radio" 
+                  name="deleteAction" 
+                  value="delete" 
+                  checked={deleteModal.action === 'delete'}
+                  onChange={() => setDeleteModal({ ...deleteModal, action: 'delete' })}
+                  className="w-4 h-4 text-rose-500"
+                />
+                <span className="text-rose-600 font-medium">Excluir todos os produtos</span>
+              </label>
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <button 
+                onClick={() => setDeleteModal({ ...deleteModal, isOpen: false })}
+                className="px-5 py-2.5 text-slate-500 font-medium hover:bg-slate-100 rounded-xl transition-colors"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={confirmDelete}
+                className="px-5 py-2.5 bg-rose-500 text-white font-bold rounded-xl hover:bg-rose-600 transition-colors shadow-lg shadow-rose-500/20"
+              >
+                Confirmar Exclusão
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

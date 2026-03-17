@@ -1152,16 +1152,16 @@ function ProductCard({ product, onAdd, onEdit, role, onZoom, ...props }: { produ
         <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-2">SKU: {product.sku}</p>
         
         {!isEsgotado && (
-          <p className="text-xl font-black text-primary">R$ {product.preco_unitario.toFixed(2)}</p>
+          <p className="text-xl font-black text-primary">R$ {(product.preco_unitario * (1 + (product.margin_percentage || 0) / 100)).toFixed(2)}</p>
         )}
       </div>
 
       {(product.has_box_discount || product.venda_somente_box) && !isEsgotado && (
         <div className="mb-4 pt-3 border-t border-slate-50 text-sm font-bold text-emerald-600 text-center">
           {!product.venda_somente_box ? (
-            `A partir de ${product.qtd_box} un: R$ ${product.preco_box.toFixed(2)}`
+            `A partir de ${product.qtd_box} un: R$ ${(product.preco_box * (1 + (product.margin_percentage || 0) / 100)).toFixed(2)}`
           ) : (
-            `Box com ${product.qtd_box} un: R$ ${product.preco_box.toFixed(2)}`
+            `Box com ${product.qtd_box} un: R$ ${(product.preco_box * (1 + (product.margin_percentage || 0) / 100)).toFixed(2)}`
           )}
         </div>
       )}

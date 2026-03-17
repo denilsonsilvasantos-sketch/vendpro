@@ -7,47 +7,41 @@ export async function getProducts(companyId: string): Promise<Product[]> {
     return [];
   }
 
-  // Busca produtos. Tentamos buscar com a marca, se falhar buscamos sem.
-  const { data, error } = await supabase
+  // Busca produtos
+  const { data: productsData, error: productsError } = await supabase
     .from("products")
-    .select(`
-      *,
-      brand:brand_id (
-        id,
-        nome,
-        margin_percentage
-      )
-    `)
+    .select("*")
     .eq("company_id", companyId);
 
-  if (error) {
-    console.error("Erro ao buscar produtos com marca:", error);
-    // Fallback: busca sem o join
-    const { data: simpleData, error: simpleError } = await supabase
-      .from("products")
-      .select("*")
-      .eq("company_id", companyId);
-    
-    if (simpleError) {
-      console.error("Erro ao buscar produtos (fallback):", simpleError);
-      return [];
-    }
-    return simpleData;
+  if (productsError) {
+    console.error("Erro ao buscar produtos:", productsError);
+    return [];
   }
 
-  // Aplica a margem de preço se existir
-  return data.map((item: any) => {
-    const brand = item.brand;
-    const margin = brand?.margin_percentage || 0;
-    const finalPrice = margin > 0 
-      ? item.preco_unitario * (1 + margin / 100) 
-      : item.preco_unitario;
+  // Busca marcas para pegar a margem
+  const { data: brandsData, error: brandsError } = await supabase
+    .from("brands")
+    .select("id, name, margin_percentage")
+    .eq("company_id", companyId);
 
+  if (brandsError) {
+    console.error("Erro ao buscar marcas:", brandsError);
+  }
+
+  const brandsMap = new Map();
+  if (brandsData) {
+    brandsData.forEach(b => {
+      brandsMap.set(b.id, b);
+    });
+  }
+
+  // Retorna os dados com a margem aplicada na UI
+  return (productsData || []).map((item: any) => {
+    const brand = brandsMap.get(item.brand_id);
     return {
       ...item,
-      preco_unitario: finalPrice,
       brand_nome: brand?.name,
-      brand_id: brand?.id
+      margin_percentage: brand?.margin_percentage || 0
     };
   });
 }

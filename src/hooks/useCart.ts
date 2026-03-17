@@ -68,12 +68,12 @@ export function useCart() {
   const clearCart = () => setCart([]);
 
   const total = cart.reduce((acc, item) => {
-    let price = item.preco_unitario;
+    let price = item.preco_unitario * (1 + (item.margin_percentage || 0) / 100);
     
     if (item.venda_somente_box) {
-      price = item.preco_box; // quantity is the number of boxes, and preco_box is the price of one box
+      price = item.preco_box * (1 + (item.margin_percentage || 0) / 100); // quantity is the number of boxes, and preco_box is the price of one box
     } else if (item.has_box_discount && item.quantity >= (item.qtd_box || 0) && (item.qtd_box || 0) > 0) {
-      price = item.preco_box; // preco_box is the unit price when discount applies
+      price = item.preco_box * (1 + (item.margin_percentage || 0) / 100); // preco_box is the unit price when discount applies
     }
     
     return acc + (item.quantity * price);

@@ -163,9 +163,12 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
           let parsedPrecoUnitario = parseNumber(extracted.preco_unitario, 0);
           let parsedPrecoBox = parseNumber(extracted.preco_box, 0);
 
+          let pendingStatus = 'none';
+
           if (existing) {
             if (catalogType === 'replenishment' && existing.preco_unitario !== parsedPrecoUnitario) {
               setPriceChanges(prev => [...prev, { sku: sku, old: existing.preco_unitario, new: parsedPrecoUnitario }]);
+              pendingStatus = 'price_changed';
             }
           }
 
@@ -189,7 +192,8 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
             variacoes: extracted.variacoes || '',
             qtd_variacoes: parseNumber(extracted.qtd_variacoes, 0),
             last_seen_date: new Date().toISOString(),
-            last_seen_catalog_type: catalogType
+            last_seen_catalog_type: catalogType,
+            pending_status: pendingStatus
           };
 
           productData.imagem_pendente = !existing?.imagem;

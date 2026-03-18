@@ -3,6 +3,7 @@ import { supabase } from '../integrations/supabaseClient';
 import { Product, Brand, Category } from '../types';
 import { Package, Edit, Trash2, Plus, Search, Filter, Tag, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 import ProductFormModal from '../components/ProductFormModal';
+import { getProducts } from '../services/productService';
 
 export default function Produtos({ companyId }: { companyId: string | null }) {
   const [products, setProducts] = useState<Product[]>([]);
@@ -19,11 +20,11 @@ export default function Produtos({ companyId }: { companyId: string | null }) {
     if (!supabase || !companyId) return;
     setLoading(true);
     
-    const { data: pData } = await supabase.from('products').select('*').eq('company_id', companyId).order('nome');
+    const pData = await getProducts(companyId);
     const { data: bData } = await supabase.from('brands').select('*').eq('company_id', companyId).order('name');
     const { data: cData } = await supabase.from('categories').select('*').eq('company_id', companyId).order('nome');
     
-    setProducts(pData || []);
+    setProducts((pData || []).sort((a, b) => a.nome.localeCompare(b.nome)));
     setBrands((bData || []).sort((a, b) => (a.order_index || 0) - (b.order_index || 0)));
     setCategories((cData || []).sort((a, b) => (a.order_index || 0) - (b.order_index || 0)));
     setLoading(false);

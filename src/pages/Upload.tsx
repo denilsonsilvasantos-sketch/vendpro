@@ -28,9 +28,11 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
   useEffect(() => {
     async function fetchBrands() {
       if (!supabase || companyId === null) return;
-      const { data } = await supabase.from('brands').select('*').eq('company_id', companyId);
-      setBrands(data || []);
-      if (data && data.length > 0) setSelectedBrandId(data[0].id);
+      const { data } = await supabase.from('brands').select('*').eq('company_id', companyId).order('name');
+      
+      const sortedBrands = (data || []).sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
+      setBrands(sortedBrands);
+      if (sortedBrands.length > 0) setSelectedBrandId(sortedBrands[0].id);
     }
     fetchBrands();
   }, [companyId]);
@@ -90,6 +92,9 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
     setProgress(0);
 
     try {
+      const { data: brandData } = await supabase.from('brands').select('margin_percentage').eq('id', selectedBrandId).single();
+      const margin = brandData?.margin_percentage || 0;
+
       const { data: initialCategories } = await supabase.from('categories').select('id, nome').eq('company_id', companyId).eq('brand_id', selectedBrandId);
       let categories = initialCategories || [];
       const processedSkus: string[] = [];
@@ -155,10 +160,15 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
 
           let finalNome = extracted.nome;
 
+          let parsedPrecoUnitario = parseNumber(extracted.preco_unitario, 0);
+          let parsedPrecoBox = parseNumber(extracted.preco_box, 0);
+
+          let pendingStatus = 'none';
+
           if (existing) {
-            const newPrecoUnitario = parseNumber(extracted.preco_unitario);
-            if (catalogType === 'replenishment' && existing.preco_unitario !== newPrecoUnitario) {
-              setPriceChanges(prev => [...prev, { sku: sku, old: existing.preco_unitario, new: newPrecoUnitario }]);
+            if (catalogType === 'replenishment' && existing.preco_unitario !== parsedPrecoUnitario) {
+              setPriceChanges(prev => [...prev, { sku: sku, old: existing.preco_unitario, new: parsedPrecoUnitario }]);
+              pendingStatus = 'price_changed';
             }
           }
 
@@ -168,8 +178,8 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
             sku: sku,
             nome: finalNome,
             descricao: extracted.descricao,
-            preco_unitario: parseNumber(extracted.preco_unitario, 0),
-            preco_box: parseNumber(extracted.preco_box, 0),
+            preco_unitario: parsedPrecoUnitario,
+            preco_box: parsedPrecoBox,
             qtd_box: parseNumber(extracted.qtd_box, 1),
             venda_somente_box: extracted.venda_somente_box || false,
             has_box_discount: extracted.has_box_discount || false,
@@ -182,7 +192,8 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
             variacoes: extracted.variacoes || '',
             qtd_variacoes: parseNumber(extracted.qtd_variacoes, 0),
             last_seen_date: new Date().toISOString(),
-            last_seen_catalog_type: catalogType
+            last_seen_catalog_type: catalogType,
+            pending_status: pendingStatus
           };
 
           productData.imagem_pendente = !existing?.imagem;
@@ -220,10 +231,17 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
         setShowPriceAlert(true);
       }
 
-      setStatus({ 
-        type: 'success', 
-        message: `Processamento concluído! ${totalProducts} produtos identificados e enviados para pendências.` 
-      });
+      if (totalProducts === 0) {
+        setStatus({ 
+          type: 'warning', 
+          message: `Processamento concluído, mas NENHUM produto foi identificado nos arquivos enviados.` 
+        });
+      } else {
+        setStatus({ 
+          type: 'success', 
+          message: `Processamento concluído! ${totalProducts} produtos identificados e enviados para pendências.` 
+        });
+      }
     } catch (error: any) {
       console.error(error);
       setIsUploading(false);
@@ -454,9 +472,9 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
               <AlertCircle size={32} className="text-blue-600" />
             </div>
             <div className="text-center space-y-2">
-              <h2 className="text-xl font-bold">Mudanças de Preço Detectadas</h2>
+              <h2 className="text-xl font-bold">Mudanças de Custo Detectadas</h2>
               <p className="text-slate-500 text-sm">
-                Identificamos <strong>{priceChanges.length} produtos</strong> com alteração de preço neste catálogo de reposição.
+                Identificamos <strong>{priceChanges.length} produtos</strong> com alteração de custo neste catálogo de reposição.
               </p>
             </div>
             <div className="max-h-[200px] overflow-y-auto border border-slate-100 rounded-xl p-4 space-y-2">

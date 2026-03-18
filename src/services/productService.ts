@@ -14,7 +14,7 @@ export async function getProducts(companyId: string): Promise<Product[]> {
       *,
       brand:brand_id (
         id,
-        nome,
+        name,
         margin_percentage
       )
     `)
@@ -42,10 +42,17 @@ export async function getProducts(companyId: string): Promise<Product[]> {
     const finalPrice = margin > 0 
       ? item.preco_unitario * (1 + margin / 100) 
       : item.preco_unitario;
+      
+    const finalBoxPrice = margin > 0 && item.preco_box
+      ? item.preco_box * (1 + margin / 100)
+      : item.preco_box;
 
     return {
       ...item,
+      base_price: item.preco_unitario,
+      base_box_price: item.preco_box,
       preco_unitario: finalPrice,
+      preco_box: finalBoxPrice,
       brand_nome: brand?.name,
       brand_id: brand?.id
     };

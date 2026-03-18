@@ -4,7 +4,11 @@ import { Product, Brand, Category } from '../types';
 import { X, Upload, Loader2, Image as ImageIcon, Link as LinkIcon, Check } from 'lucide-react';
 
 export default function ProductFormModal({ onClose, onSave, product, companyId }: { onClose: () => void, onSave: () => void, product?: Product, companyId: string | null }) {
-  const [formData, setFormData] = useState<Partial<Product>>(product || { 
+  const [formData, setFormData] = useState<Partial<Product>>(product ? {
+    ...product,
+    preco_unitario: (product as any).base_price ?? product.preco_unitario,
+    preco_box: (product as any).base_box_price ?? product.preco_box
+  } : { 
     nome: '', 
     sku: '', 
     preco_unitario: 0, 
@@ -87,11 +91,12 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
     try {
       let error;
       if (product) {
-        const { id, created_at, ...updateData } = dataToSave as any;
+        const { id, created_at, base_price, base_box_price, brand_nome, brand, ...updateData } = dataToSave as any;
         const { error: updateError } = await supabase.from('products').update(updateData).eq('id', product.id);
         error = updateError;
       } else {
-        const { error: insertError } = await supabase.from('products').insert([dataToSave]);
+        const { base_price, base_box_price, brand_nome, brand, ...insertData } = dataToSave as any;
+        const { error: insertError } = await supabase.from('products').insert([insertData]);
         error = insertError;
       }
 

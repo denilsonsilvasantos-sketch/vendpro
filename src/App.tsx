@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { getProducts } from "./services/productService";
 import { validateSellerCode } from './services/sellerService';
 import { registerCompany, loginCompany, getCompanyById } from './services/companyService';
+import { createOrder } from './services/orderService';
 import { supabase } from './integrations/supabaseClient';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -37,6 +38,7 @@ import { Badge } from './components/Badge';
 import { Dashboard, Produtos, Clientes, Pedidos, Configuracoes, Marcas, Upload, Pendencias, Vendedores } from './pages';
 import ProductFormModal from './components/ProductFormModal';
 import CartScreen from './pages/CartScreen';
+import { formatWhatsAppMessage } from './utils/whatsapp';
 
 // --- Helper Components ---
 
@@ -162,6 +164,28 @@ export default function App() {
       setShowCartDisclaimer(true);
     }
     addToCart(product, quantity);
+  };
+
+  const handleSendOrder = () => {
+    let whatsappNumber = '';
+    
+    if (role === 'customer' && user && user.vendedor_whatsapp) {
+      whatsappNumber = user.vendedor_whatsapp;
+    } else if (role === 'seller' && company && company.telefone) {
+      whatsappNumber = company.telefone;
+    } else if (role === 'company' && company && company.telefone) {
+      whatsappNumber = company.telefone;
+    }
+
+    if (whatsappNumber) {
+      const message = formatWhatsAppMessage(cart);
+      const whatsappUrl = `https://wa.me/${whatsappNumber.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
+      window.open(whatsappUrl, '_blank');
+      clearCart();
+      setActiveTab('catalog');
+    } else {
+      alert('Número de WhatsApp não encontrado para enviar o pedido.');
+    }
   };
 
   useEffect(() => {
@@ -500,7 +524,7 @@ export default function App() {
             onZoom={setZoomImage}
           />
         )}
-        {activeTab === 'cart' && <CartScreen cart={cart} total={total} onUpdateQuantity={updateQuantity} onRemove={removeFromCart} onSendOrder={clearCart} />}
+        {activeTab === 'cart' && <CartScreen cart={cart} total={total} onUpdateQuantity={updateQuantity} onRemove={removeFromCart} onSendOrder={handleSendOrder} />}
         {activeTab === 'dashboard' && <Dashboard companyId={activeCompanyId} />}
         {activeTab === 'produtos' && <Produtos companyId={activeCompanyId} />}
         {activeTab === 'upload' && <Upload companyId={activeCompanyId} />}

@@ -19,11 +19,24 @@ export default function Pendencias({ companyId }: { companyId: string | null }) 
       .select('*')
       .eq('company_id', companyId)
       .or('categoria_pendente.eq.true,imagem_pendente.eq.true');
+      
+    const { data: bData } = await supabase.from('brands').select('*').eq('company_id', companyId);
     
     if (error) {
       console.error(error);
     } else {
-      const sortedData = (data || []).sort((a, b) => {
+      const brandsData = bData || [];
+      const productsWithMargin = (data || []).map(p => {
+        const brand = brandsData.find(b => b.id === p.brand_id);
+        const margin = brand?.margin_percentage || 0;
+        return {
+          ...p,
+          preco_unitario: margin > 0 ? p.preco_unitario * (1 + margin / 100) : p.preco_unitario,
+          preco_box: margin > 0 ? p.preco_box * (1 + margin / 100) : p.preco_box,
+        };
+      });
+
+      const sortedData = productsWithMargin.sort((a, b) => {
         if (a.imagem_pendente && !b.imagem_pendente) return -1;
         if (!a.imagem_pendente && b.imagem_pendente) return 1;
         

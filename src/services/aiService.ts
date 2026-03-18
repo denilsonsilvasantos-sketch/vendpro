@@ -29,8 +29,8 @@ export async function extractProductsFromMedia(base64Data: string, mimeType: str
   Não pule nenhum item. Se houver tabelas, percorra cada linha. Se houver várias páginas, extraia de todas.
   
   Para cada produto, identifique com precisão:
-  - nome: Nome completo do produto
-  - sku: Código, SKU ou Referência (se houver)
+  - nome: Nome completo do produto (MUITO IMPORTANTE)
+  - sku: Código, SKU ou Referência (se houver). Se não houver, deixe em branco.
   - preco_unitario: Preço por unidade (ex: 10,50). Se houver apenas preço de caixa, calcule o unitário dividindo pela quantidade.
   - preco_box: Preço da caixa fechada (se houver)
   - qtd_box: Quantidade de itens na caixa (ex: 12)
@@ -40,7 +40,10 @@ export async function extractProductsFromMedia(base64Data: string, mimeType: str
   - variacoes: Cores, tamanhos ou sabores disponíveis (ex: "Azul, Verde, P, M, G")
   - qtd_variacoes: Número total de variações (ex: 5)
 
-  IMPORTANTE: Se o preço estiver em formato brasileiro (R$ 1.234,56), mantenha a precisão decimal.
+  IMPORTANTE: 
+  1. Extraia TODOS os produtos. Se a lista for longa, continue extraindo até o fim.
+  2. Se o preço estiver em formato brasileiro (R$ 1.234,56), mantenha a precisão decimal.
+  3. Se houver descrições longas, resuma-as para economizar espaço no JSON.
   
   Retorne os dados em formato JSON seguindo este esquema rigoroso:
   {
@@ -105,7 +108,25 @@ export async function extractProductsFromMedia(base64Data: string, mimeType: str
       return [];
     } catch (parseError) {
       console.error("Erro ao parsear JSON da IA:", jsonText);
-      // Tentar extrair o que for possível se estiver truncado (opcional, mas complexo)
+      
+      // Tentar recuperar JSON truncado se possível
+      if (jsonText.includes('"products": [')) {
+        try {
+          let partialJson = jsonText.split('"products": [')[1];
+          // Tentar fechar o array e o objeto
+          // Encontrar o último objeto completo
+          const lastObjectEnd = partialJson.lastIndexOf('}');
+          if (lastObjectEnd !== -1) {
+            partialJson = '[' + partialJson.substring(0, lastObjectEnd + 1) + ']';
+            const recovered = JSON.parse(partialJson);
+            console.log(`Recuperados ${recovered.length} produtos de JSON truncado.`);
+            return recovered;
+          }
+        } catch (e) {
+          console.error("Falha ao recuperar JSON truncado");
+        }
+      }
+      
       return [];
     }
   } catch (error: any) {

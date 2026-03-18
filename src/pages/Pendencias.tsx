@@ -63,9 +63,16 @@ export default function Pendencias({ companyId }: { companyId: string | null }) 
   const handleSave = async (id: string) => {
     if (!supabase) return;
     
-    const updates: any = { ...editData };
-    if (editData.category_id) updates.category_id = editData.category_id;
-    if (editData.imagem) updates.imagem = editData.imagem;
+    const { 
+      categoria_pendente, 
+      imagem_pendente, 
+      brand_nome, 
+      margin_percentage, 
+      categoria_nome,
+      base_price,
+      base_box_price,
+      ...updates 
+    } = editData as any;
 
     const { error } = await supabase.from('products').update(updates).eq('id', id);
     if (error) {

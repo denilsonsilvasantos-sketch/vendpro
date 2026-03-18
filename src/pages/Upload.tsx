@@ -79,10 +79,10 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
         const pageCount = pdfDoc.getPageCount();
         const results: { base64: string, mimeType: string }[] = [];
 
-        // Processar em blocos de 3 páginas para garantir que a IA não pule itens e não estoure o limite de saída
-        for (let i = 0; i < pageCount; i += 3) {
+        // Processar em blocos de 2 páginas para garantir que a IA não pule itens e não estoure o limite de saída
+        for (let i = 0; i < pageCount; i += 2) {
           const newPdf = await PDFDocument.create();
-          const end = Math.min(i + 3, pageCount);
+          const end = Math.min(i + 2, pageCount);
           const pages = await newPdf.copyPages(pdfDoc, Array.from({ length: end - i }, (_, k) => i + k));
           pages.forEach(p => newPdf.addPage(p));
           const pdfBytes = await newPdf.save();
@@ -202,7 +202,14 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
           totalProducts += extractedProducts.length;
 
           for (const extracted of extractedProducts) {
-            const sku = extracted.sku ? String(extracted.sku).trim() : `SKU-${Math.random().toString(36).substr(2, 9)}`;
+            // Gerar SKU determinístico se não houver um para evitar duplicatas em re-uploads
+            let sku = extracted.sku ? String(extracted.sku).trim() : '';
+            
+            if (!sku) {
+              const nameHash = extracted.nome ? extracted.nome.split('').reduce((a: number, b: string) => { a = ((a << 5) - a) + b.charCodeAt(0); return a & a; }, 0) : Math.random();
+              sku = `AUTO-${Math.abs(nameHash).toString(36).toUpperCase()}`;
+            }
+            
             processedSkus.push(sku);
 
             const { data: existing } = await supabase

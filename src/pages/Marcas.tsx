@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../integrations/supabaseClient';
 import { Brand, Category } from '../types';
-import { Edit, Trash2, Plus, ChevronDown, ChevronUp, Tag, Info, AlertCircle, Loader2, ArrowUp, ArrowDown } from 'lucide-react';
+import { Edit, Trash2, Plus, ChevronDown, ChevronUp, Tag, Info, AlertCircle, Loader2, ArrowUp, ArrowDown, AlertTriangle } from 'lucide-react';
 import BrandFormModal from '../components/BrandFormModal';
 
 export default function Marcas({ companyId }: { companyId: string | null }) {

@@ -42,7 +42,9 @@ export default function Produtos({ companyId }: { companyId: string | null }) {
   };
 
   const filteredProducts = products.filter(p => {
-    const matchesSearch = p.nome.toLowerCase().includes(searchTerm.toLowerCase()) || p.sku.toLowerCase().includes(searchTerm.toLowerCase());
+    const nome = p.nome || '';
+    const sku = p.sku || '';
+    const matchesSearch = nome.toLowerCase().includes(searchTerm.toLowerCase()) || sku.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesBrand = filterBrand ? p.brand_id === filterBrand : true;
     return matchesSearch && matchesBrand;
   }).sort((a, b) => {
@@ -71,7 +73,9 @@ export default function Produtos({ companyId }: { companyId: string | null }) {
     if (isEsgotadoA && !isEsgotadoB) return 1;
     if (!isEsgotadoA && isEsgotadoB) return -1;
 
-    return a.nome.localeCompare(b.nome);
+    const nomeA = a.nome || '';
+    const nomeB = b.nome || '';
+    return nomeA.localeCompare(nomeB);
   });
 
   if (loading && products.length === 0) {
@@ -170,7 +174,7 @@ export default function Produtos({ companyId }: { companyId: string | null }) {
                   <div className="space-y-0.5">
                     <p className="text-[10px] font-bold text-slate-400 uppercase">Preço Unitário</p>
                     {!isEsgotado ? (
-                      <p className="text-xl font-bold text-slate-900">R$ {product.preco_unitario.toFixed(2)}</p>
+                      <p className="text-xl font-bold text-slate-900">R$ {(product.preco_unitario || 0).toFixed(2)}</p>
                     ) : (
                       <p className="text-xl font-bold text-slate-400">--</p>
                     )}
@@ -194,9 +198,9 @@ export default function Produtos({ companyId }: { companyId: string | null }) {
                 {(product.has_box_discount || product.venda_somente_box) && !isEsgotado && (
                   <div className="pt-3 border-t border-slate-50 text-[11px] font-bold text-emerald-600">
                     {!product.venda_somente_box ? (
-                      `A partir de ${product.qtd_box} un: R$ ${product.preco_box.toFixed(2)}`
+                      `A partir de ${product.qtd_box} un: R$ ${(product.preco_box || 0).toFixed(2)}`
                     ) : (
-                      `Box com ${product.qtd_box} un: R$ ${product.preco_box.toFixed(2)}`
+                      `Box com ${product.qtd_box} un: R$ ${(product.preco_box || 0).toFixed(2)}`
                     )}
                   </div>
                 )}

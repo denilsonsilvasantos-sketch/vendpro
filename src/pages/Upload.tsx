@@ -137,12 +137,13 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
         }
 
         const extractedProducts = await extractProductsFromMedia(base64, mimeType);
+        console.log(`Produtos extraídos do arquivo ${file.name}:`, extractedProducts);
         
         if (extractedProducts.length === 0) {
           console.warn(`Nenhum produto encontrado no arquivo ${file.name}`);
-          setStatus({ type: 'warning', message: `Nenhum produto encontrado no arquivo ${file.name}. Verifique se o arquivo está legível.` });
+          setStatus({ type: 'warning', message: `Nenhum produto encontrado no arquivo ${file.name}. Verifique se o arquivo está legível ou se o formato é suportado.` });
           // Wait a bit so the user can see the message
-          await new Promise(resolve => setTimeout(resolve, 2000));
+          await new Promise(resolve => setTimeout(resolve, 3000));
         }
 
         totalProducts += extractedProducts.length;
@@ -166,8 +167,8 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
           let pendingStatus = 'none';
 
           if (existing) {
-            if (catalogType === 'replenishment' && existing.preco_unitario !== parsedPrecoUnitario) {
-              setPriceChanges(prev => [...prev, { sku: sku, old: existing.preco_unitario, new: parsedPrecoUnitario }]);
+            if (catalogType === 'replenishment' && (existing.preco_unitario || 0) !== parsedPrecoUnitario) {
+              setPriceChanges(prev => [...prev, { sku: sku, old: existing.preco_unitario || 0, new: parsedPrecoUnitario }]);
               pendingStatus = 'price_changed';
             }
           }
@@ -198,10 +199,15 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
 
           productData.imagem_pendente = !existing?.imagem;
 
-          const { error: upsertError } = await supabase.from('products').upsert(productData, { onConflict: 'company_id, sku' });
-          if (upsertError) {
-            console.error('Erro ao salvar produto:', upsertError);
-            throw new Error(`Erro ao salvar produto ${sku}: ${upsertError.message}`);
+          try {
+            const { error: upsertError } = await supabase.from('products').upsert(productData, { onConflict: 'company_id, sku' });
+            if (upsertError) {
+              console.error('Erro ao salvar produto:', upsertError, productData);
+              throw new Error(`Erro ao salvar produto ${sku}: ${upsertError.message}`);
+            }
+          } catch (err: any) {
+            console.error('Exceção ao salvar produto:', err, productData);
+            throw new Error(`Exceção ao salvar produto ${sku}: ${err.message}`);
           }
         }
         setProgress(Math.round(((i + 1) / uploadedFiles.length) * 100));

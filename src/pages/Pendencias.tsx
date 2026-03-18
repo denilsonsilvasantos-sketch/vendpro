@@ -165,7 +165,7 @@ export default function Pendencias({ companyId }: { companyId: string | null }) 
                     </h3>
                     <div className="flex items-center gap-3 mt-1">
                       <span className="text-xs font-mono bg-slate-100 text-slate-500 px-2 py-0.5 rounded">SKU: {product.sku}</span>
-                      <span className="text-xs font-bold text-primary">R$ {product.preco_unitario.toFixed(2)}</span>
+                      <span className="text-xs font-bold text-primary">R$ {(product.preco_unitario || 0).toFixed(2)}</span>
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2 justify-end">

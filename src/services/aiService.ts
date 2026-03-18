@@ -10,7 +10,7 @@ export async function classifyCategory(productName: string, categories: { id: nu
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-3.1-pro-preview",
       contents: prompt,
     });
 
@@ -25,26 +25,39 @@ export async function classifyCategory(productName: string, categories: { id: nu
 }
 
 export async function extractProductsFromMedia(base64Data: string, mimeType: string) {
-
-  const prompt = `Analise este catálogo e extraia todos os produtos visíveis. 
-  Para cada produto, identifique: nome, SKU/Cód (se houver), preço unitário, preço da caixa (box), quantidade na caixa (qtd_box), variações e quantidade de variações.
+  const prompt = `Analise este catálogo (pode ser uma imagem, PDF ou planilha) e extraia ABSOLUTAMENTE TODOS os produtos visíveis. 
+  Não pule nenhum item. Se houver tabelas, percorra cada linha. Se houver várias páginas, extraia de todas.
   
-  Retorne os dados em formato JSON seguindo este esquema:
+  Para cada produto, identifique com precisão:
+  - nome: Nome completo do produto
+  - sku: Código, SKU ou Referência (se houver)
+  - preco_unitario: Preço por unidade (ex: 10,50). Se houver apenas preço de caixa, calcule o unitário dividindo pela quantidade.
+  - preco_box: Preço da caixa fechada (se houver)
+  - qtd_box: Quantidade de itens na caixa (ex: 12)
+  - venda_somente_box: true se o produto só for vendido em caixa fechada
+  - has_box_discount: true se houver desconto para compra em caixa
+  - status_estoque: Tente identificar se está esgotado ou com poucas unidades. Use: "normal", "baixo", "ultimas" ou "esgotado".
+  - variacoes: Cores, tamanhos ou sabores disponíveis (ex: "Azul, Verde, P, M, G")
+  - qtd_variacoes: Número total de variações (ex: 5)
+
+  IMPORTANTE: Se o preço estiver em formato brasileiro (R$ 1.234,56), mantenha a precisão decimal.
+  
+  Retorne os dados em formato JSON seguindo este esquema rigoroso:
   {
     "products": [
       {
-        "sku": "string (opcional)",
-        "nome": "string (obrigatório)",
-        "descricao": "string (opcional)",
-        "preco_unitario": "string (ex: 10,50)",
-        "preco_box": "string (ex: 100,00)",
-        "qtd_box": "string (ex: 10)",
+        "sku": "string",
+        "nome": "string",
+        "descricao": "string",
+        "preco_unitario": "string",
+        "preco_box": "string",
+        "qtd_box": "string",
         "venda_somente_box": boolean,
         "has_box_discount": boolean,
         "is_last_units": boolean,
         "status_estoque": "normal | baixo | ultimas | esgotado",
-        "variacoes": "string (opcional)",
-        "qtd_variacoes": "string (opcional)"
+        "variacoes": "string",
+        "qtd_variacoes": "string"
       }
     ]
   }`;
@@ -64,7 +77,8 @@ export async function extractProductsFromMedia(base64Data: string, mimeType: str
         ]
       },
       config: {
-        responseMimeType: "application/json"
+        responseMimeType: "application/json",
+        maxOutputTokens: 8192
       }
     });
 
@@ -72,22 +86,28 @@ export async function extractProductsFromMedia(base64Data: string, mimeType: str
     // Remove markdown code blocks if present
     jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     
-    const parsed = JSON.parse(jsonText);
-    if (Array.isArray(parsed)) {
-      return parsed;
+    try {
+      const parsed = JSON.parse(jsonText);
+      if (Array.isArray(parsed)) {
+        return parsed;
+      }
+      
+      if (parsed.products) return parsed.products;
+      if (parsed.produtos) return parsed.produtos;
+      if (parsed.items) return parsed.items;
+      if (parsed.itens) return parsed.itens;
+      
+      const keys = Object.keys(parsed);
+      if (keys.length === 1 && Array.isArray(parsed[keys[0]])) {
+        return parsed[keys[0]];
+      }
+      
+      return [];
+    } catch (parseError) {
+      console.error("Erro ao parsear JSON da IA:", jsonText);
+      // Tentar extrair o que for possível se estiver truncado (opcional, mas complexo)
+      return [];
     }
-    
-    if (parsed.products) return parsed.products;
-    if (parsed.produtos) return parsed.produtos;
-    if (parsed.items) return parsed.items;
-    if (parsed.itens) return parsed.itens;
-    
-    const keys = Object.keys(parsed);
-    if (keys.length === 1 && Array.isArray(parsed[keys[0]])) {
-      return parsed[keys[0]];
-    }
-    
-    return [];
   } catch (error: any) {
     console.error("Erro ao extrair produtos da mídia:", error);
     throw new Error(error.message || "Erro desconhecido ao processar o arquivo com a IA.");

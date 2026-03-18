@@ -3,6 +3,7 @@ import { Upload, FileText, CheckCircle2, AlertCircle, Loader2, Image as ImageIco
 import { supabase } from '../integrations/supabaseClient';
 import { extractProductsFromMedia, classifyCategory } from '../services/aiService';
 import { Brand, Product } from '../types';
+import { PDFDocument } from 'pdf-lib';
 import * as XLSX from 'xlsx';
 
 type CatalogType = 'weekly' | 'replenishment';
@@ -14,7 +15,7 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
   const [catalogType, setCatalogType] = useState<CatalogType>('weekly');
   const [selectedBrandId, setSelectedBrandId] = useState<string | null>(null);
   const [brands, setBrands] = useState<Brand[]>([]);
-  const [uploadedFiles, setUploadedFiles] = useState<{ file: File, base64: string, mimeType: string }[]>([]);
+  const [uploadedFiles, setUploadedFiles] = useState<{ file: File, pages: { base64: string, mimeType: string }[] }[]>([]);
   const [missingProducts, setMissingProducts] = useState<Product[]>([]);
   const [showMissingAlert, setShowMissingAlert] = useState(false);
   
@@ -50,7 +51,7 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
     });
   };
 
-  const processFileToBase64 = async (file: File): Promise<{ base64: string, mimeType: string }> => {
+  const processFileToBase64 = async (file: File): Promise<{ base64: string, mimeType: string }[]> => {
     const fileName = file.name.toLowerCase();
     if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
       return new Promise((resolve, reject) => {
@@ -63,7 +64,7 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
             const worksheet = workbook.Sheets[firstSheetName];
             const csv = XLSX.utils.sheet_to_csv(worksheet);
             const base64 = btoa(unescape(encodeURIComponent(csv)));
-            resolve({ base64, mimeType: 'text/csv' });
+            resolve([{ base64, mimeType: 'text/csv' }]);
           } catch (error) {
             reject(error);
           }
@@ -71,12 +72,34 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
         reader.onerror = error => reject(error);
         reader.readAsArrayBuffer(file);
       });
+    } else if (fileName.endsWith('.pdf')) {
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const pdfDoc = await PDFDocument.load(arrayBuffer);
+        const pageCount = pdfDoc.getPageCount();
+        const results: { base64: string, mimeType: string }[] = [];
+
+        // Processar em blocos de 3 páginas para garantir que a IA não pule itens e não estoure o limite de saída
+        for (let i = 0; i < pageCount; i += 3) {
+          const newPdf = await PDFDocument.create();
+          const end = Math.min(i + 3, pageCount);
+          const pages = await newPdf.copyPages(pdfDoc, Array.from({ length: end - i }, (_, k) => i + k));
+          pages.forEach(p => newPdf.addPage(p));
+          const pdfBytes = await newPdf.save();
+          const base64 = btoa(String.fromCharCode(...new Uint8Array(pdfBytes)));
+          results.push({ base64, mimeType: 'application/pdf' });
+        }
+        return results;
+      } catch (error) {
+        console.error('Erro ao dividir PDF:', error);
+        const base64 = await fileToBase64(file);
+        return [{ base64, mimeType: 'application/pdf' }];
+      }
     } else {
       const base64 = await fileToBase64(file);
       let mimeType = file.type;
-      if (fileName.endsWith('.pdf')) mimeType = 'application/pdf';
-      else if (fileName.endsWith('.csv')) mimeType = 'text/csv';
-      return { base64, mimeType };
+      if (fileName.endsWith('.csv')) mimeType = 'text/csv';
+      return [{ base64, mimeType }];
     }
   };
 
@@ -98,12 +121,12 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
     const files = event.target.files;
     if (!files || files.length === 0) return;
 
-    const newFiles: { file: File, base64: string, mimeType: string }[] = [];
+    const newFiles: { file: File, pages: { base64: string, mimeType: string }[] }[] = [];
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       try {
-        const { base64, mimeType } = await processFileToBase64(file);
-        newFiles.push({ file, base64, mimeType });
+        const pages = await processFileToBase64(file);
+        newFiles.push({ file, pages });
       } catch (error) {
         console.error('Erro ao processar arquivo:', file.name, error);
         alert(`Erro ao processar o arquivo ${file.name}. Verifique se o formato é suportado.`);
@@ -128,8 +151,9 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
     setProgress(0);
 
     try {
-      const { data: brandData } = await supabase.from('brands').select('margin_percentage').eq('id', selectedBrandId).single();
+      const { data: brandData } = await supabase.from('brands').select('name, margin_percentage').eq('id', selectedBrandId).single();
       const margin = brandData?.margin_percentage || 0;
+      const brandName = brandData?.name || '';
 
       const { data: initialCategories } = await supabase.from('categories').select('id, nome').eq('company_id', companyId).eq('brand_id', selectedBrandId);
       let categories = initialCategories || [];
@@ -137,116 +161,108 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
       let totalProducts = 0;
 
       for (let i = 0; i < uploadedFiles.length; i++) {
-        const { file, base64, mimeType } = uploadedFiles[i];
-        setStatus({ type: 'info', message: `Analisando arquivo ${i + 1} de ${uploadedFiles.length}: ${file.name}` });
+        const { file, pages } = uploadedFiles[i];
         
-        // Extrair categoria do nome do arquivo
-        const fileName = file.name.replace(/\.[^/.]+$/, ""); // remove extensão
-        const categoryNameMatch = fileName.replace(/[0-9]/g, '').trim(); // remove números
-        const categoryName = categoryNameMatch || "Geral";
-
-        let categoriaId = null;
-        let categoriaPendente = false;
-
-        const existingCat = categories.find(c => c.nome.toLowerCase() === categoryName.toLowerCase());
-        if (existingCat) {
-          categoriaId = existingCat.id;
-        } else {
-          const { data: newCat } = await supabase.from('categories').insert([{
-            company_id: companyId,
-            brand_id: selectedBrandId,
-            nome: categoryName,
-            ativo: true
-          }]).select().single();
+        for (let j = 0; j < pages.length; j++) {
+          const { base64, mimeType } = pages[j];
+          setStatus({ 
+            type: 'info', 
+            message: `Analisando arquivo ${i + 1} de ${uploadedFiles.length}: ${file.name} ${pages.length > 1 ? `(Parte ${j + 1}/${pages.length})` : ''}` 
+          });
           
-          if (newCat) {
-            categoriaId = newCat.id;
-            categories.push(newCat);
+          // Extrair categoria do nome do arquivo
+          const fileName = file.name.replace(/\.[^/.]+$/, ""); // remove extensão
+          const categoryNameMatch = fileName.replace(/[0-9]/g, '').trim(); // remove números
+          const categoryName = categoryNameMatch || "Geral";
+
+          let categoriaId = null;
+          const existingCat = categories.find(c => c.nome.toLowerCase() === categoryName.toLowerCase());
+          if (existingCat) {
+            categoriaId = existingCat.id;
           } else {
-            categoriaPendente = true;
-          }
-        }
-
-        let extractedProducts = await extractProductsFromMedia(base64, mimeType);
-        if (!Array.isArray(extractedProducts)) {
-          console.warn(`extractedProducts não é um array:`, extractedProducts);
-          extractedProducts = [];
-        }
-        console.log(`Produtos extraídos do arquivo ${file.name}:`, extractedProducts);
-        
-        if (extractedProducts.length === 0) {
-          console.warn(`Nenhum produto encontrado no arquivo ${file.name}`);
-          setStatus({ type: 'warning', message: `Nenhum produto encontrado no arquivo ${file.name}. Verifique se o arquivo está legível ou se o formato é suportado.` });
-          // Wait a bit so the user can see the message
-          await new Promise(resolve => setTimeout(resolve, 3000));
-        }
-
-        totalProducts += extractedProducts.length;
-
-        for (const extracted of extractedProducts) {
-          const sku = extracted.sku ? String(extracted.sku).trim() : `SKU-${Math.random().toString(36).substr(2, 9)}`;
-          processedSkus.push(sku);
-
-          const { data: existing } = await supabase
-            .from('products')
-            .select('nome, preco_unitario, imagem')
-            .eq('company_id', companyId)
-            .eq('sku', sku)
-            .single();
-
-          let finalNome = extracted.nome ? String(extracted.nome).trim() : `Produto sem nome (${sku})`;
-
-          let parsedPrecoUnitario = parseNumber(extracted.preco_unitario, 0);
-          let parsedPrecoBox = parseNumber(extracted.preco_box, 0);
-
-          let pendingStatus = 'none';
-
-          if (existing) {
-            if (catalogType === 'replenishment' && (existing.preco_unitario || 0) !== parsedPrecoUnitario) {
-              setPriceChanges(prev => [...prev, { sku: sku, old: existing.preco_unitario || 0, new: parsedPrecoUnitario }]);
-              pendingStatus = 'price_changed';
-            }
-          }
-
-          const validStatus = ['normal', 'baixo', 'ultimas', 'esgotado'];
-          const statusEstoque = validStatus.includes(extracted.status_estoque) ? extracted.status_estoque : 'normal';
-
-          const productData: any = {
-            company_id: companyId,
-            brand_id: selectedBrandId,
-            sku: sku,
-            nome: finalNome,
-            preco_unitario: parsedPrecoUnitario,
-            preco_box: parsedPrecoBox,
-            qtd_box: parseNumber(extracted.qtd_box, 1),
-            venda_somente_box: !!extracted.venda_somente_box,
-            has_box_discount: !!extracted.has_box_discount,
-            is_last_units: !!extracted.is_last_units,
-            multiplo_venda: 1,
-            status_estoque: statusEstoque,
-            category_id: categoriaId
-          };
-
-          try {
-            let upsertError;
-            if (existing) {
-              const { error } = await supabase.from('products').update(productData).eq('company_id', companyId).eq('sku', sku);
-              upsertError = error;
-            } else {
-              const { error } = await supabase.from('products').insert([productData]);
-              upsertError = error;
-            }
+            const { data: newCat } = await supabase.from('categories').insert([{
+              company_id: companyId,
+              brand_id: selectedBrandId,
+              nome: categoryName,
+              ativo: true
+            }]).select().single();
             
-            if (upsertError) {
-              console.error('Erro ao salvar produto:', upsertError, productData);
-              throw new Error(`Erro ao salvar produto ${sku}: ${upsertError.message || JSON.stringify(upsertError)}`);
+            if (newCat) {
+              categoriaId = newCat.id;
+              categories.push(newCat);
             }
-          } catch (err: any) {
-            console.error('Exceção ao salvar produto:', err, productData);
-            throw new Error(`Exceção ao salvar produto ${sku}: ${err.message}`);
           }
+
+          let extractedProducts = await extractProductsFromMedia(base64, mimeType);
+          if (!Array.isArray(extractedProducts)) {
+            console.warn(`extractedProducts não é um array:`, extractedProducts);
+            extractedProducts = [];
+          }
+          
+          totalProducts += extractedProducts.length;
+
+          for (const extracted of extractedProducts) {
+            const sku = extracted.sku ? String(extracted.sku).trim() : `SKU-${Math.random().toString(36).substr(2, 9)}`;
+            processedSkus.push(sku);
+
+            const { data: existing } = await supabase
+              .from('products')
+              .select('nome, preco_unitario, imagem')
+              .eq('company_id', companyId)
+              .eq('sku', sku)
+              .single();
+
+            let finalNome = extracted.nome ? String(extracted.nome).trim() : `Produto sem nome (${sku})`;
+            let parsedPrecoUnitario = parseNumber(extracted.preco_unitario, 0);
+            let parsedPrecoBox = parseNumber(extracted.preco_box, 0);
+
+            let pendingStatus = 'none';
+
+            if (existing) {
+              const oldPriceWithMargin = margin > 0 ? (existing.preco_unitario || 0) * (1 + margin / 100) : (existing.preco_unitario || 0);
+              const newPriceWithMargin = margin > 0 ? parsedPrecoUnitario * (1 + margin / 100) : parsedPrecoUnitario;
+
+              if (catalogType === 'replenishment' && (existing.preco_unitario || 0) !== parsedPrecoUnitario) {
+                setPriceChanges(prev => [...prev, { 
+                  sku: sku, 
+                  old: oldPriceWithMargin, 
+                  new: newPriceWithMargin 
+                }]);
+                pendingStatus = 'price_changed';
+              }
+            }
+
+            const validStatus = ['normal', 'baixo', 'ultimas', 'esgotado'];
+            const statusEstoque = validStatus.includes(extracted.status_estoque) ? extracted.status_estoque : 'normal';
+
+            const productData: any = {
+              company_id: companyId,
+              brand_id: selectedBrandId,
+              sku: sku,
+              nome: finalNome,
+              preco_unitario: parsedPrecoUnitario,
+              preco_box: parsedPrecoBox,
+              qtd_box: parseNumber(extracted.qtd_box, 1),
+              venda_somente_box: !!extracted.venda_somente_box,
+              has_box_discount: !!extracted.has_box_discount,
+              is_last_units: !!extracted.is_last_units,
+              multiplo_venda: 1,
+              status_estoque: statusEstoque,
+              category_id: categoriaId
+            };
+
+            try {
+              if (existing) {
+                await supabase.from('products').update(productData).eq('company_id', companyId).eq('sku', sku);
+              } else {
+                await supabase.from('products').insert([productData]);
+              }
+            } catch (err: any) {
+              console.error('Erro ao salvar produto:', err);
+            }
+          }
+          setProgress(Math.round(((i * pages.length + j + 1) / (uploadedFiles.length * pages.length)) * 100));
         }
-        setProgress(Math.round(((i + 1) / uploadedFiles.length) * 100));
       }
 
       // Se for catálogo semanal, identificar produtos ausentes
@@ -363,8 +379,14 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
           <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
             <h2 className="font-bold flex items-center gap-2"><ImageIcon size={20} className="text-primary" /> Configurações</h2>
             
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-400 uppercase">Marca do Catálogo</label>
+              <div className="flex justify-between items-center">
+                <label className="text-xs font-bold text-slate-400 uppercase">Marca do Catálogo</label>
+                {selectedBrandId && (
+                  <span className="text-[10px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                    Margem: {brands.find(b => b.id === selectedBrandId)?.margin_percentage || 0}%
+                  </span>
+                )}
+              </div>
               <select 
                 className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none"
                 value={selectedBrandId || ''}
@@ -427,7 +449,7 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
                     </div>
                     <div className="truncate">
                       <p className="text-sm font-medium truncate">{item.file.name}</p>
-                      <p className="text-[10px] text-slate-400">{(item.file.size / 1024 / 1024).toFixed(2)} MB</p>
+                      <p className="text-[10px] text-slate-400">{(item.file.size / 1024 / 1024).toFixed(2)} MB {item.pages.length > 1 ? `(${item.pages.length} partes)` : ''}</p>
                     </div>
                   </div>
                   <button 
@@ -463,7 +485,6 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
             )}
           </button>
         </div>
-      </div>
 
       {status && (
         <div className={`p-4 rounded-xl flex items-start gap-3 animate-in fade-in slide-in-from-top-2 ${
@@ -514,9 +535,9 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
               <AlertCircle size={32} className="text-blue-600" />
             </div>
             <div className="text-center space-y-2">
-              <h2 className="text-xl font-bold">Mudanças de Custo Detectadas</h2>
+              <h2 className="text-xl font-bold">Mudanças de Preço de Venda Detectadas</h2>
               <p className="text-slate-500 text-sm">
-                Identificamos <strong>{priceChanges.length} produtos</strong> com alteração de custo neste catálogo de reposição.
+                Identificamos <strong>{priceChanges.length} produtos</strong> com alteração no preço final (já aplicada a margem da marca).
               </p>
             </div>
             <div className="max-h-[200px] overflow-y-auto border border-slate-100 rounded-xl p-4 space-y-2">

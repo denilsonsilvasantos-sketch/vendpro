@@ -28,11 +28,9 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
   useEffect(() => {
     async function fetchBrands() {
       if (!supabase || companyId === null) return;
-      const { data } = await supabase.from('brands').select('*').eq('company_id', companyId).order('name');
-      
-      const sortedBrands = (data || []).sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
-      setBrands(sortedBrands);
-      if (sortedBrands.length > 0) setSelectedBrandId(sortedBrands[0].id);
+      const { data } = await supabase.from('brands').select('*').eq('company_id', companyId);
+      setBrands(data || []);
+      if (data && data.length > 0) setSelectedBrandId(data[0].id);
     }
     fetchBrands();
   }, [companyId]);
@@ -92,9 +90,6 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
     setProgress(0);
 
     try {
-      const { data: brandData } = await supabase.from('brands').select('margin_percentage').eq('id', selectedBrandId).single();
-      const margin = brandData?.margin_percentage || 0;
-
       const { data: initialCategories } = await supabase.from('categories').select('id, nome').eq('company_id', companyId).eq('brand_id', selectedBrandId);
       let categories = initialCategories || [];
       const processedSkus: string[] = [];
@@ -137,13 +132,12 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
         }
 
         const extractedProducts = await extractProductsFromMedia(base64, mimeType);
-        console.log(`Produtos extraídos do arquivo ${file.name}:`, extractedProducts);
         
         if (extractedProducts.length === 0) {
           console.warn(`Nenhum produto encontrado no arquivo ${file.name}`);
-          setStatus({ type: 'warning', message: `Nenhum produto encontrado no arquivo ${file.name}. Verifique se o arquivo está legível ou se o formato é suportado.` });
+          setStatus({ type: 'warning', message: `Nenhum produto encontrado no arquivo ${file.name}. Verifique se o arquivo está legível.` });
           // Wait a bit so the user can see the message
-          await new Promise(resolve => setTimeout(resolve, 3000));
+          await new Promise(resolve => setTimeout(resolve, 2000));
         }
 
         totalProducts += extractedProducts.length;
@@ -161,15 +155,10 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
 
           let finalNome = extracted.nome;
 
-          let parsedPrecoUnitario = parseNumber(extracted.preco_unitario, 0);
-          let parsedPrecoBox = parseNumber(extracted.preco_box, 0);
-
-          let pendingStatus = 'none';
-
           if (existing) {
-            if (catalogType === 'replenishment' && (existing.preco_unitario || 0) !== parsedPrecoUnitario) {
-              setPriceChanges(prev => [...prev, { sku: sku, old: existing.preco_unitario || 0, new: parsedPrecoUnitario }]);
-              pendingStatus = 'price_changed';
+            const newPrecoUnitario = parseNumber(extracted.preco_unitario);
+            if (catalogType === 'replenishment' && existing.preco_unitario !== newPrecoUnitario) {
+              setPriceChanges(prev => [...prev, { sku: sku, old: existing.preco_unitario, new: newPrecoUnitario }]);
             }
           }
 
@@ -178,25 +167,30 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
             brand_id: selectedBrandId,
             sku: sku,
             nome: finalNome,
-            preco_unitario: parsedPrecoUnitario,
-            preco_box: parsedPrecoBox,
+            descricao: extracted.descricao,
+            preco_unitario: parseNumber(extracted.preco_unitario, 0),
+            preco_box: parseNumber(extracted.preco_box, 0),
             qtd_box: parseNumber(extracted.qtd_box, 1),
             venda_somente_box: extracted.venda_somente_box || false,
             has_box_discount: extracted.has_box_discount || false,
             is_last_units: extracted.is_last_units || false,
             status_estoque: extracted.status_estoque || 'normal',
-            category_id: categoriaId
+            category_id: categoriaId,
+            categoria_pendente: categoriaPendente,
+            nome_pendente: false,
+            novo_nome: null,
+            variacoes: extracted.variacoes || '',
+            qtd_variacoes: parseNumber(extracted.qtd_variacoes, 0),
+            last_seen_date: new Date().toISOString(),
+            last_seen_catalog_type: catalogType
           };
 
-          try {
-            const { error: upsertError } = await supabase.from('products').upsert(productData, { onConflict: 'company_id, sku' });
-            if (upsertError) {
-              console.error('Erro ao salvar produto:', upsertError, productData);
-              throw new Error(`Erro ao salvar produto ${sku}: ${upsertError.message}`);
-            }
-          } catch (err: any) {
-            console.error('Exceção ao salvar produto:', err, productData);
-            throw new Error(`Exceção ao salvar produto ${sku}: ${err.message}`);
+          productData.imagem_pendente = !existing?.imagem;
+
+          const { error: upsertError } = await supabase.from('products').upsert(productData, { onConflict: 'company_id, sku' });
+          if (upsertError) {
+            console.error('Erro ao salvar produto:', upsertError);
+            throw new Error(`Erro ao salvar produto ${sku}: ${upsertError.message}`);
           }
         }
         setProgress(Math.round(((i + 1) / uploadedFiles.length) * 100));
@@ -226,17 +220,10 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
         setShowPriceAlert(true);
       }
 
-      if (totalProducts === 0) {
-        setStatus({ 
-          type: 'warning', 
-          message: `Processamento concluído, mas NENHUM produto foi identificado nos arquivos enviados.` 
-        });
-      } else {
-        setStatus({ 
-          type: 'success', 
-          message: `Processamento concluído! ${totalProducts} produtos identificados e enviados para pendências.` 
-        });
-      }
+      setStatus({ 
+        type: 'success', 
+        message: `Processamento concluído! ${totalProducts} produtos identificados e enviados para pendências.` 
+      });
     } catch (error: any) {
       console.error(error);
       setIsUploading(false);
@@ -467,9 +454,9 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
               <AlertCircle size={32} className="text-blue-600" />
             </div>
             <div className="text-center space-y-2">
-              <h2 className="text-xl font-bold">Mudanças de Custo Detectadas</h2>
+              <h2 className="text-xl font-bold">Mudanças de Preço Detectadas</h2>
               <p className="text-slate-500 text-sm">
-                Identificamos <strong>{priceChanges.length} produtos</strong> com alteração de custo neste catálogo de reposição.
+                Identificamos <strong>{priceChanges.length} produtos</strong> com alteração de preço neste catálogo de reposição.
               </p>
             </div>
             <div className="max-h-[200px] overflow-y-auto border border-slate-100 rounded-xl p-4 space-y-2">

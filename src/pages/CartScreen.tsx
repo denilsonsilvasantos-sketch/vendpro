@@ -23,10 +23,9 @@ export default function CartScreen({ cart, total, onUpdateQuantity, onRemove, on
             {cart.map(item => {
               const step = item.venda_somente_box ? 1 : (item.multiplo_venda || 1);
               const isBoxDiscount = item.has_box_discount && !item.venda_somente_box && item.quantity >= (item.qtd_box || 0);
-              const marginMultiplier = 1 + (item.margin_percentage || 0) / 100;
               const unitPrice = item.venda_somente_box 
-                ? (item.preco_box || 0) * marginMultiplier
-                : (isBoxDiscount ? (item.preco_box || 0) * marginMultiplier : (item.preco_unitario || 0) * marginMultiplier);
+                ? item.preco_box
+                : (isBoxDiscount ? item.preco_box : item.preco_unitario);
               const subtotal = unitPrice * item.quantity;
 
               return (

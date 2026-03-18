@@ -4,11 +4,7 @@ import { Product, Brand, Category } from '../types';
 import { X, Upload, Loader2, Image as ImageIcon, Link as LinkIcon, Check } from 'lucide-react';
 
 export default function ProductFormModal({ onClose, onSave, product, companyId }: { onClose: () => void, onSave: () => void, product?: Product, companyId: string | null }) {
-  const [formData, setFormData] = useState<Partial<Product>>(product ? {
-    ...product,
-    preco_unitario: (product as any).base_price ?? product.preco_unitario,
-    preco_box: (product as any).base_box_price ?? product.preco_box
-  } : { 
+  const [formData, setFormData] = useState<Partial<Product>>(product || { 
     nome: '', 
     sku: '', 
     preco_unitario: 0, 
@@ -91,12 +87,11 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
     try {
       let error;
       if (product) {
-        const { id, created_at, base_price, base_box_price, brand_nome, brand, ...updateData } = dataToSave as any;
+        const { id, created_at, ...updateData } = dataToSave as any;
         const { error: updateError } = await supabase.from('products').update(updateData).eq('id', product.id);
         error = updateError;
       } else {
-        const { base_price, base_box_price, brand_nome, brand, ...insertData } = dataToSave as any;
-        const { error: insertError } = await supabase.from('products').insert([insertData]);
+        const { error: insertError } = await supabase.from('products').insert([dataToSave]);
         error = insertError;
       }
 
@@ -215,15 +210,15 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-500 uppercase">Preço Unitário</label>
-                  <input type="number" step="0.01" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none font-bold text-primary" value={formData.preco_unitario || 0} onChange={e => setFormData({...formData, preco_unitario: parseFloat(e.target.value)})} required />
+                  <input type="number" step="0.01" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none font-bold text-primary" value={formData.preco_unitario} onChange={e => setFormData({...formData, preco_unitario: parseFloat(e.target.value)})} required />
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-500 uppercase">Preço Box</label>
-                  <input type="number" step="0.01" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none" value={formData.preco_box || 0} onChange={e => setFormData({...formData, preco_box: parseFloat(e.target.value)})} />
+                  <input type="number" step="0.01" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none" value={formData.preco_box} onChange={e => setFormData({...formData, preco_box: parseFloat(e.target.value)})} />
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-500 uppercase">Qtd por Box</label>
-                  <input type="number" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none" value={formData.qtd_box || 0} onChange={e => setFormData({...formData, qtd_box: parseInt(e.target.value)})} />
+                  <input type="number" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none" value={formData.qtd_box} onChange={e => setFormData({...formData, qtd_box: parseInt(e.target.value)})} />
                 </div>
               </div>
 

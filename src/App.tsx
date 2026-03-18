@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { getProducts } from "./services/productService";
 import { validateSellerCode } from './services/sellerService';
 import { registerCompany, loginCompany, getCompanyById } from './services/companyService';
-import { createOrder } from './services/orderService';
 import { supabase } from './integrations/supabaseClient';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -38,7 +37,6 @@ import { Badge } from './components/Badge';
 import { Dashboard, Produtos, Clientes, Pedidos, Configuracoes, Marcas, Upload, Pendencias, Vendedores } from './pages';
 import ProductFormModal from './components/ProductFormModal';
 import CartScreen from './pages/CartScreen';
-import { formatWhatsAppMessage } from './utils/whatsapp';
 
 // --- Helper Components ---
 
@@ -164,28 +162,6 @@ export default function App() {
       setShowCartDisclaimer(true);
     }
     addToCart(product, quantity);
-  };
-
-  const handleSendOrder = () => {
-    let whatsappNumber = '';
-    
-    if (role === 'customer' && user && user.vendedor_whatsapp) {
-      whatsappNumber = user.vendedor_whatsapp;
-    } else if (role === 'seller' && company && company.telefone) {
-      whatsappNumber = company.telefone;
-    } else if (role === 'company' && company && company.telefone) {
-      whatsappNumber = company.telefone;
-    }
-
-    if (whatsappNumber) {
-      const message = formatWhatsAppMessage(cart);
-      const whatsappUrl = `https://wa.me/${whatsappNumber.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
-      window.open(whatsappUrl, '_blank');
-      clearCart();
-      setActiveTab('catalog');
-    } else {
-      alert('Número de WhatsApp não encontrado para enviar o pedido.');
-    }
   };
 
   useEffect(() => {
@@ -524,7 +500,7 @@ export default function App() {
             onZoom={setZoomImage}
           />
         )}
-        {activeTab === 'cart' && <CartScreen cart={cart} total={total} onUpdateQuantity={updateQuantity} onRemove={removeFromCart} onSendOrder={handleSendOrder} />}
+        {activeTab === 'cart' && <CartScreen cart={cart} total={total} onUpdateQuantity={updateQuantity} onRemove={removeFromCart} onSendOrder={clearCart} />}
         {activeTab === 'dashboard' && <Dashboard companyId={activeCompanyId} />}
         {activeTab === 'produtos' && <Produtos companyId={activeCompanyId} />}
         {activeTab === 'upload' && <Upload companyId={activeCompanyId} />}
@@ -940,9 +916,7 @@ function CatalogScreen({ products, categories, brands, onAddToCart, onEdit, role
   const [currentPage, setCurrentPage] = useState(1);
 
   const filtered = products.filter(p => {
-    const nome = p.nome || '';
-    const sku = p.sku || '';
-    const matchesSearch = nome.toLowerCase().includes(search.toLowerCase()) || sku.toLowerCase().includes(search.toLowerCase());
+    const matchesSearch = p.nome.toLowerCase().includes(search.toLowerCase()) || p.sku.toLowerCase().includes(search.toLowerCase());
     const matchesCategory = selectedCategory ? p.category_id === selectedCategory : true;
     const matchesBrand = selectedBrand ? p.brand_id === selectedBrand : true;
     return matchesSearch && matchesCategory && matchesBrand;
@@ -971,9 +945,7 @@ function CatalogScreen({ products, categories, brands, onAddToCart, onEdit, role
     if (isEsgotadoA && !isEsgotadoB) return 1;
     if (!isEsgotadoA && isEsgotadoB) return -1;
 
-    const nomeA = a.nome || '';
-    const nomeB = b.nome || '';
-    return nomeA.localeCompare(nomeB);
+    return a.nome.localeCompare(b.nome);
   });
 
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
@@ -1180,16 +1152,16 @@ function ProductCard({ product, onAdd, onEdit, role, onZoom, ...props }: { produ
         <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-2">SKU: {product.sku}</p>
         
         {!isEsgotado && (
-          <p className="text-xl font-black text-primary">R$ {(product.preco_unitario || 0).toFixed(2)}</p>
+          <p className="text-xl font-black text-primary">R$ {product.preco_unitario.toFixed(2)}</p>
         )}
       </div>
 
       {(product.has_box_discount || product.venda_somente_box) && !isEsgotado && (
         <div className="mb-4 pt-3 border-t border-slate-50 text-sm font-bold text-emerald-600 text-center">
           {!product.venda_somente_box ? (
-            `A partir de ${product.qtd_box} un: R$ {(product.preco_box || 0).toFixed(2)}`
+            `A partir de ${product.qtd_box} un: R$ ${product.preco_box.toFixed(2)}`
           ) : (
-            `Box com ${product.qtd_box} un: R$ ${(product.preco_box || 0).toFixed(2)}`
+            `Box com ${product.qtd_box} un: R$ ${product.preco_box.toFixed(2)}`
           )}
         </div>
       )}

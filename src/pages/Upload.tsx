@@ -3,6 +3,7 @@ import { Upload, FileText, CheckCircle2, AlertCircle, Loader2, Image as ImageIco
 import { supabase } from '../integrations/supabaseClient';
 import { extractProductsFromMedia, classifyCategory } from '../services/aiService';
 import { Brand, Product } from '../types';
+import * as XLSX from 'xlsx';
 
 type CatalogType = 'weekly' | 'replenishment';
 
@@ -13,7 +14,7 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
   const [catalogType, setCatalogType] = useState<CatalogType>('weekly');
   const [selectedBrandId, setSelectedBrandId] = useState<string | null>(null);
   const [brands, setBrands] = useState<Brand[]>([]);
-  const [uploadedFiles, setUploadedFiles] = useState<{ file: File, base64: string }[]>([]);
+  const [uploadedFiles, setUploadedFiles] = useState<{ file: File, base64: string, mimeType: string }[]>([]);
   const [missingProducts, setMissingProducts] = useState<Product[]>([]);
   const [showMissingAlert, setShowMissingAlert] = useState(false);
   
@@ -28,9 +29,11 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
   useEffect(() => {
     async function fetchBrands() {
       if (!supabase || companyId === null) return;
-      const { data } = await supabase.from('brands').select('*').eq('company_id', companyId);
-      setBrands(data || []);
-      if (data && data.length > 0) setSelectedBrandId(data[0].id);
+      const { data } = await supabase.from('brands').select('*').eq('company_id', companyId).order('name');
+      
+      const sortedBrands = (data || []).sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
+      setBrands(sortedBrands);
+      if (sortedBrands.length > 0) setSelectedBrandId(sortedBrands[0].id);
     }
     fetchBrands();
   }, [companyId]);
@@ -45,6 +48,36 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
       };
       reader.onerror = error => reject(error);
     });
+  };
+
+  const processFileToBase64 = async (file: File): Promise<{ base64: string, mimeType: string }> => {
+    const fileName = file.name.toLowerCase();
+    if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const data = new Uint8Array(e.target?.result as ArrayBuffer);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            const csv = XLSX.utils.sheet_to_csv(worksheet);
+            const base64 = btoa(unescape(encodeURIComponent(csv)));
+            resolve({ base64, mimeType: 'text/csv' });
+          } catch (error) {
+            reject(error);
+          }
+        };
+        reader.onerror = error => reject(error);
+        reader.readAsArrayBuffer(file);
+      });
+    } else {
+      const base64 = await fileToBase64(file);
+      let mimeType = file.type;
+      if (fileName.endsWith('.pdf')) mimeType = 'application/pdf';
+      else if (fileName.endsWith('.csv')) mimeType = 'text/csv';
+      return { base64, mimeType };
+    }
   };
 
   const parseNumber = (val: any, fallback = 0): number => {
@@ -65,11 +98,16 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
     const files = event.target.files;
     if (!files || files.length === 0) return;
 
-    const newFiles: { file: File, base64: string }[] = [];
+    const newFiles: { file: File, base64: string, mimeType: string }[] = [];
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      const base64 = await fileToBase64(file);
-      newFiles.push({ file, base64 });
+      try {
+        const { base64, mimeType } = await processFileToBase64(file);
+        newFiles.push({ file, base64, mimeType });
+      } catch (error) {
+        console.error('Erro ao processar arquivo:', file.name, error);
+        alert(`Erro ao processar o arquivo ${file.name}. Verifique se o formato é suportado.`);
+      }
     }
     setUploadedFiles(prev => [...prev, ...newFiles]);
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -90,20 +128,18 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
     setProgress(0);
 
     try {
+      const { data: brandData } = await supabase.from('brands').select('margin_percentage').eq('id', selectedBrandId).single();
+      const margin = brandData?.margin_percentage || 0;
+
       const { data: initialCategories } = await supabase.from('categories').select('id, nome').eq('company_id', companyId).eq('brand_id', selectedBrandId);
       let categories = initialCategories || [];
       const processedSkus: string[] = [];
       let totalProducts = 0;
 
       for (let i = 0; i < uploadedFiles.length; i++) {
-        const { file, base64 } = uploadedFiles[i];
+        const { file, base64, mimeType } = uploadedFiles[i];
         setStatus({ type: 'info', message: `Analisando arquivo ${i + 1} de ${uploadedFiles.length}: ${file.name}` });
         
-        let mimeType = file.type;
-        if (!mimeType && file.name.toLowerCase().endsWith('.pdf')) {
-          mimeType = 'application/pdf';
-        }
-
         // Extrair categoria do nome do arquivo
         const fileName = file.name.replace(/\.[^/.]+$/, ""); // remove extensão
         const categoryNameMatch = fileName.replace(/[0-9]/g, '').trim(); // remove números
@@ -131,19 +167,24 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
           }
         }
 
-        const extractedProducts = await extractProductsFromMedia(base64, mimeType);
+        let extractedProducts = await extractProductsFromMedia(base64, mimeType);
+        if (!Array.isArray(extractedProducts)) {
+          console.warn(`extractedProducts não é um array:`, extractedProducts);
+          extractedProducts = [];
+        }
+        console.log(`Produtos extraídos do arquivo ${file.name}:`, extractedProducts);
         
         if (extractedProducts.length === 0) {
           console.warn(`Nenhum produto encontrado no arquivo ${file.name}`);
-          setStatus({ type: 'warning', message: `Nenhum produto encontrado no arquivo ${file.name}. Verifique se o arquivo está legível.` });
+          setStatus({ type: 'warning', message: `Nenhum produto encontrado no arquivo ${file.name}. Verifique se o arquivo está legível ou se o formato é suportado.` });
           // Wait a bit so the user can see the message
-          await new Promise(resolve => setTimeout(resolve, 2000));
+          await new Promise(resolve => setTimeout(resolve, 3000));
         }
 
         totalProducts += extractedProducts.length;
 
         for (const extracted of extractedProducts) {
-          const sku = extracted.sku || `SKU-${Math.random().toString(36).substr(2, 9)}`;
+          const sku = extracted.sku ? String(extracted.sku).trim() : `SKU-${Math.random().toString(36).substr(2, 9)}`;
           processedSkus.push(sku);
 
           const { data: existing } = await supabase
@@ -153,44 +194,56 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
             .eq('sku', sku)
             .single();
 
-          let finalNome = extracted.nome;
+          let finalNome = extracted.nome ? String(extracted.nome).trim() : `Produto sem nome (${sku})`;
+
+          let parsedPrecoUnitario = parseNumber(extracted.preco_unitario, 0);
+          let parsedPrecoBox = parseNumber(extracted.preco_box, 0);
+
+          let pendingStatus = 'none';
 
           if (existing) {
-            const newPrecoUnitario = parseNumber(extracted.preco_unitario);
-            if (catalogType === 'replenishment' && existing.preco_unitario !== newPrecoUnitario) {
-              setPriceChanges(prev => [...prev, { sku: sku, old: existing.preco_unitario, new: newPrecoUnitario }]);
+            if (catalogType === 'replenishment' && (existing.preco_unitario || 0) !== parsedPrecoUnitario) {
+              setPriceChanges(prev => [...prev, { sku: sku, old: existing.preco_unitario || 0, new: parsedPrecoUnitario }]);
+              pendingStatus = 'price_changed';
             }
           }
+
+          const validStatus = ['normal', 'baixo', 'ultimas', 'esgotado'];
+          const statusEstoque = validStatus.includes(extracted.status_estoque) ? extracted.status_estoque : 'normal';
 
           const productData: any = {
             company_id: companyId,
             brand_id: selectedBrandId,
             sku: sku,
             nome: finalNome,
-            descricao: extracted.descricao,
-            preco_unitario: parseNumber(extracted.preco_unitario, 0),
-            preco_box: parseNumber(extracted.preco_box, 0),
+            preco_unitario: parsedPrecoUnitario,
+            preco_box: parsedPrecoBox,
             qtd_box: parseNumber(extracted.qtd_box, 1),
-            venda_somente_box: extracted.venda_somente_box || false,
-            has_box_discount: extracted.has_box_discount || false,
-            is_last_units: extracted.is_last_units || false,
-            status_estoque: extracted.status_estoque || 'normal',
-            category_id: categoriaId,
-            categoria_pendente: categoriaPendente,
-            nome_pendente: false,
-            novo_nome: null,
-            variacoes: extracted.variacoes || '',
-            qtd_variacoes: parseNumber(extracted.qtd_variacoes, 0),
-            last_seen_date: new Date().toISOString(),
-            last_seen_catalog_type: catalogType
+            venda_somente_box: !!extracted.venda_somente_box,
+            has_box_discount: !!extracted.has_box_discount,
+            is_last_units: !!extracted.is_last_units,
+            multiplo_venda: 1,
+            status_estoque: statusEstoque,
+            category_id: categoriaId
           };
 
-          productData.imagem_pendente = !existing?.imagem;
-
-          const { error: upsertError } = await supabase.from('products').upsert(productData, { onConflict: 'company_id, sku' });
-          if (upsertError) {
-            console.error('Erro ao salvar produto:', upsertError);
-            throw new Error(`Erro ao salvar produto ${sku}: ${upsertError.message}`);
+          try {
+            let upsertError;
+            if (existing) {
+              const { error } = await supabase.from('products').update(productData).eq('company_id', companyId).eq('sku', sku);
+              upsertError = error;
+            } else {
+              const { error } = await supabase.from('products').insert([productData]);
+              upsertError = error;
+            }
+            
+            if (upsertError) {
+              console.error('Erro ao salvar produto:', upsertError, productData);
+              throw new Error(`Erro ao salvar produto ${sku}: ${upsertError.message || JSON.stringify(upsertError)}`);
+            }
+          } catch (err: any) {
+            console.error('Exceção ao salvar produto:', err, productData);
+            throw new Error(`Exceção ao salvar produto ${sku}: ${err.message}`);
           }
         }
         setProgress(Math.round(((i + 1) / uploadedFiles.length) * 100));
@@ -220,10 +273,17 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
         setShowPriceAlert(true);
       }
 
-      setStatus({ 
-        type: 'success', 
-        message: `Processamento concluído! ${totalProducts} produtos identificados e enviados para pendências.` 
-      });
+      if (totalProducts === 0) {
+        setStatus({ 
+          type: 'warning', 
+          message: `Processamento concluído, mas NENHUM produto foi identificado nos arquivos enviados.` 
+        });
+      } else {
+        setStatus({ 
+          type: 'success', 
+          message: `Processamento concluído! ${totalProducts} produtos identificados e enviados para pendências.` 
+        });
+      }
     } catch (error: any) {
       console.error(error);
       setIsUploading(false);
@@ -336,13 +396,13 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
               type="file" 
               ref={fileInputRef} 
               onChange={handleFileSelect} 
-              accept=".pdf,image/*" 
+              accept=".pdf,image/*,.csv,.xlsx,.xls" 
               multiple
               className="hidden" 
             />
             <Upload size={32} className="text-primary mb-2" />
             <h3 className="font-bold">Adicionar Arquivos</h3>
-            <p className="text-xs text-slate-500">PDF, PNG ou JPG</p>
+            <p className="text-xs text-slate-500">PDF, PNG, JPG, CSV ou Excel</p>
           </div>
         </div>
 
@@ -454,9 +514,9 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
               <AlertCircle size={32} className="text-blue-600" />
             </div>
             <div className="text-center space-y-2">
-              <h2 className="text-xl font-bold">Mudanças de Preço Detectadas</h2>
+              <h2 className="text-xl font-bold">Mudanças de Custo Detectadas</h2>
               <p className="text-slate-500 text-sm">
-                Identificamos <strong>{priceChanges.length} produtos</strong> com alteração de preço neste catálogo de reposição.
+                Identificamos <strong>{priceChanges.length} produtos</strong> com alteração de custo neste catálogo de reposição.
               </p>
             </div>
             <div className="max-h-[200px] overflow-y-auto border border-slate-100 rounded-xl p-4 space-y-2">

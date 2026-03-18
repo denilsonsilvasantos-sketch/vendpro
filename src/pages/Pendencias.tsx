@@ -17,13 +17,28 @@ export default function Pendencias({ companyId }: { companyId: string | null }) 
     const { data, error } = await supabase
       .from('products')
       .select('*')
-      .eq('company_id', companyId)
-      .or('categoria_pendente.eq.true,imagem_pendente.eq.true');
+      .eq('company_id', companyId);
+      
+    const { data: bData } = await supabase.from('brands').select('*').eq('company_id', companyId);
     
     if (error) {
       console.error(error);
     } else {
-      const sortedData = (data || []).sort((a, b) => {
+      const brandsData = bData || [];
+      const pendingProducts = (data || []).filter(p => !p.category_id || !p.imagem);
+      const productsWithMargin = pendingProducts.map(p => {
+        const brand = brandsData.find(b => b.id === p.brand_id);
+        const margin = brand?.margin_percentage || 0;
+        return {
+          ...p,
+          categoria_pendente: !p.category_id,
+          imagem_pendente: !p.imagem,
+          preco_unitario: margin > 0 ? p.preco_unitario * (1 + margin / 100) : p.preco_unitario,
+          preco_box: margin > 0 ? p.preco_box * (1 + margin / 100) : p.preco_box,
+        };
+      });
+
+      const sortedData = productsWithMargin.sort((a, b) => {
         if (a.imagem_pendente && !b.imagem_pendente) return -1;
         if (!a.imagem_pendente && b.imagem_pendente) return 1;
         
@@ -49,8 +64,8 @@ export default function Pendencias({ companyId }: { companyId: string | null }) 
     if (!supabase) return;
     
     const updates: any = { ...editData };
-    if (editData.category_id) updates.categoria_pendente = false;
-    if (editData.imagem) updates.imagem_pendente = false;
+    if (editData.category_id) updates.category_id = editData.category_id;
+    if (editData.imagem) updates.imagem = editData.imagem;
 
     const { error } = await supabase.from('products').update(updates).eq('id', id);
     if (error) {
@@ -152,7 +167,7 @@ export default function Pendencias({ companyId }: { companyId: string | null }) 
                     </h3>
                     <div className="flex items-center gap-3 mt-1">
                       <span className="text-xs font-mono bg-slate-100 text-slate-500 px-2 py-0.5 rounded">SKU: {product.sku}</span>
-                      <span className="text-xs font-bold text-primary">R$ {product.preco_unitario.toFixed(2)}</span>
+                      <span className="text-xs font-bold text-primary">R$ {(product.preco_unitario || 0).toFixed(2)}</span>
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2 justify-end">

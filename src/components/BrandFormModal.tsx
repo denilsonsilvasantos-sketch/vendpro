@@ -32,8 +32,22 @@ export default function BrandFormModal({ onClose, onSave, brand, companyId }: { 
         const { error: updateError } = await supabase.from('brands').update(updateData).eq('id', brand.id);
         error = updateError;
       } else {
-        const { error: insertError } = await supabase.from('brands').insert([dataToSave]);
-        error = insertError;
+        // Get max order_index
+        const { data: existingBrands } = await supabase.from('brands').select('order_index').eq('company_id', companyId);
+        const nextIndex = existingBrands && existingBrands.length > 0 
+          ? Math.max(...existingBrands.map(b => b.order_index || 0)) + 1 
+          : 0;
+          
+        const insertData: any = { ...dataToSave, order_index: nextIndex };
+        const { error: insertError } = await supabase.from('brands').insert([insertData]);
+        
+        if (insertError && insertError.message?.includes('order_index does not exist')) {
+          delete insertData.order_index;
+          const retry = await supabase.from('brands').insert([insertData]);
+          error = retry.error;
+        } else {
+          error = insertError;
+        }
       }
 
       if (error) {

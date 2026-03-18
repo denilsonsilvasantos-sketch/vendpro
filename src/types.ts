@@ -92,6 +92,8 @@ export interface Product {
   last_box_qty?: number;
   categoria_nome?: string;
   brand_nome?: string;
+  margin_percentage?: number;
+  created_at?: string;
 }
 
 export interface CartItem extends Product {

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../integrations/supabaseClient';
 import { Brand, Category } from '../types';
-import { Edit, Trash2, Plus, ChevronDown, ChevronUp, Tag, Info, AlertCircle, Loader2, ArrowUp, ArrowDown } from 'lucide-react';
+import { Edit, Trash2, Plus, ChevronDown, ChevronUp, Tag, Info, AlertCircle, Loader2, ArrowUp, ArrowDown, AlertTriangle } from 'lucide-react';
 import BrandFormModal from '../components/BrandFormModal';
 
 export default function Marcas({ companyId }: { companyId: string | null }) {
@@ -12,6 +12,10 @@ export default function Marcas({ companyId }: { companyId: string | null }) {
   const [expandedBrands, setExpandedBrands] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [newCategoryName, setNewCategoryName] = useState<{ [brandId: string]: string }>({});
+  const [deleteModal, setDeleteModal] = useState<{ type: 'brand' | 'category', id: string, name: string, brandId?: string } | null>(null);
+  const [deleteAction, setDeleteAction] = useState<'delete' | 'transfer'>('delete');
+  const [transferTargetId, setTransferTargetId] = useState<string>('');
+  const [isDeleting, setIsDeleting] = useState(false);
 
   async function fetchData() {
     if (!supabase || companyId === null) return;
@@ -41,10 +45,10 @@ export default function Marcas({ companyId }: { companyId: string | null }) {
     setExpandedBrands(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
   };
 
-  const handleDeleteBrand = async (id: string) => {
-    if (!supabase || !confirm('Tem certeza que deseja excluir esta marca? Todos os produtos vinculados serão afetados.')) return;
-    await supabase.from('brands').delete().eq('id', id);
-    fetchData();
+  const handleDeleteBrand = (id: string, name: string) => {
+    setDeleteModal({ type: 'brand', id, name });
+    setDeleteAction('delete');
+    setTransferTargetId('');
   };
 
   const handleAddCategory = async (brandId: string) => {
@@ -84,10 +88,67 @@ export default function Marcas({ companyId }: { companyId: string | null }) {
     }
   };
 
-  const handleDeleteCategory = async (id: string) => {
-    if (!supabase || !confirm('Excluir esta categoria?')) return;
-    await supabase.from('categories').delete().eq('id', id);
-    fetchData();
+  const handleDeleteCategory = (id: string, name: string, brandId: string) => {
+    setDeleteModal({ type: 'category', id, name, brandId });
+    setDeleteAction('delete');
+    setTransferTargetId('');
+  };
+
+  const confirmDelete = async () => {
+    if (!supabase || !deleteModal) return;
+    setIsDeleting(true);
+    try {
+      const { type, id } = deleteModal;
+      const idField = type === 'brand' ? 'brand_id' : 'category_id';
+      const table = type === 'brand' ? 'brands' : 'categories';
+
+      if (deleteAction === 'transfer' && transferTargetId) {
+        // Transfer products
+        const updateData: any = { [idField]: transferTargetId };
+        if (type === 'brand') {
+          updateData.category_id = null;
+        }
+        const { error: updateError } = await supabase
+          .from('products')
+          .update(updateData)
+          .eq(idField, id);
+        
+        if (updateError) throw updateError;
+      } else {
+        // Delete products
+        const { error: deleteProductsError } = await supabase
+          .from('products')
+          .delete()
+          .eq(idField, id);
+        
+        if (deleteProductsError) throw deleteProductsError;
+      }
+
+      // If deleting a brand, also delete its categories
+      if (type === 'brand') {
+        const { error: deleteCatsError } = await supabase
+          .from('categories')
+          .delete()
+          .eq('brand_id', id);
+        if (deleteCatsError) throw deleteCatsError;
+      }
+
+      // Delete the brand or category itself
+      const { error: deleteError } = await supabase
+        .from(table)
+        .delete()
+        .eq('id', id);
+      
+      if (deleteError) throw deleteError;
+
+      setDeleteModal(null);
+      fetchData();
+    } catch (error: any) {
+      console.error('Erro ao excluir:', error);
+      alert('Erro ao excluir: ' + error.message);
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const moveBrand = async (index: number, direction: 'up' | 'down') => {
@@ -219,7 +280,7 @@ export default function Marcas({ companyId }: { companyId: string | null }) {
                     <Edit size={20} />
                   </button>
                   <button 
-                    onClick={() => handleDeleteBrand(brand.id)}
+                    onClick={() => handleDeleteBrand(brand.id, brand.name)}
                     className="p-3 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
                     title="Excluir Marca"
                   >
@@ -276,7 +337,7 @@ export default function Marcas({ companyId }: { companyId: string | null }) {
                               <button onClick={() => moveCategory(brand.id, catIndex, 'up')} disabled={catIndex === 0} className="text-slate-300 hover:text-primary disabled:opacity-30 p-1"><ArrowUp size={14} /></button>
                               <button onClick={() => moveCategory(brand.id, catIndex, 'down')} disabled={catIndex === arr.length - 1} className="text-slate-300 hover:text-primary disabled:opacity-30 p-1"><ArrowDown size={14} /></button>
                               <button 
-                                onClick={() => handleDeleteCategory(cat.id)}
+                                onClick={() => handleDeleteCategory(cat.id, cat.nome, brand.id)}
                                 className="text-slate-300 hover:text-rose-500 p-1 opacity-0 group-hover:opacity-100 transition-all ml-2"
                               >
                                 <Trash2 size={14} />
@@ -310,6 +371,87 @@ export default function Marcas({ companyId }: { companyId: string | null }) {
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {deleteModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+          <div className="bg-white p-8 rounded-2xl w-full max-w-md shadow-2xl space-y-6">
+            <div className="w-16 h-16 bg-rose-100 text-rose-500 rounded-full flex items-center justify-center mx-auto">
+              <AlertTriangle size={32} />
+            </div>
+            <div className="text-center space-y-2">
+              <h2 className="text-xl font-bold text-slate-900">Excluir {deleteModal.type === 'brand' ? 'Marca' : 'Categoria'}</h2>
+              <p className="text-slate-500 text-sm">
+                Você está excluindo <strong>{deleteModal.name}</strong>. O que deseja fazer com os produtos vinculados?
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <label className="flex items-center gap-3 p-4 border rounded-xl cursor-pointer hover:bg-slate-50 transition-colors">
+                <input 
+                  type="radio" 
+                  name="deleteAction" 
+                  value="delete" 
+                  checked={deleteAction === 'delete'} 
+                  onChange={() => setDeleteAction('delete')}
+                  className="w-5 h-5 text-rose-500 focus:ring-rose-500"
+                />
+                <span className="font-medium text-slate-700">Excluir todos os produtos</span>
+              </label>
+
+              <label className="flex items-center gap-3 p-4 border rounded-xl cursor-pointer hover:bg-slate-50 transition-colors">
+                <input 
+                  type="radio" 
+                  name="deleteAction" 
+                  value="transfer" 
+                  checked={deleteAction === 'transfer'} 
+                  onChange={() => setDeleteAction('transfer')}
+                  className="w-5 h-5 text-primary focus:ring-primary"
+                />
+                <span className="font-medium text-slate-700">Transferir produtos para outra {deleteModal.type === 'brand' ? 'marca' : 'categoria'}</span>
+              </label>
+            </div>
+
+            {deleteAction === 'transfer' && (
+              <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                <label className="text-xs font-bold text-slate-500 uppercase">Selecione o destino</label>
+                <select 
+                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none"
+                  value={transferTargetId}
+                  onChange={(e) => setTransferTargetId(e.target.value)}
+                >
+                  <option value="">Selecione...</option>
+                  {deleteModal.type === 'brand' 
+                    ? brands.filter(b => b.id !== deleteModal.id).map(b => (
+                        <option key={b.id} value={b.id}>{b.name}</option>
+                      ))
+                    : categories.filter(c => c.brand_id === deleteModal.brandId && c.id !== deleteModal.id).map(c => (
+                        <option key={c.id} value={c.id}>{c.nome}</option>
+                      ))
+                  }
+                </select>
+              </div>
+            )}
+
+            <div className="flex gap-3 pt-4">
+              <button 
+                onClick={() => setDeleteModal(null)}
+                disabled={isDeleting}
+                className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={confirmDelete}
+                disabled={isDeleting || (deleteAction === 'transfer' && !transferTargetId)}
+                className="flex-1 py-3 bg-rose-500 text-white rounded-xl font-bold hover:bg-rose-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {isDeleting ? <Loader2 size={20} className="animate-spin" /> : <Trash2 size={20} />}
+                Confirmar
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

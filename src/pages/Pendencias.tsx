@@ -17,8 +17,7 @@ export default function Pendencias({ companyId }: { companyId: string | null }) 
     const { data, error } = await supabase
       .from('products')
       .select('*')
-      .eq('company_id', companyId)
-      .or('categoria_pendente.eq.true,imagem_pendente.eq.true');
+      .eq('company_id', companyId);
       
     const { data: bData } = await supabase.from('brands').select('*').eq('company_id', companyId);
     
@@ -26,11 +25,14 @@ export default function Pendencias({ companyId }: { companyId: string | null }) 
       console.error(error);
     } else {
       const brandsData = bData || [];
-      const productsWithMargin = (data || []).map(p => {
+      const pendingProducts = (data || []).filter(p => !p.category_id || !p.imagem);
+      const productsWithMargin = pendingProducts.map(p => {
         const brand = brandsData.find(b => b.id === p.brand_id);
         const margin = brand?.margin_percentage || 0;
         return {
           ...p,
+          categoria_pendente: !p.category_id,
+          imagem_pendente: !p.imagem,
           preco_unitario: margin > 0 ? p.preco_unitario * (1 + margin / 100) : p.preco_unitario,
           preco_box: margin > 0 ? p.preco_box * (1 + margin / 100) : p.preco_box,
         };
@@ -62,8 +64,8 @@ export default function Pendencias({ companyId }: { companyId: string | null }) 
     if (!supabase) return;
     
     const updates: any = { ...editData };
-    if (editData.category_id) updates.categoria_pendente = false;
-    if (editData.imagem) updates.imagem_pendente = false;
+    if (editData.category_id) updates.category_id = editData.category_id;
+    if (editData.imagem) updates.imagem = editData.imagem;
 
     const { error } = await supabase.from('products').update(updates).eq('id', id);
     if (error) {

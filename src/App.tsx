@@ -940,7 +940,9 @@ function CatalogScreen({ products, categories, brands, onAddToCart, onEdit, role
   const [currentPage, setCurrentPage] = useState(1);
 
   const filtered = products.filter(p => {
-    const matchesSearch = p.nome.toLowerCase().includes(search.toLowerCase()) || p.sku.toLowerCase().includes(search.toLowerCase());
+    const nome = p.nome || '';
+    const sku = p.sku || '';
+    const matchesSearch = nome.toLowerCase().includes(search.toLowerCase()) || sku.toLowerCase().includes(search.toLowerCase());
     const matchesCategory = selectedCategory ? p.category_id === selectedCategory : true;
     const matchesBrand = selectedBrand ? p.brand_id === selectedBrand : true;
     return matchesSearch && matchesCategory && matchesBrand;

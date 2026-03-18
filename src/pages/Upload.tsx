@@ -178,7 +178,6 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
             brand_id: selectedBrandId,
             sku: sku,
             nome: finalNome,
-            descricao: extracted.descricao,
             preco_unitario: parsedPrecoUnitario,
             preco_box: parsedPrecoBox,
             qtd_box: parseNumber(extracted.qtd_box, 1),
@@ -186,18 +185,8 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
             has_box_discount: extracted.has_box_discount || false,
             is_last_units: extracted.is_last_units || false,
             status_estoque: extracted.status_estoque || 'normal',
-            category_id: categoriaId,
-            categoria_pendente: categoriaPendente,
-            nome_pendente: false,
-            novo_nome: null,
-            variacoes: extracted.variacoes || '',
-            qtd_variacoes: parseNumber(extracted.qtd_variacoes, 0),
-            last_seen_date: new Date().toISOString(),
-            last_seen_catalog_type: catalogType,
-            pending_status: pendingStatus
+            category_id: categoriaId
           };
-
-          productData.imagem_pendente = !existing?.imagem;
 
           try {
             const { error: upsertError } = await supabase.from('products').upsert(productData, { onConflict: 'company_id, sku' });

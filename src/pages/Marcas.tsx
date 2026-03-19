@@ -256,7 +256,11 @@ export default function Marcas({ companyId }: { companyId: string | null }) {
               <div className="p-5 flex justify-between items-center">
                 <div className="flex items-center gap-4 cursor-pointer flex-1" onClick={() => toggleExpand(brand.id)}>
                   <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center overflow-hidden border border-slate-100 shrink-0">
-                    <Tag className="text-slate-300" size={20} />
+                    {brand.logo_url ? (
+                      <img src={brand.logo_url} alt={brand.name} className="w-full h-full object-contain p-1" />
+                    ) : (
+                      <Tag className="text-slate-300" size={20} />
+                    )}
                   </div>
                   <div>
                     <h3 className="font-bold text-slate-900 text-lg">{brand.name}</h3>

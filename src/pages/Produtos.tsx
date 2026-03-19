@@ -5,7 +5,7 @@ import { getProducts } from '../services/productService';
 import { Package, Edit, Trash2, Plus, Search, Filter, Tag, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 import ProductFormModal from '../components/ProductFormModal';
 
-export default function Produtos({ companyId }: { companyId: string | null }) {
+export default function Produtos({ companyId, onRefresh }: { companyId: string | null, onRefresh?: () => void }) {
   const [products, setProducts] = useState<Product[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -39,6 +39,7 @@ export default function Produtos({ companyId }: { companyId: string | null }) {
     if (!supabase) return;
     await supabase.from('products').delete().eq('id', id);
     fetchData();
+    if (onRefresh) onRefresh();
   };
 
   const filteredProducts = products.filter(p => {
@@ -209,7 +210,7 @@ export default function Produtos({ companyId }: { companyId: string | null }) {
       {isModalOpen && (
         <ProductFormModal 
           onClose={() => setIsModalOpen(false)} 
-          onSave={() => { fetchData(); setIsModalOpen(false); }} 
+          onSave={() => { fetchData(); setIsModalOpen(false); if (onRefresh) onRefresh(); }} 
           product={editingProduct}
           companyId={companyId}
         />

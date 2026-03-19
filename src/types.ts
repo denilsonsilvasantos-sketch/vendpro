@@ -19,6 +19,7 @@ export interface Company {
   telefone?: string;
   email?: string;
   logo_url?: string;
+  primary_color?: string;
   minimum_order_value: number;
   payment_policy?: string;
   shipping_policy?: string;

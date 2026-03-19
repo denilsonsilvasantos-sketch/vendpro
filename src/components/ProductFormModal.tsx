@@ -86,7 +86,12 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
     }
     setLoading(true);
     
-    const dataToSave = { ...formData, company_id: companyId };
+    const dataToSave = { 
+      ...formData, 
+      company_id: companyId,
+      categoria_pendente: !formData.category_id,
+      imagem_pendente: !formData.imagem
+    };
     
     try {
       let error;
@@ -100,8 +105,6 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
           brand, 
           margin_percentage,
           categoria_nome,
-          categoria_pendente,
-          imagem_pendente,
           ...updateData 
         } = dataToSave as any;
         const { error: updateError } = await supabase.from('products').update(updateData).eq('id', product.id);
@@ -114,8 +117,6 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
           brand, 
           margin_percentage,
           categoria_nome,
-          categoria_pendente,
-          imagem_pendente,
           ...insertData 
         } = dataToSave as any;
         const { error: insertError } = await supabase.from('products').insert([insertData]);

@@ -13,6 +13,43 @@ export default function BrandFormModal({ onClose, onSave, brand, companyId }: { 
     stock_policy: ''
   });
   const [loading, setLoading] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+    const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+
+    if (!cloudName || !uploadPreset) {
+      alert('Configurações do Cloudinary não encontradas.');
+      return;
+    }
+
+    setIsUploading(true);
+    const formDataUpload = new FormData();
+    formDataUpload.append('file', file);
+    formDataUpload.append('upload_preset', uploadPreset);
+
+    try {
+      const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+        method: 'POST',
+        body: formDataUpload,
+      });
+      const data = await response.json();
+      if (data.secure_url) {
+        setFormData(prev => ({ ...prev, logo_url: data.secure_url }));
+      }
+    } catch (error) {
+      console.error('Erro no upload:', error);
+      alert('Erro ao fazer upload da imagem.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!supabase) return;
@@ -23,7 +60,6 @@ export default function BrandFormModal({ onClose, onSave, brand, companyId }: { 
     setLoading(true);
     
     const dataToSave = { ...formData, company_id: companyId };
-    delete dataToSave.logo_url;
     
     try {
       let error;
@@ -51,10 +87,29 @@ export default function BrandFormModal({ onClose, onSave, brand, companyId }: { 
       }
 
       if (error) {
-        console.error('Erro ao salvar marca:', error);
-        alert('Erro ao salvar marca: ' + error.message);
+        if (error.message.includes('column "logo_url" of relation "brands" does not exist')) {
+          // Fallback if logo_url doesn't exist in DB
+          const { logo_url, ...retryData } = dataToSave as any;
+          if (brand) {
+            const { id, created_at, ...updateData } = retryData;
+            const { error: retryError } = await supabase.from('brands').update(updateData).eq('id', brand.id);
+            error = retryError;
+          } else {
+            const { error: retryError } = await supabase.from('brands').insert([retryData]);
+            error = retryError;
+          }
+          if (!error) {
+            alert('Marca salva com sucesso! (Logo não salvo no banco de dados)');
+          }
+        } else {
+          console.error('Erro ao salvar marca:', error);
+          alert('Erro ao salvar marca: ' + error.message);
+        }
       } else {
         alert('Marca salva com sucesso!');
+      }
+
+      if (!error) {
         onSave();
         onClose();
       }
@@ -75,6 +130,29 @@ export default function BrandFormModal({ onClose, onSave, brand, companyId }: { 
         </div>
         
         <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="flex flex-col items-center gap-4 mb-6">
+            <div 
+              className="w-24 h-24 bg-slate-50 rounded-2xl flex items-center justify-center border-2 border-dashed border-slate-200 cursor-pointer overflow-hidden group relative"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              {formData.logo_url ? (
+                <img src={formData.logo_url} alt="Logo" className="w-full h-full object-contain p-2" />
+              ) : (
+                <ImageIcon className="text-slate-300" size={32} />
+              )}
+              {isUploading && (
+                <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
+                  <Loader2 className="animate-spin text-primary" size={20} />
+                </div>
+              )}
+              <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <Upload className="text-white" size={20} />
+              </div>
+            </div>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Logo da Marca</p>
+            <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
+          </div>
+
           <div className="space-y-4">
             <div className="space-y-1">
               <label className="text-xs font-bold text-slate-500 uppercase">Nome da Marca</label>

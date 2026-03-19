@@ -188,42 +188,52 @@ export default function App() {
     }
   };
 
-  useEffect(() => {
-    console.log("Active Company ID:", activeCompanyId);
-    async function loadData() {
-      if (activeCompanyId) {
-        setLoading(true);
-        try {
-          const [fetchedProducts, fetchedCompany] = await Promise.all([
-            getProducts(activeCompanyId.toString()),
-            getCompanyById(activeCompanyId)
-          ]);
-          setProducts(fetchedProducts);
-          
-          // Apply local logo if present
-          if (fetchedCompany) {
-            const savedLogo = localStorage.getItem(`vendpro_company_logo_${activeCompanyId}`);
-            if (savedLogo && !fetchedCompany.logo_url) {
-              fetchedCompany.logo_url = savedLogo;
-            }
+  const loadData = async () => {
+    if (activeCompanyId) {
+      setLoading(true);
+      try {
+        const [fetchedProducts, fetchedCompany] = await Promise.all([
+          getProducts(activeCompanyId.toString()),
+          getCompanyById(activeCompanyId)
+        ]);
+        setProducts(fetchedProducts);
+        
+        // Apply local logo if present
+        if (fetchedCompany) {
+          const savedLogo = localStorage.getItem(`vendpro_company_logo_${activeCompanyId}`);
+          if (savedLogo && !fetchedCompany.logo_url) {
+            fetchedCompany.logo_url = savedLogo;
           }
-          setCompany(fetchedCompany);
-          
-          // Also fetch categories and brands for this company
-          if (supabase) {
-            const { data: catData } = await supabase.from('categories').select('*').eq('company_id', activeCompanyId).order('nome');
-            setCategories((catData || []).sort((a, b) => (a.order_index || 0) - (b.order_index || 0)));
-            const { data: brandData } = await supabase.from('brands').select('*').eq('company_id', activeCompanyId).order('name');
-            setBrands((brandData || []).sort((a, b) => (a.order_index || 0) - (b.order_index || 0)));
-          }
-        } catch (error) {
-          console.error("Erro ao carregar dados:", error);
-        } finally {
-          setLoading(false);
         }
+        setCompany(fetchedCompany);
+        
+        // Apply primary color if present
+        if (fetchedCompany?.primary_color) {
+          document.documentElement.style.setProperty('--vendpro-primary', fetchedCompany.primary_color);
+        } else {
+          const savedColor = localStorage.getItem(`vendpro_company_color_${activeCompanyId}`);
+          if (savedColor) {
+            document.documentElement.style.setProperty('--vendpro-primary', savedColor);
+          }
+        }
+        
+        // Also fetch categories and brands for this company
+        if (supabase) {
+          const { data: catData } = await supabase.from('categories').select('*').eq('company_id', activeCompanyId).order('nome');
+          setCategories((catData || []).sort((a, b) => (a.order_index || 0) - (b.order_index || 0)));
+          const { data: brandData } = await supabase.from('brands').select('*').eq('company_id', activeCompanyId).order('name');
+          setBrands((brandData || []).sort((a, b) => (a.order_index || 0) - (b.order_index || 0)));
+        }
+      } catch (error) {
+        console.error("Erro ao carregar dados:", error);
+      } finally {
+        setLoading(false);
       }
     }
+  };
 
+  useEffect(() => {
+    console.log("Active Company ID:", activeCompanyId);
     loadData();
   }, [activeCompanyId]);
 
@@ -526,9 +536,9 @@ export default function App() {
         )}
         {activeTab === 'cart' && <CartScreen cart={cart} total={total} onUpdateQuantity={updateQuantity} onRemove={removeFromCart} onSendOrder={handleSendOrder} />}
         {activeTab === 'dashboard' && <Dashboard companyId={activeCompanyId} />}
-        {activeTab === 'produtos' && <Produtos companyId={activeCompanyId} />}
-        {activeTab === 'upload' && <Upload companyId={activeCompanyId} />}
-        {activeTab === 'pendencias' && <Pendencias companyId={activeCompanyId} />}
+        {activeTab === 'produtos' && <Produtos companyId={activeCompanyId} onRefresh={loadData} />}
+        {activeTab === 'upload' && <Upload companyId={activeCompanyId} onRefresh={loadData} />}
+        {activeTab === 'pendencias' && <Pendencias companyId={activeCompanyId} onRefresh={loadData} />}
         {activeTab === 'marcas' && <Marcas companyId={activeCompanyId} />}
         {activeTab === 'vendedores' && <Vendedores companyId={activeCompanyId} />}
         {activeTab === 'clientes' && <Clientes companyId={activeCompanyId} />}
@@ -539,10 +549,13 @@ export default function App() {
       <AnimatePresence>
         {editingProduct && (
           <ProductFormModal 
-            product={editingProduct} 
+            product={editingProduct.id === 'new' ? undefined : editingProduct} 
             companyId={activeCompanyId}
             onClose={() => setEditingProduct(null)} 
-            onSave={() => { setEditingProduct(null); }} 
+            onSave={() => { 
+              setEditingProduct(null);
+              loadData();
+            }} 
           />
         )}
       </AnimatePresence>
@@ -1000,7 +1013,7 @@ function CatalogScreen({ products, categories, brands, onAddToCart, onEdit, role
           <div className="flex gap-3">
             {role === 'company' && (
               <button 
-                onClick={() => onEdit({ id: 0, company_id: 0, sku: '', nome: '', preco_unitario: 0, preco_box: 0, qtd_box: 0, venda_somente_box: false, status_estoque: 'normal', categoria_pendente: false, imagem_pendente: false } as any)}
+                onClick={() => onEdit({ id: 'new', company_id: '', sku: '', nome: '', preco_unitario: 0, preco_box: 0, qtd_box: 0, venda_somente_box: false, status_estoque: 'normal', categoria_pendente: true, imagem_pendente: true, has_box_discount: false, is_last_units: false } as any)}
                 className="bg-white text-primary px-6 py-2.5 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-lg active:scale-95 transition-transform flex items-center gap-2"
               >
                 <Plus size={14} />

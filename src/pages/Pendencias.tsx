@@ -3,7 +3,7 @@ import { supabase } from '../integrations/supabaseClient';
 import { Product, Category } from '../types';
 import { AlertTriangle, Edit, Check, X, Image as ImageIcon, Tag, Upload, Loader2, Link as LinkIcon } from 'lucide-react';
 
-export default function Pendencias({ companyId }: { companyId: string | null }) {
+export default function Pendencias({ companyId, onRefresh }: { companyId: string | null, onRefresh?: () => void }) {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -64,8 +64,6 @@ export default function Pendencias({ companyId }: { companyId: string | null }) 
     if (!supabase) return;
     
     const { 
-      categoria_pendente, 
-      imagem_pendente, 
       brand_nome, 
       margin_percentage, 
       categoria_nome,
@@ -74,12 +72,21 @@ export default function Pendencias({ companyId }: { companyId: string | null }) 
       ...updates 
     } = editData as any;
 
+    // Update pending flags based on new values
+    if (updates.category_id !== undefined) {
+      updates.categoria_pendente = !updates.category_id;
+    }
+    if (updates.imagem !== undefined) {
+      updates.imagem_pendente = !updates.imagem;
+    }
+
     const { error } = await supabase.from('products').update(updates).eq('id', id);
     if (error) {
       alert('Erro ao salvar: ' + error.message);
     } else {
       setEditingId(null);
       fetchPendencies();
+      if (onRefresh) onRefresh();
     }
   };
 

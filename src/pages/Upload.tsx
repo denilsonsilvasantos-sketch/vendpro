@@ -8,7 +8,7 @@ import * as XLSX from 'xlsx';
 
 type CatalogType = 'weekly' | 'replenishment';
 
-export default function UploadPage({ companyId }: { companyId: string | null }) {
+export default function UploadPage({ companyId, onRefresh }: { companyId: string | null, onRefresh?: () => void }) {
   const [isUploading, setIsUploading] = useState(false);
   const [status, setStatus] = useState<{ type: 'success' | 'error' | 'info' | 'warning', message: string } | null>(null);
   const [progress, setProgress] = useState(0);
@@ -267,8 +267,14 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
               is_last_units: !!extracted.is_last_units,
               multiplo_venda: 1,
               status_estoque: statusEstoque,
-              category_id: categoriaId
+              category_id: categoriaId,
+              categoria_pendente: !categoriaId,
+              imagem_pendente: existing ? !existing.imagem : true 
             };
+
+            if (existing && existing.imagem) {
+              productData.imagem = existing.imagem;
+            }
 
             try {
               if (existing) {
@@ -319,6 +325,7 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
           message: `Processamento concluído! ${totalProducts} produtos identificados e enviados para pendências.` 
         });
       }
+      if (onRefresh) onRefresh();
     } catch (error: any) {
       console.error(error);
       setIsUploading(false);

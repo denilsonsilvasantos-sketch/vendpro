@@ -9,7 +9,7 @@ export async function getProducts(companyId: string): Promise<Product[]> {
 
   // Busca produtos e marcas separadamente para garantir a margem mesmo sem join configurado
   const [productsRes, brandsRes] = await Promise.all([
-    supabase.from("products").select("*").eq("company_id", companyId).order("nome"),
+    supabase.from("products").select("*").eq("company_id", companyId).order("nome").limit(5000),
     supabase.from("brands").select("id, name, margin_percentage").eq("company_id", companyId)
   ]);
 
@@ -42,7 +42,6 @@ export async function getProducts(companyId: string): Promise<Product[]> {
       preco_unitario: finalPrice,
       preco_box: finalBoxPrice,
       brand_nome: brand?.name,
-      brand_id: brand?.id,
       margin_percentage: margin
     };
   });

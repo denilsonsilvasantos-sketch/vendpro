@@ -215,7 +215,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
 
           for (const extracted of extractedProducts) {
             // Gerar SKU determinístico se não houver um para evitar duplicatas em re-uploads
-            let sku = extracted.sku ? String(extracted.sku).trim() : '';
+            let sku = extracted.sku ? String(extracted.sku).trim().toUpperCase() : '';
             
             if (!sku) {
               const nameHash = extracted.nome ? extracted.nome.split('').reduce((a: number, b: string) => { a = ((a << 5) - a) + b.charCodeAt(0); return a & a; }, 0) : Math.random();
@@ -224,12 +224,16 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
             
             processedSkus.push(sku);
 
-            const { data: existing } = await supabase
+            const { data: existing, error: fetchError } = await supabase
               .from('products')
-              .select('nome, preco_unitario, imagem')
+              .select('id, nome, preco_unitario, imagem, sku')
               .eq('company_id', companyId)
-              .eq('sku', sku)
+              .ilike('sku', sku)
               .maybeSingle();
+
+            if (fetchError) {
+              console.error('Erro ao buscar produto existente:', fetchError);
+            }
 
             let finalNome = extracted.nome ? String(extracted.nome).trim() : `Produto sem nome (${sku})`;
             let parsedPrecoUnitario = parseNumber(extracted.preco_unitario, 0);
@@ -286,12 +290,15 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
 
             try {
               if (existing) {
-                await supabase.from('products').update(productData).eq('company_id', companyId).eq('sku', sku);
+                const { error: updateError } = await supabase.from('products').update(productData).eq('id', existing.id);
+                if (updateError) throw updateError;
               } else {
-                await supabase.from('products').insert([productData]);
+                const { error: insertError } = await supabase.from('products').insert([productData]);
+                if (insertError) throw insertError;
               }
             } catch (err: any) {
               console.error('Erro ao salvar produto:', err);
+              setStatus({ type: 'error', message: `Erro ao salvar produto ${sku}: ${err.message}` });
             }
           }
           setProgress(Math.round(((i * pages.length + j + 1) / (uploadedFiles.length * pages.length)) * 100));
@@ -307,7 +314,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
           .eq('brand_id', selectedBrandId);
 
         if (existingProducts) {
-          const missing = existingProducts.filter(p => !processedSkus.includes(p.sku));
+          const missing = existingProducts.filter(p => !processedSkus.includes(p.sku.toUpperCase().trim()));
           if (missing.length > 0) {
             setMissingProducts(missing);
             setShowMissingAlert(true);

@@ -63,22 +63,12 @@ export default function Pendencias({ companyId, onRefresh }: { companyId: string
   const handleSave = async (id: string) => {
     if (!supabase) return;
     
-    const { 
-      brand_nome, 
-      margin_percentage, 
-      categoria_nome,
-      base_price,
-      base_box_price,
-      ...updates 
-    } = editData as any;
-
-    // Update pending flags based on new values
-    if (updates.category_id !== undefined) {
-      updates.categoria_pendente = !updates.category_id;
-    }
-    if (updates.imagem !== undefined) {
-      updates.imagem_pendente = !updates.imagem;
-    }
+    const updates = {
+      category_id: editData.category_id,
+      imagem: editData.imagem,
+      categoria_pendente: !editData.category_id,
+      imagem_pendente: !editData.imagem
+    };
 
     const { error } = await supabase.from('products').update(updates).eq('id', id);
     if (error) {

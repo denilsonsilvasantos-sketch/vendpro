@@ -88,6 +88,7 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
     
     const dataToSave = { 
       ...formData, 
+      sku: formData.sku?.trim().toUpperCase(),
       company_id: companyId,
       categoria_pendente: !formData.category_id,
       imagem_pendente: !formData.imagem

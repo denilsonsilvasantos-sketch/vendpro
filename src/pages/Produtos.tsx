@@ -43,7 +43,8 @@ export default function Produtos({ companyId, onRefresh }: { companyId: string |
   };
 
   const filteredProducts = products.filter(p => {
-    const matchesSearch = p.nome.toLowerCase().includes(searchTerm.toLowerCase()) || p.sku.toLowerCase().includes(searchTerm.toLowerCase());
+    const searchLower = searchTerm.trim().toLowerCase();
+    const matchesSearch = p.nome.toLowerCase().includes(searchLower) || p.sku.toLowerCase().includes(searchLower);
     const matchesBrand = filterBrand ? p.brand_id === filterBrand : true;
     return matchesSearch && matchesBrand;
   }).sort((a, b) => {

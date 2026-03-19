@@ -14,6 +14,7 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
   const [progress, setProgress] = useState(0);
   const [catalogType, setCatalogType] = useState<CatalogType>('weekly');
   const [selectedBrandId, setSelectedBrandId] = useState<string | null>(null);
+  const [useCatalogNameAsCategory, setUseCatalogNameAsCategory] = useState(true);
   const [brands, setBrands] = useState<Brand[]>([]);
   const [uploadedFiles, setUploadedFiles] = useState<{ file: File, pages: { base64: string, mimeType: string }[] }[]>([]);
   const [missingProducts, setMissingProducts] = useState<Product[]>([]);
@@ -156,29 +157,24 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
       const brandName = brandData?.name || '';
 
       const { data: initialCategories } = await supabase.from('categories').select('id, nome').eq('company_id', companyId).eq('brand_id', selectedBrandId);
-      let categories = initialCategories || [];
+      let categories: { id: string, nome: string }[] = (initialCategories || []).map(c => ({ id: String(c.id), nome: c.nome }));
       const processedSkus: string[] = [];
       let totalProducts = 0;
 
       for (let i = 0; i < uploadedFiles.length; i++) {
         const { file, pages } = uploadedFiles[i];
         
-        for (let j = 0; j < pages.length; j++) {
-          const { base64, mimeType } = pages[j];
-          setStatus({ 
-            type: 'info', 
-            message: `Analisando arquivo ${i + 1} de ${uploadedFiles.length}: ${file.name} ${pages.length > 1 ? `(Parte ${j + 1}/${pages.length})` : ''}` 
-          });
-          
+        let categoriaIdParaArquivo: string | null = null;
+        
+        if (useCatalogNameAsCategory) {
           // Extrair categoria do nome do arquivo
           const fileName = file.name.replace(/\.[^/.]+$/, ""); // remove extensão
           const categoryNameMatch = fileName.replace(/[0-9]/g, '').trim(); // remove números
           const categoryName = categoryNameMatch || "Geral";
 
-          let categoriaId = null;
           const existingCat = categories.find(c => c.nome.toLowerCase() === categoryName.toLowerCase());
           if (existingCat) {
-            categoriaId = existingCat.id;
+            categoriaIdParaArquivo = existingCat.id;
           } else {
             const { data: newCat } = await supabase.from('categories').insert([{
               company_id: companyId,
@@ -188,12 +184,20 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
             }]).select().single();
             
             if (newCat) {
-              categoriaId = newCat.id;
-              categories.push(newCat);
+              categoriaIdParaArquivo = String(newCat.id);
+              categories.push({ id: categoriaIdParaArquivo, nome: newCat.nome });
             }
           }
+        }
 
-          let extractedProducts = await extractProductsFromMedia(base64, mimeType);
+        for (let j = 0; j < pages.length; j++) {
+          const { base64, mimeType } = pages[j];
+          setStatus({ 
+            type: 'info', 
+            message: `Analisando arquivo ${i + 1} de ${uploadedFiles.length}: ${file.name} ${pages.length > 1 ? `(Parte ${j + 1}/${pages.length})` : ''}` 
+          });
+          
+          let extractedProducts = await extractProductsFromMedia(base64, mimeType, useCatalogNameAsCategory ? undefined : categories);
           if (!Array.isArray(extractedProducts)) {
             console.warn(`extractedProducts não é um array:`, extractedProducts);
             extractedProducts = [];
@@ -241,6 +245,14 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
 
             const validStatus = ['normal', 'baixo', 'ultimas', 'esgotado'];
             const statusEstoque = validStatus.includes(extracted.status_estoque) ? extracted.status_estoque : 'normal';
+
+            let categoriaId = categoriaIdParaArquivo;
+            if (!useCatalogNameAsCategory && extracted.category_name) {
+              const foundCat = categories.find(c => c.nome.toLowerCase() === extracted.category_name.toLowerCase());
+              if (foundCat) {
+                categoriaId = foundCat.id;
+              }
+            }
 
             const productData: any = {
               company_id: companyId,
@@ -403,6 +415,24 @@ export default function UploadPage({ companyId }: { companyId: string | null }) 
                   <option key={brand.id} value={brand.id}>{brand.name}</option>
                 ))}
               </select>
+
+              <div className="pt-2">
+                <label className="flex items-center gap-3 cursor-pointer group">
+                  <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${useCatalogNameAsCategory ? 'bg-primary border-primary' : 'border-slate-200 group-hover:border-primary/50'}`}>
+                    {useCatalogNameAsCategory && <CheckCircle2 size={14} className="text-white" />}
+                  </div>
+                  <input 
+                    type="checkbox" 
+                    className="hidden" 
+                    checked={useCatalogNameAsCategory} 
+                    onChange={e => setUseCatalogNameAsCategory(e.target.checked)} 
+                  />
+                  <div className="flex flex-col">
+                    <span className="text-sm font-bold text-slate-700">Criar categoria com nome do arquivo</span>
+                    <span className="text-[10px] text-slate-400">Se desativado, a IA tentará classificar cada produto em categorias existentes.</span>
+                  </div>
+                </label>
+              </div>
             </div>
 
             <div className="p-4 bg-blue-50 rounded-xl border border-blue-100 flex gap-3">

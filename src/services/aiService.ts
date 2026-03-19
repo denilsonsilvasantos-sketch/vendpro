@@ -24,7 +24,9 @@ export async function classifyCategory(productName: string, categories: { id: nu
   }
 }
 
-export async function extractProductsFromMedia(base64Data: string, mimeType: string) {
+export async function extractProductsFromMedia(base64Data: string, mimeType: string, categories?: { id: string, nome: string }[]) {
+  const categoriesList = categories?.map(c => c.nome).join(', ') || '';
+  
   const prompt = `Analise este catálogo (pode ser uma imagem, PDF ou planilha) e extraia ABSOLUTAMENTE TODOS os produtos visíveis. 
   Não pule nenhum item. Se houver tabelas, percorra cada linha. Se houver várias páginas, extraia de todas.
   
@@ -39,6 +41,7 @@ export async function extractProductsFromMedia(base64Data: string, mimeType: str
   - status_estoque: Tente identificar se está esgotado ou com poucas unidades. Use: "normal", "baixo", "ultimas" ou "esgotado".
   - variacoes: Cores, tamanhos ou sabores disponíveis (ex: "Azul, Verde, P, M, G")
   - qtd_variacoes: Número total de variações (ex: 5)
+  ${categories ? `- category_name: Escolha a categoria mais adequada APENAS entre estas: [${categoriesList}]. Se não encontrar uma correspondência exata, deixe em branco.` : ''}
 
   IMPORTANTE: 
   1. Extraia TODOS os produtos. Se a lista for longa, continue extraindo até o fim.
@@ -60,7 +63,7 @@ export async function extractProductsFromMedia(base64Data: string, mimeType: str
         "is_last_units": boolean,
         "status_estoque": "normal | baixo | ultimas | esgotado",
         "variacoes": "string",
-        "qtd_variacoes": "string"
+        "qtd_variacoes": "string"${categories ? ',\n        "category_name": "string"' : ''}
       }
     ]
   }`;

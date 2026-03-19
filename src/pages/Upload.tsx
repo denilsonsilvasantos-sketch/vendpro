@@ -87,7 +87,15 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
           const pages = await newPdf.copyPages(pdfDoc, Array.from({ length: end - i }, (_, k) => i + k));
           pages.forEach(p => newPdf.addPage(p));
           const pdfBytes = await newPdf.save();
-          const base64 = btoa(String.fromCharCode(...new Uint8Array(pdfBytes)));
+          const blob = new Blob([pdfBytes as any], { type: 'application/pdf' });
+          const base64 = await new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              const res = reader.result as string;
+              resolve(res.split(',')[1]);
+            };
+            reader.readAsDataURL(blob);
+          });
           results.push({ base64, mimeType: 'application/pdf' });
         }
         return results;
@@ -221,7 +229,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
               .select('nome, preco_unitario, imagem')
               .eq('company_id', companyId)
               .eq('sku', sku)
-              .single();
+              .maybeSingle();
 
             let finalNome = extracted.nome ? String(extracted.nome).trim() : `Produto sem nome (${sku})`;
             let parsedPrecoUnitario = parseNumber(extracted.preco_unitario, 0);

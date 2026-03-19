@@ -21,12 +21,10 @@ export async function getCustomerByCnpj(cnpj: string, sellerId: string) {
     .select("*")
     .eq("cnpj", cnpj)
     .eq("seller_id", sellerId)
-    .single();
+    .maybeSingle();
 
   if (error) {
-    if (error.code !== 'PGRST116') { // Not found error
-      console.error("Erro ao buscar cliente por CNPJ:", error);
-    }
+    console.error("Erro ao buscar cliente por CNPJ:", error);
     return null;
   }
   return data;

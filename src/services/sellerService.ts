@@ -10,11 +10,15 @@ export async function validateSellerCode(code: string) {
     .from("sellers")
     .select("*, companies(*)")
     .eq("codigo_vinculo", code)
-    .single();
+    .maybeSingle();
 
   if (error) {
     console.error("Erro ao validar vendedor:", error);
     return { success: false };
+  }
+
+  if (!seller) {
+    return { success: false, message: "Vendedor não encontrado" };
   }
 
   return {

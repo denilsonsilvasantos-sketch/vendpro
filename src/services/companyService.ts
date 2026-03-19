@@ -38,9 +38,12 @@ export async function loginCompany(cnpj: string, senha?: string) {
       .from("companies")
       .select("*")
       .ilike("nome", cnpj)
-      .single();
+      .maybeSingle();
     
     if (error) {
+      return { success: false, message: "Empresa não encontrada" };
+    }
+    if (!data) {
       return { success: false, message: "Empresa não encontrada" };
     }
     return { success: true, company: data };
@@ -51,10 +54,14 @@ export async function loginCompany(cnpj: string, senha?: string) {
     .select("*")
     .eq("cnpj", cnpj)
     .eq("senha", senha)
-    .single();
+    .maybeSingle();
 
   if (error) {
     console.error("Erro ao fazer login:", error);
+    return { success: false, message: "CNPJ ou senha incorretos" };
+  }
+
+  if (!data) {
     return { success: false, message: "CNPJ ou senha incorretos" };
   }
 
@@ -63,7 +70,7 @@ export async function loginCompany(cnpj: string, senha?: string) {
 
 export async function getCompanyById(id: string) {
   if (!supabase) return null;
-  const { data, error } = await supabase.from('companies').select('*').eq('id', id).single();
+  const { data, error } = await supabase.from('companies').select('*').eq('id', id).maybeSingle();
   if (error) {
     console.error("Erro ao buscar empresa:", error);
     return null;

@@ -169,47 +169,40 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
 
   const processStockSync = async () => {
     if (!companyId || !selectedBrandId || uploadedFiles.length === 0 || !supabase) {
-      setStatus({ type: 'error', message: 'Selecione uma marca e adicione o arquivo XML primeiro.' });
+      setStatus({ type: 'error', message: 'Selecione uma marca e adicione o arquivo Excel primeiro.' });
       return;
     }
 
     setIsUploading(true);
-    setStatus({ type: 'info', message: 'Lendo arquivo XML e sincronizando estoque...' });
+    setStatus({ type: 'info', message: 'Lendo arquivo Excel e sincronizando estoque...' });
     setProgress(0);
 
     try {
-      const xmlFile = uploadedFiles[0].file;
-      const xmlText = await xmlFile.text();
-      const parser = new DOMParser();
-      const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+      const excelFile = uploadedFiles[0].file;
+      const data = await excelFile.arrayBuffer();
+      const workbook = XLSX.read(data);
+      const firstSheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[firstSheetName];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
-      // Tentar encontrar itens no XML
-      // Formatos comuns: <item>, <produto>, <row>, ou direto na raiz
-      let items = Array.from(xmlDoc.querySelectorAll('item, produto, row, product'));
+      const excelData: { sku: string, qtd: number }[] = [];
       
-      // Se não encontrar tags específicas, tentar pegar todos os elementos que tenham filhos e não sejam a raiz
-      if (items.length === 0) {
-        const allElements = Array.from(xmlDoc.querySelectorAll('*'));
-        items = allElements.filter(el => el.children.length > 0 && el.parentElement === xmlDoc.documentElement);
-      }
-
-      const xmlData: { sku: string, qtd: number }[] = [];
-      
-      items.forEach(item => {
-        const skuTag = item.querySelector('sku, codigo, cod, ref, referencia, SKU, CODIGO, REF');
-        const qtdTag = item.querySelector('quantidade, qtd, estoque, stock, qnt, QUANTIDADE, QTD, ESTOQUE');
+      jsonData.forEach((row: any) => {
+        // Tentar encontrar colunas de SKU e QTD
+        const skuKey = Object.keys(row).find(k => /sku|codigo|cod|ref|referencia/i.test(k));
+        const qtdKey = Object.keys(row).find(k => /quantidade|qtd|estoque|stock|qnt/i.test(k));
         
-        if (skuTag) {
-          const sku = skuTag.textContent?.trim().toUpperCase() || '';
-          const qtd = parseNumber(qtdTag?.textContent || '0', 0);
+        if (skuKey) {
+          const sku = String(row[skuKey]).trim().toUpperCase();
+          const qtd = parseNumber(qtdKey ? row[qtdKey] : 0, 0);
           if (sku) {
-            xmlData.push({ sku, qtd });
+            excelData.push({ sku, qtd });
           }
         }
       });
 
-      if (xmlData.length === 0) {
-        throw new Error('Não foi possível encontrar dados de SKU e Quantidade no XML. Verifique o formato do arquivo.');
+      if (excelData.length === 0) {
+        throw new Error('Não foi possível encontrar dados de SKU e Quantidade no Excel. Verifique se as colunas têm cabeçalhos como "SKU" e "Quantidade".');
       }
 
       // Buscar todos os produtos da marca no sistema
@@ -222,13 +215,13 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
       if (!existingProducts) throw new Error('Erro ao buscar produtos existentes.');
 
       const existingSkusMap = new Map(existingProducts.map(p => [p.sku.toUpperCase().trim(), p]));
-      const xmlSkusSet = new Set(xmlData.map(d => d.sku));
+      const excelSkusSet = new Set(excelData.map(d => d.sku));
       
       const updates: { id: string, status_estoque: string }[] = [];
       const unregistered: { sku: string, qtd: number }[] = [];
 
-      // 1. Processar SKUs que estão no XML
-      for (const data of xmlData) {
+      // 1. Processar SKUs que estão no Excel
+      for (const data of excelData) {
         const existing = existingSkusMap.get(data.sku);
         if (existing) {
           const newStatus = data.qtd < 10 ? 'ultimas' : 'normal';
@@ -240,10 +233,10 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
         }
       }
 
-      // 2. Processar SKUs que NÃO estão no XML (marcar como esgotado)
+      // 2. Processar SKUs que NÃO estão no Excel (marcar como esgotado)
       for (const product of existingProducts) {
         const sku = product.sku.toUpperCase().trim();
-        if (!xmlSkusSet.has(sku)) {
+        if (!excelSkusSet.has(sku)) {
           if (product.status_estoque !== 'esgotado') {
             updates.push({ id: product.id, status_estoque: 'esgotado' });
           }
@@ -275,7 +268,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
       setUploadedFiles([]);
       setStatus({ 
         type: 'success', 
-        message: `Sincronização concluída! ${updates.length} produtos atualizados. ${unregistered.length} SKUs no XML não encontrados no sistema.` 
+        message: `Sincronização concluída! ${updates.length} produtos atualizados. ${unregistered.length} SKUs no Excel não encontrados no sistema.` 
       });
       
       if (onRefresh) onRefresh();
@@ -547,7 +540,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
               className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${uploadMode === 'stock' ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
             >
               <RefreshCw size={16} />
-              Estoque (XML)
+              Estoque (Excel)
             </button>
           </div>
 
@@ -625,7 +618,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
               <AlertCircle className="text-blue-500 shrink-0" size={20} />
               <p className="text-xs text-blue-700 leading-relaxed">
                 {uploadMode === 'stock' 
-                  ? 'A sincronização de estoque via XML atualizará apenas o status de disponibilidade (Normal, Últimas Unidades ou Esgotado) com base nas quantidades informadas.'
+                  ? 'A sincronização de estoque via Excel atualizará apenas o status de disponibilidade (Normal, Últimas Unidades ou Esgotado) com base nas quantidades informadas.'
                   : catalogType === 'weekly' 
                     ? 'O catálogo semanal atualizará os preços e identificará produtos que saíram de linha para esta marca.' 
                     : 'O catálogo de reposição apenas adicionará ou atualizará produtos específicos sem afetar o status dos outros.'}
@@ -643,13 +636,13 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
               type="file" 
               ref={fileInputRef} 
               onChange={handleFileSelect} 
-              accept={uploadMode === 'stock' ? ".xml" : ".pdf,image/*,.csv,.xlsx,.xls"} 
+              accept={uploadMode === 'stock' ? ".xlsx,.xls" : ".pdf,image/*,.csv,.xlsx,.xls"} 
               multiple={uploadMode === 'catalog'}
               className="hidden" 
             />
             <Upload size={32} className="text-primary mb-2" />
-            <h3 className="font-bold">{uploadMode === 'stock' ? 'Selecionar XML de Estoque' : 'Adicionar Arquivos'}</h3>
-            <p className="text-xs text-slate-500">{uploadMode === 'stock' ? 'Apenas arquivos .xml' : 'PDF, PNG, JPG, CSV ou Excel'}</p>
+            <h3 className="font-bold">{uploadMode === 'stock' ? 'Selecionar Excel de Estoque' : 'Adicionar Arquivos'}</h3>
+            <p className="text-xs text-slate-500">{uploadMode === 'stock' ? 'Apenas arquivos .xlsx ou .xls' : 'PDF, PNG, JPG, CSV ou Excel'}</p>
           </div>
         </div>
 
@@ -670,7 +663,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
                 <div key={idx} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-100 group">
                   <div className="flex items-center gap-3 overflow-hidden">
                     <div className="w-8 h-8 bg-white rounded flex items-center justify-center border border-slate-200 shrink-0">
-                      {item.file.name.toLowerCase().endsWith('.xml') ? <FileText size={16} className="text-green-600" /> : item.file.type.includes('image') ? <ImageIcon size={16} className="text-blue-500" /> : <FileText size={16} className="text-red-500" />}
+                      {item.file.name.toLowerCase().endsWith('.xlsx') || item.file.name.toLowerCase().endsWith('.xls') ? <FileText size={16} className="text-green-600" /> : item.file.type.includes('image') ? <ImageIcon size={16} className="text-blue-500" /> : <FileText size={16} className="text-red-500" />}
                     </div>
                     <div className="truncate">
                       <p className="text-sm font-medium truncate">{item.file.name}</p>

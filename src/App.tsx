@@ -1493,7 +1493,7 @@ function CatalogScreen({
                 <p className="text-slate-400 font-medium">Nenhum produto encontrado.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 md:gap-6">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 md:gap-6">
                 {paginatedProducts.map(p => (
                   <ProductCard key={p.id} product={p} onAdd={onAddToCart} onEdit={onEdit} role={role} onZoom={onZoom} />
                 ))}
@@ -1525,7 +1525,7 @@ function CatalogScreen({
 
                 <button 
                   disabled={currentPage === totalPages}
-                  onClick={() => setCurrentPage(prev => prev - 1)}
+                  onClick={() => setCurrentPage(prev => prev + 1)}
                   className="p-3 bg-white rounded-xl text-slate-400 hover:text-primary disabled:opacity-30 transition-all"
                 >
                   <ChevronRight size={20} />
@@ -1555,9 +1555,9 @@ function ProductCard({ product, onAdd, onEdit, role, onZoom, ...props }: { produ
   };
 
   return (
-    <Card className={`p-3 md:p-4 flex flex-col group hover:border-primary/20 transition-all card-shadow rounded-2xl ${isEsgotado ? 'opacity-75 grayscale-[0.5]' : ''}`}>
-      <div className="relative aspect-square mb-3 rounded-xl overflow-hidden bg-slate-50 cursor-zoom-in group-hover:scale-[1.02] transition-transform duration-500" onClick={() => onZoom(product.imagem || '')}>
-        <img src={product.imagem || `https://picsum.photos/seed/${product.sku}/400/400`} className="w-full h-full object-contain p-2" alt={product.nome} referrerPolicy="no-referrer" />
+    <Card className={`p-2 md:p-3 flex flex-col group hover:border-primary/20 transition-all card-shadow rounded-2xl ${isEsgotado ? 'opacity-75 grayscale-[0.5]' : ''}`}>
+      <div className="relative aspect-square mb-2 rounded-xl overflow-hidden bg-slate-50 cursor-zoom-in group-hover:scale-[1.02] transition-transform duration-500" onClick={() => onZoom(product.imagem || '')}>
+        <img src={product.imagem || `https://picsum.photos/seed/${product.sku}/400/400`} className="w-full h-full object-contain p-1" alt={product.nome} referrerPolicy="no-referrer" />
         <div className="absolute top-2 w-full flex flex-col gap-1 items-center">
           {isEsgotado && <span className="bg-slate-800 text-white text-[8px] font-bold px-2 py-0.5 rounded shadow-lg uppercase tracking-wider">Esgotado</span>}
           {!isEsgotado && product.is_last_units && <span className="bg-rose-500 text-white text-[8px] font-bold px-2 py-0.5 rounded shadow-lg uppercase tracking-wider">Últimas</span>}
@@ -1567,7 +1567,7 @@ function ProductCard({ product, onAdd, onEdit, role, onZoom, ...props }: { produ
       
       <div className="text-center mb-3">
         <h3 className="font-bold text-slate-800 text-[11px] md:text-xs leading-tight mb-1 h-8 flex items-center justify-center overflow-hidden line-clamp-2">{product.nome}</h3>
-        <p className="text-[8px] text-slate-400 font-bold uppercase tracking-widest mb-1.5">SKU: {product.sku}</p>
+        <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mb-1.5">SKU: {product.sku}</p>
         
         {!isEsgotado && (
           <p className="text-lg md:text-xl font-black text-primary">R$ {(product.preco_unitario || 0).toFixed(2)}</p>
@@ -1575,12 +1575,12 @@ function ProductCard({ product, onAdd, onEdit, role, onZoom, ...props }: { produ
       </div>
 
       {(product.has_box_discount || product.venda_somente_box) && !isEsgotado && (
-        <div className="mb-3 py-1.5 bg-emerald-50/50 rounded-xl text-[9px] font-bold text-emerald-600 text-center">
-          {!product.venda_somente_box ? (
-            `Box: R$ ${(product.preco_box || 0).toFixed(2)}`
-          ) : (
-            `Box (${product.qtd_box} un): R$ ${(product.preco_box || 0).toFixed(2)}`
-          )}
+        <div className="mb-3 p-2 bg-amber-50 border border-amber-200 rounded-xl text-center shadow-sm">
+          <p className="text-[9px] uppercase font-black text-amber-600 tracking-tighter mb-0.5">A partir de:</p>
+          <div className="flex items-center justify-center gap-1">
+            <span className="text-sm md:text-base font-black text-amber-700">R$ {(product.preco_box || 0).toFixed(2)}</span>
+            <span className="text-[9px] font-bold text-amber-600/70 italic">({product.qtd_box} un)</span>
+          </div>
         </div>
       )}
 

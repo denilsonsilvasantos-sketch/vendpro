@@ -28,6 +28,10 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
   const [unregisteredSkus, setUnregisteredSkus] = useState<{ sku: string, qtd: number }[]>([]);
   const [showUnregisteredAlert, setShowUnregisteredAlert] = useState(false);
   
+  const [outOfStockSkus, setOutOfStockSkus] = useState<{ sku: string, name: string }[]>([]);
+  const [lastUnitsSkus, setLastUnitsSkus] = useState<{ sku: string, name: string }[]>([]);
+  const [showSyncReport, setShowSyncReport] = useState(false);
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [showResetConfirm, setShowResetConfirm] = useState(false);
@@ -208,7 +212,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
       // Buscar todos os produtos da marca no sistema
       const { data: existingProducts } = await supabase
         .from('products')
-        .select('id, sku, status_estoque')
+        .select('id, sku, name, status_estoque')
         .eq('company_id', companyId)
         .eq('brand_id', selectedBrandId);
 
@@ -219,14 +223,27 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
       
       const updates: { id: string, status_estoque: string }[] = [];
       const unregistered: { sku: string, qtd: number }[] = [];
+      const newOutOfStock: { sku: string, name: string }[] = [];
+      const newLastUnits: { sku: string, name: string }[] = [];
 
       // 1. Processar SKUs que estão no Excel
       for (const data of excelData) {
         const existing = existingSkusMap.get(data.sku);
         if (existing) {
-          const newStatus = data.qtd < 10 ? 'ultimas' : 'normal';
+          let newStatus = 'normal';
+          if (data.qtd === 0) {
+            newStatus = 'esgotado';
+          } else if (data.qtd < 10) {
+            newStatus = 'ultimas';
+          }
+
           if (existing.status_estoque !== newStatus) {
             updates.push({ id: existing.id, status_estoque: newStatus });
+            if (newStatus === 'esgotado') {
+              newOutOfStock.push({ sku: existing.sku, name: existing.name });
+            } else if (newStatus === 'ultimas') {
+              newLastUnits.push({ sku: existing.sku, name: existing.name });
+            }
           }
         } else {
           unregistered.push(data);
@@ -239,6 +256,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
         if (!excelSkusSet.has(sku)) {
           if (product.status_estoque !== 'esgotado') {
             updates.push({ id: product.id, status_estoque: 'esgotado' });
+            newOutOfStock.push({ sku: product.sku, name: product.name });
           }
         }
       }
@@ -260,15 +278,20 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
       }
 
       setUnregisteredSkus(unregistered);
+      setOutOfStockSkus(newOutOfStock);
+      setLastUnitsSkus(newLastUnits);
+
       if (unregistered.length > 0) {
         setShowUnregisteredAlert(true);
+      } else if (newOutOfStock.length > 0 || newLastUnits.length > 0) {
+        setShowSyncReport(true);
       }
 
       setIsUploading(false);
       setUploadedFiles([]);
       setStatus({ 
         type: 'success', 
-        message: `Sincronização concluída! ${updates.length} produtos atualizados. ${unregistered.length} SKUs no Excel não encontrados no sistema.` 
+        message: `Sincronização concluída! ${updates.length} produtos atualizados.` 
       });
       
       if (onRefresh) onRefresh();
@@ -800,10 +823,83 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
               ))}
             </div>
             <button 
-              onClick={() => { setShowUnregisteredAlert(false); setUnregisteredSkus([]); }}
+              onClick={() => { 
+                setShowUnregisteredAlert(false); 
+                setUnregisteredSkus([]); 
+                if (outOfStockSkus.length > 0 || lastUnitsSkus.length > 0) {
+                  setShowSyncReport(true);
+                }
+              }}
               className="w-full py-3 bg-primary text-white rounded-xl font-bold hover:bg-primary/60 transition-colors"
             >
               Entendido
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showSyncReport && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-8 shadow-2xl space-y-6 animate-in zoom-in-95 overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto shrink-0">
+              <CheckCircle2 size={32} className="text-green-600" />
+            </div>
+            <div className="text-center space-y-2 shrink-0">
+              <h2 className="text-xl font-bold">Relatório de Sincronização</h2>
+              <p className="text-slate-500 text-sm">
+                A sincronização foi concluída com sucesso. Veja as alterações realizadas:
+              </p>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto space-y-6 pr-2">
+              {lastUnitsSkus.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="text-sm font-bold text-orange-600 flex items-center gap-2">
+                    <AlertTriangle size={16} /> Últimas Unidades ({lastUnitsSkus.length})
+                  </h3>
+                  <div className="bg-orange-50 rounded-xl p-4 space-y-2 border border-orange-100">
+                    {lastUnitsSkus.map((item, idx) => (
+                      <div key={idx} className="flex justify-between text-xs border-b border-orange-200/50 last:border-0 pb-1 last:pb-0">
+                        <div className="flex flex-col">
+                          <span className="font-bold text-orange-900">{item.name}</span>
+                          <span className="font-mono text-[10px] text-orange-700">{item.sku}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {outOfStockSkus.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="text-sm font-bold text-red-600 flex items-center gap-2">
+                    <AlertCircle size={16} /> Esgotados ({outOfStockSkus.length})
+                  </h3>
+                  <div className="bg-red-50 rounded-xl p-4 space-y-2 border border-red-100">
+                    {outOfStockSkus.map((item, idx) => (
+                      <div key={idx} className="flex justify-between text-xs border-b border-red-200/50 last:border-0 pb-1 last:pb-0">
+                        <div className="flex flex-col">
+                          <span className="font-bold text-red-900">{item.name}</span>
+                          <span className="font-mono text-[10px] text-red-700">{item.sku}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {lastUnitsSkus.length === 0 && outOfStockSkus.length === 0 && (
+                <div className="text-center py-8 text-slate-400 italic text-sm">
+                  Nenhuma alteração de status detectada.
+                </div>
+              )}
+            </div>
+
+            <button 
+              onClick={() => { setShowSyncReport(false); setLastUnitsSkus([]); setOutOfStockSkus([]); }}
+              className="w-full py-3 bg-primary text-white rounded-xl font-bold hover:bg-primary/60 transition-colors shrink-0"
+            >
+              Fechar Relatório
             </button>
           </div>
         </div>

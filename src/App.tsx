@@ -42,9 +42,43 @@ import { Badge } from './components/Badge';
 import { Dashboard, Produtos, Clientes, Pedidos, Configuracoes, Marcas, Upload, Pendencias, Vendedores } from './pages';
 import ProductFormModal from './components/ProductFormModal';
 import CartScreen from './pages/CartScreen';
+import Banner from './components/Banner';
 import { formatWhatsAppMessage } from './utils/whatsapp';
 
 // --- Helper Components ---
+
+function TopBar() {
+  const [current, setCurrent] = useState(0);
+  const messages = [
+    '✨ FRETE GRÁTIS acima de R$ 99 em todo o Brasil',
+    '💳 Pagamento em até 12x sem juros no cartão',
+    '📦 Entrega expressa disponível para sua região',
+    '🎁 Compre 3 e ganhe 10% de desconto extra',
+  ];
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrent(prev => (prev + 1) % messages.length);
+    }, 4000);
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <div className="purple-gradient text-white/90 text-[11px] md:text-xs text-center py-2 px-4 letter-spacing-[0.4px] relative z-[110]">
+      <AnimatePresence mode="wait">
+        <motion.span
+          key={current}
+          initial={{ opacity: 0, y: 5 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -5 }}
+          className="inline-block"
+        >
+          {messages[current]}
+        </motion.span>
+      </AnimatePresence>
+    </div>
+  );
+}
 
 function SidebarItem({ icon, label, active, onClick }: { icon: React.ReactNode, label: string, active: boolean, onClick: () => void }) {
   return (
@@ -352,7 +386,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-nude font-sans text-slate-800 pb-24">
+    <div className="min-h-screen bg-nude font-sans text-slate-800">
       <AnimatePresence>
         {zoomImage && (
           <div 
@@ -439,43 +473,69 @@ export default function App() {
           <CompanyInfoModal company={company} onClose={() => setShowCompanyInfo(false)} />
         )}
       </AnimatePresence>
+
+      <TopBar />
+
       {/* Header */}
-      <header className="glass-effect px-6 py-4 sticky top-0 z-40 flex items-center justify-between shadow-sm">
-        <button onClick={() => setIsSidebarOpen(true)} className="p-2 -ml-2 text-slate-600 hover:text-primary transition-colors">
-          <Menu size={24} />
-        </button>
-        <div className="flex items-center gap-2 flex-1 ml-2">
-          {company?.logo_url ? (
-            <img src={company.logo_url} alt={company.nome} className="w-8 h-8 rounded-lg object-cover shadow-sm" />
-          ) : (
-            <div className="w-8 h-8 blue-gradient rounded-lg flex items-center justify-center text-white shadow-sm shrink-0">
-              <CheckCircle2 size={18} />
-            </div>
-          )}
-          
-          {availableCompanies.length > 1 ? (
-            <select 
-              value={activeCompanyId || ''} 
-              onChange={(e) => handleCompanyChange(e.target.value)}
-              className="bg-transparent text-xl font-bold tracking-tight text-slate-900 outline-none cursor-pointer appearance-none truncate max-w-[150px] sm:max-w-xs"
-            >
-              {availableCompanies.map(c => (
-                <option key={c.id} value={c.id}>{c.nome}</option>
-              ))}
-            </select>
-          ) : (
-            <h1 className="text-xl font-bold tracking-tight text-slate-900 truncate">{company?.nome || 'VendPro'}</h1>
-          )}
-        </div>
+      <header className="glass-effect px-4 md:px-8 py-4 sticky top-0 z-40 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-4">
-          <button onClick={() => setActiveTab('cart')} className="relative p-2 text-slate-600 hover:text-primary transition-colors">
-            <ShoppingCart size={24} />
-            {cart.length > 0 && (
-              <span className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full shadow-sm">
-                {cart.length}
-              </span>
-            )}
+          <button onClick={() => setIsSidebarOpen(true)} className="p-2 -ml-2 text-slate-600 hover:text-primary transition-colors">
+            <Menu size={24} />
           </button>
+          <div className="flex items-center gap-3">
+            {company?.logo_url ? (
+              <img src={company.logo_url} alt={company.nome} className="w-10 h-10 rounded-xl object-cover shadow-sm" />
+            ) : (
+              <div className="w-10 h-10 pink-gradient rounded-xl flex items-center justify-center text-white shadow-sm shrink-0">
+                <CheckCircle2 size={24} />
+              </div>
+            )}
+            
+            <div className="hidden sm:block">
+              {availableCompanies.length > 1 ? (
+                <select 
+                  value={activeCompanyId || ''} 
+                  onChange={(e) => handleCompanyChange(e.target.value)}
+                  className="bg-transparent text-xl font-bold tracking-tight text-slate-900 outline-none cursor-pointer appearance-none"
+                >
+                  {availableCompanies.map(c => (
+                    <option key={c.id} value={c.id}>{c.nome}</option>
+                  ))}
+                </select>
+              ) : (
+                <h1 className="text-xl font-bold tracking-tight text-slate-900">{company?.nome || 'VendPro'}</h1>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 md:gap-6">
+          <div className="hidden lg:flex items-center bg-slate-100 rounded-full px-4 py-2 w-80">
+            <Search size={18} className="text-slate-400 mr-2" />
+            <input 
+              type="text" 
+              placeholder="Buscar produtos..." 
+              className="bg-transparent border-none outline-none text-sm w-full font-medium"
+              onFocus={() => setActiveTab('catalog')}
+            />
+          </div>
+
+          <div className="flex items-center gap-2 md:gap-4">
+            <button onClick={() => setActiveTab('cart')} className="relative p-2.5 bg-slate-100 text-slate-600 hover:text-primary hover:bg-primary/10 rounded-full transition-all">
+              <ShoppingCart size={22} />
+              {cart.length > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 pink-gradient text-white text-[10px] font-bold flex items-center justify-center rounded-full shadow-md border-2 border-white">
+                  {cart.length}
+                </span>
+              )}
+            </button>
+            
+            {effectiveRole !== 'customer' && (
+              <button onClick={() => setActiveTab('account')} className="p-2.5 bg-slate-100 text-slate-600 hover:text-primary hover:bg-primary/10 rounded-full transition-all">
+                <User size={22} />
+              </button>
+            )}
+          </div>
         </div>
       </header>
 
@@ -488,24 +548,20 @@ export default function App() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsSidebarOpen(false)}
-              className="fixed inset-0 bg-slate-900/20 z-50 backdrop-blur-sm"
+              className="fixed inset-0 bg-slate-900/40 z-50 backdrop-blur-sm"
             />
             <motion.div 
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
-              className="fixed inset-y-0 left-0 w-72 bg-white z-50 shadow-2xl p-6 flex flex-col"
+              className="fixed inset-y-0 left-0 w-80 bg-white z-50 shadow-2xl p-8 flex flex-col"
             >
-              <div className="flex items-center justify-between mb-10">
-                <div className="flex items-center gap-2">
-                  {company?.logo_url ? (
-                    <img src={company.logo_url} alt={company.nome} className="w-10 h-10 rounded-xl object-cover shadow-md" />
-                  ) : (
-                    <div className="w-10 h-10 blue-gradient rounded-xl flex items-center justify-center text-white shadow-md">
-                      <CheckCircle2 size={24} />
-                    </div>
-                  )}
-                  <h2 className="text-2xl font-bold text-slate-900">{company?.nome || 'VendPro'}</h2>
+              <div className="flex items-center justify-between mb-12">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 pink-gradient rounded-xl flex items-center justify-center text-white shadow-lg">
+                    <CheckCircle2 size={24} />
+                  </div>
+                  <h2 className="text-2xl font-bold text-slate-900">VendPro</h2>
                 </div>
                 <button onClick={() => setIsSidebarOpen(false)} className="p-2 text-slate-400 hover:text-primary transition-colors"><X size={24} /></button>
               </div>
@@ -564,20 +620,22 @@ export default function App() {
                 )}
               </nav>
 
-              <button 
-                onClick={handleLogout}
-                className="mt-auto flex items-center gap-3 px-4 py-4 text-rose-500 font-semibold hover:bg-rose-50 rounded-2xl transition-all active:scale-95"
-              >
-                <LogOut size={20} />
-                Sair da Conta
-              </button>
+              <div className="mt-auto pt-8 border-t border-slate-100">
+                <button 
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-slate-500 font-bold uppercase text-[10px] tracking-widest hover:text-rose-500 transition-colors"
+                >
+                  <LogOut size={18} />
+                  Sair do Sistema
+                </button>
+              </div>
             </motion.div>
           </>
         )}
       </AnimatePresence>
 
       {/* Main Content */}
-      <main className="p-4 max-w-5xl mx-auto relative">
+      <main className="flex-1 w-full relative">
         {viewMode === 'customer' && role !== 'customer' && (
           <button
             onClick={() => setViewMode('admin')}
@@ -599,16 +657,19 @@ export default function App() {
             onZoom={setZoomImage}
           />
         )}
-        {activeTab === 'cart' && <CartScreen cart={cart} total={total} onUpdateQuantity={updateQuantity} onRemove={removeFromCart} onSendOrder={handleSendOrder} />}
-        {activeTab === 'dashboard' && <Dashboard companyId={activeCompanyId} role={role} user={user} />}
-        {activeTab === 'produtos' && <Produtos companyId={activeCompanyId} onRefresh={loadData} />}
-        {activeTab === 'upload' && <Upload companyId={activeCompanyId} onRefresh={loadData} />}
-        {activeTab === 'pendencias' && <Pendencias companyId={activeCompanyId} onRefresh={loadData} />}
-        {activeTab === 'marcas' && <Marcas companyId={activeCompanyId} />}
-        {activeTab === 'vendedores' && <Vendedores companyId={activeCompanyId} />}
-        {activeTab === 'clientes' && <Clientes companyId={activeCompanyId} role={role} user={user} />}
-        {activeTab === 'pedidos' && <Pedidos companyId={activeCompanyId} />}
-        {activeTab === 'account' && <Configuracoes companyId={activeCompanyId} user={user} role={role} onLogout={handleLogout} />}
+        
+        <div className="max-w-7xl mx-auto px-4 md:px-8 py-8">
+          {activeTab === 'cart' && <CartScreen cart={cart} total={total} onUpdateQuantity={updateQuantity} onRemove={removeFromCart} onSendOrder={handleSendOrder} />}
+          {activeTab === 'dashboard' && <Dashboard companyId={activeCompanyId} role={role} user={user} />}
+          {activeTab === 'produtos' && <Produtos companyId={activeCompanyId} onRefresh={loadData} />}
+          {activeTab === 'upload' && <Upload companyId={activeCompanyId} onRefresh={loadData} />}
+          {activeTab === 'pendencias' && <Pendencias companyId={activeCompanyId} onRefresh={loadData} />}
+          {activeTab === 'marcas' && <Marcas companyId={activeCompanyId} />}
+          {activeTab === 'vendedores' && <Vendedores companyId={activeCompanyId} />}
+          {activeTab === 'clientes' && <Clientes companyId={activeCompanyId} role={role} user={user} />}
+          {activeTab === 'pedidos' && <Pedidos companyId={activeCompanyId} />}
+          {activeTab === 'account' && <Configuracoes companyId={activeCompanyId} user={user} role={role} onLogout={handleLogout} />}
+        </div>
       </main>
 
       <AnimatePresence>
@@ -1307,164 +1368,135 @@ function CatalogScreen({ products, categories, brands, onAddToCart, onEdit, role
   const visibleCategories = selectedBrand ? categories.filter(c => c.brand_id === selectedBrand) : categories;
 
   return (
-    <div className="space-y-8">
-      {/* Hero Banner */}
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="blue-gradient rounded-[32px] p-8 text-white relative overflow-hidden shadow-xl shadow-primary/20"
-      >
-        <div className="relative z-10 max-w-[60%]">
-          <h2 className="text-3xl font-bold mb-2 leading-tight">Beleza que Transforma</h2>
-          <p className="text-white/80 text-xs font-medium uppercase tracking-widest mb-6">Coleção Premium 2026</p>
-          <div className="flex gap-3">
-            {role === 'company' && (
-              <button 
-                onClick={() => onEdit({ id: 'new', company_id: '', sku: '', nome: '', preco_unitario: 0, preco_box: 0, qtd_box: 0, venda_somente_box: false, status_estoque: 'normal', categoria_pendente: true, imagem_pendente: true, has_box_discount: false, is_last_units: false } as any)}
-                className="bg-white text-primary px-6 py-2.5 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-lg active:scale-95 transition-transform flex items-center gap-2"
-              >
-                <Plus size={14} />
-                Novo Produto
-              </button>
-            )}
-          </div>
-        </div>
-        <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
-        <div className="absolute right-4 bottom-4 opacity-20">
-          <Package size={120} strokeWidth={1} />
-        </div>
-      </motion.div>
+    <div className="space-y-0">
+      <Banner />
 
-      <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-        <div className="relative group w-full md:max-w-md">
-          <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-primary transition-colors" size={20} />
-          <input 
-            type="text" 
-            placeholder="O que você procura hoje?" 
-            className="w-full pl-14 pr-6 py-4.5 bg-white rounded-2xl border border-slate-100 shadow-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-slate-700 font-medium"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
-        </div>
-
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 whitespace-nowrap">Exibir:</span>
-          <select 
-            value={itemsPerPage}
-            onChange={e => setItemsPerPage(Number(e.target.value))}
-            className="bg-white border border-slate-100 rounded-xl px-4 py-2 text-xs font-bold text-slate-600 outline-none focus:border-primary"
-          >
-            <option value={12}>12 itens</option>
-            <option value={24}>24 itens</option>
-            <option value={48}>48 itens</option>
-            <option value={96}>96 itens</option>
-          </select>
-        </div>
-      </div>
-
-      <div className="space-y-4">
-        {brands.length > 0 && (
-          <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar">
-            <button 
-              onClick={() => { setSelectedBrand(null); setSelectedCategory(null); }}
-              className={`px-6 py-2.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${!selectedBrand ? 'bg-slate-800 text-white shadow-md' : 'bg-white text-slate-500 border border-slate-100 hover:border-slate-300'}`}
-            >
-              Todas as Marcas
-            </button>
-            {[...brands].sort((a, b) => (a.order_index || 0) - (b.order_index || 0)).map(brand => (
-              <button 
-                key={brand.id}
-                onClick={() => { setSelectedBrand(brand.id); setSelectedCategory(null); }}
-                className={`px-6 py-2.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${selectedBrand === brand.id ? 'bg-slate-800 text-white shadow-md' : 'bg-white text-slate-500 border border-slate-100 hover:border-slate-300'}`}
-              >
-                {brand.name}
-              </button>
-            ))}
-          </div>
-        )}
-
-        <div className="flex gap-3 overflow-x-auto pb-4 no-scrollbar">
+      <div className="max-w-[1600px] mx-auto px-4 md:px-8 py-12">
+        {/* Category Bar */}
+        <div className="flex items-center gap-4 mb-12 overflow-x-auto pb-4 custom-scrollbar">
           <button 
-            onClick={() => setSelectedCategory(null)}
-            className={`px-6 py-2.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${!selectedCategory ? 'bg-primary text-white shadow-md shadow-primary/20' : 'bg-white text-slate-500 border border-slate-100 hover:border-primary/30'}`}
+            onClick={() => { setSelectedBrand(null); setSelectedCategory(null); }}
+            className={`px-6 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all ${!selectedBrand && !selectedCategory ? 'pink-gradient text-white shadow-lg shadow-primary/20' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
           >
-            Todas as Categorias
+            Todos
           </button>
-          {[...visibleCategories].sort((a, b) => (a.order_index || 0) - (b.order_index || 0)).map(cat => (
+          {brands.map(brand => (
             <button 
-              key={cat.id}
-              onClick={() => setSelectedCategory(cat.id)}
-              className={`px-6 py-2.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${selectedCategory === cat.id ? 'bg-primary text-white shadow-md shadow-primary/20' : 'bg-white text-slate-500 border border-slate-100 hover:border-primary/30'}`}
+              key={brand.id}
+              onClick={() => { setSelectedBrand(brand.id); setSelectedCategory(null); }}
+              className={`px-6 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all ${selectedBrand === brand.id ? 'pink-gradient text-white shadow-lg shadow-primary/20' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
             >
-              {cat.nome}
+              {brand.name}
             </button>
           ))}
         </div>
-      </div>
 
-      {paginatedProducts.length === 0 ? (
-        <div className="py-32 text-center space-y-4">
-          <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto text-slate-200">
-            <Search size={40} />
-          </div>
-          <p className="text-slate-400 font-medium">Nenhum produto encontrado.</p>
-        </div>
-      ) : (
-        <>
-          <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {paginatedProducts.map(product => (
-              <ProductCard 
-                key={product.id} 
-                product={product} 
-                onAdd={onAddToCart} 
-                onEdit={onEdit} 
-                role={role} 
-                onZoom={onZoom}
-              />
-            ))}
-          </div>
-
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 pt-10">
-              <button 
-                disabled={currentPage === 1}
-                onClick={() => setCurrentPage(prev => prev - 1)}
-                className="p-3 rounded-xl bg-white border border-slate-100 text-slate-400 disabled:opacity-30 hover:text-primary transition-colors"
-              >
-                <ChevronLeft size={20} />
-              </button>
-              
-              <div className="flex items-center gap-1">
-                {[...Array(totalPages)].map((_, i) => {
-                  const page = i + 1;
-                  if (page === 1 || page === totalPages || (page >= currentPage - 1 && page <= currentPage + 1)) {
-                    return (
-                      <button 
-                        key={page}
-                        onClick={() => setCurrentPage(page)}
-                        className={`w-10 h-10 rounded-xl text-xs font-bold transition-all ${currentPage === page ? 'bg-primary text-white shadow-md' : 'bg-white text-slate-400 border border-slate-100 hover:border-primary/30'}`}
-                      >
-                        {page}
-                      </button>
-                    );
-                  } else if (page === currentPage - 2 || page === currentPage + 2) {
-                    return <span key={page} className="text-slate-300 px-1">...</span>;
-                  }
-                  return null;
-                })}
+        <div className="flex flex-col lg:flex-row gap-12">
+          {/* Sidebar Filters */}
+          <aside className="lg:w-64 shrink-0 space-y-10">
+            <div>
+              <h3 className="font-display text-xl font-bold mb-6 text-slate-900">Categorias</h3>
+              <div className="space-y-2">
+                <button 
+                  onClick={() => setSelectedCategory(null)}
+                  className={`w-full text-left px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${!selectedCategory ? 'bg-primary/10 text-primary' : 'text-slate-500 hover:bg-slate-50'}`}
+                >
+                  Todas as Categorias
+                </button>
+                {[...visibleCategories].sort((a, b) => (a.order_index || 0) - (b.order_index || 0)).map(cat => (
+                  <button 
+                    key={cat.id}
+                    onClick={() => setSelectedCategory(cat.id)}
+                    className={`w-full text-left px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${selectedCategory === cat.id ? 'bg-primary/10 text-primary' : 'text-slate-500 hover:bg-slate-50'}`}
+                  >
+                    {cat.nome}
+                  </button>
+                ))}
               </div>
-
-              <button 
-                disabled={currentPage === totalPages}
-                onClick={() => setCurrentPage(prev => prev + 1)}
-                className="p-3 rounded-xl bg-white border border-slate-100 text-slate-400 disabled:opacity-30 hover:text-primary transition-colors"
-              >
-                <ChevronRight size={20} />
-              </button>
             </div>
-          )}
-        </>
-      )}
+
+            <div className="p-6 bg-slate-900 rounded-3xl text-white relative overflow-hidden group">
+              <div className="relative z-10">
+                <h4 className="font-display text-lg font-bold mb-2">Suporte VIP</h4>
+                <p className="text-xs text-white/60 mb-6 leading-relaxed">Dúvidas sobre produtos ou pedidos? Fale com seu consultor.</p>
+                <button className="w-full py-3 bg-white text-slate-900 rounded-xl text-xs font-bold hover:bg-primary hover:text-white transition-all">
+                  WhatsApp Direto
+                </button>
+              </div>
+              <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-primary/20 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700" />
+            </div>
+          </aside>
+
+          {/* Product Grid */}
+          <div className="flex-1">
+            <div className="flex items-center justify-between mb-8">
+              <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">
+                Mostrando <span className="text-slate-900">{filtered.length}</span> produtos
+              </p>
+              
+              <div className="flex items-center gap-4">
+                <select 
+                  className="bg-white border-none text-xs font-bold text-slate-600 rounded-xl px-4 py-2 outline-none cursor-pointer"
+                  value={itemsPerPage}
+                  onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                >
+                  <option value={24}>24 por página</option>
+                  <option value={48}>48 por página</option>
+                  <option value={96}>96 por página</option>
+                </select>
+              </div>
+            </div>
+
+            {paginatedProducts.length === 0 ? (
+              <div className="py-32 text-center space-y-4">
+                <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto text-slate-200">
+                  <Search size={40} />
+                </div>
+                <p className="text-slate-400 font-medium">Nenhum produto encontrado.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
+                {paginatedProducts.map(p => (
+                  <ProductCard key={p.id} product={p} onAdd={onAddToCart} onEdit={onEdit} role={role} onZoom={onZoom} />
+                ))}
+              </div>
+            )}
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="mt-16 flex items-center justify-center gap-2">
+                <button 
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(prev => prev - 1)}
+                  className="p-3 bg-white rounded-xl text-slate-400 hover:text-primary disabled:opacity-30 transition-all"
+                >
+                  <ChevronLeft size={20} />
+                </button>
+                
+                <div className="flex items-center gap-2">
+                  {[...Array(totalPages)].map((_, i) => (
+                    <button 
+                      key={i}
+                      onClick={() => setCurrentPage(i + 1)}
+                      className={`w-10 h-10 rounded-xl text-sm font-bold transition-all ${currentPage === i + 1 ? 'pink-gradient text-white shadow-lg shadow-primary/20' : 'bg-white text-slate-400 hover:bg-slate-50'}`}
+                    >
+                      {i + 1}
+                    </button>
+                  ))}
+                </div>
+
+                <button 
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage(prev => prev - 1)}
+                  className="p-3 bg-white rounded-xl text-slate-400 hover:text-primary disabled:opacity-30 transition-all"
+                >
+                  <ChevronRight size={20} />
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -1485,27 +1517,27 @@ function ProductCard({ product, onAdd, onEdit, role, onZoom, ...props }: { produ
   };
 
   return (
-    <Card className={`p-4 flex flex-col group hover:border-primary/20 transition-all ${isEsgotado ? 'opacity-75 grayscale-[0.5]' : ''}`}>
-      <div className="relative aspect-square mb-4 rounded-2xl overflow-hidden bg-slate-50 cursor-zoom-in" onClick={() => onZoom(product.imagem || '')}>
-        <img src={product.imagem || `https://picsum.photos/seed/${product.sku}/400/400`} className="w-full h-full object-contain p-2" alt={product.nome} referrerPolicy="no-referrer" />
-        <div className="absolute top-2 w-full flex flex-col gap-1.5 items-center">
+    <Card className={`p-4 flex flex-col group hover:border-primary/20 transition-all card-shadow rounded-3xl ${isEsgotado ? 'opacity-75 grayscale-[0.5]' : ''}`}>
+      <div className="relative aspect-square mb-6 rounded-2xl overflow-hidden bg-slate-50 cursor-zoom-in group-hover:scale-[1.02] transition-transform duration-500" onClick={() => onZoom(product.imagem || '')}>
+        <img src={product.imagem || `https://picsum.photos/seed/${product.sku}/400/400`} className="w-full h-full object-contain p-4" alt={product.nome} referrerPolicy="no-referrer" />
+        <div className="absolute top-3 w-full flex flex-col gap-1.5 items-center">
           {isEsgotado && <span className="bg-slate-800 text-white text-[10px] font-bold px-3 py-1 rounded-lg shadow-lg uppercase tracking-wider">Esgotado</span>}
           {!isEsgotado && product.is_last_units && <span className="bg-rose-500 text-white text-[10px] font-bold px-3 py-1 rounded-lg shadow-lg uppercase tracking-wider">Últimas Unidades</span>}
           {product.venda_somente_box && <span className="bg-amber-500 text-white text-[10px] font-bold px-3 py-1 rounded-lg shadow-lg uppercase tracking-wider">Somente Box</span>}
         </div>
       </div>
       
-      <div className="text-center mb-4">
-        <h3 className="font-bold text-slate-800 text-sm leading-tight mb-1">{product.nome}</h3>
-        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-2">SKU: {product.sku}</p>
+      <div className="text-center mb-6">
+        <h3 className="font-bold text-slate-800 text-sm leading-tight mb-2 min-h-[2.5rem] flex items-center justify-center">{product.nome}</h3>
+        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-3">SKU: {product.sku}</p>
         
         {!isEsgotado && (
-          <p className="text-xl font-black text-primary">R$ {(product.preco_unitario || 0).toFixed(2)}</p>
+          <p className="text-2xl font-black text-primary">R$ {(product.preco_unitario || 0).toFixed(2)}</p>
         )}
       </div>
 
       {(product.has_box_discount || product.venda_somente_box) && !isEsgotado && (
-        <div className="mb-4 pt-3 border-t border-slate-50 text-sm font-bold text-emerald-600 text-center">
+        <div className="mb-6 py-3 bg-emerald-50/50 rounded-2xl text-[11px] font-bold text-emerald-600 text-center">
           {!product.venda_somente_box ? (
             `A partir de ${product.qtd_box} un: R$ ${(product.preco_box || 0).toFixed(2)}`
           ) : (
@@ -1514,18 +1546,18 @@ function ProductCard({ product, onAdd, onEdit, role, onZoom, ...props }: { produ
         </div>
       )}
 
-      <div className="mt-auto flex flex-col items-center gap-3">
-        <div className="flex items-center bg-slate-100 rounded-xl p-1.5">
-          <button onClick={handleSubQty} disabled={isEsgotado} className="p-1.5 text-slate-600 hover:bg-white rounded-lg disabled:opacity-50 transition-colors"><Minus size={18}/></button>
-          <span className="text-sm font-bold w-10 text-center">{qty}</span>
-          <button onClick={handleAddQty} disabled={isEsgotado} className="p-1.5 text-slate-600 hover:bg-white rounded-lg disabled:opacity-50 transition-colors"><Plus size={18}/></button>
+      <div className="mt-auto flex flex-col items-center gap-4">
+        <div className="flex items-center bg-slate-100 rounded-2xl p-1.5 w-full justify-between">
+          <button onClick={handleSubQty} disabled={isEsgotado} className="p-2 text-slate-600 hover:bg-white hover:text-primary rounded-xl disabled:opacity-50 transition-all"><Minus size={18}/></button>
+          <span className="text-sm font-bold text-slate-700">{qty}</span>
+          <button onClick={handleAddQty} disabled={isEsgotado} className="p-2 text-slate-600 hover:bg-white hover:text-primary rounded-xl disabled:opacity-50 transition-all"><Plus size={18}/></button>
         </div>
         <button 
           onClick={() => onAdd(product, qty)} 
           disabled={isEsgotado}
-          className="w-full py-3 bg-primary text-white rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-primary/20 active:scale-95 transition-all disabled:opacity-50 disabled:active:scale-100"
+          className="w-full py-4 pink-gradient text-white rounded-2xl font-bold text-sm shadow-lg shadow-primary/20 hover:scale-[0.98] active:scale-95 disabled:opacity-50 transition-all"
         >
-          <ShoppingCart size={18} />
+          <ShoppingCart size={18} className="inline-block mr-2" />
           Adicionar
         </button>
       </div>

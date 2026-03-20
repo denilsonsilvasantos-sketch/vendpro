@@ -1,56 +1,63 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Playfair+Display:ital,wght@0,700;1,700&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Playfair Display", serif;
+  --font-sans: "DM Sans", sans-serif;
   
-  --color-primary: var(--vendpro-primary, #0072FF);
-  --color-primary-light: var(--vendpro-primary-light, #F0F7FF);
-  --color-primary-dark: var(--vendpro-primary-dark, #0056B3);
-  
-  --color-nude: #FDFBFB;
-  --color-gold: #00D2FF;
-  --color-gold-soft: #E0F7FA;
-  
-  --radius-xl: 12px;
-  --radius-2xl: 16px;
+  --color-primary: #E8257A;
+  --color-primary-dark: #C21863;
+  --color-primary-light: #FF4D9D;
+  --color-nude: #FDF9F8;
+  --color-slate-50: #F8FAFC;
+  --color-slate-100: #F1F5F9;
+  --color-slate-200: #E2E8F0;
+  --color-slate-400: #94A3B8;
+  --color-slate-500: #64748B;
+  --color-slate-600: #475569;
+  --color-slate-700: #334155;
+  --color-slate-800: #1E293B;
+  --color-slate-900: #0F172A;
+
+  --radius-xl: 16px;
+  --radius-2xl: 24px;
+  --radius-3xl: 32px;
 }
 
 @layer base {
   body {
-    @apply bg-nude text-slate-800 font-sans;
+    @apply bg-nude font-sans text-slate-800 antialiased;
+  }
+}
+
+@layer components {
+  .glass-effect {
+    @apply bg-white/80 backdrop-blur-md border-b border-white/20;
   }
   
-  h1, h2, h3, h4, h5, h6 {
-    @apply font-display;
+  .pink-gradient {
+    @apply bg-gradient-to-br from-[#E8257A] to-[#FF4D9D];
   }
-}
 
-.glass-effect {
-  @apply bg-white/80 backdrop-blur-md border border-white/20;
-}
+  .purple-gradient {
+    @apply bg-gradient-to-br from-[#4A1680] to-[#7B2FBE];
+  }
 
-.card-shadow {
-  @apply shadow-[0_8px_30px_rgb(0,0,0,0.04)];
-}
+  .blue-gradient {
+    @apply bg-gradient-to-br from-[#1E293B] to-[#475569];
+  }
 
-.blue-gradient {
-  @apply bg-gradient-to-br from-primary to-primary-dark;
-}
+  .card-shadow {
+    @apply shadow-[0_8px_30px_rgb(0,0,0,0.04)];
+  }
 
-.custom-scrollbar::-webkit-scrollbar {
-  width: 4px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  @apply bg-slate-100 rounded-full;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  @apply bg-slate-200;
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-slate-200 rounded-full;
+  }
 }

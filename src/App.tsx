@@ -1421,24 +1421,22 @@ function CatalogScreen({
   };
 
   const confirmBrandSwitch = (save: boolean) => {
-    if (pendingBrandId) {
-      setSelectedBrand(pendingBrandId);
-      setSelectedCategory(null);
-      setShowSwitchWarning(false);
-      setShowLogisticsWarning(true);
-      if (!save) {
-        // If they don't want to save, we'd clear the cart, but our useCart handles per-brand carts.
-        // "Save for later" means just switching. "Finalize" means going to cart.
-      }
-    }
+    setShowSwitchWarning(false);
+    setShowLogisticsWarning(true);
   };
 
   const handleAcknowledgeLogistics = () => {
-    setShowLogisticsWarning(false);
-    // After logistics warning, we show conditions if not acknowledged
-    if (pendingBrandId && !acknowledgedBrands.has(pendingBrandId)) {
-      setShowConditions(true);
+    if (pendingBrandId) {
+      setSelectedBrand(pendingBrandId);
+      setSelectedCategory(null);
+      
+      // After logistics warning, we show conditions if not acknowledged
+      if (!acknowledgedBrands.has(pendingBrandId)) {
+        setShowConditions(true);
+      }
+      setPendingBrandId(null);
     }
+    setShowLogisticsWarning(false);
   };
 
   const handleAcknowledgeConditions = () => {

@@ -17,18 +17,22 @@ export default function Dashboard({ companyId, role, user }: { companyId: string
       
       let releasedBrandIds: string[] = [];
       
-      // If seller, fetch released brands
+      // If seller, fetch released brands from DB to be sure it's fresh
       if (role === 'seller' && user?.id) {
-        releasedBrandIds = user.marcas_liberadas || [];
+        const { data: sellerData } = await supabase
+          .from('sellers')
+          .select('marcas_liberadas')
+          .eq('id', user.id)
+          .maybeSingle();
+        
+        releasedBrandIds = sellerData?.marcas_liberadas || user.marcas_liberadas || [];
       }
       
       // Fetch counts
       let productQuery = supabase.from('products').select('*', { count: 'exact', head: true }).eq('company_id', companyId);
+      
       if (role === 'seller' && releasedBrandIds.length > 0) {
         productQuery = productQuery.in('brand_id', releasedBrandIds);
-      } else if (role === 'seller' && releasedBrandIds.length === 0) {
-        // If seller has no brands released, they see 0 products
-        productQuery = productQuery.eq('id', 'none'); 
       }
       
       const { count: productCount } = await productQuery;

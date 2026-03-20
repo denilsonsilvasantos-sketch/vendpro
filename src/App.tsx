@@ -201,6 +201,7 @@ export default function App() {
   const [brands, setBrands] = useState<Brand[]>([]);
   const [company, setCompany] = useState<any>(null);
   const [availableCompanies, setAvailableCompanies] = useState<any[]>(() => JSON.parse(localStorage.getItem('vendpro_available_companies') || '[]'));
+  const [availableSellers, setAvailableSellers] = useState<any[]>(() => JSON.parse(localStorage.getItem('vendpro_sellers') || '[]'));
   const [activeCompanyId, setActiveCompanyId] = useState<string | null>(() => {
     const saved = localStorage.getItem('vendpro_active_company_id');
     const isValidUUID = saved && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(saved);
@@ -318,9 +319,6 @@ export default function App() {
           if (role === 'seller' && releasedBrandIds.length > 0) {
             brandQuery = brandQuery.in('id', releasedBrandIds);
             filteredCats = filteredCats.filter(c => c.brand_id && releasedBrandIds.includes(c.brand_id));
-          } else if (role === 'seller' && releasedBrandIds.length === 0) {
-            brandQuery = brandQuery.eq('id', 'none');
-            filteredCats = [];
           }
 
           const { data: brandData } = await brandQuery;
@@ -348,10 +346,11 @@ export default function App() {
     loadData();
   }, [activeCompanyId]);
 
-  const handleLogin = (selectedRole: UserRole, userData: any, companies: any[] = []) => {
+  const handleLogin = (selectedRole: UserRole, userData: any, companies: any[] = [], sellers: any[] = []) => {
     setRole(selectedRole);
     setUser(userData);
     setAvailableCompanies(companies);
+    setAvailableSellers(sellers);
     
     if (companies.length === 1) {
       setActiveCompanyId(companies[0].id);
@@ -367,6 +366,7 @@ export default function App() {
     localStorage.setItem('vendpro_role', selectedRole as string);
     localStorage.setItem('vendpro_user', JSON.stringify(userData));
     localStorage.setItem('vendpro_available_companies', JSON.stringify(companies));
+    localStorage.setItem('vendpro_sellers', JSON.stringify(sellers));
     setActiveTab('catalog');
   };
 
@@ -374,12 +374,14 @@ export default function App() {
     setRole(null);
     setUser(null);
     setAvailableCompanies([]);
+    setAvailableSellers([]);
     setActiveCompanyId(null);
     localStorage.removeItem('vendpro_role');
     localStorage.removeItem('vendpro_user');
     localStorage.removeItem('vendpro_seller_code');
     localStorage.removeItem('vendpro_available_companies');
     localStorage.removeItem('vendpro_active_company_id');
+    localStorage.removeItem('vendpro_sellers');
   };
 
   if (!role) {
@@ -398,6 +400,16 @@ export default function App() {
         onSelect={(c) => {
           setActiveCompanyId(c.id);
           localStorage.setItem('vendpro_active_company_id', c.id.toString());
+          
+          // If seller, find the corresponding seller record for this company
+          if (role === 'seller' && availableSellers.length > 0) {
+            const sellerForCompany = availableSellers.find(s => s.company_id === c.id);
+            if (sellerForCompany) {
+              setUser(sellerForCompany);
+              localStorage.setItem('vendpro_user', JSON.stringify(sellerForCompany));
+            }
+          }
+          
           setShowCompanyInfo(true);
           // fetchData(); // Assuming fetchData is defined elsewhere or not needed
         }} 
@@ -822,7 +834,7 @@ function CompanyInfoModal({ company, onClose }: { company: any, onClose: () => v
     </div>
   );
 }
-function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, companies?: any[]) => void }) {
+function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, companies?: any[], sellers?: any[]) => void }) {
   const [view, setView] = useState<'role' | 'seller-code' | 'customer-form' | 'company-login' | 'company-register'>('role');
   const [loginType, setLoginType] = useState<'seller' | 'customer' | 'admin' | 'company' | null>(null);
   const [sellerCode, setSellerCode] = useState('');
@@ -859,10 +871,11 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
         try {
           // Use type: 'customer' for auto-validation from URL link
           const result = await validateSellerCode(savedCode, 'customer');
-          if (result.success) {
-            console.log("Código validado com sucesso:", result.seller.nome);
+          if (result.success && result.sellers && result.sellers.length > 0) {
+            const mainSeller = result.sellers[0];
+            console.log("Código validado com sucesso:", mainSeller.nome);
             setSellerCode(savedCode);
-            setSellerInfo(result.seller);
+            setSellerInfo(mainSeller);
             setAvailableCompanies(result.companies || []);
             setLoginType('customer');
             setView('customer-form');
@@ -902,11 +915,12 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
     const validationType = loginType === 'seller' ? 'seller' : 'customer';
     const result = await validateSellerCode(code, validationType);
     
-    if (result.success) {
-      setSellerInfo(result.seller);
+    if (result.success && result.sellers && result.sellers.length > 0) {
+      const mainSeller = result.sellers[0];
+      setSellerInfo(mainSeller);
       setAvailableCompanies(result.companies || []);
       if (loginType === 'seller') {
-        onLogin('seller', result.seller, result.companies);
+        onLogin('seller', mainSeller, result.companies, result.sellers);
       } else {
         setView('customer-form');
       }

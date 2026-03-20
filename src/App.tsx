@@ -236,7 +236,7 @@ export default function App() {
     addToCart(product, quantity);
   };
 
-  const handleSendOrder = (manualClientName?: string) => {
+  const handleSendOrder = async (manualClientName?: string) => {
     let whatsappNumber = '';
     
     if (role === 'customer' && user) {
@@ -249,6 +249,59 @@ export default function App() {
 
     if (whatsappNumber) {
       const clientName = manualClientName || (role === 'customer' ? user?.nome : (role === 'seller' ? `Vendedor: ${user?.nome}` : ''));
+      
+      // Save order to database if supabase is available
+      if (supabase && activeCompanyId && selectedBrand) {
+        try {
+          const orderData = {
+            company_id: activeCompanyId,
+            customer_id: role === 'customer' ? user.id : null,
+            seller_id: role === 'customer' ? user.seller_id : (role === 'seller' ? user.id : null),
+            brand_id: selectedBrand,
+            total: total,
+            status: 'pending',
+            whatsapp_sent: true
+          };
+
+          const { data: order, error: orderError } = await supabase
+            .from('orders')
+            .insert([orderData])
+            .select()
+            .single();
+
+          if (orderError) throw orderError;
+
+          const orderItems = cart.map(item => {
+            const marginMultiplier = 1 + (item.margin_percentage || 0) / 100;
+            const isBoxDiscount = item.has_box_discount && !item.venda_somente_box && item.quantity >= (item.qtd_box || 0);
+            const unitPrice = item.venda_somente_box 
+              ? item.preco_box * marginMultiplier
+              : (isBoxDiscount ? item.preco_box * marginMultiplier : item.preco_unitario * marginMultiplier);
+            
+            return {
+              order_id: order.id,
+              product_id: item.id,
+              sku: item.sku,
+              nome: item.nome,
+              quantidade: item.quantity,
+              preco_unitario: unitPrice,
+              preco_total: item.quantity * unitPrice
+            };
+          });
+
+          const { error: itemsError } = await supabase
+            .from('order_items')
+            .insert(orderItems);
+
+          if (itemsError) throw itemsError;
+          
+          console.log("Pedido salvo com sucesso no banco de dados.");
+        } catch (err) {
+          console.error("Erro ao salvar pedido no banco de dados:", err);
+          // We still open WhatsApp even if saving fails, to not block the user
+        }
+      }
+
       const message = formatWhatsAppMessage(cart, clientName);
       const whatsappUrl = `https://wa.me/${whatsappNumber.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
       window.open(whatsappUrl, '_blank');
@@ -1418,10 +1471,10 @@ function CatalogScreen({
   const currentBrand = brands.find(b => b.id === selectedBrand);
 
   useEffect(() => {
-    if (selectedBrand && !acknowledgedBrands.has(selectedBrand)) {
+    if (selectedBrand && !acknowledgedBrands.has(selectedBrand) && role === 'customer') {
       setShowConditions(true);
     }
-  }, [selectedBrand]);
+  }, [selectedBrand, role]);
 
   const handleBrandChange = (brandId: string) => {
     if (brandId === selectedBrand) return;
@@ -1677,19 +1730,21 @@ function CatalogScreen({
               </div>
             </div>
 
-            <div className="p-6 bg-slate-900 rounded-3xl text-white relative overflow-hidden group">
-              <div className="relative z-10">
-                <h4 className="font-display text-lg font-bold mb-2">Suporte VIP</h4>
-                <p className="text-xs text-white/60 mb-6 leading-relaxed">Dúvidas sobre produtos ou pedidos? Fale com seu consultor.</p>
-                <button 
-                  onClick={handleWhatsAppSupport}
-                  className="w-full py-3 bg-white text-slate-900 rounded-xl text-xs font-bold hover:bg-primary hover:text-white transition-all"
-                >
-                  WhatsApp Direto
-                </button>
+            {role === 'customer' && (
+              <div className="p-6 bg-slate-900 rounded-3xl text-white relative overflow-hidden group">
+                <div className="relative z-10">
+                  <h4 className="font-display text-lg font-bold mb-2">Suporte VIP</h4>
+                  <p className="text-xs text-white/60 mb-6 leading-relaxed">Dúvidas sobre produtos ou pedidos? Fale com seu consultor.</p>
+                  <button 
+                    onClick={handleWhatsAppSupport}
+                    className="w-full py-3 bg-white text-slate-900 rounded-xl text-xs font-bold hover:bg-primary hover:text-white transition-all"
+                  >
+                    WhatsApp Direto
+                  </button>
+                </div>
+                <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-primary/20 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700" />
               </div>
-              <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-primary/20 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700" />
-            </div>
+            )}
           </aside>
 
           {/* Product Grid */}

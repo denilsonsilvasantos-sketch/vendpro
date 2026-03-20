@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Upload, FileText, CheckCircle2, AlertCircle, Loader2, Image as ImageIcon, Trash2, Send, AlertTriangle } from 'lucide-react';
+import { Upload, FileText, CheckCircle2, AlertCircle, Loader2, Image as ImageIcon, Trash2, Send, AlertTriangle, RefreshCw } from 'lucide-react';
 import { supabase } from '../integrations/supabaseClient';
 import { extractProductsFromMedia, classifyCategory } from '../services/aiService';
 import { Brand, Product } from '../types';
@@ -7,8 +7,10 @@ import { PDFDocument } from 'pdf-lib';
 import * as XLSX from 'xlsx';
 
 type CatalogType = 'weekly' | 'replenishment';
+type UploadMode = 'catalog' | 'stock';
 
 export default function UploadPage({ companyId, onRefresh }: { companyId: string | null, onRefresh?: () => void }) {
+  const [uploadMode, setUploadMode] = useState<UploadMode>('catalog');
   const [isUploading, setIsUploading] = useState(false);
   const [status, setStatus] = useState<{ type: 'success' | 'error' | 'info' | 'warning', message: string } | null>(null);
   const [progress, setProgress] = useState(0);
@@ -22,6 +24,9 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
   
   const [priceChanges, setPriceChanges] = useState<{ sku: string, old: number, new: number }[]>([]);
   const [showPriceAlert, setShowPriceAlert] = useState(false);
+  
+  const [unregisteredSkus, setUnregisteredSkus] = useState<{ sku: string, qtd: number }[]>([]);
+  const [showUnregisteredAlert, setShowUnregisteredAlert] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -133,9 +138,22 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
     const newFiles: { file: File, pages: { base64: string, mimeType: string }[] }[] = [];
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
+      const fileName = file.name.toLowerCase();
+
+      // Se estiver no modo estoque, aceitar apenas XML
+      if (uploadMode === 'stock' && !fileName.endsWith('.xml')) {
+        alert(`O arquivo ${file.name} não é um XML. No modo de sincronização de estoque, apenas arquivos XML são aceitos.`);
+        continue;
+      }
+
       try {
-        const pages = await processFileToBase64(file);
-        newFiles.push({ file, pages });
+        if (fileName.endsWith('.xml')) {
+          // Para XML, apenas lemos o conteúdo, não precisamos de base64 para IA
+          newFiles.push({ file, pages: [] });
+        } else {
+          const pages = await processFileToBase64(file);
+          newFiles.push({ file, pages });
+        }
       } catch (error) {
         console.error('Erro ao processar arquivo:', file.name, error);
         alert(`Erro ao processar o arquivo ${file.name}. Verifique se o formato é suportado.`);
@@ -149,7 +167,130 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
     setUploadedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
+  const processStockSync = async () => {
+    if (!companyId || !selectedBrandId || uploadedFiles.length === 0 || !supabase) {
+      setStatus({ type: 'error', message: 'Selecione uma marca e adicione o arquivo XML primeiro.' });
+      return;
+    }
+
+    setIsUploading(true);
+    setStatus({ type: 'info', message: 'Lendo arquivo XML e sincronizando estoque...' });
+    setProgress(0);
+
+    try {
+      const xmlFile = uploadedFiles[0].file;
+      const xmlText = await xmlFile.text();
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+
+      // Tentar encontrar itens no XML
+      // Formatos comuns: <item>, <produto>, <row>, ou direto na raiz
+      let items = Array.from(xmlDoc.querySelectorAll('item, produto, row, product'));
+      
+      // Se não encontrar tags específicas, tentar pegar todos os elementos que tenham filhos e não sejam a raiz
+      if (items.length === 0) {
+        const allElements = Array.from(xmlDoc.querySelectorAll('*'));
+        items = allElements.filter(el => el.children.length > 0 && el.parentElement === xmlDoc.documentElement);
+      }
+
+      const xmlData: { sku: string, qtd: number }[] = [];
+      
+      items.forEach(item => {
+        const skuTag = item.querySelector('sku, codigo, cod, ref, referencia, SKU, CODIGO, REF');
+        const qtdTag = item.querySelector('quantidade, qtd, estoque, stock, qnt, QUANTIDADE, QTD, ESTOQUE');
+        
+        if (skuTag) {
+          const sku = skuTag.textContent?.trim().toUpperCase() || '';
+          const qtd = parseNumber(qtdTag?.textContent || '0', 0);
+          if (sku) {
+            xmlData.push({ sku, qtd });
+          }
+        }
+      });
+
+      if (xmlData.length === 0) {
+        throw new Error('Não foi possível encontrar dados de SKU e Quantidade no XML. Verifique o formato do arquivo.');
+      }
+
+      // Buscar todos os produtos da marca no sistema
+      const { data: existingProducts } = await supabase
+        .from('products')
+        .select('id, sku, status_estoque')
+        .eq('company_id', companyId)
+        .eq('brand_id', selectedBrandId);
+
+      if (!existingProducts) throw new Error('Erro ao buscar produtos existentes.');
+
+      const existingSkusMap = new Map(existingProducts.map(p => [p.sku.toUpperCase().trim(), p]));
+      const xmlSkusSet = new Set(xmlData.map(d => d.sku));
+      
+      const updates: { id: string, status_estoque: string }[] = [];
+      const unregistered: { sku: string, qtd: number }[] = [];
+
+      // 1. Processar SKUs que estão no XML
+      for (const data of xmlData) {
+        const existing = existingSkusMap.get(data.sku);
+        if (existing) {
+          const newStatus = data.qtd < 10 ? 'ultimas' : 'normal';
+          if (existing.status_estoque !== newStatus) {
+            updates.push({ id: existing.id, status_estoque: newStatus });
+          }
+        } else {
+          unregistered.push(data);
+        }
+      }
+
+      // 2. Processar SKUs que NÃO estão no XML (marcar como esgotado)
+      for (const product of existingProducts) {
+        const sku = product.sku.toUpperCase().trim();
+        if (!xmlSkusSet.has(sku)) {
+          if (product.status_estoque !== 'esgotado') {
+            updates.push({ id: product.id, status_estoque: 'esgotado' });
+          }
+        }
+      }
+
+      // Executar updates em lotes
+      if (updates.length > 0 && supabase) {
+        // Supabase não suporta update em massa com valores diferentes facilmente sem RPC
+        // Vamos fazer um por um ou usar um truque se for muitos. 
+        // Como geralmente não são milhares de mudanças de uma vez, vamos fazer em paralelo limitado.
+        const batchSize = 20;
+        const db = supabase;
+        for (let i = 0; i < updates.length; i += batchSize) {
+          const batch = updates.slice(i, i + batchSize);
+          await Promise.all(batch.map(upd => 
+            db.from('products').update({ status_estoque: upd.status_estoque }).eq('id', upd.id)
+          ));
+          setProgress(Math.round(((i + batch.length) / updates.length) * 100));
+        }
+      }
+
+      setUnregisteredSkus(unregistered);
+      if (unregistered.length > 0) {
+        setShowUnregisteredAlert(true);
+      }
+
+      setIsUploading(false);
+      setUploadedFiles([]);
+      setStatus({ 
+        type: 'success', 
+        message: `Sincronização concluída! ${updates.length} produtos atualizados. ${unregistered.length} SKUs no XML não encontrados no sistema.` 
+      });
+      
+      if (onRefresh) onRefresh();
+    } catch (error: any) {
+      console.error(error);
+      setIsUploading(false);
+      setStatus({ type: 'error', message: `Erro na sincronização: ${error.message}` });
+    }
+  };
+
   const processCatalog = async () => {
+    if (uploadMode === 'stock') {
+      processStockSync();
+      return;
+    }
     if (!companyId || !selectedBrandId || uploadedFiles.length === 0 || !supabase) {
       setStatus({ type: 'error', message: 'Selecione uma marca e adicione arquivos primeiro.' });
       return;
@@ -393,6 +534,23 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <h1 className="text-2xl font-bold">Upload de Catálogo</h1>
         <div className="flex flex-wrap gap-2">
+          <div className="bg-slate-100 p-1 rounded-xl flex gap-1 mr-4">
+            <button 
+              onClick={() => { setUploadMode('catalog'); setUploadedFiles([]); setStatus(null); }}
+              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${uploadMode === 'catalog' ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+            >
+              <FileText size={16} />
+              Catálogo (IA)
+            </button>
+            <button 
+              onClick={() => { setUploadMode('stock'); setUploadedFiles([]); setStatus(null); }}
+              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${uploadMode === 'stock' ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+            >
+              <RefreshCw size={16} />
+              Estoque (XML)
+            </button>
+          </div>
+
           <button 
             onClick={() => setShowResetConfirm(true)}
             className="px-4 py-2 rounded-lg text-sm font-bold transition-all bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 flex items-center gap-2"
@@ -400,18 +558,22 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
             <Trash2 size={16} />
             Resetar Catálogo
           </button>
-          <button 
-            onClick={() => setCatalogType('weekly')}
-            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${catalogType === 'weekly' ? 'bg-primary text-white shadow-lg' : 'bg-slate-100 text-slate-600'}`}
-          >
-            Semanal
-          </button>
-          <button 
-            onClick={() => setCatalogType('replenishment')}
-            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${catalogType === 'replenishment' ? 'bg-primary text-white shadow-lg' : 'bg-slate-100 text-slate-600'}`}
-          >
-            Reposição
-          </button>
+          {uploadMode === 'catalog' && (
+            <>
+              <button 
+                onClick={() => setCatalogType('weekly')}
+                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${catalogType === 'weekly' ? 'bg-primary text-white shadow-lg' : 'bg-slate-100 text-slate-600'}`}
+              >
+                Semanal
+              </button>
+              <button 
+                onClick={() => setCatalogType('replenishment')}
+                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${catalogType === 'replenishment' ? 'bg-primary text-white shadow-lg' : 'bg-slate-100 text-slate-600'}`}
+              >
+                Reposição
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -437,32 +599,36 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
                   <option key={brand.id} value={brand.id}>{brand.name}</option>
                 ))}
               </select>
-
-              <div className="pt-2">
-                <label className="flex items-center gap-3 cursor-pointer group">
-                  <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${useCatalogNameAsCategory ? 'bg-primary border-primary' : 'border-slate-200 group-hover:border-primary/50'}`}>
-                    {useCatalogNameAsCategory && <CheckCircle2 size={14} className="text-white" />}
-                  </div>
-                  <input 
-                    type="checkbox" 
-                    className="hidden" 
-                    checked={useCatalogNameAsCategory} 
-                    onChange={e => setUseCatalogNameAsCategory(e.target.checked)} 
-                  />
-                  <div className="flex flex-col">
-                    <span className="text-sm font-bold text-slate-700">Criar categoria com nome do arquivo</span>
-                    <span className="text-[10px] text-slate-400">Se desativado, a IA tentará classificar cada produto em categorias existentes.</span>
-                  </div>
-                </label>
-              </div>
+              
+              {uploadMode === 'catalog' && (
+                <div className="pt-2">
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${useCatalogNameAsCategory ? 'bg-primary border-primary' : 'border-slate-200 group-hover:border-primary/50'}`}>
+                      {useCatalogNameAsCategory && <CheckCircle2 size={14} className="text-white" />}
+                    </div>
+                    <input 
+                      type="checkbox" 
+                      className="hidden" 
+                      checked={useCatalogNameAsCategory} 
+                      onChange={e => setUseCatalogNameAsCategory(e.target.checked)} 
+                    />
+                    <div className="flex flex-col">
+                      <span className="text-sm font-bold text-slate-700">Criar categoria com nome do arquivo</span>
+                      <span className="text-[10px] text-slate-400">Se desativado, a IA tentará classificar cada produto em categorias existentes.</span>
+                    </div>
+                  </label>
+                </div>
+              )}
             </div>
 
             <div className="p-4 bg-blue-50 rounded-xl border border-blue-100 flex gap-3">
               <AlertCircle className="text-blue-500 shrink-0" size={20} />
               <p className="text-xs text-blue-700 leading-relaxed">
-                {catalogType === 'weekly' 
-                  ? 'O catálogo semanal atualizará os preços e identificará produtos que saíram de linha para esta marca.' 
-                  : 'O catálogo de reposição apenas adicionará ou atualizará produtos específicos sem afetar o status dos outros.'}
+                {uploadMode === 'stock' 
+                  ? 'A sincronização de estoque via XML atualizará apenas o status de disponibilidade (Normal, Últimas Unidades ou Esgotado) com base nas quantidades informadas.'
+                  : catalogType === 'weekly' 
+                    ? 'O catálogo semanal atualizará os preços e identificará produtos que saíram de linha para esta marca.' 
+                    : 'O catálogo de reposição apenas adicionará ou atualizará produtos específicos sem afetar o status dos outros.'}
               </p>
             </div>
           </div>
@@ -477,13 +643,13 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
               type="file" 
               ref={fileInputRef} 
               onChange={handleFileSelect} 
-              accept=".pdf,image/*,.csv,.xlsx,.xls" 
-              multiple
+              accept={uploadMode === 'stock' ? ".xml" : ".pdf,image/*,.csv,.xlsx,.xls"} 
+              multiple={uploadMode === 'catalog'}
               className="hidden" 
             />
             <Upload size={32} className="text-primary mb-2" />
-            <h3 className="font-bold">Adicionar Arquivos</h3>
-            <p className="text-xs text-slate-500">PDF, PNG, JPG, CSV ou Excel</p>
+            <h3 className="font-bold">{uploadMode === 'stock' ? 'Selecionar XML de Estoque' : 'Adicionar Arquivos'}</h3>
+            <p className="text-xs text-slate-500">{uploadMode === 'stock' ? 'Apenas arquivos .xml' : 'PDF, PNG, JPG, CSV ou Excel'}</p>
           </div>
         </div>
 
@@ -504,7 +670,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
                 <div key={idx} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-100 group">
                   <div className="flex items-center gap-3 overflow-hidden">
                     <div className="w-8 h-8 bg-white rounded flex items-center justify-center border border-slate-200 shrink-0">
-                      {item.file.type.includes('image') ? <ImageIcon size={16} className="text-blue-500" /> : <FileText size={16} className="text-red-500" />}
+                      {item.file.name.toLowerCase().endsWith('.xml') ? <FileText size={16} className="text-green-600" /> : item.file.type.includes('image') ? <ImageIcon size={16} className="text-blue-500" /> : <FileText size={16} className="text-red-500" />}
                     </div>
                     <div className="truncate">
                       <p className="text-sm font-medium truncate">{item.file.name}</p>
@@ -534,12 +700,12 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
             {isUploading ? (
               <>
                 <Loader2 size={20} className="animate-spin" />
-                Processando... {progress}%
+                {uploadMode === 'stock' ? 'Sincronizando...' : 'Processando...'} {progress}%
               </>
             ) : (
               <>
-                <Send size={20} />
-                Finalizar e Processar com IA
+                {uploadMode === 'stock' ? <RefreshCw size={20} /> : <Send size={20} />}
+                {uploadMode === 'stock' ? 'Sincronizar Estoque Agora' : 'Finalizar e Processar com IA'}
               </>
             )}
           </button>
@@ -612,6 +778,36 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
             </div>
             <button 
               onClick={() => { setShowPriceAlert(false); setPriceChanges([]); }}
+              className="w-full py-3 bg-primary text-white rounded-xl font-bold hover:bg-primary/60 transition-colors"
+            >
+              Entendido
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showUnregisteredAlert && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl max-w-md w-full p-8 shadow-2xl space-y-6 animate-in zoom-in-95">
+            <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto">
+              <AlertTriangle size={32} className="text-orange-600" />
+            </div>
+            <div className="text-center space-y-2">
+              <h2 className="text-xl font-bold">Produtos Não Cadastrados</h2>
+              <p className="text-slate-500 text-sm">
+                Identificamos <strong>{unregisteredSkus.length} SKUs</strong> no XML que não existem no sistema para esta marca. Eles precisam ser cadastrados manualmente ou via upload de catálogo.
+              </p>
+            </div>
+            <div className="max-h-[200px] overflow-y-auto border border-slate-100 rounded-xl p-4 space-y-2">
+              {unregisteredSkus.map((item, idx) => (
+                <div key={idx} className="flex justify-between text-xs p-1 border-b border-slate-50 last:border-0">
+                  <span className="font-mono font-bold">{item.sku}</span>
+                  <span className="text-slate-500">Qtd: {item.qtd}</span>
+                </div>
+              ))}
+            </div>
+            <button 
+              onClick={() => { setShowUnregisteredAlert(false); setUnregisteredSkus([]); }}
               className="w-full py-3 bg-primary text-white rounded-xl font-bold hover:bg-primary/60 transition-colors"
             >
               Entendido

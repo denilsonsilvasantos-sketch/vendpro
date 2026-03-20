@@ -244,8 +244,8 @@ export default function App() {
   const handleSendOrder = () => {
     let whatsappNumber = '';
     
-    if (role === 'customer' && user && user.vendedor_whatsapp) {
-      whatsappNumber = user.vendedor_whatsapp;
+    if (role === 'customer' && user) {
+      whatsappNumber = user.vendedor_whatsapp || user.vendedor_telefone || company?.telefone || '';
     } else if (role === 'seller' && company && company.telefone) {
       whatsappNumber = company.telefone;
     } else if (role === 'company' && company && company.telefone) {
@@ -286,10 +286,14 @@ export default function App() {
         // Apply primary color if present
         if (fetchedCompany?.primary_color) {
           document.documentElement.style.setProperty('--vendpro-primary', fetchedCompany.primary_color);
+          document.documentElement.style.setProperty('--vendpro-primary-dark', fetchedCompany.primary_color);
+          document.documentElement.style.setProperty('--vendpro-primary-light', fetchedCompany.primary_color);
         } else {
           const savedColor = localStorage.getItem(`vendpro_company_color_${activeCompanyId}`);
           if (savedColor) {
             document.documentElement.style.setProperty('--vendpro-primary', savedColor);
+            document.documentElement.style.setProperty('--vendpro-primary-dark', savedColor);
+            document.documentElement.style.setProperty('--vendpro-primary-light', savedColor);
           }
         }
         
@@ -963,7 +967,8 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
           ...finalCustomer, 
           sellerCode,
           vendedor_nome: sellerInfo.nome,
-          vendedor_whatsapp: sellerInfo.whatsapp
+          vendedor_whatsapp: sellerInfo.whatsapp,
+          vendedor_telefone: sellerInfo.telefone
         }, availableCompanies);
 
       } catch (error: any) {
@@ -976,7 +981,8 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
         ...customerData, 
         sellerCode,
         vendedor_nome: sellerInfo?.nome,
-        vendedor_whatsapp: sellerInfo?.whatsapp
+        vendedor_whatsapp: sellerInfo?.whatsapp,
+        vendedor_telefone: sellerInfo?.telefone
       }, availableCompanies);
     }
   };
@@ -1429,11 +1435,6 @@ function CatalogScreen({
     if (pendingBrandId) {
       setSelectedBrand(pendingBrandId);
       setSelectedCategory(null);
-      
-      // After logistics warning, we show conditions if not acknowledged
-      if (!acknowledgedBrands.has(pendingBrandId)) {
-        setShowConditions(true);
-      }
       setPendingBrandId(null);
     }
     setShowLogisticsWarning(false);
@@ -1447,7 +1448,16 @@ function CatalogScreen({
   };
 
   const handleWhatsAppSupport = () => {
-    const whatsappNumber = user?.vendedor_whatsapp || company?.telefone || '';
+    let whatsappNumber = '';
+    
+    if (role === 'customer') {
+      whatsappNumber = user?.vendedor_whatsapp || user?.vendedor_telefone || company?.telefone || '';
+    } else if (role === 'seller') {
+      whatsappNumber = company?.telefone || '';
+    } else {
+      whatsappNumber = company?.telefone || '';
+    }
+
     if (!whatsappNumber) {
       alert('Número de suporte não encontrado.');
       return;

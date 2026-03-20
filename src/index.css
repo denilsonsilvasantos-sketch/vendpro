@@ -5,9 +5,9 @@
   --font-display: "Playfair Display", serif;
   --font-sans: "DM Sans", sans-serif;
   
-  --color-primary: #E8257A;
-  --color-primary-dark: #C21863;
-  --color-primary-light: #FF4D9D;
+  --color-primary: var(--vendpro-primary, #E8257A);
+  --color-primary-dark: var(--vendpro-primary-dark, #C21863);
+  --color-primary-light: var(--vendpro-primary-light, #FF4D9D);
   --color-nude: #FDF9F8;
   --color-slate-50: #F8FAFC;
   --color-slate-100: #F1F5F9;
@@ -36,7 +36,7 @@
   }
   
   .pink-gradient {
-    @apply bg-gradient-to-br from-[#E8257A] to-[#FF4D9D];
+    @apply bg-gradient-to-br from-primary to-primary-light;
   }
 
   .purple-gradient {

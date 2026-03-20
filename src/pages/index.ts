@@ -7,3 +7,4 @@ export { default as Marcas } from './Marcas';
 export { default as Upload } from './Upload';
 export { default as Pendencias } from './Pendencias';
 export { default as Vendedores } from './Vendedores';
+export { default as BannerManager } from './BannerManager';

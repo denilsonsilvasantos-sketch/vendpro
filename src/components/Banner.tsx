@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { BannerData } from '../types';
 
-const slides = [
+const defaultSlides = [
   {
-    id: 1,
+    id: '1',
     tag: 'Coleção Premium 2026',
     title: 'Beleza que\nTransforma',
     sub: 'Descubra os melhores cosméticos com qualidade profissional para o seu dia a dia.',
@@ -16,7 +17,7 @@ const slides = [
     ]
   },
   {
-    id: 2,
+    id: '2',
     tag: 'Novidades da Semana',
     title: 'Maquiagem\nProfissional',
     sub: 'As marcas mais desejadas chegaram com preços incríveis para você arrasar.',
@@ -28,7 +29,7 @@ const slides = [
     ]
   },
   {
-    id: 3,
+    id: '3',
     tag: 'Oferta Especial · Até 40% OFF',
     title: 'Cuide-se com\nEstilo',
     sub: 'Produtos de skincare e cuidados premium com descontos exclusivos para você.',
@@ -41,23 +42,26 @@ const slides = [
   }
 ];
 
-export default function Banner() {
+export default function Banner({ banners }: { banners?: BannerData[] }) {
+  const slides = banners && banners.length > 0 ? banners : defaultSlides;
   const [current, setCurrent] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
 
   const next = useCallback(() => {
     setCurrent(prev => (prev + 1) % slides.length);
-  }, []);
+  }, [slides.length]);
 
   const prev = useCallback(() => {
     setCurrent(prev => (prev - 1 + slides.length) % slides.length);
-  }, []);
+  }, [slides.length]);
 
   useEffect(() => {
-    if (isPaused) return;
+    if (isPaused || slides.length <= 1) return;
     const timer = setInterval(next, 5000);
     return () => clearInterval(timer);
-  }, [next, isPaused]);
+  }, [next, isPaused, slides.length]);
+
+  if (slides.length === 0) return null;
 
   return (
     <div 

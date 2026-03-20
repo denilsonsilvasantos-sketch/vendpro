@@ -124,6 +124,26 @@ export interface OrderItem {
   preco_total: number;
 }
 
+export interface BannerData {
+  id: string;
+  company_id: string;
+  tag: string;
+  title: string;
+  sub: string;
+  cta: string;
+  className: string;
+  visuals: { emoji: string; name: string; price: string }[];
+  link?: string;
+  order_index: number;
+}
+
+export interface TopBarMessage {
+  id: string;
+  company_id: string;
+  text: string;
+  order_index: number;
+}
+
 export type UserRole = 'company' | 'seller' | 'customer' | null;
 
 export interface AuthState {

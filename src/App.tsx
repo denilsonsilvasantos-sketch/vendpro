@@ -32,36 +32,41 @@ import {
   Eye,
   EyeOff,
   Mail,
-  Shield
+  Shield,
+  Layout
 } from 'lucide-react';
 import { useCart } from './hooks/useCart';
-import { Product, Category, Seller, Customer, UserRole, CartItem, Company, Brand } from './types';
+import { Product, Category, Seller, Customer, UserRole, CartItem, Company, Brand, BannerData } from './types';
 import { mockProducts, mockCategories, mockCompany } from './lib/mockData';
 import { Card } from './components/Card';
 import { Badge } from './components/Badge';
-import { Dashboard, Produtos, Clientes, Pedidos, Configuracoes, Marcas, Upload, Pendencias, Vendedores } from './pages';
+import { Dashboard, Produtos, Clientes, Pedidos, Configuracoes, Marcas, Upload, Pendencias, Vendedores, BannerManager } from './pages';
 import ProductFormModal from './components/ProductFormModal';
 import CartScreen from './pages/CartScreen';
 import Banner from './components/Banner';
 import { formatWhatsAppMessage } from './utils/whatsapp';
+import { getBanners, getTopBarMessages } from './services/bannerService';
 
 // --- Helper Components ---
 
-function TopBar() {
+function TopBar({ messages: propMessages }: { messages?: string[] }) {
   const [current, setCurrent] = useState(0);
-  const messages = [
+  const defaultMessages = [
     '✨ FRETE GRÁTIS acima de R$ 99 em todo o Brasil',
     '💳 Pagamento em até 12x sem juros no cartão',
     '📦 Entrega expressa disponível para sua região',
     '🎁 Compre 3 e ganhe 10% de desconto extra',
   ];
 
+  const messages = propMessages && propMessages.length > 0 ? propMessages : defaultMessages;
+
   useEffect(() => {
+    if (messages.length <= 1) return;
     const timer = setInterval(() => {
       setCurrent(prev => (prev + 1) % messages.length);
     }, 4000);
     return () => clearInterval(timer);
-  }, []);
+  }, [messages.length]);
 
   return (
     <div className="purple-gradient text-white/90 text-[11px] md:text-xs text-center py-2 px-4 letter-spacing-[0.4px] relative z-[110]">
@@ -221,6 +226,8 @@ export default function App() {
   const [viewMode, setViewMode] = useState<'admin' | 'customer'>('admin');
   const [pendingCompanyId, setPendingCompanyId] = useState<string | null>(null);
   const [showCompanyWarning, setShowCompanyWarning] = useState(false);
+  const [banners, setBanners] = useState<BannerData[]>([]);
+  const [topBarMessages, setTopBarMessages] = useState<string[]>([]);
   const { cart, addToCart, removeFromCart, updateQuantity, clearCart, total } = useCart();
 
   const effectiveRole = viewMode === 'customer' ? 'customer' : role;
@@ -286,6 +293,15 @@ export default function App() {
         
         // Also fetch categories and brands for this company
         if (supabase) {
+          const [catResponse, bannerData, topBarData] = await Promise.all([
+            supabase.from('categories').select('*').eq('company_id', activeCompanyId).order('nome'),
+            getBanners(activeCompanyId),
+            getTopBarMessages(activeCompanyId)
+          ]);
+
+          setBanners(bannerData);
+          setTopBarMessages(topBarData.map(m => m.text));
+
           let releasedBrandIds: string[] = [];
           
           if (role === 'seller' && user?.id) {
@@ -295,8 +311,7 @@ export default function App() {
             finalProducts = fetchedProducts.filter(p => p.brand_id && releasedBrandIds.includes(p.brand_id));
           }
 
-          const { data: catData } = await supabase.from('categories').select('*').eq('company_id', activeCompanyId).order('nome');
-          let filteredCats = catData || [];
+          let filteredCats = catResponse.data || [];
           
           let brandQuery = supabase.from('brands').select('*').eq('company_id', activeCompanyId).order('name');
           
@@ -310,7 +325,7 @@ export default function App() {
 
           const { data: brandData } = await brandQuery;
           
-          setCategories(filteredCats.sort((a, b) => (a.order_index || 0) - (b.order_index || 0)));
+          setCategories(filteredCats.sort((a: any, b: any) => (a.order_index || 0) - (b.order_index || 0)));
           setBrands((brandData || []).sort((a, b) => (a.order_index || 0) - (b.order_index || 0)));
         }
         
@@ -474,7 +489,7 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      <TopBar />
+      <TopBar messages={topBarMessages} />
 
       {/* Header */}
       <header className="glass-effect px-4 md:px-8 py-4 sticky top-0 z-40 flex items-center justify-between shadow-sm">
@@ -575,6 +590,7 @@ export default function App() {
                     
                     {role !== 'seller' && (
                       <>
+                        <SidebarItem icon={<Layout size={20}/>} label="Banners" active={activeTab === 'banners'} onClick={() => { setActiveTab('banners'); setIsSidebarOpen(false); }} />
                         <SidebarItem icon={<Package size={20}/>} label="Produtos" active={activeTab === 'produtos'} onClick={() => { setActiveTab('produtos'); setIsSidebarOpen(false); }} />
                         <SidebarItem icon={<UploadIcon size={20}/>} label="Upload" active={activeTab === 'upload'} onClick={() => { setActiveTab('upload'); setIsSidebarOpen(false); }} />
                         <SidebarItem icon={<AlertTriangle size={20}/>} label="Pendências" active={activeTab === 'pendencias'} onClick={() => { setActiveTab('pendencias'); setIsSidebarOpen(false); }} />
@@ -646,21 +662,23 @@ export default function App() {
           </button>
         )}
 
-        {activeTab === 'catalog' && (
-          <CatalogScreen 
-            products={products} 
-            categories={categories} 
-            brands={brands}
-            onAddToCart={handleAddToCart} 
-            onEdit={setEditingProduct} 
-            role={effectiveRole} 
-            onZoom={setZoomImage}
-          />
-        )}
+          {activeTab === 'catalog' && (
+            <CatalogScreen 
+              products={products} 
+              categories={categories} 
+              brands={brands}
+              onAddToCart={handleAddToCart} 
+              onEdit={setEditingProduct} 
+              role={effectiveRole} 
+              onZoom={setZoomImage}
+              banners={banners}
+            />
+          )}
         
         <div className="max-w-7xl mx-auto px-4 md:px-8 py-8">
           {activeTab === 'cart' && <CartScreen cart={cart} total={total} onUpdateQuantity={updateQuantity} onRemove={removeFromCart} onSendOrder={handleSendOrder} />}
           {activeTab === 'dashboard' && <Dashboard companyId={activeCompanyId} role={role} user={user} />}
+          {activeTab === 'banners' && role === 'company' && <BannerManager companyId={activeCompanyId!} />}
           {activeTab === 'produtos' && <Produtos companyId={activeCompanyId} onRefresh={loadData} />}
           {activeTab === 'upload' && <Upload companyId={activeCompanyId} onRefresh={loadData} />}
           {activeTab === 'pendencias' && <Pendencias companyId={activeCompanyId} onRefresh={loadData} />}
@@ -1312,7 +1330,25 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
   );
 }
 
-function CatalogScreen({ products, categories, brands, onAddToCart, onEdit, role, onZoom }: { products: Product[], categories: Category[], brands: Brand[], onAddToCart: (p: Product, q: number) => void, onEdit: (p: Product) => void, role: UserRole, onZoom: (img: string) => void }) {
+function CatalogScreen({ 
+  products, 
+  categories, 
+  brands, 
+  onAddToCart, 
+  onEdit, 
+  role, 
+  onZoom,
+  banners
+}: { 
+  products: Product[], 
+  categories: Category[], 
+  brands: Brand[], 
+  onAddToCart: (p: Product, q: number) => void, 
+  onEdit: (p: Product) => void, 
+  role: UserRole, 
+  onZoom: (img: string) => void,
+  banners?: BannerData[]
+}) {
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
@@ -1369,7 +1405,7 @@ function CatalogScreen({ products, categories, brands, onAddToCart, onEdit, role
 
   return (
     <div className="space-y-0">
-      <Banner />
+      <Banner banners={banners} />
 
       <div className="max-w-[1600px] mx-auto px-4 md:px-8 py-12">
         {/* Category Bar */}
@@ -1455,7 +1491,7 @@ function CatalogScreen({ products, categories, brands, onAddToCart, onEdit, role
                 <p className="text-slate-400 font-medium">Nenhum produto encontrado.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 md:gap-4">
                 {paginatedProducts.map(p => (
                   <ProductCard key={p.id} product={p} onAdd={onAddToCart} onEdit={onEdit} role={role} onZoom={onZoom} />
                 ))}
@@ -1517,47 +1553,47 @@ function ProductCard({ product, onAdd, onEdit, role, onZoom, ...props }: { produ
   };
 
   return (
-    <Card className={`p-4 flex flex-col group hover:border-primary/20 transition-all card-shadow rounded-3xl ${isEsgotado ? 'opacity-75 grayscale-[0.5]' : ''}`}>
-      <div className="relative aspect-square mb-6 rounded-2xl overflow-hidden bg-slate-50 cursor-zoom-in group-hover:scale-[1.02] transition-transform duration-500" onClick={() => onZoom(product.imagem || '')}>
-        <img src={product.imagem || `https://picsum.photos/seed/${product.sku}/400/400`} className="w-full h-full object-contain p-4" alt={product.nome} referrerPolicy="no-referrer" />
-        <div className="absolute top-3 w-full flex flex-col gap-1.5 items-center">
-          {isEsgotado && <span className="bg-slate-800 text-white text-[10px] font-bold px-3 py-1 rounded-lg shadow-lg uppercase tracking-wider">Esgotado</span>}
-          {!isEsgotado && product.is_last_units && <span className="bg-rose-500 text-white text-[10px] font-bold px-3 py-1 rounded-lg shadow-lg uppercase tracking-wider">Últimas Unidades</span>}
-          {product.venda_somente_box && <span className="bg-amber-500 text-white text-[10px] font-bold px-3 py-1 rounded-lg shadow-lg uppercase tracking-wider">Somente Box</span>}
+    <Card className={`p-2 md:p-3 flex flex-col group hover:border-primary/20 transition-all card-shadow rounded-2xl ${isEsgotado ? 'opacity-75 grayscale-[0.5]' : ''}`}>
+      <div className="relative aspect-square mb-3 rounded-xl overflow-hidden bg-slate-50 cursor-zoom-in group-hover:scale-[1.02] transition-transform duration-500" onClick={() => onZoom(product.imagem || '')}>
+        <img src={product.imagem || `https://picsum.photos/seed/${product.sku}/400/400`} className="w-full h-full object-contain p-2" alt={product.nome} referrerPolicy="no-referrer" />
+        <div className="absolute top-2 w-full flex flex-col gap-1 items-center">
+          {isEsgotado && <span className="bg-slate-800 text-white text-[8px] font-bold px-2 py-0.5 rounded shadow-lg uppercase tracking-wider">Esgotado</span>}
+          {!isEsgotado && product.is_last_units && <span className="bg-rose-500 text-white text-[8px] font-bold px-2 py-0.5 rounded shadow-lg uppercase tracking-wider">Últimas</span>}
+          {product.venda_somente_box && <span className="bg-amber-500 text-white text-[8px] font-bold px-2 py-0.5 rounded shadow-lg uppercase tracking-wider">Box</span>}
         </div>
       </div>
       
-      <div className="text-center mb-6">
-        <h3 className="font-bold text-slate-800 text-sm leading-tight mb-2 min-h-[2.5rem] flex items-center justify-center">{product.nome}</h3>
-        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-3">SKU: {product.sku}</p>
+      <div className="text-center mb-3">
+        <h3 className="font-bold text-slate-800 text-[11px] md:text-xs leading-tight mb-1 h-8 flex items-center justify-center overflow-hidden line-clamp-2">{product.nome}</h3>
+        <p className="text-[8px] text-slate-400 font-bold uppercase tracking-widest mb-1.5">SKU: {product.sku}</p>
         
         {!isEsgotado && (
-          <p className="text-2xl font-black text-primary">R$ {(product.preco_unitario || 0).toFixed(2)}</p>
+          <p className="text-lg md:text-xl font-black text-primary">R$ {(product.preco_unitario || 0).toFixed(2)}</p>
         )}
       </div>
 
       {(product.has_box_discount || product.venda_somente_box) && !isEsgotado && (
-        <div className="mb-6 py-3 bg-emerald-50/50 rounded-2xl text-[11px] font-bold text-emerald-600 text-center">
+        <div className="mb-3 py-1.5 bg-emerald-50/50 rounded-xl text-[9px] font-bold text-emerald-600 text-center">
           {!product.venda_somente_box ? (
-            `A partir de ${product.qtd_box} un: R$ ${(product.preco_box || 0).toFixed(2)}`
+            `Box: R$ ${(product.preco_box || 0).toFixed(2)}`
           ) : (
-            `Box com ${product.qtd_box} un: R$ ${(product.preco_box || 0).toFixed(2)}`
+            `Box (${product.qtd_box} un): R$ ${(product.preco_box || 0).toFixed(2)}`
           )}
         </div>
       )}
 
-      <div className="mt-auto flex flex-col items-center gap-4">
-        <div className="flex items-center bg-slate-100 rounded-2xl p-1.5 w-full justify-between">
-          <button onClick={handleSubQty} disabled={isEsgotado} className="p-2 text-slate-600 hover:bg-white hover:text-primary rounded-xl disabled:opacity-50 transition-all"><Minus size={18}/></button>
-          <span className="text-sm font-bold text-slate-700">{qty}</span>
-          <button onClick={handleAddQty} disabled={isEsgotado} className="p-2 text-slate-600 hover:bg-white hover:text-primary rounded-xl disabled:opacity-50 transition-all"><Plus size={18}/></button>
+      <div className="mt-auto flex flex-col items-center gap-2">
+        <div className="flex items-center bg-slate-100 rounded-xl p-1 w-full justify-between">
+          <button onClick={handleSubQty} disabled={isEsgotado} className="p-1 text-slate-600 hover:bg-white hover:text-primary rounded-lg disabled:opacity-50 transition-all"><Minus size={14}/></button>
+          <span className="text-xs font-bold text-slate-700">{qty}</span>
+          <button onClick={handleAddQty} disabled={isEsgotado} className="p-1 text-slate-600 hover:bg-white hover:text-primary rounded-lg disabled:opacity-50 transition-all"><Plus size={14}/></button>
         </div>
         <button 
           onClick={() => onAdd(product, qty)} 
           disabled={isEsgotado}
-          className="w-full py-4 pink-gradient text-white rounded-2xl font-bold text-sm shadow-lg shadow-primary/20 hover:scale-[0.98] active:scale-95 disabled:opacity-50 transition-all"
+          className="w-full py-2.5 pink-gradient text-white rounded-xl font-bold text-[10px] md:text-xs shadow-lg shadow-primary/20 hover:scale-[0.98] active:scale-95 disabled:opacity-50 transition-all"
         >
-          <ShoppingCart size={18} className="inline-block mr-2" />
+          <ShoppingCart size={14} className="inline-block mr-1" />
           Adicionar
         </button>
       </div>

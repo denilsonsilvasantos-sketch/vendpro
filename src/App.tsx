@@ -49,16 +49,10 @@ import { getBanners, getTopBarMessages } from './services/bannerService';
 
 // --- Helper Components ---
 
-function TopBar({ messages: propMessages }: { messages?: string[] }) {
+function TopBar({ messages }: { messages?: string[] }) {
   const [current, setCurrent] = useState(0);
-  const defaultMessages = [
-    '✨ FRETE GRÁTIS acima de R$ 99 em todo o Brasil',
-    '💳 Pagamento em até 12x sem juros no cartão',
-    '📦 Entrega expressa disponível para sua região',
-    '🎁 Compre 3 e ganhe 10% de desconto extra',
-  ];
 
-  const messages = propMessages && propMessages.length > 0 ? propMessages : defaultMessages;
+  if (!messages || messages.length === 0) return null;
 
   useEffect(() => {
     if (messages.length <= 1) return;

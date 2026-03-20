@@ -3,61 +3,18 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { BannerData } from '../types';
 
-const defaultSlides: BannerData[] = [
-  {
-    id: '1',
-    company_id: '',
-    tag: 'Coleção Premium 2026',
-    title: 'Beleza que\nTransforma',
-    sub: 'Descubra os melhores cosméticos com qualidade profissional para o seu dia a dia.',
-    cta: 'Ver Coleção',
-    className: 'bg-gradient-to-br from-[#1a0a2e] via-[#4A1680] to-[#E8257A]',
-    visuals: [
-      { emoji: '💄', name: 'Batom Vult Premium', price: 'R$ 29,90' },
-      { emoji: '✨', name: 'Água Micelar Ultra', price: 'R$ 7,99' }
-    ],
-    order_index: 0
-  },
-  {
-    id: '2',
-    company_id: '',
-    tag: 'Novidades da Semana',
-    title: 'Maquiagem\nProfissional',
-    sub: 'As marcas mais desejadas chegaram com preços incríveis para você arrasar.',
-    cta: 'Ver Lançamentos',
-    className: 'bg-gradient-to-br from-[#0d001a] via-[#2d0a5e] to-[#7B2FBE]',
-    visuals: [
-      { emoji: '👁️', name: 'Paleta de Sombras', price: 'R$ 49,90' },
-      { emoji: '🌸', name: 'Blush Rose Gold', price: 'R$ 24,90' }
-    ],
-    order_index: 1
-  },
-  {
-    id: '3',
-    company_id: '',
-    tag: 'Oferta Especial · Até 40% OFF',
-    title: 'Cuide-se com\nEstilo',
-    sub: 'Produtos de skincare e cuidados premium com descontos exclusivos para você.',
-    cta: 'Aproveitar Oferta',
-    className: 'bg-gradient-to-br from-[#1a0a18] via-[#6b1040] to-[#d4488a]',
-    visuals: [
-      { emoji: '🧴', name: 'Sérum Vitamina C', price: 'R$ 34,90' },
-      { emoji: '💅', name: 'Kit Unhas Gel', price: 'R$ 19,90' }
-    ],
-    order_index: 2
-  }
-];
-
 export default function Banner({ banners }: { banners?: BannerData[] }) {
-  const slides = banners && banners.length > 0 ? banners : defaultSlides;
+  const slides = banners || [];
   const [current, setCurrent] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
 
   const next = useCallback(() => {
+    if (slides.length === 0) return;
     setCurrent(prev => (prev + 1) % slides.length);
   }, [slides.length]);
 
   const prev = useCallback(() => {
+    if (slides.length === 0) return;
     setCurrent(prev => (prev - 1 + slides.length) % slides.length);
   }, [slides.length]);
 

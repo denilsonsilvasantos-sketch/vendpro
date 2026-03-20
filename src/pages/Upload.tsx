@@ -282,9 +282,10 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
       setOutOfStockSkus(newOutOfStock);
       setLastUnitsSkus(newLastUnits);
 
+      // Sempre mostrar o relatório ou alerta se o processamento foi concluído
       if (unregistered.length > 0) {
         setShowUnregisteredAlert(true);
-      } else if (newOutOfStock.length > 0 || newLastUnits.length > 0) {
+      } else {
         setShowSyncReport(true);
       }
 
@@ -826,10 +827,9 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
             <button 
               onClick={() => { 
                 setShowUnregisteredAlert(false); 
-                setUnregisteredSkus([]); 
-                if (outOfStockSkus.length > 0 || lastUnitsSkus.length > 0) {
-                  setShowSyncReport(true);
-                }
+                // Não limpamos unregisteredSkus aqui para que o usuário possa ver o relatório depois se necessário
+                // mas mostramos o relatório de sincronização em seguida
+                setShowSyncReport(true);
               }}
               className="w-full py-3 bg-primary text-white rounded-xl font-bold hover:bg-primary/60 transition-colors"
             >
@@ -853,6 +853,22 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
             </div>
             
             <div className="flex-1 overflow-y-auto space-y-6 pr-2">
+              {unregisteredSkus.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="text-sm font-bold text-slate-600 flex items-center gap-2">
+                    <AlertTriangle size={16} /> Não Cadastrados ({unregisteredSkus.length})
+                  </h3>
+                  <div className="bg-slate-50 rounded-xl p-4 space-y-2 border border-slate-100">
+                    {unregisteredSkus.map((item, idx) => (
+                      <div key={idx} className="flex justify-between text-xs border-b border-slate-200/50 last:border-0 pb-1 last:pb-0">
+                        <span className="font-mono font-bold text-slate-700">{item.sku}</span>
+                        <span className="text-slate-500">Qtd: {item.qtd}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {lastUnitsSkus.length > 0 && (
                 <div className="space-y-3">
                   <h3 className="text-sm font-bold text-orange-600 flex items-center gap-2">
@@ -897,7 +913,12 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
             </div>
 
             <button 
-              onClick={() => { setShowSyncReport(false); setLastUnitsSkus([]); setOutOfStockSkus([]); }}
+              onClick={() => { 
+                setShowSyncReport(false); 
+                setLastUnitsSkus([]); 
+                setOutOfStockSkus([]); 
+                setUnregisteredSkus([]);
+              }}
               className="w-full py-3 bg-primary text-white rounded-xl font-bold hover:bg-primary/60 transition-colors shrink-0"
             >
               Fechar Relatório

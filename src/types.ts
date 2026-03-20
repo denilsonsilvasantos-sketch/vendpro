@@ -32,6 +32,7 @@ export interface Seller {
   telefone?: string;
   whatsapp?: string;
   codigo_vinculo: string;
+  codigo_cliente?: string;
   ativo: boolean;
   marcas_liberadas?: string[];
 }

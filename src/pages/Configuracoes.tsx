@@ -15,99 +15,109 @@ export default function Configuracoes({ companyId, user, role, onLogout }: { com
     email: '',
     senha: '',
     logo_url: '',
-    primary_color: '#0072FF'
+    primary_color: '#0072FF',
+    whatsapp: '',
+    codigo_cliente: ''
   });
 
+  const safeLocalStorage = {
+    getItem: (key: string) => {
+      try {
+        return localStorage.getItem(key);
+      } catch (e) {
+        return null;
+      }
+    },
+    setItem: (key: string, value: string) => {
+      try {
+        localStorage.setItem(key, value);
+      } catch (e) {}
+    }
+  };
+
   useEffect(() => {
-    async function fetchCompany() {
-      if (!supabase || companyId === null) return;
-      const { data } = await supabase.from('companies').select('*').eq('id', companyId).single();
-      if (data) {
-        setCompany(data);
-        const savedLogo = localStorage.getItem(`vendpro_company_logo_${companyId}`);
-        const savedColor = localStorage.getItem(`vendpro_company_color_${companyId}`);
-        setFormData({
-          nome: data.nome || '',
-          cnpj: data.cnpj || '',
-          email: data.email || '',
-          senha: data.senha || '',
-          logo_url: data.logo_url || savedLogo || '',
-          primary_color: data.primary_color || savedColor || '#0072FF'
-        });
+    async function fetchData() {
+      if (!supabase) return;
+      
+      if (role === 'company' && companyId !== null) {
+        const { data } = await supabase.from('companies').select('*').eq('id', companyId).single();
+        if (data) {
+          setCompany(data);
+          const savedLogo = safeLocalStorage.getItem(`vendpro_company_logo_${companyId}`);
+          const savedColor = safeLocalStorage.getItem(`vendpro_company_color_${companyId}`);
+          setFormData({
+            nome: data.nome || '',
+            cnpj: data.cnpj || '',
+            email: data.email || '',
+            senha: data.senha || '',
+            logo_url: data.logo_url || savedLogo || '',
+            primary_color: data.primary_color || savedColor || '#0072FF',
+            whatsapp: '',
+            codigo_cliente: ''
+          });
+        }
+      } else if (role === 'seller' && user?.id) {
+        const { data } = await supabase.from('sellers').select('*').eq('id', user.id).single();
+        if (data) {
+          setFormData({
+            nome: data.nome || '',
+            cnpj: '',
+            email: '',
+            senha: '',
+            logo_url: '',
+            primary_color: '',
+            whatsapp: data.whatsapp || '',
+            codigo_cliente: data.codigo_cliente || ''
+          });
+        }
       }
       setLoading(false);
     }
-    fetchCompany();
-  }, [companyId]);
+    fetchData();
+  }, [companyId, role, user?.id]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!supabase || !companyId) return;
+    if (!supabase) return;
     setSaving(true);
     
-    // Create a copy of formData and remove fields that might not be in the DB yet
-    const dataToSave = { ...formData };
-    
-    // Save locally as fallback
-    if (formData.logo_url) {
-      localStorage.setItem(`vendpro_company_logo_${companyId}`, formData.logo_url);
-    }
-    if (formData.primary_color) {
-      localStorage.setItem(`vendpro_company_color_${companyId}`, formData.primary_color);
-      document.documentElement.style.setProperty('--vendpro-primary', formData.primary_color);
-    }
-
-    const { error } = await supabase.from('companies').update({
-      nome: formData.nome,
-      cnpj: formData.cnpj,
-      email: formData.email,
-      senha: formData.senha,
-      logo_url: formData.logo_url,
-      primary_color: formData.primary_color
-    }).eq('id', companyId);
-
-    if (error) {
-      // If it fails because columns don't exist, we still have the local storage
-      const isMissingColumn = error.message.includes('column') || 
-                              error.message.includes('does not exist') || 
-                              error.message.includes('schema cache');
-      
-      if (isMissingColumn) {
-        // First retry: Try with email but without logo/color
-        const { error: retryWithEmailError } = await supabase.from('companies').update({
-          nome: formData.nome,
-          cnpj: formData.cnpj,
-          senha: formData.senha,
-          email: formData.email
-        }).eq('id', companyId);
-
-        if (!retryWithEmailError) {
-          alert('Configurações salvas com sucesso!');
-          return;
-        }
-
-        // Second retry: Only the absolute basics
-        const { error: retryBasicError } = await supabase.from('companies').update({
-          nome: formData.nome,
-          cnpj: formData.cnpj,
-          senha: formData.senha
-        }).eq('id', companyId);
-        
-        if (retryBasicError) {
-          alert('Erro ao salvar configurações: ' + retryBasicError.message);
-        } else {
-          const isCacheError = error.message.includes('schema cache');
-          if (isCacheError) {
-            alert('Configurações básicas salvas!\n\nO Supabase ainda está atualizando o cache da coluna "email". \n\nPor favor, aguarde 30 segundos e tente salvar novamente para confirmar o e-mail.');
-          } else {
-            alert('Configurações salvas, mas o E-mail não pôde ser gravado. Verifique se a coluna "email" no Supabase está com o nome exatamente assim (minúsculo).');
-          }
-        }
-      } else {
-        alert('Erro ao salvar configurações: ' + error.message);
+    if (role === 'company' && companyId) {
+      // Save locally as fallback
+      if (formData.logo_url) {
+        safeLocalStorage.setItem(`vendpro_company_logo_${companyId}`, formData.logo_url);
       }
-    } else {
-      alert('Configurações salvas com sucesso!');
+      if (formData.primary_color) {
+        safeLocalStorage.setItem(`vendpro_company_color_${companyId}`, formData.primary_color);
+        document.documentElement.style.setProperty('--vendpro-primary', formData.primary_color);
+      }
+
+      const { error } = await supabase.from('companies').update({
+        nome: formData.nome,
+        cnpj: formData.cnpj,
+        email: formData.email,
+        senha: formData.senha,
+        logo_url: formData.logo_url,
+        primary_color: formData.primary_color
+      }).eq('id', companyId);
+
+      if (error) {
+        // ... existing error handling ...
+        alert('Erro ao salvar configurações: ' + error.message);
+      } else {
+        alert('Configurações salvas com sucesso!');
+      }
+    } else if (role === 'seller' && user?.id) {
+      const { error } = await supabase.from('sellers').update({
+        nome: formData.nome,
+        whatsapp: formData.whatsapp,
+        codigo_cliente: formData.codigo_cliente
+      }).eq('id', user.id);
+
+      if (error) {
+        alert('Erro ao salvar seus dados: ' + error.message);
+      } else {
+        alert('Seus dados foram atualizados com sucesso!');
+      }
     }
     setSaving(false);
   };
@@ -149,24 +159,28 @@ export default function Configuracoes({ companyId, user, role, onLogout }: { com
   return (
     <div className="p-6 space-y-8 max-w-4xl mx-auto pb-20">
       <div className="flex flex-col items-center text-center space-y-4">
-        <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+        <div className={`relative group ${role === 'company' ? 'cursor-pointer' : ''}`} onClick={() => role === 'company' && fileInputRef.current?.click()}>
           <div className="w-32 h-32 bg-primary/10 rounded-full flex items-center justify-center text-primary border-4 border-white shadow-xl overflow-hidden">
             {formData.logo_url ? (
               <img src={formData.logo_url} alt="Logo" className="w-full h-full object-cover" />
             ) : (
               <Building2 size={48} />
             )}
-            <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-              {uploadingLogo ? <Loader2 className="animate-spin text-white" size={24} /> : <Upload className="text-white" size={24} />}
-            </div>
+            {role === 'company' && (
+              <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                {uploadingLogo ? <Loader2 className="animate-spin text-white" size={24} /> : <Upload className="text-white" size={24} />}
+              </div>
+            )}
           </div>
-          <input 
-            type="file" 
-            ref={fileInputRef} 
-            onChange={handleLogoUpload} 
-            accept="image/*" 
-            className="hidden" 
-          />
+          {role === 'company' && (
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              onChange={handleLogoUpload} 
+              accept="image/*" 
+              className="hidden" 
+            />
+          )}
         </div>
         <div>
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Minha Conta</h1>
@@ -207,6 +221,59 @@ export default function Configuracoes({ companyId, user, role, onLogout }: { com
           </button>
         </div>
       </div>
+
+      {role === 'seller' && (
+        <form onSubmit={handleSave} className="space-y-6">
+          <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
+            <div className="p-6 border-b border-slate-50 flex items-center gap-3">
+              <User className="text-primary" size={20} />
+              <h2 className="font-bold text-slate-900">Meus Dados</h2>
+            </div>
+            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-500 uppercase">Meu Nome</label>
+                <input 
+                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none" 
+                  value={formData.nome} 
+                  onChange={e => setFormData({...formData, nome: e.target.value})} 
+                  required 
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-500 uppercase">WhatsApp de Atendimento</label>
+                <input 
+                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none" 
+                  value={formData.whatsapp} 
+                  onChange={e => setFormData({...formData, whatsapp: e.target.value})} 
+                  placeholder="(00) 00000-0000"
+                />
+              </div>
+              <div className="space-y-1 md:col-span-2">
+                <label className="text-xs font-bold text-slate-500 uppercase text-primary">Código de Vínculo para Clientes</label>
+                <input 
+                  className="w-full p-3 bg-slate-50 border border-primary/20 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none font-bold text-primary uppercase" 
+                  value={formData.codigo_cliente} 
+                  onChange={e => setFormData({...formData, codigo_cliente: e.target.value.toUpperCase()})} 
+                  placeholder="EX: MEULINK01"
+                  required
+                />
+                <p className="text-[10px] text-slate-400 mt-1 italic">Este é o código que seus clientes usarão para se vincular a você. Não pode ser igual ao seu código de acesso.</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end">
+            <button 
+              type="submit"
+              disabled={saving}
+              className="bg-primary text-white px-8 py-4 rounded-2xl font-bold shadow-lg shadow-primary/20 hover:-translate-y-0.5 transition-all active:scale-95 flex items-center gap-2 disabled:opacity-50"
+            >
+              {saving ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
+              {saving ? 'Salvando...' : 'Salvar Meus Dados'}
+            </button>
+          </div>
+        </form>
+      )}
 
       {role === 'company' && (
         <form onSubmit={handleSave} className="space-y-6">

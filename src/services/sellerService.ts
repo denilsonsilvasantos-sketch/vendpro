@@ -1,15 +1,17 @@
 import { supabase } from "../integrations/supabaseClient";
 
-export async function validateSellerCode(code: string) {
+export async function validateSellerCode(code: string, type: 'seller' | 'customer' = 'seller') {
   if (!supabase) {
     console.error("Supabase não inicializado.");
     return { success: false };
   }
 
+  const field = type === 'seller' ? 'codigo_vinculo' : 'codigo_cliente';
+
   const { data: seller, error } = await supabase
     .from("sellers")
     .select("*, companies(*)")
-    .eq("codigo_vinculo", code)
+    .eq(field, code)
     .maybeSingle();
 
   if (error) {

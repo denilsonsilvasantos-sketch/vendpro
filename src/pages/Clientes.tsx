@@ -64,7 +64,8 @@ export default function Clientes({
 
   const getShareLink = () => {
     const origin = window.location.origin;
-    return `${origin}?vincular=${user?.codigo_vinculo}`;
+    const code = user?.codigo_cliente || user?.codigo_vinculo;
+    return `${origin}?vincular=${code}`;
   };
 
   const handleCopyLink = () => {
@@ -84,7 +85,7 @@ export default function Clientes({
 
   return (
     <div className="p-6 space-y-6">
-      {role === 'seller' && user?.codigo_vinculo && (
+      {role === 'seller' && (user?.codigo_vinculo || user?.codigo_cliente) && (
         <motion.div 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}

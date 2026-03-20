@@ -80,6 +80,26 @@ function getHeaders() {
   };
 }
 
+const safeLocalStorage = {
+  getItem: (key: string) => {
+    try {
+      return localStorage.getItem(key);
+    } catch (e) {
+      return null;
+    }
+  },
+  setItem: (key: string, value: string) => {
+    try {
+      localStorage.setItem(key, value);
+    } catch (e) {}
+  },
+  removeItem: (key: string) => {
+    try {
+      localStorage.removeItem(key);
+    } catch (e) {}
+  }
+};
+
 export default function App() {
   const [role, setRole] = useState<UserRole>(() => {
     const saved = localStorage.getItem('vendpro_role');
@@ -127,14 +147,18 @@ export default function App() {
   };
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const code = params.get('vincular');
-    if (code) {
-      console.log("Detectado código de vínculo na URL:", code);
-      localStorage.setItem('vendpro_seller_code', code);
-      // Limpa o parâmetro da URL sem recarregar a página
-      const newUrl = window.location.origin + window.location.pathname;
-      window.history.replaceState({}, document.title, newUrl);
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get('vincular');
+      if (code) {
+        console.log("Detectado código de vínculo na URL:", code);
+        safeLocalStorage.setItem('vendpro_seller_code', code);
+        // Limpa o parâmetro da URL sem recarregar a página
+        const newUrl = window.location.origin + window.location.pathname;
+        window.history.replaceState({}, document.title, newUrl);
+      }
+    } catch (err) {
+      console.error("Erro ao processar parâmetro de vínculo:", err);
     }
   }, []);
   const [activeTab, setActiveTab] = useState('catalog');
@@ -726,12 +750,13 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
 
   // Auto-validar código de vendedor se presente no localStorage
   useEffect(() => {
-    const savedCode = localStorage.getItem('vendpro_seller_code');
-    if (savedCode && view === 'role') {
+    const savedCode = safeLocalStorage.getItem('vendpro_seller_code');
+    if (savedCode && view === 'role' && supabase) {
       console.log("Auto-validando código do vendedor salvo:", savedCode);
       const autoValidate = async () => {
         try {
-          const result = await validateSellerCode(savedCode);
+          // Use type: 'customer' for auto-validation from URL link
+          const result = await validateSellerCode(savedCode, 'customer');
           if (result.success) {
             console.log("Código validado com sucesso:", result.seller.nome);
             setSellerCode(savedCode);
@@ -740,9 +765,9 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
             setLoginType('customer');
             setView('customer-form');
           } else {
-            console.warn("Código salvo no localStorage é inválido:", savedCode);
+            console.warn("Código salvo no localStorage é inválido para cliente:", savedCode);
             // Se o código for inválido, removemos para não tentar novamente
-            localStorage.removeItem('vendpro_seller_code');
+            safeLocalStorage.removeItem('vendpro_seller_code');
           }
         } catch (err) {
           console.error("Erro na auto-validação do código:", err);
@@ -750,7 +775,7 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
       };
       autoValidate();
     }
-  }, [view]);
+  }, [view, supabase]);
 
   const handleSellerCodeSubmit = async () => {
     const code = sellerCode.trim().toUpperCase();
@@ -771,7 +796,10 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
       return;
     }
     
-    const result = await validateSellerCode(code);
+    // Use the correct validation type based on loginType
+    const validationType = loginType === 'seller' ? 'seller' : 'customer';
+    const result = await validateSellerCode(code, validationType);
+    
     if (result.success) {
       setSellerInfo(result.seller);
       setAvailableCompanies(result.companies || []);
@@ -781,7 +809,10 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
         setView('customer-form');
       }
     } else {
-      alert('Código inválido. Tente ADMIN ou um código de vendedor válido.');
+      const msg = loginType === 'seller' 
+        ? 'Código de vendedor inválido.' 
+        : 'Código de vínculo inválido. Peça o código correto ao seu vendedor.';
+      alert(msg);
     }
   };
 

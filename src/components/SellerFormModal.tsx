@@ -67,6 +67,7 @@ export default function SellerFormModal({ onClose, onSave, seller, companyId }: 
       const dataToSave: any = { 
         nome: formData.nome,
         codigo_vinculo: formData.codigo_vinculo,
+        codigo_cliente: formData.codigo_cliente,
         whatsapp: formData.whatsapp,
         ativo: formData.ativo,
         company_id: companyId,
@@ -136,6 +137,12 @@ export default function SellerFormModal({ onClose, onSave, seller, companyId }: 
                 <label className="text-xs font-bold text-slate-500 uppercase">Código de Acesso</label>
                 <input className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none font-mono uppercase" placeholder="Ex: JOAO123" value={formData.codigo_vinculo} onChange={e => setFormData({...formData, codigo_vinculo: e.target.value.toUpperCase()})} required />
                 <p className="text-[10px] text-slate-400 mt-1">Este código será usado pelo vendedor para acessar o sistema.</p>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-500 uppercase text-primary">Código para Clientes</label>
+                <input className="w-full p-3 bg-slate-50 border border-primary/20 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none font-bold text-primary uppercase" placeholder="Ex: JOAOLINK" value={formData.codigo_cliente || ''} onChange={e => setFormData({...formData, codigo_cliente: e.target.value.toUpperCase()})} />
+                <p className="text-[10px] text-slate-400 mt-1">Este código será usado pelos clientes para se vincular a este vendedor.</p>
               </div>
 
               <div className="space-y-1">

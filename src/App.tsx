@@ -236,7 +236,7 @@ export default function App() {
     addToCart(product, quantity);
   };
 
-  const handleSendOrder = () => {
+  const handleSendOrder = (manualClientName?: string) => {
     let whatsappNumber = '';
     
     if (role === 'customer' && user) {
@@ -248,7 +248,8 @@ export default function App() {
     }
 
     if (whatsappNumber) {
-      const message = formatWhatsAppMessage(cart);
+      const clientName = manualClientName || (role === 'customer' ? user?.nome : (role === 'seller' ? `Vendedor: ${user?.nome}` : ''));
+      const message = formatWhatsAppMessage(cart, clientName);
       const whatsappUrl = `https://wa.me/${whatsappNumber.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
       window.open(whatsappUrl, '_blank');
       clearCart();
@@ -710,6 +711,7 @@ export default function App() {
               onSendOrder={handleSendOrder} 
               selectedBrand={selectedBrand}
               brands={brands}
+              role={role}
             />
           )}
           {activeTab === 'dashboard' && <Dashboard companyId={activeCompanyId} role={role} user={user} />}

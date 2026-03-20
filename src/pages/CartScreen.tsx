@@ -1,5 +1,5 @@
 import React from 'react';
-import { CartItem, Brand } from '../types';
+import { CartItem, Brand, UserRole } from '../types';
 import { Plus, Minus, Trash2 } from 'lucide-react';
 
 export default function CartScreen({ 
@@ -9,16 +9,19 @@ export default function CartScreen({
   onRemove, 
   onSendOrder,
   selectedBrand,
-  brands
+  brands,
+  role
 }: { 
   cart: CartItem[], 
   total: number, 
   onUpdateQuantity: (id: string, q: number) => void, 
   onRemove: (id: string) => void, 
-  onSendOrder: () => void,
+  onSendOrder: (clientName?: string) => void,
   selectedBrand: string | null,
-  brands: Brand[]
+  brands: Brand[],
+  role: UserRole
 }) {
+  const [clientName, setClientName] = React.useState('');
   const currentBrand = brands.find(b => b.id === selectedBrand);
 
   return (
@@ -85,17 +88,32 @@ export default function CartScreen({
               );
             })}
           </div>
-          <div className="mt-8 p-6 bg-white rounded-2xl shadow-sm border border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-4">
-            <div>
-              <p className="text-sm text-slate-500 font-medium">Total do Pedido</p>
-              <p className="text-3xl font-black text-primary">R$ {total.toFixed(2)}</p>
+          <div className="mt-8 p-6 bg-white rounded-2xl shadow-sm border border-slate-100 flex flex-col gap-6">
+            {role === 'seller' && (
+              <div className="w-full">
+                <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Nome do Cliente (Opcional)</label>
+                <input 
+                  type="text" 
+                  value={clientName}
+                  onChange={(e) => setClientName(e.target.value)}
+                  placeholder="Digite o nome do cliente..."
+                  className="w-full p-4 bg-slate-50 rounded-xl border border-slate-100 font-medium focus:ring-2 focus:ring-primary outline-none"
+                />
+              </div>
+            )}
+            
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+              <div>
+                <p className="text-sm text-slate-500 font-medium">Total do Pedido</p>
+                <p className="text-3xl font-black text-primary">R$ {total.toFixed(2)}</p>
+              </div>
+              <button 
+                onClick={() => onSendOrder(clientName)} 
+                className="w-full sm:w-auto px-8 py-4 bg-primary text-white rounded-xl font-bold shadow-lg shadow-primary/20 hover:bg-primary-dark active:scale-95 transition-all"
+              >
+                Finalizar Pedido
+              </button>
             </div>
-            <button 
-              onClick={onSendOrder} 
-              className="w-full sm:w-auto px-8 py-4 bg-primary text-white rounded-xl font-bold shadow-lg shadow-primary/20 hover:bg-primary-dark active:scale-95 transition-all"
-            >
-              Finalizar Pedido
-            </button>
           </div>
         </>
       )}

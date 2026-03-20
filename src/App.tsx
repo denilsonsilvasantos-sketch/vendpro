@@ -1559,9 +1559,9 @@ function ProductCard({ product, onAdd, onEdit, role, onZoom, ...props }: { produ
       <div className="relative aspect-square mb-2 rounded-xl overflow-hidden bg-slate-50 cursor-zoom-in group-hover:scale-[1.02] transition-transform duration-500" onClick={() => onZoom(product.imagem || '')}>
         <img src={product.imagem || `https://picsum.photos/seed/${product.sku}/400/400`} className="w-full h-full object-contain p-1" alt={product.nome} referrerPolicy="no-referrer" />
         <div className="absolute top-2 w-full flex flex-col gap-1 items-center">
-          {isEsgotado && <span className="bg-slate-800 text-white text-[8px] font-bold px-2 py-0.5 rounded shadow-lg uppercase tracking-wider">Esgotado</span>}
-          {!isEsgotado && product.is_last_units && <span className="bg-rose-500 text-white text-[8px] font-bold px-2 py-0.5 rounded shadow-lg uppercase tracking-wider">Últimas</span>}
-          {product.venda_somente_box && <span className="bg-amber-500 text-white text-[8px] font-bold px-2 py-0.5 rounded shadow-lg uppercase tracking-wider">Box</span>}
+          {isEsgotado && <span className="bg-slate-800 text-white text-[10px] font-black px-3 py-1 rounded shadow-lg uppercase tracking-wider">ESGOTADO</span>}
+          {!isEsgotado && product.is_last_units && <span className="bg-rose-500 text-white text-[10px] font-black px-3 py-1 rounded shadow-lg uppercase tracking-wider">ÚLTIMAS UNIDADES</span>}
+          {product.venda_somente_box && <span className="bg-amber-500 text-white text-[10px] font-black px-3 py-1 rounded shadow-lg uppercase tracking-wider">SOMENTE NO BOX</span>}
         </div>
       </div>
       
@@ -1576,7 +1576,9 @@ function ProductCard({ product, onAdd, onEdit, role, onZoom, ...props }: { produ
 
       {(product.has_box_discount || product.venda_somente_box) && !isEsgotado && (
         <div className="mb-3 p-2 bg-amber-50 border border-amber-200 rounded-xl text-center shadow-sm">
-          <p className="text-[9px] uppercase font-black text-amber-600 tracking-tighter mb-0.5">A partir de:</p>
+          <p className="text-[9px] uppercase font-black text-amber-600 tracking-tighter mb-0.5">
+            {product.venda_somente_box ? 'SOMENTE NO BOX:' : 'A PARTIR DE:'}
+          </p>
           <div className="flex items-center justify-center gap-1">
             <span className="text-sm md:text-base font-black text-amber-700">R$ {(product.preco_box || 0).toFixed(2)}</span>
             <span className="text-[9px] font-bold text-amber-600/70 italic">({product.qtd_box} un)</span>

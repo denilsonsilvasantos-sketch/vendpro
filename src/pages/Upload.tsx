@@ -28,8 +28,8 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
   const [unregisteredSkus, setUnregisteredSkus] = useState<{ sku: string, qtd: number }[]>([]);
   const [showUnregisteredAlert, setShowUnregisteredAlert] = useState(false);
   
-  const [outOfStockSkus, setOutOfStockSkus] = useState<{ sku: string, name: string }[]>([]);
-  const [lastUnitsSkus, setLastUnitsSkus] = useState<{ sku: string, name: string }[]>([]);
+  const [outOfStockSkus, setOutOfStockSkus] = useState<{ sku: string, nome: string }[]>([]);
+  const [lastUnitsSkus, setLastUnitsSkus] = useState<{ sku: string, nome: string }[]>([]);
   const [showSyncReport, setShowSyncReport] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -210,12 +210,13 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
       }
 
       // Buscar todos os produtos da marca no sistema
-      const { data: existingProducts } = await supabase
+      const { data: existingProducts, error: fetchError } = await supabase
         .from('products')
-        .select('id, sku, name, status_estoque')
+        .select('id, sku, nome, status_estoque')
         .eq('company_id', companyId)
         .eq('brand_id', selectedBrandId);
 
+      if (fetchError) throw new Error(`Erro ao buscar produtos: ${fetchError.message}`);
       if (!existingProducts) throw new Error('Erro ao buscar produtos existentes.');
 
       const existingSkusMap = new Map(existingProducts.map(p => [p.sku.toUpperCase().trim(), p]));
@@ -223,8 +224,8 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
       
       const updates: { id: string, status_estoque: string }[] = [];
       const unregistered: { sku: string, qtd: number }[] = [];
-      const newOutOfStock: { sku: string, name: string }[] = [];
-      const newLastUnits: { sku: string, name: string }[] = [];
+      const newOutOfStock: { sku: string, nome: string }[] = [];
+      const newLastUnits: { sku: string, nome: string }[] = [];
 
       // 1. Processar SKUs que estão no Excel
       for (const data of excelData) {
@@ -240,9 +241,9 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
           if (existing.status_estoque !== newStatus) {
             updates.push({ id: existing.id, status_estoque: newStatus });
             if (newStatus === 'esgotado') {
-              newOutOfStock.push({ sku: existing.sku, name: existing.name });
+              newOutOfStock.push({ sku: existing.sku, nome: existing.nome });
             } else if (newStatus === 'ultimas') {
-              newLastUnits.push({ sku: existing.sku, name: existing.name });
+              newLastUnits.push({ sku: existing.sku, nome: existing.nome });
             }
           }
         } else {
@@ -256,7 +257,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
         if (!excelSkusSet.has(sku)) {
           if (product.status_estoque !== 'esgotado') {
             updates.push({ id: product.id, status_estoque: 'esgotado' });
-            newOutOfStock.push({ sku: product.sku, name: product.name });
+            newOutOfStock.push({ sku: product.sku, nome: product.nome });
           }
         }
       }
@@ -861,7 +862,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
                     {lastUnitsSkus.map((item, idx) => (
                       <div key={idx} className="flex justify-between text-xs border-b border-orange-200/50 last:border-0 pb-1 last:pb-0">
                         <div className="flex flex-col">
-                          <span className="font-bold text-orange-900">{item.name}</span>
+                          <span className="font-bold text-orange-900">{item.nome}</span>
                           <span className="font-mono text-[10px] text-orange-700">{item.sku}</span>
                         </div>
                       </div>
@@ -879,7 +880,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
                     {outOfStockSkus.map((item, idx) => (
                       <div key={idx} className="flex justify-between text-xs border-b border-red-200/50 last:border-0 pb-1 last:pb-0">
                         <div className="flex flex-col">
-                          <span className="font-bold text-red-900">{item.name}</span>
+                          <span className="font-bold text-red-900">{item.nome}</span>
                           <span className="font-mono text-[10px] text-red-700">{item.sku}</span>
                         </div>
                       </div>

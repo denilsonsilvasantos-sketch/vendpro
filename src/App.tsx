@@ -52,15 +52,15 @@ import { getBanners, getTopBarMessages } from './services/bannerService';
 function TopBar({ messages }: { messages?: string[] }) {
   const [current, setCurrent] = useState(0);
 
-  if (!messages || messages.length === 0) return null;
-
   useEffect(() => {
-    if (messages.length <= 1) return;
+    if (!messages || messages.length <= 1) return;
     const timer = setInterval(() => {
       setCurrent(prev => (prev + 1) % messages.length);
     }, 4000);
     return () => clearInterval(timer);
-  }, [messages.length]);
+  }, [messages?.length]);
+
+  if (!messages || messages.length === 0) return null;
 
   return (
     <div className="purple-gradient text-white/90 text-[11px] md:text-xs text-center py-2 px-4 letter-spacing-[0.4px] relative z-[110]">

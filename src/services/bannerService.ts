@@ -11,7 +11,9 @@ export async function getBanners(companyId: string): Promise<BannerData[]> {
     .order('order_index');
     
   if (error) {
-    console.error('Error fetching banners:', error);
+    if (error.code !== 'PGRST205') {
+      console.error('Error fetching banners:', error);
+    }
     // Fallback to localStorage if table doesn't exist
     const saved = localStorage.getItem(`vendpro_banners_${companyId}`);
     return saved ? JSON.parse(saved) : [];
@@ -49,13 +51,11 @@ export async function getTopBarMessages(companyId: string): Promise<TopBarMessag
     .order('order_index');
     
   if (error) {
+    if (error.code !== 'PGRST205') {
+      console.error('Error fetching top bar messages:', error);
+    }
     const saved = localStorage.getItem(`vendpro_topbar_${companyId}`);
-    return saved ? JSON.parse(saved) : [
-      { id: '1', company_id: companyId, text: '✨ FRETE GRÁTIS acima de R$ 99 em todo o Brasil', order_index: 0 },
-      { id: '2', company_id: companyId, text: '💳 Pagamento em até 12x sem juros no cartão', order_index: 1 },
-      { id: '3', company_id: companyId, text: '📦 Entrega expressa disponível para sua região', order_index: 2 },
-      { id: '4', company_id: companyId, text: '🎁 Compre 3 e ganhe 10% de desconto extra', order_index: 3 },
-    ];
+    return saved ? JSON.parse(saved) : [];
   }
   
   return data || [];

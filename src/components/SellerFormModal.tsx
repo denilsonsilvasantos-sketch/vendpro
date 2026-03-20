@@ -33,13 +33,7 @@ export default function SellerFormModal({ onClose, onSave, seller, companyId }: 
 
         // If editing, fetch selected brands for this seller
         if (seller?.id) {
-          const { data: sellerBrandsData, error: sellerBrandsError } = await supabase
-            .from('seller_brands')
-            .select('brand_id')
-            .eq('seller_id', seller.id);
-          
-          if (sellerBrandsError) throw sellerBrandsError;
-          setSelectedBrands(sellerBrandsData?.map(sb => sb.brand_id) || []);
+          setSelectedBrands(seller.marcas_liberadas || []);
         }
       } catch (error: any) {
         console.error("Erro ao buscar marcas:", error);
@@ -49,7 +43,7 @@ export default function SellerFormModal({ onClose, onSave, seller, companyId }: 
     }
 
     fetchBrands();
-  }, [companyId, seller?.id]);
+  }, [companyId, seller?.id, seller?.marcas_liberadas]);
 
   const toggleBrand = (brandId: string) => {
     setSelectedBrands(prev => 
@@ -70,31 +64,44 @@ export default function SellerFormModal({ onClose, onSave, seller, companyId }: 
 
     setLoading(true);
     try {
-      const dataToSave = { ...formData, company_id: companyId };
+      const dataToSave: any = { 
+        nome: formData.nome,
+        codigo_vinculo: formData.codigo_vinculo,
+        whatsapp: formData.whatsapp,
+        ativo: formData.ativo,
+        company_id: companyId,
+        marcas_liberadas: selectedBrands
+      };
       let sellerId = seller?.id;
       
       if (sellerId) {
         const { error } = await supabase.from('sellers').update(dataToSave).eq('id', sellerId);
-        if (error) throw error;
+        if (error) {
+          if (error.message.includes('column "marcas_liberadas" does not exist')) {
+            // Fallback: remove the column and try again
+            const { marcas_liberadas, ...fallbackData } = dataToSave;
+            const { error: fallbackError } = await supabase.from('sellers').update(fallbackData).eq('id', sellerId);
+            if (fallbackError) throw fallbackError;
+            alert("Vendedor salvo, mas as marcas não puderam ser vinculadas porque a coluna 'marcas_liberadas' não existe no banco de dados.");
+          } else {
+            throw error;
+          }
+        }
       } else {
         const { data, error } = await supabase.from('sellers').insert([dataToSave]).select();
-        if (error) throw error;
-        sellerId = data[0].id;
-      }
-
-      // Update seller_brands
-      if (sellerId) {
-        // Delete existing relations
-        await supabase.from('seller_brands').delete().eq('seller_id', sellerId);
-        
-        // Insert new relations
-        if (selectedBrands.length > 0) {
-          const relations = selectedBrands.map(brandId => ({
-            seller_id: sellerId,
-            brand_id: brandId
-          }));
-          const { error: brandsError } = await supabase.from('seller_brands').insert(relations);
-          if (brandsError) throw brandsError;
+        if (error) {
+          if (error.message.includes('column "marcas_liberadas" does not exist')) {
+            // Fallback: remove the column and try again
+            const { marcas_liberadas, ...fallbackData } = dataToSave;
+            const { data: fallbackDataResult, error: fallbackError } = await supabase.from('sellers').insert([fallbackData]).select();
+            if (fallbackError) throw fallbackError;
+            sellerId = fallbackDataResult[0].id;
+            alert("Vendedor cadastrado, mas as marcas não puderam ser vinculadas porque a coluna 'marcas_liberadas' não existe no banco de dados.");
+          } else {
+            throw error;
+          }
+        } else {
+          sellerId = data[0].id;
         }
       }
       

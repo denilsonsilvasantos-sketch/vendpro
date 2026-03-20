@@ -227,12 +227,7 @@ export default function App() {
           let releasedBrandIds: string[] = [];
           
           if (role === 'seller' && user?.id) {
-            const { data: sellerBrands } = await supabase
-              .from('seller_brands')
-              .select('brand_id')
-              .eq('seller_id', user.id);
-            
-            releasedBrandIds = sellerBrands?.map(sb => sb.brand_id) || [];
+            releasedBrandIds = user.marcas_liberadas || [];
             
             // Filter products
             finalProducts = fetchedProducts.filter(p => p.brand_id && releasedBrandIds.includes(p.brand_id));

@@ -33,6 +33,7 @@ export interface Seller {
   whatsapp?: string;
   codigo_vinculo: string;
   ativo: boolean;
+  marcas_liberadas?: string[];
 }
 
 export interface SellerBrand {

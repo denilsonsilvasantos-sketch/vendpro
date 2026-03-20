@@ -18,8 +18,19 @@ export default function Vendedores({ companyId }: { companyId: string | null }) 
     setLoading(true);
     try {
       const { data, error } = await supabase.from('sellers').select('*').eq('company_id', companyId).order('nome');
-      if (error) throw error;
-      setSellers(data || []);
+      if (error) {
+        if (error.message.includes('column "marcas_liberadas" does not exist')) {
+          console.warn("A coluna 'marcas_liberadas' ainda não foi criada no banco de dados. Por favor, adicione-a à tabela 'sellers'.");
+          // Fetch without the column as a fallback
+          const { data: fallbackData, error: fallbackError } = await supabase.from('sellers').select('id, company_id, nome, telefone, whatsapp, codigo_vinculo, ativo').eq('company_id', companyId).order('nome');
+          if (fallbackError) throw fallbackError;
+          setSellers(fallbackData || []);
+        } else {
+          throw error;
+        }
+      } else {
+        setSellers(data || []);
+      }
     } catch (error: any) {
       console.error("Erro ao buscar vendedores:", error);
       alert("Erro ao carregar vendedores: " + error.message);

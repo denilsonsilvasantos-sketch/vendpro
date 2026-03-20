@@ -19,12 +19,7 @@ export default function Dashboard({ companyId, role, user }: { companyId: string
       
       // If seller, fetch released brands
       if (role === 'seller' && user?.id) {
-        const { data: sellerBrands } = await supabase
-          .from('seller_brands')
-          .select('brand_id')
-          .eq('seller_id', user.id);
-        
-        releasedBrandIds = sellerBrands?.map(sb => sb.brand_id) || [];
+        releasedBrandIds = user.marcas_liberadas || [];
       }
       
       // Fetch counts

@@ -3,7 +3,7 @@ import { supabase } from '../integrations/supabaseClient';
 import { Customer, UserRole } from '../types';
 import { Edit, Trash2, Plus, Share2, Copy, MessageCircle, Check, QrCode } from 'lucide-react';
 import CustomerFormModal from '../components/CustomerFormModal';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { QRCodeSVG } from 'qrcode.react';
 
 export default function Clientes({ 

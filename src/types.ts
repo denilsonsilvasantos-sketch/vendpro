@@ -36,11 +36,6 @@ export interface Seller {
   marcas_liberadas?: string[];
 }
 
-export interface SellerBrand {
-  seller_id: string;
-  brand_id: string;
-}
-
 export interface Customer {
   id: string;
   seller_id: string;

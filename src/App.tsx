@@ -130,7 +130,11 @@ export default function App() {
     const params = new URLSearchParams(window.location.search);
     const code = params.get('vincular');
     if (code) {
+      console.log("Detectado código de vínculo na URL:", code);
       localStorage.setItem('vendpro_seller_code', code);
+      // Limpa o parâmetro da URL sem recarregar a página
+      const newUrl = window.location.origin + window.location.pathname;
+      window.history.replaceState({}, document.title, newUrl);
     }
   }, []);
   const [activeTab, setActiveTab] = useState('catalog');
@@ -719,6 +723,34 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
       return () => subscription.unsubscribe();
     }
   }, []);
+
+  // Auto-validar código de vendedor se presente no localStorage
+  useEffect(() => {
+    const savedCode = localStorage.getItem('vendpro_seller_code');
+    if (savedCode && view === 'role') {
+      console.log("Auto-validando código do vendedor salvo:", savedCode);
+      const autoValidate = async () => {
+        try {
+          const result = await validateSellerCode(savedCode);
+          if (result.success) {
+            console.log("Código validado com sucesso:", result.seller.nome);
+            setSellerCode(savedCode);
+            setSellerInfo(result.seller);
+            setAvailableCompanies(result.companies || []);
+            setLoginType('customer');
+            setView('customer-form');
+          } else {
+            console.warn("Código salvo no localStorage é inválido:", savedCode);
+            // Se o código for inválido, removemos para não tentar novamente
+            localStorage.removeItem('vendpro_seller_code');
+          }
+        } catch (err) {
+          console.error("Erro na auto-validação do código:", err);
+        }
+      };
+      autoValidate();
+    }
+  }, [view]);
 
   const handleSellerCodeSubmit = async () => {
     const code = sellerCode.trim().toUpperCase();

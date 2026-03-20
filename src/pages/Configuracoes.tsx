@@ -68,18 +68,22 @@ export default function Configuracoes({ companyId, user, role, onLogout }: { com
 
     if (error) {
       // If it fails because columns don't exist, we still have the local storage
-      if (error.message.includes('column') || error.message.includes('does not exist')) {
+      const isMissingColumn = error.message.includes('column') || 
+                              error.message.includes('does not exist') || 
+                              error.message.includes('schema cache');
+      
+      if (isMissingColumn) {
+        // Try without logo_url, primary_color and email one by one or just the basics
         const { error: retryError } = await supabase.from('companies').update({
           nome: formData.nome,
           cnpj: formData.cnpj,
-          email: formData.email,
           senha: formData.senha
         }).eq('id', companyId);
         
         if (retryError) {
           alert('Erro ao salvar configurações: ' + retryError.message);
         } else {
-          alert('Configurações salvas com sucesso! (Logo e Cor salvos localmente)');
+          alert('Configurações salvas com sucesso!\n\nAtenção: O campo "E-mail" não pôde ser salvo no banco de dados. Por favor, adicione a coluna "email" (tipo TEXT) na tabela "companies" no seu painel do Supabase para habilitar a recuperação de senha.');
         }
       } else {
         alert('Erro ao salvar configurações: ' + error.message);

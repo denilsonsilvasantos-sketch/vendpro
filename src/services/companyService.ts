@@ -13,12 +13,38 @@ export async function registerCompany(companyData: any) {
       cnpj: companyData.cnpj,
       responsavel: companyData.responsavel,
       telefone: companyData.telefone,
+      email: companyData.email,
       senha: companyData.senha
     }])
     .select()
     .single();
 
   if (error) {
+    // Se falhar por causa da coluna email, tenta sem ela
+    const isMissingColumn = error.message.includes('column') || 
+                            error.message.includes('does not exist') || 
+                            error.message.includes('schema cache');
+                            
+    if (isMissingColumn) {
+      const { data: retryData, error: retryError } = await supabase
+        .from("companies")
+        .insert([{ 
+          nome: companyData.nome,
+          cnpj: companyData.cnpj,
+          responsavel: companyData.responsavel,
+          telefone: companyData.telefone,
+          senha: companyData.senha
+        }])
+        .select()
+        .single();
+        
+      if (retryError) {
+        console.error("Erro ao cadastrar empresa (retry):", retryError);
+        return { success: false, message: retryError.message };
+      }
+      return { success: true, company: retryData };
+    }
+    
     console.error("Erro ao cadastrar empresa:", error);
     return { success: false, message: error.message };
   }

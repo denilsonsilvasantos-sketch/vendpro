@@ -994,8 +994,18 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
               />
               <div className="space-y-3">
                 <button 
-                  onClick={() => {
+                  onClick={async () => {
                     if (!forgotPasswordEmail) return alert('Informe seu e-mail');
+                    
+                    if (supabase) {
+                      const { data, error } = await supabase.from('companies').select('id').eq('email', forgotPasswordEmail).maybeSingle();
+                      if (error && (error.message.includes('column') || error.message.includes('schema cache'))) {
+                        alert('A recuperação de senha por e-mail ainda não está configurada no banco de dados. Por favor, entre em contato com o suporte.');
+                        setShowForgotPassword(false);
+                        return;
+                      }
+                    }
+                    
                     alert('Se o e-mail estiver cadastrado, você receberá um link para redefinir sua senha em instantes.');
                     setShowForgotPassword(false);
                   }}

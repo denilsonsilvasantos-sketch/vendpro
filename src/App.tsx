@@ -1626,12 +1626,6 @@ function CatalogScreen({
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-12">
         {/* Category Bar */}
         <div className="flex items-center gap-4 mb-12 overflow-x-auto pb-4 custom-scrollbar">
-          <button 
-            onClick={() => { setSelectedBrand(null); setSelectedCategory(null); }}
-            className={`px-6 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all ${!selectedBrand && !selectedCategory ? 'pink-gradient text-white shadow-lg shadow-primary/20' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
-          >
-            Todos
-          </button>
           {brands.map(brand => (
             <button 
               key={brand.id}

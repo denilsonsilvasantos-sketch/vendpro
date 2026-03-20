@@ -140,15 +140,15 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
       const file = files[i];
       const fileName = file.name.toLowerCase();
 
-      // Se estiver no modo estoque, aceitar apenas XML
-      if (uploadMode === 'stock' && !fileName.endsWith('.xml')) {
-        alert(`O arquivo ${file.name} não é um XML. No modo de sincronização de estoque, apenas arquivos XML são aceitos.`);
+      // Se estiver no modo estoque, aceitar apenas Excel
+      if (uploadMode === 'stock' && !fileName.endsWith('.xlsx') && !fileName.endsWith('.xls')) {
+        alert(`O arquivo ${file.name} não é um Excel. No modo de sincronização de estoque, apenas arquivos Excel (.xlsx, .xls) são aceitos.`);
         continue;
       }
 
       try {
-        if (fileName.endsWith('.xml')) {
-          // Para XML, apenas lemos o conteúdo, não precisamos de base64 para IA
+        if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+          // Para Excel, apenas lemos o conteúdo, não precisamos de base64 para IA
           newFiles.push({ file, pages: [] });
         } else {
           const pages = await processFileToBase64(file);
@@ -788,7 +788,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
             <div className="text-center space-y-2">
               <h2 className="text-xl font-bold">Produtos Não Cadastrados</h2>
               <p className="text-slate-500 text-sm">
-                Identificamos <strong>{unregisteredSkus.length} SKUs</strong> no XML que não existem no sistema para esta marca. Eles precisam ser cadastrados manualmente ou via upload de catálogo.
+                Identificamos <strong>{unregisteredSkus.length} SKUs</strong> no Excel que não existem no sistema para esta marca. Eles precisam ser cadastrados manualmente ou via upload de catálogo.
               </p>
             </div>
             <div className="max-h-[200px] overflow-y-auto border border-slate-100 rounded-xl p-4 space-y-2">

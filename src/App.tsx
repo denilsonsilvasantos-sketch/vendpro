@@ -671,8 +671,21 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [showForgotCode, setShowForgotCode] = useState(false);
+  const [showResetPassword, setShowResetPassword] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
   const [sellerInfo, setSellerInfo] = useState<any>(null);
   const [availableCompanies, setAvailableCompanies] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (supabase) {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+        if (event === 'PASSWORD_RECOVERY') {
+          setShowResetPassword(true);
+        }
+      });
+      return () => subscription.unsubscribe();
+    }
+  }, []);
 
   const handleSellerCodeSubmit = async () => {
     const code = sellerCode.trim().toUpperCase();
@@ -998,15 +1011,34 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
                     if (!forgotPasswordEmail) return alert('Informe seu e-mail');
                     
                     if (supabase) {
-                      const { data, error } = await supabase.from('companies').select('id').eq('email', forgotPasswordEmail).maybeSingle();
-                      if (error && (error.message.includes('column') || error.message.includes('schema cache'))) {
-                        alert('A recuperação de senha por e-mail ainda não está configurada no banco de dados. Por favor, entre em contato com o suporte.');
-                        setShowForgotPassword(false);
-                        return;
+                      try {
+                        // Primeiro verifica se o e-mail existe na tabela de empresas
+                        const { data: company, error: searchError } = await supabase
+                          .from('companies')
+                          .select('id')
+                          .eq('email', forgotPasswordEmail)
+                          .maybeSingle();
+
+                        if (searchError && !searchError.message.includes('column')) {
+                          console.error('Erro ao buscar empresa:', searchError);
+                        }
+
+                        // Dispara o reset de senha do Supabase Auth
+                        // Nota: Para que isso funcione, o usuário deve existir no Supabase Auth.
+                        // Se o usuário foi criado apenas na tabela 'companies', o e-mail não será enviado.
+                        const { error: resetError } = await supabase.auth.resetPasswordForEmail(forgotPasswordEmail, {
+                          redirectTo: `${window.location.origin}`,
+                        });
+
+                        if (resetError) {
+                          console.error('Erro ao solicitar reset de senha:', resetError);
+                        }
+                      } catch (err) {
+                        console.error('Erro inesperado no reset de senha:', err);
                       }
                     }
                     
-                    alert('Se o e-mail estiver cadastrado, você receberá um link para redefinir sua senha em instantes.');
+                    alert('Se o e-mail estiver cadastrado em nosso sistema de autenticação, você receberá um link para redefinir sua senha em instantes. Verifique também sua caixa de spam.');
                     setShowForgotPassword(false);
                   }}
                   className="w-full py-4 bg-primary text-white rounded-2xl font-bold shadow-lg shadow-primary/20"
@@ -1049,6 +1081,54 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
                 className="w-full py-4 bg-primary text-white rounded-2xl font-bold shadow-lg shadow-primary/20"
               >
                 Entendi
+              </button>
+            </motion.div>
+          </div>
+        )}
+
+        {showResetPassword && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="bg-white rounded-[32px] p-8 w-full max-w-sm shadow-2xl space-y-6"
+            >
+              <div className="text-center space-y-2">
+                <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mx-auto mb-4">
+                  <Shield size={32} />
+                </div>
+                <h3 className="text-xl font-bold text-slate-900">Nova Senha</h3>
+                <p className="text-sm text-slate-500">Digite sua nova senha de acesso.</p>
+              </div>
+              <input 
+                type="password" 
+                placeholder="Nova senha" 
+                className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-100 focus:ring-2 focus:ring-primary outline-none text-center font-medium text-slate-700"
+                value={newPassword}
+                onChange={e => setNewPassword(e.target.value)}
+              />
+              <button 
+                onClick={async () => {
+                  if (!newPassword) return alert('Digite a nova senha');
+                  if (!supabase) return alert('Erro: Supabase não inicializado');
+                  
+                  const { error } = await supabase.auth.updateUser({ password: newPassword });
+                  if (error) {
+                    alert('Erro ao atualizar senha: ' + error.message);
+                  } else {
+                    // Tenta atualizar também na tabela companies para manter sincronia
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (user?.email) {
+                      await supabase.from('companies').update({ senha: newPassword }).eq('email', user.email);
+                    }
+                    alert('Senha atualizada com sucesso!');
+                    setShowResetPassword(false);
+                    setView('company-login');
+                  }
+                }}
+                className="w-full py-4 bg-primary text-white rounded-2xl font-bold shadow-lg shadow-primary/20"
+              >
+                Atualizar Senha
               </button>
             </motion.div>
           </div>

@@ -6,6 +6,27 @@ export async function registerCompany(companyData: any) {
     return { success: false };
   }
 
+  // Tenta criar o usuário no Supabase Auth para permitir recuperação de senha futura
+  if (companyData.email) {
+    try {
+      const { error: authError } = await supabase.auth.signUp({
+        email: companyData.email,
+        password: companyData.senha,
+        options: {
+          data: {
+            nome: companyData.nome,
+            cnpj: companyData.cnpj
+          }
+        }
+      });
+      if (authError) {
+        console.warn("Aviso: Falha ao criar usuário no Auth (pode já existir ou estar desabilitado):", authError.message);
+      }
+    } catch (err) {
+      console.error("Erro ao tentar registrar no Auth:", err);
+    }
+  }
+
   const { data, error } = await supabase
     .from("companies")
     .insert([{ 

@@ -9,6 +9,9 @@ export default function Vendedores({ companyId }: { companyId: string | null }) 
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSeller, setEditingSeller] = useState<Seller | undefined>();
+  const [sellerToDelete, setSellerToDelete] = useState<Seller | null>(null);
+  const [transferToSellerId, setTransferToSellerId] = useState<string>('');
+  const [isTransferring, setIsTransferring] = useState(false);
 
   const fetchSellers = async () => {
     if (!supabase || !companyId) return;
@@ -29,16 +32,65 @@ export default function Vendedores({ companyId }: { companyId: string | null }) 
     fetchSellers();
   }, [companyId]);
 
-  const handleDelete = async (id: string) => {
-    if (!supabase || !confirm('Tem certeza que deseja excluir este vendedor?')) return;
+  const handleDelete = async () => {
+    if (!supabase || !sellerToDelete || !transferToSellerId) return;
+    
+    setIsTransferring(true);
     try {
-      const { error } = await supabase.from('sellers').delete().eq('id', id);
-      if (error) throw error;
+      // 1. Transfer customers to the new seller
+      const { error: transferError } = await supabase
+        .from('customers')
+        .update({ seller_id: transferToSellerId })
+        .eq('seller_id', sellerToDelete.id);
+
+      if (transferError) throw transferError;
+
+      // 2. Transfer orders to the new seller
+      const { error: ordersError } = await supabase
+        .from('orders')
+        .update({ seller_id: transferToSellerId })
+        .eq('seller_id', sellerToDelete.id);
+
+      if (ordersError) throw ordersError;
+
+      // 3. Delete the seller
+      const { error: deleteError } = await supabase
+        .from('sellers')
+        .delete()
+        .eq('id', sellerToDelete.id);
+
+      if (deleteError) throw deleteError;
+
+      setSellerToDelete(null);
+      setTransferToSellerId('');
       fetchSellers();
+      alert('Vendedor excluído e clientes transferidos com sucesso!');
     } catch (error: any) {
       console.error("Erro ao excluir vendedor:", error);
       alert("Erro ao excluir vendedor: " + error.message);
+    } finally {
+      setIsTransferring(false);
     }
+  };
+
+  const confirmDelete = (seller: Seller) => {
+    const otherSellers = sellers.filter(s => s.id !== seller.id);
+    if (otherSellers.length === 0) {
+      if (confirm('Este é o seu único vendedor. Se excluí-lo, seus clientes ficarão sem vendedor vinculado. Deseja continuar?')) {
+        // Simple delete if no other sellers
+        (async () => {
+          try {
+            const { error } = await supabase!.from('sellers').delete().eq('id', seller.id);
+            if (error) throw error;
+            fetchSellers();
+          } catch (e: any) {
+            alert(e.message);
+          }
+        })();
+      }
+      return;
+    }
+    setSellerToDelete(seller);
   };
 
   if (loading && sellers.length === 0) {
@@ -114,7 +166,7 @@ export default function Vendedores({ companyId }: { companyId: string | null }) 
                           <Edit size={18} />
                         </button>
                         <button 
-                          onClick={() => handleDelete(seller.id)}
+                          onClick={() => confirmDelete(seller)}
                           className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"
                         >
                           <Trash2 size={18} />
@@ -136,6 +188,54 @@ export default function Vendedores({ companyId }: { companyId: string | null }) 
           seller={editingSeller}
           companyId={companyId}
         />
+      )}
+
+      {sellerToDelete && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white rounded-[32px] p-8 w-full max-w-md shadow-2xl space-y-6">
+            <div className="text-center space-y-2">
+              <div className="w-16 h-16 bg-rose-50 rounded-2xl flex items-center justify-center text-rose-500 mx-auto mb-4">
+                <Trash2 size={32} />
+              </div>
+              <h3 className="text-xl font-bold text-slate-900">Excluir Vendedor</h3>
+              <p className="text-sm text-slate-500">
+                Para excluir <strong>{sellerToDelete.nome}</strong>, você precisa transferir os clientes vinculados a ele para outro vendedor.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-500 uppercase">Transferir clientes para:</label>
+              <select 
+                className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-100 focus:ring-2 focus:ring-primary outline-none font-medium text-slate-700"
+                value={transferToSellerId}
+                onChange={e => setTransferToSellerId(e.target.value)}
+              >
+                <option value="">Selecione um vendedor...</option>
+                {sellers.filter(s => s.id !== sellerToDelete.id).map(s => (
+                  <option key={s.id} value={s.id}>{s.nome}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button 
+                onClick={() => { setSellerToDelete(null); setTransferToSellerId(''); }}
+                className="flex-1 py-4 text-slate-400 font-bold uppercase text-[10px] tracking-widest"
+                disabled={isTransferring}
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={handleDelete}
+                disabled={!transferToSellerId || isTransferring}
+                className="flex-[2] py-4 bg-rose-500 text-white rounded-2xl font-bold shadow-lg shadow-rose-200 disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {isTransferring ? <Loader2 className="animate-spin" size={20} /> : <Trash2 size={20} />}
+                Confirmar Exclusão
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

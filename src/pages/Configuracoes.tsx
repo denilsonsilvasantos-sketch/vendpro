@@ -1,16 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../integrations/supabaseClient';
-import { Settings, Building2, Phone, Mail, FileText, Save, Loader2, User, Shield, Calendar, LogOut, Upload, Image as ImageIcon, Palette } from 'lucide-react';
+import { Settings, Building2, Phone, Mail, FileText, Save, Loader2, User, Shield, Calendar, LogOut, Upload, Image as ImageIcon, Palette, Eye, EyeOff, Lock } from 'lucide-react';
 
 export default function Configuracoes({ companyId, user, role, onLogout }: { companyId: string | null, user: any, role: string | null, onLogout: () => void }) {
   const [company, setCompany] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     nome: '',
     cnpj: '',
+    email: '',
     senha: '',
     logo_url: '',
     primary_color: '#0072FF'
@@ -27,6 +29,7 @@ export default function Configuracoes({ companyId, user, role, onLogout }: { com
         setFormData({
           nome: data.nome || '',
           cnpj: data.cnpj || '',
+          email: data.email || '',
           senha: data.senha || '',
           logo_url: data.logo_url || savedLogo || '',
           primary_color: data.primary_color || savedColor || '#0072FF'
@@ -57,6 +60,7 @@ export default function Configuracoes({ companyId, user, role, onLogout }: { com
     const { error } = await supabase.from('companies').update({
       nome: formData.nome,
       cnpj: formData.cnpj,
+      email: formData.email,
       senha: formData.senha,
       logo_url: formData.logo_url,
       primary_color: formData.primary_color
@@ -68,6 +72,7 @@ export default function Configuracoes({ companyId, user, role, onLogout }: { com
         const { error: retryError } = await supabase.from('companies').update({
           nome: formData.nome,
           cnpj: formData.cnpj,
+          email: formData.email,
           senha: formData.senha
         }).eq('id', companyId);
         
@@ -207,14 +212,41 @@ export default function Configuracoes({ companyId, user, role, onLogout }: { com
                 />
               </div>
               <div className="space-y-1 md:col-span-2">
-                <label className="text-xs font-bold text-slate-500 uppercase">Senha de Acesso</label>
+                <label className="text-xs font-bold text-slate-500 uppercase">E-mail (Recuperação)</label>
                 <input 
-                  type="password"
+                  type="email"
                   className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none" 
-                  value={formData.senha} 
-                  onChange={e => setFormData({...formData, senha: e.target.value})} 
-                  placeholder="Deixe em branco para não alterar"
+                  value={formData.email} 
+                  onChange={e => setFormData({...formData, email: e.target.value})} 
+                  required
+                  placeholder="E-mail obrigatório para recuperação"
                 />
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-slate-50 flex items-center gap-3">
+              <Lock className="text-primary" size={20} />
+              <h2 className="font-bold text-slate-900">Alterar Senha</h2>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-500 uppercase">Nova Senha de Acesso</label>
+                <div className="relative">
+                  <input 
+                    type={showPassword ? "text" : "password"}
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none pr-12" 
+                    value={formData.senha} 
+                    onChange={e => setFormData({...formData, senha: e.target.value})} 
+                    placeholder="Deixe em branco para não alterar"
+                  />
+                  <button 
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary transition-colors"
+                  >
+                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
               </div>
             </div>
 

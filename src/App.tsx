@@ -28,7 +28,11 @@ import {
   Search,
   CheckCircle2,
   Send,
-  Share2
+  Share2,
+  Eye,
+  EyeOff,
+  Mail,
+  Shield
 } from 'lucide-react';
 import { useCart } from './hooks/useCart';
 import { Product, Category, Seller, Customer, UserRole, CartItem, Company, Brand } from './types';
@@ -660,9 +664,13 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
   const [loginType, setLoginType] = useState<'seller' | 'customer' | 'admin' | 'company' | null>(null);
   const [sellerCode, setSellerCode] = useState('');
   const [customerData, setCustomerData] = useState({ nome: '', cnpj: '', telefone: '', responsavel: '' });
-  const [companyData, setCompanyData] = useState({ nome: '', cnpj: '', telefone: '', responsavel: '', senha: '' });
+  const [companyData, setCompanyData] = useState({ nome: '', cnpj: '', telefone: '', responsavel: '', email: '', senha: '' });
   const [companyLoginCnpj, setCompanyLoginCnpj] = useState('');
   const [companyLoginSenha, setCompanyLoginSenha] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [showForgotCode, setShowForgotCode] = useState(false);
   const [sellerInfo, setSellerInfo] = useState<any>(null);
   const [availableCompanies, setAvailableCompanies] = useState<any[]>([]);
 
@@ -859,25 +867,42 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
               value={companyLoginCnpj}
               onChange={e => setCompanyLoginCnpj(e.target.value)}
             />
-            <input 
-              type="password" 
-              placeholder="Senha" 
-              className="w-full p-4 bg-white rounded-2xl border border-slate-100 focus:ring-2 focus:ring-primary outline-none text-center font-bold text-slate-700 shadow-sm"
-              value={companyLoginSenha}
-              onChange={e => setCompanyLoginSenha(e.target.value)}
-            />
+            <div className="relative">
+              <input 
+                type={showPassword ? "text" : "password"} 
+                placeholder="Senha" 
+                className="w-full p-4 bg-white rounded-2xl border border-slate-100 focus:ring-2 focus:ring-primary outline-none text-center font-bold text-slate-700 shadow-sm"
+                value={companyLoginSenha}
+                onChange={e => setCompanyLoginSenha(e.target.value)}
+              />
+              <button 
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary transition-colors"
+              >
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
+            </div>
             <button 
               onClick={handleCompanyLogin}
               className="w-full py-4 bg-primary text-white rounded-2xl font-semibold shadow-md shadow-primary/10 hover:bg-primary-dark transition-colors"
             >
               Entrar
             </button>
-            <button 
-              onClick={() => setView('company-register')}
-              className="w-full py-4 bg-white text-primary border border-primary/10 rounded-2xl font-semibold hover:bg-primary-light/20 transition-colors"
-            >
-              Cadastrar Nova Empresa
-            </button>
+            <div className="flex flex-col gap-2">
+              <button 
+                onClick={() => setShowForgotPassword(true)}
+                className="text-[10px] font-bold text-primary uppercase tracking-widest hover:underline"
+              >
+                Esqueci minha senha
+              </button>
+              <button 
+                onClick={() => setView('company-register')}
+                className="w-full py-4 bg-white text-primary border border-primary/10 rounded-2xl font-semibold hover:bg-primary-light/20 transition-colors"
+              >
+                Cadastrar Nova Empresa
+              </button>
+            </div>
             <button onClick={() => setView('role')} className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-4 hover:text-primary transition-colors">Voltar</button>
           </div>
         )}
@@ -889,8 +914,24 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
               <input placeholder="Nome da Empresa" className="w-full p-4 bg-white rounded-xl border border-slate-100 font-medium focus:ring-2 focus:ring-primary outline-none shadow-sm" value={companyData.nome} onChange={e => setCompanyData({...companyData, nome: e.target.value})} />
               <input placeholder="CNPJ" className="w-full p-4 bg-white rounded-xl border border-slate-100 font-medium focus:ring-2 focus:ring-primary outline-none shadow-sm" value={companyData.cnpj} onChange={e => setCompanyData({...companyData, cnpj: e.target.value})} />
               <input placeholder="Responsável" className="w-full p-4 bg-white rounded-xl border border-slate-100 font-medium focus:ring-2 focus:ring-primary outline-none shadow-sm" value={companyData.responsavel} onChange={e => setCompanyData({...companyData, responsavel: e.target.value})} />
+              <input placeholder="E-mail (Para recuperação de senha)" type="email" className="w-full p-4 bg-white rounded-xl border border-slate-100 font-medium focus:ring-2 focus:ring-primary outline-none shadow-sm" value={companyData.email} onChange={e => setCompanyData({...companyData, email: e.target.value})} required />
               <input placeholder="Telefone" className="w-full p-4 bg-white rounded-xl border border-slate-100 font-medium focus:ring-2 focus:ring-primary outline-none shadow-sm" value={companyData.telefone} onChange={e => setCompanyData({...companyData, telefone: e.target.value})} />
-              <input type="password" placeholder="Senha de Acesso" className="w-full p-4 bg-white rounded-xl border border-slate-100 font-medium focus:ring-2 focus:ring-primary outline-none shadow-sm" value={companyData.senha} onChange={e => setCompanyData({...companyData, senha: e.target.value})} />
+              <div className="relative">
+                <input 
+                  type={showPassword ? "text" : "password"} 
+                  placeholder="Senha de Acesso" 
+                  className="w-full p-4 bg-white rounded-xl border border-slate-100 font-medium focus:ring-2 focus:ring-primary outline-none shadow-sm" 
+                  value={companyData.senha} 
+                  onChange={e => setCompanyData({...companyData, senha: e.target.value})} 
+                />
+                <button 
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary transition-colors"
+                >
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
             </div>
             <button 
               onClick={handleCompanyRegister}
@@ -920,7 +961,86 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
             >
               Validar Código
             </button>
+            <button 
+              onClick={() => setShowForgotCode(true)}
+              className="text-[10px] font-bold text-primary uppercase tracking-widest hover:underline"
+            >
+              Esqueci meu código
+            </button>
             <button onClick={() => setView('role')} className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-4 hover:text-primary transition-colors">Voltar</button>
+          </div>
+        )}
+
+        {showForgotPassword && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="bg-white rounded-[32px] p-8 w-full max-w-sm shadow-2xl space-y-6"
+            >
+              <div className="text-center space-y-2">
+                <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mx-auto mb-4">
+                  <Mail size={32} />
+                </div>
+                <h3 className="text-xl font-bold text-slate-900">Recuperar Senha</h3>
+                <p className="text-sm text-slate-500">Informe seu e-mail cadastrado para receber as instruções de recuperação.</p>
+              </div>
+              <input 
+                type="email" 
+                placeholder="Seu e-mail" 
+                className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-100 focus:ring-2 focus:ring-primary outline-none text-center font-medium text-slate-700"
+                value={forgotPasswordEmail}
+                onChange={e => setForgotPasswordEmail(e.target.value)}
+              />
+              <div className="space-y-3">
+                <button 
+                  onClick={() => {
+                    if (!forgotPasswordEmail) return alert('Informe seu e-mail');
+                    alert('Se o e-mail estiver cadastrado, você receberá um link para redefinir sua senha em instantes.');
+                    setShowForgotPassword(false);
+                  }}
+                  className="w-full py-4 bg-primary text-white rounded-2xl font-bold shadow-lg shadow-primary/20"
+                >
+                  Enviar Link
+                </button>
+                <button 
+                  onClick={() => setShowForgotPassword(false)}
+                  className="w-full py-4 text-slate-400 font-bold uppercase text-[10px] tracking-widest"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {showForgotCode && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="bg-white rounded-[32px] p-8 w-full max-w-sm shadow-2xl space-y-6"
+            >
+              <div className="text-center space-y-2">
+                <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mx-auto mb-4">
+                  <Shield size={32} />
+                </div>
+                <h3 className="text-xl font-bold text-slate-900">Código de Acesso</h3>
+                <p className="text-sm text-slate-600 leading-relaxed">
+                  {loginType === 'customer' 
+                    ? 'Por favor, entre em contato com seu vendedor para que ele forneça seu código de acesso ao catálogo.' 
+                    : loginType === 'seller'
+                    ? 'Por favor, entre em contato com a empresa para que ela forneça seu código de acesso ao sistema.'
+                    : 'Por favor, entre em contato com o suporte do sistema.'}
+                </p>
+              </div>
+              <button 
+                onClick={() => setShowForgotCode(false)}
+                className="w-full py-4 bg-primary text-white rounded-2xl font-bold shadow-lg shadow-primary/20"
+              >
+                Entendi
+              </button>
+            </motion.div>
           </div>
         )}
 

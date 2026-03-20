@@ -282,10 +282,11 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
       setOutOfStockSkus(newOutOfStock);
       setLastUnitsSkus(newLastUnits);
 
-      // Sempre mostrar o relatório ou alerta se o processamento foi concluído
+      // Se houver SKUs não cadastrados, mostrar o alerta específico primeiro
       if (unregistered.length > 0) {
         setShowUnregisteredAlert(true);
       } else {
+        // Sempre mostrar o relatório de sincronização ao final se não houver alerta de não cadastrados
         setShowSyncReport(true);
       }
 
@@ -807,34 +808,44 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
       {showUnregisteredAlert && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl max-w-md w-full p-8 shadow-2xl space-y-6 animate-in zoom-in-95">
-            <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto">
-              <AlertTriangle size={32} className="text-orange-600" />
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto">
+              <AlertTriangle size={32} className="text-red-600" />
             </div>
             <div className="text-center space-y-2">
-              <h2 className="text-xl font-bold">Produtos Não Cadastrados</h2>
+              <h2 className="text-xl font-bold">SKUs Não Cadastrados</h2>
               <p className="text-slate-500 text-sm">
-                Identificamos <strong>{unregisteredSkus.length} SKUs</strong> no Excel que não existem no sistema para esta marca. Eles precisam ser cadastrados manualmente ou via upload de catálogo.
+                Identificamos <strong>{unregisteredSkus.length} SKUs</strong> no seu arquivo que não estão cadastrados no sistema para esta marca.
               </p>
             </div>
-            <div className="max-h-[200px] overflow-y-auto border border-slate-100 rounded-xl p-4 space-y-2">
+            <div className="max-h-[200px] overflow-y-auto border border-slate-100 rounded-xl p-4 space-y-2 bg-slate-50">
               {unregisteredSkus.map((item, idx) => (
-                <div key={idx} className="flex justify-between text-xs p-1 border-b border-slate-50 last:border-0">
-                  <span className="font-mono font-bold">{item.sku}</span>
+                <div key={idx} className="flex justify-between text-xs border-b border-slate-200/50 last:border-0 pb-1 last:pb-0">
+                  <span className="font-mono font-bold text-slate-700">{item.sku}</span>
                   <span className="text-slate-500">Qtd: {item.qtd}</span>
                 </div>
               ))}
             </div>
-            <button 
-              onClick={() => { 
-                setShowUnregisteredAlert(false); 
-                // Não limpamos unregisteredSkus aqui para que o usuário possa ver o relatório depois se necessário
-                // mas mostramos o relatório de sincronização em seguida
-                setShowSyncReport(true);
-              }}
-              className="w-full py-3 bg-primary text-white rounded-xl font-bold hover:bg-primary/60 transition-colors"
-            >
-              Entendido
-            </button>
+            <div className="flex flex-col gap-3">
+              <button 
+                onClick={() => {
+                  setShowUnregisteredAlert(false);
+                  setShowSyncReport(true);
+                }}
+                className="w-full py-3 bg-primary text-white rounded-xl font-bold hover:bg-primary/60 transition-colors"
+              >
+                Ver Relatório Completo
+              </button>
+              <button 
+                onClick={() => {
+                  setShowUnregisteredAlert(false);
+                  setUnregisteredSkus([]);
+                  setShowSyncReport(true);
+                }}
+                className="w-full py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition-colors"
+              >
+                Ignorar e Continuar
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -848,7 +859,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
             <div className="text-center space-y-2 shrink-0">
               <h2 className="text-xl font-bold">Relatório de Sincronização</h2>
               <p className="text-slate-500 text-sm">
-                A sincronização foi concluída com sucesso. Veja as alterações realizadas:
+                Processamento concluído. Veja o resumo das alterações e pendências:
               </p>
             </div>
             
@@ -856,9 +867,10 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
               {unregisteredSkus.length > 0 && (
                 <div className="space-y-3">
                   <h3 className="text-sm font-bold text-slate-600 flex items-center gap-2">
-                    <AlertTriangle size={16} /> Não Cadastrados ({unregisteredSkus.length})
+                    <AlertTriangle size={16} className="text-slate-500" /> SKUs Não Cadastrados ({unregisteredSkus.length})
                   </h3>
                   <div className="bg-slate-50 rounded-xl p-4 space-y-2 border border-slate-100">
+                    <p className="text-[10px] text-slate-400 mb-2 italic">Estes SKUs estão no Excel mas não foram encontrados no sistema para esta marca.</p>
                     {unregisteredSkus.map((item, idx) => (
                       <div key={idx} className="flex justify-between text-xs border-b border-slate-200/50 last:border-0 pb-1 last:pb-0">
                         <span className="font-mono font-bold text-slate-700">{item.sku}</span>
@@ -875,6 +887,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
                     <AlertTriangle size={16} /> Últimas Unidades ({lastUnitsSkus.length})
                   </h3>
                   <div className="bg-orange-50 rounded-xl p-4 space-y-2 border border-orange-100">
+                    <p className="text-[10px] text-orange-400 mb-2 italic">Produtos atualizados para o status "Últimas Unidades" (estoque baixo).</p>
                     {lastUnitsSkus.map((item, idx) => (
                       <div key={idx} className="flex justify-between text-xs border-b border-orange-200/50 last:border-0 pb-1 last:pb-0">
                         <div className="flex flex-col">
@@ -893,6 +906,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
                     <AlertCircle size={16} /> Esgotados ({outOfStockSkus.length})
                   </h3>
                   <div className="bg-red-50 rounded-xl p-4 space-y-2 border border-red-100">
+                    <p className="text-[10px] text-red-400 mb-2 italic">Produtos atualizados para o status "Esgotado".</p>
                     {outOfStockSkus.map((item, idx) => (
                       <div key={idx} className="flex justify-between text-xs border-b border-red-200/50 last:border-0 pb-1 last:pb-0">
                         <div className="flex flex-col">
@@ -905,9 +919,9 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
                 </div>
               )}
 
-              {lastUnitsSkus.length === 0 && outOfStockSkus.length === 0 && (
+              {lastUnitsSkus.length === 0 && outOfStockSkus.length === 0 && unregisteredSkus.length === 0 && (
                 <div className="text-center py-8 text-slate-400 italic text-sm">
-                  Nenhuma alteração de status detectada.
+                  Nenhuma alteração ou pendência detectada. O sistema já está atualizado com os dados do Excel.
                 </div>
               )}
             </div>

@@ -583,7 +583,7 @@ export default function App() {
         {activeTab === 'pendencias' && <Pendencias companyId={activeCompanyId} onRefresh={loadData} />}
         {activeTab === 'marcas' && <Marcas companyId={activeCompanyId} />}
         {activeTab === 'vendedores' && <Vendedores companyId={activeCompanyId} />}
-        {activeTab === 'clientes' && <Clientes companyId={activeCompanyId} />}
+        {activeTab === 'clientes' && <Clientes companyId={activeCompanyId} role={role} user={user} />}
         {activeTab === 'pedidos' && <Pedidos companyId={activeCompanyId} />}
         {activeTab === 'account' && <Configuracoes companyId={activeCompanyId} user={user} role={role} onLogout={handleLogout} />}
       </main>

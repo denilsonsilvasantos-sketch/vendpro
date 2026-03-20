@@ -200,7 +200,8 @@ export default function App() {
           getProducts(activeCompanyId.toString()),
           getCompanyById(activeCompanyId)
         ]);
-        setProducts(fetchedProducts);
+        
+        let finalProducts = fetchedProducts;
         
         // Apply local logo if present
         if (fetchedCompany) {
@@ -223,11 +224,40 @@ export default function App() {
         
         // Also fetch categories and brands for this company
         if (supabase) {
+          let releasedBrandIds: string[] = [];
+          
+          if (role === 'seller' && user?.id) {
+            const { data: sellerBrands } = await supabase
+              .from('seller_brands')
+              .select('brand_id')
+              .eq('seller_id', user.id);
+            
+            releasedBrandIds = sellerBrands?.map(sb => sb.brand_id) || [];
+            
+            // Filter products
+            finalProducts = fetchedProducts.filter(p => p.brand_id && releasedBrandIds.includes(p.brand_id));
+          }
+
           const { data: catData } = await supabase.from('categories').select('*').eq('company_id', activeCompanyId).order('nome');
-          setCategories((catData || []).sort((a, b) => (a.order_index || 0) - (b.order_index || 0)));
-          const { data: brandData } = await supabase.from('brands').select('*').eq('company_id', activeCompanyId).order('name');
+          let filteredCats = catData || [];
+          
+          let brandQuery = supabase.from('brands').select('*').eq('company_id', activeCompanyId).order('name');
+          
+          if (role === 'seller' && releasedBrandIds.length > 0) {
+            brandQuery = brandQuery.in('id', releasedBrandIds);
+            filteredCats = filteredCats.filter(c => c.brand_id && releasedBrandIds.includes(c.brand_id));
+          } else if (role === 'seller' && releasedBrandIds.length === 0) {
+            brandQuery = brandQuery.eq('id', 'none');
+            filteredCats = [];
+          }
+
+          const { data: brandData } = await brandQuery;
+          
+          setCategories(filteredCats.sort((a, b) => (a.order_index || 0) - (b.order_index || 0)));
           setBrands((brandData || []).sort((a, b) => (a.order_index || 0) - (b.order_index || 0)));
         }
+        
+        setProducts(finalProducts);
       } catch (error) {
         console.error("Erro ao carregar dados:", error);
       } finally {
@@ -463,26 +493,34 @@ export default function App() {
                 {effectiveRole !== 'customer' && (
                   <>
                     <SidebarItem icon={<LayoutGrid size={20}/>} label="Dashboard" active={activeTab === 'dashboard'} onClick={() => { setActiveTab('dashboard'); setIsSidebarOpen(false); }} />
-                    <SidebarItem icon={<Package size={20}/>} label="Produtos" active={activeTab === 'produtos'} onClick={() => { setActiveTab('produtos'); setIsSidebarOpen(false); }} />
-                    <SidebarItem icon={<UploadIcon size={20}/>} label="Upload" active={activeTab === 'upload'} onClick={() => { setActiveTab('upload'); setIsSidebarOpen(false); }} />
-                    <SidebarItem icon={<AlertTriangle size={20}/>} label="Pendências" active={activeTab === 'pendencias'} onClick={() => { setActiveTab('pendencias'); setIsSidebarOpen(false); }} />
-                    <SidebarItem icon={<Tag size={20}/>} label="Marcas" active={activeTab === 'marcas'} onClick={() => { setActiveTab('marcas'); setIsSidebarOpen(false); }} />
-                    <SidebarItem icon={<Users size={20}/>} label="Vendedores" active={activeTab === 'vendedores'} onClick={() => { setActiveTab('vendedores'); setIsSidebarOpen(false); }} />
+                    
+                    {role !== 'seller' && (
+                      <>
+                        <SidebarItem icon={<Package size={20}/>} label="Produtos" active={activeTab === 'produtos'} onClick={() => { setActiveTab('produtos'); setIsSidebarOpen(false); }} />
+                        <SidebarItem icon={<UploadIcon size={20}/>} label="Upload" active={activeTab === 'upload'} onClick={() => { setActiveTab('upload'); setIsSidebarOpen(false); }} />
+                        <SidebarItem icon={<AlertTriangle size={20}/>} label="Pendências" active={activeTab === 'pendencias'} onClick={() => { setActiveTab('pendencias'); setIsSidebarOpen(false); }} />
+                        <SidebarItem icon={<Tag size={20}/>} label="Marcas" active={activeTab === 'marcas'} onClick={() => { setActiveTab('marcas'); setIsSidebarOpen(false); }} />
+                        <SidebarItem icon={<Users size={20}/>} label="Vendedores" active={activeTab === 'vendedores'} onClick={() => { setActiveTab('vendedores'); setIsSidebarOpen(false); }} />
+                      </>
+                    )}
+                    
                     <SidebarItem icon={<Users size={20}/>} label="Clientes" active={activeTab === 'clientes'} onClick={() => { setActiveTab('clientes'); setIsSidebarOpen(false); }} />
                     <SidebarItem icon={<FileText size={20}/>} label="Pedidos" active={activeTab === 'pedidos'} onClick={() => { setActiveTab('pedidos'); setIsSidebarOpen(false); }} />
                     
                     <div className="h-px bg-slate-100 my-6 mx-2" />
                     
-                    <SidebarItem 
-                      icon={<User size={20}/>} 
-                      label="Visão do Cliente" 
-                      active={false} 
-                      onClick={() => { 
-                        setViewMode('customer'); 
-                        setActiveTab('catalog');
-                        setIsSidebarOpen(false); 
-                      }} 
-                    />
+                    {role !== 'seller' && (
+                      <SidebarItem 
+                        icon={<User size={20}/>} 
+                        label="Visão do Cliente" 
+                        active={false} 
+                        onClick={() => { 
+                          setViewMode('customer'); 
+                          setActiveTab('catalog');
+                          setIsSidebarOpen(false); 
+                        }} 
+                      />
+                    )}
                   </>
                 )}
 
@@ -539,7 +577,7 @@ export default function App() {
           />
         )}
         {activeTab === 'cart' && <CartScreen cart={cart} total={total} onUpdateQuantity={updateQuantity} onRemove={removeFromCart} onSendOrder={handleSendOrder} />}
-        {activeTab === 'dashboard' && <Dashboard companyId={activeCompanyId} />}
+        {activeTab === 'dashboard' && <Dashboard companyId={activeCompanyId} role={role} user={user} />}
         {activeTab === 'produtos' && <Produtos companyId={activeCompanyId} onRefresh={loadData} />}
         {activeTab === 'upload' && <Upload companyId={activeCompanyId} onRefresh={loadData} />}
         {activeTab === 'pendencias' && <Pendencias companyId={activeCompanyId} onRefresh={loadData} />}

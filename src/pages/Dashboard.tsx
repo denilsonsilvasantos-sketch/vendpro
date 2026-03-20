@@ -3,8 +3,9 @@ import { supabase } from '../integrations/supabaseClient';
 import { Card } from '../components/Card';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { Package, Users, ShoppingCart, TrendingUp } from 'lucide-react';
+import { UserRole } from '../types';
 
-export default function Dashboard({ companyId }: { companyId: string | null }) {
+export default function Dashboard({ companyId, role, user }: { companyId: string | null, role?: UserRole, user?: any }) {
   const [stats, setStats] = useState({ products: 0, customers: 0, orders: 0, revenue: 0 });
   const [brandRevenue, setBrandRevenue] = useState<{ name: string, value: number }[]>([]);
   const [loading, setLoading] = useState(true);
@@ -14,25 +15,61 @@ export default function Dashboard({ companyId }: { companyId: string | null }) {
     async function fetchStats() {
       if (!supabase || companyId === null) return;
       
+      let releasedBrandIds: string[] = [];
+      
+      // If seller, fetch released brands
+      if (role === 'seller' && user?.id) {
+        const { data: sellerBrands } = await supabase
+          .from('seller_brands')
+          .select('brand_id')
+          .eq('seller_id', user.id);
+        
+        releasedBrandIds = sellerBrands?.map(sb => sb.brand_id) || [];
+      }
+      
       // Fetch counts
-      const { count: productCount } = await supabase.from('products').select('*', { count: 'exact', head: true }).eq('company_id', companyId);
+      let productQuery = supabase.from('products').select('*', { count: 'exact', head: true }).eq('company_id', companyId);
+      if (role === 'seller' && releasedBrandIds.length > 0) {
+        productQuery = productQuery.in('brand_id', releasedBrandIds);
+      } else if (role === 'seller' && releasedBrandIds.length === 0) {
+        // If seller has no brands released, they see 0 products
+        productQuery = productQuery.eq('id', 'none'); 
+      }
+      
+      const { count: productCount } = await productQuery;
       
       // Clientes estão vinculados a vendedores, que estão vinculados a empresas
-      const { data: sellers } = await supabase.from('sellers').select('id').eq('company_id', companyId);
-      const sellerIds = sellers?.map(s => s.id) || [];
+      let sellerIds: string[] = [];
+      if (role === 'seller' && user?.id) {
+        sellerIds = [user.id];
+      } else {
+        const { data: sellers } = await supabase.from('sellers').select('id').eq('company_id', companyId);
+        sellerIds = sellers?.map(s => s.id) || [];
+      }
       
       const { count: customerCount } = sellerIds.length > 0 
         ? await supabase.from('customers').select('*', { count: 'exact', head: true }).in('seller_id', sellerIds)
         : { count: 0 };
 
-      const { count: orderCount } = await supabase.from('orders').select('*', { count: 'exact', head: true }).eq('company_id', companyId);
+      let orderQuery = supabase.from('orders').select('*', { count: 'exact', head: true }).eq('company_id', companyId);
+      if (role === 'seller' && user?.id) {
+        orderQuery = orderQuery.eq('seller_id', user.id);
+      }
+      const { count: orderCount } = await orderQuery;
       
       // Fetch total revenue and breakdown by brand
-      const { data: orders } = await supabase.from('orders').select('id, total').eq('company_id', companyId);
+      let revenueQuery = supabase.from('orders').select('id, total').eq('company_id', companyId);
+      if (role === 'seller' && user?.id) {
+        revenueQuery = revenueQuery.eq('seller_id', user.id);
+      }
+      const { data: orders } = await revenueQuery;
       const totalRevenue = orders?.reduce((acc, order) => acc + (order.total || 0), 0) || 0;
 
       // Fetch order items to calculate revenue by brand
-      const { data: orderItems } = await supabase
+      // We filter by order_id to only include orders the seller has access to
+      const orderIds = orders?.map(o => o.id) || [];
+      
+      let orderItemsQuery = supabase
         .from('order_items')
         .select(`
           subtotal,
@@ -42,6 +79,15 @@ export default function Dashboard({ companyId }: { companyId: string | null }) {
             )
           )
         `);
+      
+      if (orderIds.length > 0) {
+        orderItemsQuery = orderItemsQuery.in('order_id', orderIds);
+      } else {
+        // No orders, no items
+        orderItemsQuery = orderItemsQuery.eq('order_id', 'none');
+      }
+
+      const { data: orderItems } = await orderItemsQuery;
       
       const brandMap: Record<string, number> = {};
       orderItems?.forEach((item: any) => {
@@ -66,8 +112,11 @@ export default function Dashboard({ companyId }: { companyId: string | null }) {
     const channel = supabase
       .channel('new-orders')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders', filter: `company_id=eq.${companyId}` }, (payload) => {
-        setNewOrder(payload.new);
-        setTimeout(() => setNewOrder(null), 5000); // Hide after 5s
+        // Only notify if it's for this seller or if company
+        if (role !== 'seller' || payload.new.seller_id === user?.id) {
+          setNewOrder(payload.new);
+          setTimeout(() => setNewOrder(null), 5000); // Hide after 5s
+        }
       })
       .subscribe();
 
@@ -76,7 +125,7 @@ export default function Dashboard({ companyId }: { companyId: string | null }) {
         supabase.removeChannel(channel);
       }
     };
-  }, [companyId]);
+  }, [companyId, role, user?.id]);
 
   const data = [
     { name: 'Produtos', value: stats.products },

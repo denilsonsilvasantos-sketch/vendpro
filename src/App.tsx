@@ -228,7 +228,9 @@ export default function App() {
   const [showCompanyWarning, setShowCompanyWarning] = useState(false);
   const [banners, setBanners] = useState<BannerData[]>([]);
   const [topBarMessages, setTopBarMessages] = useState<string[]>([]);
-  const { cart, addToCart, removeFromCart, updateQuantity, clearCart, total } = useCart();
+  const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const { cart, carts, addToCart, removeFromCart, updateQuantity, clearCart, total } = useCart(selectedBrand);
 
   const effectiveRole = viewMode === 'customer' ? 'customer' : role;
 
@@ -325,8 +327,13 @@ export default function App() {
 
           const { data: brandData } = await brandQuery;
           
+          const sortedBrands = (brandData || []).sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
           setCategories(filteredCats.sort((a: any, b: any) => (a.order_index || 0) - (b.order_index || 0)));
-          setBrands((brandData || []).sort((a, b) => (a.order_index || 0) - (b.order_index || 0)));
+          setBrands(sortedBrands);
+          
+          if (sortedBrands.length > 0 && !selectedBrand) {
+            setSelectedBrand(sortedBrands[0].id);
+          }
         }
         
         setProducts(finalProducts);
@@ -672,11 +679,29 @@ export default function App() {
               role={effectiveRole} 
               onZoom={setZoomImage}
               banners={banners}
+              user={user}
+              company={company}
+              selectedBrand={selectedBrand}
+              setSelectedBrand={setSelectedBrand}
+              selectedCategory={selectedCategory}
+              setSelectedCategory={setSelectedCategory}
+              carts={carts}
+              onGoToCart={() => setActiveTab('cart')}
             />
           )}
         
         <div className="max-w-7xl mx-auto px-4 md:px-8 py-8">
-          {activeTab === 'cart' && <CartScreen cart={cart} total={total} onUpdateQuantity={updateQuantity} onRemove={removeFromCart} onSendOrder={handleSendOrder} />}
+          {activeTab === 'cart' && (
+            <CartScreen 
+              cart={cart} 
+              total={total} 
+              onUpdateQuantity={updateQuantity} 
+              onRemove={removeFromCart} 
+              onSendOrder={handleSendOrder} 
+              selectedBrand={selectedBrand}
+              brands={brands}
+            />
+          )}
           {activeTab === 'dashboard' && <Dashboard companyId={activeCompanyId} role={role} user={user} />}
           {activeTab === 'banners' && role === 'company' && <BannerManager companyId={activeCompanyId!} />}
           {activeTab === 'produtos' && <Produtos companyId={activeCompanyId} onRefresh={loadData} />}
@@ -1338,7 +1363,15 @@ function CatalogScreen({
   onEdit, 
   role, 
   onZoom,
-  banners
+  banners,
+  user,
+  company,
+  selectedBrand,
+  setSelectedBrand,
+  selectedCategory,
+  setSelectedCategory,
+  carts,
+  onGoToCart
 }: { 
   products: Product[], 
   categories: Category[], 
@@ -1347,13 +1380,88 @@ function CatalogScreen({
   onEdit: (p: Product) => void, 
   role: UserRole, 
   onZoom: (img: string) => void,
-  banners?: BannerData[]
+  banners?: BannerData[],
+  user: any,
+  company: any,
+  selectedBrand: string | null,
+  setSelectedBrand: (id: string | null) => void,
+  selectedCategory: string | null,
+  setSelectedCategory: (id: string | null) => void,
+  carts: { [brandId: string]: CartItem[] },
+  onGoToCart: () => void
 }) {
   const [search, setSearch] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
   const [itemsPerPage, setItemsPerPage] = useState(24);
   const [currentPage, setCurrentPage] = useState(1);
+  const [showConditions, setShowConditions] = useState(false);
+  const [showSwitchWarning, setShowSwitchWarning] = useState(false);
+  const [showLogisticsWarning, setShowLogisticsWarning] = useState(false);
+  const [pendingBrandId, setPendingBrandId] = useState<string | null>(null);
+  const [acknowledgedBrands, setAcknowledgedBrands] = useState<Set<string>>(new Set());
+
+  const currentBrand = brands.find(b => b.id === selectedBrand);
+
+  useEffect(() => {
+    if (selectedBrand && !acknowledgedBrands.has(selectedBrand)) {
+      setShowConditions(true);
+    }
+  }, [selectedBrand]);
+
+  const handleBrandChange = (brandId: string) => {
+    if (brandId === selectedBrand) return;
+
+    const currentCart = carts[selectedBrand || ''] || [];
+    if (currentCart.length > 0) {
+      setPendingBrandId(brandId);
+      setShowSwitchWarning(true);
+    } else {
+      setPendingBrandId(brandId);
+      setShowLogisticsWarning(true);
+    }
+  };
+
+  const confirmBrandSwitch = (save: boolean) => {
+    if (pendingBrandId) {
+      setSelectedBrand(pendingBrandId);
+      setSelectedCategory(null);
+      setShowSwitchWarning(false);
+      setShowLogisticsWarning(true);
+      if (!save) {
+        // If they don't want to save, we'd clear the cart, but our useCart handles per-brand carts.
+        // "Save for later" means just switching. "Finalize" means going to cart.
+      }
+    }
+  };
+
+  const handleAcknowledgeLogistics = () => {
+    setShowLogisticsWarning(false);
+    // After logistics warning, we show conditions if not acknowledged
+    if (pendingBrandId && !acknowledgedBrands.has(pendingBrandId)) {
+      setShowConditions(true);
+    }
+  };
+
+  const handleAcknowledgeConditions = () => {
+    if (selectedBrand) {
+      setAcknowledgedBrands(prev => new Set([...prev, selectedBrand]));
+    }
+    setShowConditions(false);
+  };
+
+  const handleWhatsAppSupport = () => {
+    const whatsappNumber = user?.vendedor_whatsapp || company?.telefone || '';
+    if (!whatsappNumber) {
+      alert('Número de suporte não encontrado.');
+      return;
+    }
+    let cleanPhone = whatsappNumber.replace(/\D/g, '');
+    if (!cleanPhone.startsWith('55') && (cleanPhone.length === 10 || cleanPhone.length === 11)) {
+      cleanPhone = `55${cleanPhone}`;
+    }
+    const message = `Olá! Estou no catálogo da ${company?.nome} e gostaria de tirar uma dúvida.`;
+    const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+    window.open(url, '_blank');
+  };
 
   const filtered = products.filter(p => {
     const searchLower = search.trim().toLowerCase();
@@ -1381,7 +1489,6 @@ function CatalogScreen({
       return orderA - orderB;
     }
 
-    // Sort out of stock items to the end of the category
     const isEsgotadoA = a.status_estoque === 'esgotado';
     const isEsgotadoB = b.status_estoque === 'esgotado';
     
@@ -1405,6 +1512,111 @@ function CatalogScreen({
 
   return (
     <div className="space-y-0">
+      <AnimatePresence>
+        {showConditions && currentBrand && (
+          <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" />
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-md rounded-[32px] shadow-2xl relative z-10 p-8 space-y-6">
+              <div className="text-center space-y-2">
+                <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto text-primary">
+                  <FileText size={40} />
+                </div>
+                <h3 className="text-2xl font-bold text-slate-900">Condições Comerciais</h3>
+                <p className="text-primary font-bold uppercase tracking-widest text-xs">{currentBrand.name}</p>
+              </div>
+
+              <div className="space-y-4 max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar">
+                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Pedido Mínimo</p>
+                  <p className="font-bold text-slate-700">R$ {currentBrand.minimum_order_value?.toFixed(2)}</p>
+                </div>
+                {currentBrand.payment_policy && (
+                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Pagamento</p>
+                    <p className="text-sm text-slate-600 leading-relaxed">{currentBrand.payment_policy}</p>
+                  </div>
+                )}
+                {currentBrand.shipping_policy && (
+                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Envio / Frete</p>
+                    <p className="text-sm text-slate-600 leading-relaxed">{currentBrand.shipping_policy}</p>
+                  </div>
+                )}
+              </div>
+
+              <button 
+                onClick={handleAcknowledgeConditions}
+                className="w-full py-4 bg-primary text-white rounded-2xl font-bold shadow-lg shadow-primary/20 active:scale-95 transition-all"
+              >
+                Ciente, continuar
+              </button>
+            </motion.div>
+          </div>
+        )}
+
+        {showSwitchWarning && (
+          <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" />
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-sm rounded-[32px] shadow-2xl relative z-10 p-8 text-center space-y-6">
+              <div className="w-20 h-20 bg-amber-50 rounded-full flex items-center justify-center mx-auto text-amber-500">
+                <AlertCircle size={40} />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-xl font-bold text-slate-900">Mudar de Marca?</h3>
+                <p className="text-slate-500 text-sm leading-relaxed">
+                  Você tem itens no carrinho desta marca. Deseja finalizar este pedido agora ou salvar para depois?
+                </p>
+              </div>
+              <div className="flex flex-col gap-3">
+                <button 
+                  onClick={onGoToCart}
+                  className="w-full py-4 bg-primary text-white rounded-2xl font-bold shadow-lg shadow-primary/20 active:scale-95 transition-all"
+                >
+                  Finalizar Pedido Atual
+                </button>
+                <button 
+                  onClick={() => confirmBrandSwitch(true)}
+                  className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-200 transition-all"
+                >
+                  Salvar e Mudar de Marca
+                </button>
+                <button 
+                  onClick={() => setShowSwitchWarning(false)}
+                  className="w-full py-2 text-slate-400 font-bold uppercase text-[10px] tracking-widest"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {showLogisticsWarning && (
+          <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" />
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-sm rounded-[32px] shadow-2xl relative z-10 p-8 text-center space-y-6">
+              <div className="w-20 h-20 bg-rose-50 rounded-full flex items-center justify-center mx-auto text-rose-500">
+                <AlertTriangle size={40} />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-xl font-bold text-slate-900">Aviso de Logística</h3>
+                <p className="text-slate-500 text-sm leading-relaxed">
+                  Cada marca possui suas próprias **condições comerciais, estoque e envios**. 
+                  <br/><br/>
+                  Os pedidos não poderão ser somados entre as marcas.
+                </p>
+              </div>
+              <button 
+                onClick={handleAcknowledgeLogistics}
+                className="w-full py-4 bg-rose-500 text-white rounded-2xl font-bold shadow-lg shadow-rose-500/20 active:scale-95 transition-all"
+              >
+                Estou ciente
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       <div className="max-w-7xl mx-auto px-4 md:px-8 pt-8">
         <Banner banners={banners} />
       </div>
@@ -1421,7 +1633,7 @@ function CatalogScreen({
           {brands.map(brand => (
             <button 
               key={brand.id}
-              onClick={() => { setSelectedBrand(brand.id); setSelectedCategory(null); }}
+              onClick={() => handleBrandChange(brand.id)}
               className={`px-6 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all ${selectedBrand === brand.id ? 'pink-gradient text-white shadow-lg shadow-primary/20' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
             >
               {brand.name}
@@ -1457,7 +1669,10 @@ function CatalogScreen({
               <div className="relative z-10">
                 <h4 className="font-display text-lg font-bold mb-2">Suporte VIP</h4>
                 <p className="text-xs text-white/60 mb-6 leading-relaxed">Dúvidas sobre produtos ou pedidos? Fale com seu consultor.</p>
-                <button className="w-full py-3 bg-white text-slate-900 rounded-xl text-xs font-bold hover:bg-primary hover:text-white transition-all">
+                <button 
+                  onClick={handleWhatsAppSupport}
+                  className="w-full py-3 bg-white text-slate-900 rounded-xl text-xs font-bold hover:bg-primary hover:text-white transition-all"
+                >
                   WhatsApp Direto
                 </button>
               </div>
@@ -1512,15 +1727,40 @@ function CatalogScreen({
                 </button>
                 
                 <div className="flex items-center gap-2">
-                  {[...Array(totalPages)].map((_, i) => (
-                    <button 
-                      key={i}
-                      onClick={() => setCurrentPage(i + 1)}
-                      className={`w-10 h-10 rounded-xl text-sm font-bold transition-all ${currentPage === i + 1 ? 'pink-gradient text-white shadow-lg shadow-primary/20' : 'bg-white text-slate-400 hover:bg-slate-50'}`}
-                    >
-                      {i + 1}
-                    </button>
-                  ))}
+                  {(() => {
+                    const pages = [];
+                    const maxVisible = 5;
+                    let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+                    let end = Math.min(totalPages, start + maxVisible - 1);
+                    if (end - start + 1 < maxVisible) start = Math.max(1, end - maxVisible + 1);
+
+                    if (start > 1) {
+                      pages.push(
+                        <button key={1} onClick={() => setCurrentPage(1)} className="w-10 h-10 rounded-xl text-sm font-bold bg-white text-slate-400 hover:bg-slate-50">1</button>
+                      );
+                      if (start > 2) pages.push(<span key="sep1" className="text-slate-300">...</span>);
+                    }
+
+                    for (let i = start; i <= end; i++) {
+                      pages.push(
+                        <button 
+                          key={i}
+                          onClick={() => setCurrentPage(i)}
+                          className={`w-10 h-10 rounded-xl text-sm font-bold transition-all ${currentPage === i ? 'pink-gradient text-white shadow-lg shadow-primary/20' : 'bg-white text-slate-400 hover:bg-slate-50'}`}
+                        >
+                          {i}
+                        </button>
+                      );
+                    }
+
+                    if (end < totalPages) {
+                      if (end < totalPages - 1) pages.push(<span key="sep2" className="text-slate-300">...</span>);
+                      pages.push(
+                        <button key={totalPages} onClick={() => setCurrentPage(totalPages)} className="w-10 h-10 rounded-xl text-sm font-bold bg-white text-slate-400 hover:bg-slate-50">{totalPages}</button>
+                      );
+                    }
+                    return pages;
+                  })()}
                 </div>
 
                 <button 

@@ -1,17 +1,34 @@
 import React from 'react';
-import { CartItem } from '../types';
+import { CartItem, Brand } from '../types';
 import { Plus, Minus, Trash2 } from 'lucide-react';
 
-export default function CartScreen({ cart, total, onUpdateQuantity, onRemove, onSendOrder }: { 
+export default function CartScreen({ 
+  cart, 
+  total, 
+  onUpdateQuantity, 
+  onRemove, 
+  onSendOrder,
+  selectedBrand,
+  brands
+}: { 
   cart: CartItem[], 
   total: number, 
   onUpdateQuantity: (id: string, q: number) => void, 
   onRemove: (id: string) => void, 
-  onSendOrder: () => void 
+  onSendOrder: () => void,
+  selectedBrand: string | null,
+  brands: Brand[]
 }) {
+  const currentBrand = brands.find(b => b.id === selectedBrand);
+
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6 text-slate-800">Carrinho</h1>
+      <div className="flex flex-col mb-8">
+        <h1 className="text-3xl font-black text-slate-900 tracking-tight">Carrinho</h1>
+        {currentBrand && (
+          <p className="text-primary font-bold uppercase tracking-widest text-xs mt-1">Marca: {currentBrand.name}</p>
+        )}
+      </div>
       
       {cart.length === 0 ? (
         <div className="text-center py-12 text-slate-400">

@@ -651,7 +651,7 @@ export default function App() {
       </AnimatePresence>
 
       {/* Main Content */}
-      <main className="flex-1 w-full relative">
+      <main className="flex-1 w-full relative min-w-0 overflow-x-hidden">
         {viewMode === 'customer' && role !== 'customer' && (
           <button
             onClick={() => setViewMode('admin')}
@@ -1405,9 +1405,11 @@ function CatalogScreen({
 
   return (
     <div className="space-y-0">
-      <Banner banners={banners} />
+      <div className="max-w-7xl mx-auto px-4 md:px-8 pt-8">
+        <Banner banners={banners} />
+      </div>
 
-      <div className="max-w-[1600px] mx-auto px-4 md:px-8 py-12">
+      <div className="max-w-7xl mx-auto px-4 md:px-8 py-12">
         {/* Category Bar */}
         <div className="flex items-center gap-4 mb-12 overflow-x-auto pb-4 custom-scrollbar">
           <button 
@@ -1464,7 +1466,7 @@ function CatalogScreen({
           </aside>
 
           {/* Product Grid */}
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between mb-8">
               <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">
                 Mostrando <span className="text-slate-900">{filtered.length}</span> produtos
@@ -1491,7 +1493,7 @@ function CatalogScreen({
                 <p className="text-slate-400 font-medium">Nenhum produto encontrado.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 md:gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 md:gap-6">
                 {paginatedProducts.map(p => (
                   <ProductCard key={p.id} product={p} onAdd={onAddToCart} onEdit={onEdit} role={role} onZoom={onZoom} />
                 ))}
@@ -1553,7 +1555,7 @@ function ProductCard({ product, onAdd, onEdit, role, onZoom, ...props }: { produ
   };
 
   return (
-    <Card className={`p-2 md:p-3 flex flex-col group hover:border-primary/20 transition-all card-shadow rounded-2xl ${isEsgotado ? 'opacity-75 grayscale-[0.5]' : ''}`}>
+    <Card className={`p-3 md:p-4 flex flex-col group hover:border-primary/20 transition-all card-shadow rounded-2xl ${isEsgotado ? 'opacity-75 grayscale-[0.5]' : ''}`}>
       <div className="relative aspect-square mb-3 rounded-xl overflow-hidden bg-slate-50 cursor-zoom-in group-hover:scale-[1.02] transition-transform duration-500" onClick={() => onZoom(product.imagem || '')}>
         <img src={product.imagem || `https://picsum.photos/seed/${product.sku}/400/400`} className="w-full h-full object-contain p-2" alt={product.nome} referrerPolicy="no-referrer" />
         <div className="absolute top-2 w-full flex flex-col gap-1 items-center">

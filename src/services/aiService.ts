@@ -137,3 +137,37 @@ export async function extractProductsFromMedia(base64Data: string, mimeType: str
     throw new Error(error.message || "Erro desconhecido ao processar o arquivo com a IA.");
   }
 }
+
+export async function removeImageBackground(base64Data: string, mimeType: string) {
+  const prompt = "Remove the background of this product image and place it on a pure white background. Keep the product exactly as it is, maintaining all its details, colors, and textures. The output should be only the product on a clean, solid white background.";
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash-image",
+      contents: {
+        parts: [
+          {
+            inlineData: {
+              data: base64Data,
+              mimeType: mimeType
+            }
+          },
+          { text: prompt }
+        ]
+      }
+    });
+
+    if (response.candidates?.[0]?.content?.parts) {
+      for (const part of response.candidates[0].content.parts) {
+        if (part.inlineData) {
+          return `data:${part.inlineData.mimeType || 'image/png'};base64,${part.inlineData.data}`;
+        }
+      }
+    }
+    
+    throw new Error("Não foi possível processar a imagem.");
+  } catch (error: any) {
+    console.error("Erro ao remover fundo da imagem:", error);
+    throw new Error(error.message || "Erro ao processar a imagem com a IA.");
+  }
+}

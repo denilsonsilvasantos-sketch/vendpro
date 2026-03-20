@@ -1,7 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { supabase } from '../integrations/supabaseClient';
 import { Brand } from '../types';
-import { X, Upload, Loader2, Image as ImageIcon } from 'lucide-react';
+import { X, Upload, Loader2, Image as ImageIcon, Wand2 } from 'lucide-react';
+import { removeImageBackground } from '../services/aiService';
 
 export default function BrandFormModal({ onClose, onSave, brand, companyId }: { onClose: () => void, onSave: () => void, brand?: Brand, companyId: string | null }) {
   const [formData, setFormData] = useState<Partial<Brand>>(brand || { 
@@ -14,6 +15,7 @@ export default function BrandFormModal({ onClose, onSave, brand, companyId }: { 
   });
   const [loading, setLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isRemovingBackground, setIsRemovingBackground] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -47,6 +49,56 @@ export default function BrandFormModal({ onClose, onSave, brand, companyId }: { 
       alert('Erro ao fazer upload da imagem.');
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const handleRemoveBackground = async () => {
+    if (!formData.logo_url) return;
+    
+    setIsRemovingBackground(true);
+    try {
+      let base64Data = '';
+      let mimeType = 'image/png';
+      
+      if (formData.logo_url.startsWith('data:')) {
+        const parts = formData.logo_url.split(',');
+        base64Data = parts[1];
+        mimeType = parts[0].split(':')[1].split(';')[0];
+      } else {
+        const response = await fetch(formData.logo_url);
+        const blob = await response.blob();
+        mimeType = blob.type;
+        base64Data = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+      }
+      
+      const processedImage = await removeImageBackground(base64Data, mimeType);
+      
+      const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+      const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+
+      if (cloudName && uploadPreset) {
+        const formDataUpload = new FormData();
+        formDataUpload.append('file', processedImage);
+        formDataUpload.append('upload_preset', uploadPreset);
+        const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+          method: 'POST',
+          body: formDataUpload,
+        });
+        const data = await response.json();
+        setFormData(prev => ({ ...prev, logo_url: data.secure_url || processedImage }));
+      } else {
+        setFormData(prev => ({ ...prev, logo_url: processedImage }));
+      }
+    } catch (error) {
+      console.error('Erro ao remover fundo:', error);
+      alert('Erro ao processar imagem.');
+    } finally {
+      setIsRemovingBackground(false);
     }
   };
 
@@ -140,16 +192,30 @@ export default function BrandFormModal({ onClose, onSave, brand, companyId }: { 
               ) : (
                 <ImageIcon className="text-slate-300" size={32} />
               )}
-              {isUploading && (
-                <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
+              {(isUploading || isRemovingBackground) && (
+                <div className="absolute inset-0 bg-white/80 flex items-center justify-center flex-col gap-1">
                   <Loader2 className="animate-spin text-primary" size={20} />
+                  {isRemovingBackground && <span className="text-[8px] font-bold text-primary uppercase">IA...</span>}
                 </div>
               )}
               <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                 <Upload className="text-white" size={20} />
               </div>
             </div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Logo da Marca</p>
+            <div className="flex gap-2">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Logo da Marca</p>
+              {formData.logo_url && (
+                <button 
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); handleRemoveBackground(); }}
+                  disabled={isRemovingBackground}
+                  className="text-[10px] font-bold text-amber-500 hover:text-amber-600 flex items-center gap-1 disabled:opacity-50"
+                >
+                  <Wand2 size={10} />
+                  Remover Fundo
+                </button>
+              )}
+            </div>
             <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
           </div>
 

@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../integrations/supabaseClient';
 import { Product, Brand, Category } from '../types';
-import { X, Upload, Loader2, Image as ImageIcon, Link as LinkIcon, Check } from 'lucide-react';
+import { X, Upload, Loader2, Image as ImageIcon, Link as LinkIcon, Check, Wand2 } from 'lucide-react';
+import { removeImageBackground } from '../services/aiService';
 
 export default function ProductFormModal({ onClose, onSave, product, companyId }: { onClose: () => void, onSave: () => void, product?: Product, companyId: string | null }) {
   const [formData, setFormData] = useState<Partial<Product>>(product ? {
@@ -27,6 +28,7 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
   const [loading, setLoading] = useState(false);
   const [zoomImage, setZoomImage] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isRemovingBackground, setIsRemovingBackground] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -74,6 +76,72 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
       alert('Erro ao fazer upload da imagem.');
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const handleRemoveBackground = async () => {
+    if (!formData.imagem) return;
+    
+    setIsRemovingBackground(true);
+    try {
+      let base64Data = '';
+      let mimeType = 'image/png';
+      
+      if (formData.imagem.startsWith('data:')) {
+        const parts = formData.imagem.split(',');
+        base64Data = parts[1];
+        mimeType = parts[0].split(':')[1].split(';')[0];
+      } else {
+        // Fetch URL and convert to base64
+        // Note: This might fail due to CORS for some external URLs
+        const response = await fetch(formData.imagem);
+        const blob = await response.blob();
+        mimeType = blob.type;
+        base64Data = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const result = reader.result as string;
+            resolve(result.split(',')[1]);
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+      }
+      
+      const processedImage = await removeImageBackground(base64Data, mimeType);
+      
+      // Upload the processed image to Cloudinary to get a permanent URL
+      const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+      const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+
+      if (cloudName && uploadPreset) {
+        const formDataUpload = new FormData();
+        formDataUpload.append('file', processedImage);
+        formDataUpload.append('upload_preset', uploadPreset);
+
+        try {
+          const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+            method: 'POST',
+            body: formDataUpload,
+          });
+          const data = await response.json();
+          if (data.secure_url) {
+            setFormData(prev => ({ ...prev, imagem: data.secure_url }));
+          } else {
+            setFormData(prev => ({ ...prev, imagem: processedImage }));
+          }
+        } catch (uploadError) {
+          console.error('Erro ao subir imagem processada para Cloudinary:', uploadError);
+          setFormData(prev => ({ ...prev, imagem: processedImage }));
+        }
+      } else {
+        setFormData(prev => ({ ...prev, imagem: processedImage }));
+      }
+    } catch (error) {
+      console.error('Erro ao remover fundo:', error);
+      alert('Erro ao processar imagem. Isso pode ocorrer devido a restrições de segurança (CORS) do link da imagem ou erro na IA.');
+    } finally {
+      setIsRemovingBackground(false);
     }
   };
 
@@ -165,19 +233,34 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
                   ) : (
                     <ImageIcon className="text-slate-300" size={48} />
                   )}
-                  {isUploading && (
-                    <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
+                  {(isUploading || isRemovingBackground) && (
+                    <div className="absolute inset-0 bg-white/80 flex items-center justify-center flex-col gap-2">
                       <Loader2 className="animate-spin text-primary" />
+                      {isRemovingBackground && <span className="text-[10px] font-bold text-primary uppercase">Removendo Fundo...</span>}
                     </div>
                   )}
                 </div>
-                <button 
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="absolute -bottom-3 -right-3 bg-primary text-white p-3 rounded-2xl shadow-xl hover:scale-110 transition-transform flex items-center gap-2"
-                >
-                  <Upload size={18} />
-                </button>
+                <div className="absolute -bottom-3 -right-3 flex flex-col gap-2">
+                  <button 
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="bg-primary text-white p-3 rounded-2xl shadow-xl hover:scale-110 transition-transform flex items-center gap-2"
+                    title="Upload de Imagem"
+                  >
+                    <Upload size={18} />
+                  </button>
+                  {formData.imagem && (
+                    <button 
+                      type="button"
+                      onClick={handleRemoveBackground}
+                      disabled={isRemovingBackground}
+                      className="bg-amber-500 text-white p-3 rounded-2xl shadow-xl hover:scale-110 transition-transform flex items-center gap-2 disabled:opacity-50 disabled:hover:scale-100"
+                      title="Remover Fundo com IA"
+                    >
+                      <Wand2 size={18} />
+                    </button>
+                  )}
+                </div>
               </div>
               <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
               

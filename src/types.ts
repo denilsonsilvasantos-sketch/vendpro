@@ -127,12 +127,13 @@ export interface OrderItem {
 export interface BannerData {
   id: string;
   company_id: string;
-  tag: string;
-  title: string;
-  sub: string;
-  cta: string;
-  className: string;
-  visuals: { emoji: string; name: string; price: string }[];
+  tag?: string;
+  title?: string;
+  sub?: string;
+  cta?: string;
+  className?: string;
+  imageUrl?: string;
+  visuals?: { emoji: string; name: string; price: string }[];
   link?: string;
   order_index: number;
 }

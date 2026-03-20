@@ -27,12 +27,13 @@ export default function BannerManager({ companyId }: { companyId: string }) {
     const newBanner: BannerData = {
       id: Math.random().toString(36).substr(2, 9),
       company_id: companyId,
-      tag: 'Nova Tag',
-      title: 'Novo Título',
-      sub: 'Subtítulo do banner',
-      cta: 'Ver Mais',
-      className: 'bg-gradient-to-br from-[#1a0a2e] via-[#4A1680] to-[#E8257A]',
-      visuals: [{ emoji: '✨', name: 'Produto', price: 'R$ 0,00' }],
+      tag: '',
+      title: '',
+      sub: '',
+      cta: '',
+      className: 'bg-slate-900',
+      imageUrl: '',
+      visuals: [],
       order_index: banners.length
     };
     setBanners([...banners, newBanner]);
@@ -172,55 +173,72 @@ export default function BannerManager({ companyId }: { companyId: string }) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Tag (Pequeno texto acima)</label>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Link da Imagem de Fundo (Cloudinary)</label>
+                    <div className="flex items-center bg-slate-50 rounded-xl px-4 py-3">
+                      <ImageIcon size={16} className="text-slate-400 mr-2" />
+                      <input 
+                        type="text" 
+                        value={banner.imageUrl || ''}
+                        onChange={(e) => handleUpdateBanner(banner.id, { imageUrl: e.target.value })}
+                        className="flex-1 bg-transparent border-none outline-none text-sm font-medium"
+                        placeholder="https://res.cloudinary.com/..."
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Tag (Opcional - Texto acima)</label>
                     <input 
                       type="text" 
-                      value={banner.tag}
+                      value={banner.tag || ''}
                       onChange={(e) => handleUpdateBanner(banner.id, { tag: e.target.value })}
                       className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm font-medium outline-none focus:ring-2 focus:ring-primary/20"
+                      placeholder="Ex: Coleção 2026"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Título (Use \n para quebra de linha)</label>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Título (Opcional - \n para quebra)</label>
                     <textarea 
-                      value={banner.title}
+                      value={banner.title || ''}
                       onChange={(e) => handleUpdateBanner(banner.id, { title: e.target.value })}
                       className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm font-medium outline-none focus:ring-2 focus:ring-primary/20 h-24"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Subtítulo</label>
-                    <input 
-                      type="text" 
-                      value={banner.sub}
-                      onChange={(e) => handleUpdateBanner(banner.id, { sub: e.target.value })}
-                      className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm font-medium outline-none focus:ring-2 focus:ring-primary/20"
+                      placeholder="Ex: Beleza que\nTransforma"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Texto do Botão (CTA)</label>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Subtítulo (Opcional)</label>
                     <input 
                       type="text" 
-                      value={banner.cta}
+                      value={banner.sub || ''}
+                      onChange={(e) => handleUpdateBanner(banner.id, { sub: e.target.value })}
+                      className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm font-medium outline-none focus:ring-2 focus:ring-primary/20"
+                      placeholder="Ex: Descubra os melhores cosméticos..."
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Texto do Botão (Opcional)</label>
+                    <input 
+                      type="text" 
+                      value={banner.cta || ''}
                       onChange={(e) => handleUpdateBanner(banner.id, { cta: e.target.value })}
                       className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm font-medium outline-none focus:ring-2 focus:ring-primary/20"
+                      placeholder="Ex: Ver Mais"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Estilo CSS (Gradiente/Cor de Fundo)</label>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Cor de Fundo / CSS (Se não houver imagem)</label>
                     <input 
                       type="text" 
-                      value={banner.className}
+                      value={banner.className || ''}
                       onChange={(e) => handleUpdateBanner(banner.id, { className: e.target.value })}
                       className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm font-mono text-xs outline-none focus:ring-2 focus:ring-primary/20"
-                      placeholder="bg-gradient-to-br from-..."
+                      placeholder="Ex: bg-slate-900"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Link de Destino (Opcional)</label>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Link de Destino (Saiba Mais)</label>
                     <div className="flex items-center bg-slate-50 rounded-xl px-4 py-3">
                       <LinkIcon size={16} className="text-slate-400 mr-2" />
                       <input 
@@ -241,7 +259,7 @@ export default function BannerManager({ companyId }: { companyId: string }) {
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Produtos em Destaque (Visuals)</label>
                   <button 
                     onClick={() => {
-                      const newVisuals = [...banner.visuals, { emoji: '🎁', name: 'Novo Item', price: 'R$ 0,00' }];
+                      const newVisuals = [...(banner.visuals || []), { emoji: '🎁', name: 'Novo Item', price: 'R$ 0,00' }];
                       handleUpdateBanner(banner.id, { visuals: newVisuals });
                     }}
                     className="text-[10px] font-bold text-primary hover:underline"
@@ -250,11 +268,11 @@ export default function BannerManager({ companyId }: { companyId: string }) {
                   </button>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {banner.visuals.map((v, vIndex) => (
+                  {(banner.visuals || []).map((v, vIndex) => (
                     <div key={vIndex} className="bg-slate-50 p-4 rounded-2xl space-y-3 relative group">
                       <button 
                         onClick={() => {
-                          const newVisuals = banner.visuals.filter((_, i) => i !== vIndex);
+                          const newVisuals = (banner.visuals || []).filter((_, i) => i !== vIndex);
                           handleUpdateBanner(banner.id, { visuals: newVisuals });
                         }}
                         className="absolute top-2 right-2 p-1 text-rose-500 opacity-0 group-hover:opacity-100 transition-all"
@@ -266,7 +284,7 @@ export default function BannerManager({ companyId }: { companyId: string }) {
                           type="text" 
                           value={v.emoji}
                           onChange={(e) => {
-                            const newVisuals = [...banner.visuals];
+                            const newVisuals = [...(banner.visuals || [])];
                             newVisuals[vIndex].emoji = e.target.value;
                             handleUpdateBanner(banner.id, { visuals: newVisuals });
                           }}
@@ -277,7 +295,7 @@ export default function BannerManager({ companyId }: { companyId: string }) {
                             type="text" 
                             value={v.name}
                             onChange={(e) => {
-                              const newVisuals = [...banner.visuals];
+                              const newVisuals = [...(banner.visuals || [])];
                               newVisuals[vIndex].name = e.target.value;
                               handleUpdateBanner(banner.id, { visuals: newVisuals });
                             }}
@@ -288,7 +306,7 @@ export default function BannerManager({ companyId }: { companyId: string }) {
                             type="text" 
                             value={v.price}
                             onChange={(e) => {
-                              const newVisuals = [...banner.visuals];
+                              const newVisuals = [...(banner.visuals || [])];
                               newVisuals[vIndex].price = e.target.value;
                               handleUpdateBanner(banner.id, { visuals: newVisuals });
                             }}

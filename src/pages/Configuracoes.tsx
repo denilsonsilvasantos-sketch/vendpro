@@ -73,17 +73,35 @@ export default function Configuracoes({ companyId, user, role, onLogout }: { com
                               error.message.includes('schema cache');
       
       if (isMissingColumn) {
-        // Try without logo_url, primary_color and email one by one or just the basics
-        const { error: retryError } = await supabase.from('companies').update({
+        // First retry: Try with email but without logo/color
+        const { error: retryWithEmailError } = await supabase.from('companies').update({
+          nome: formData.nome,
+          cnpj: formData.cnpj,
+          senha: formData.senha,
+          email: formData.email
+        }).eq('id', companyId);
+
+        if (!retryWithEmailError) {
+          alert('Configurações salvas com sucesso!');
+          return;
+        }
+
+        // Second retry: Only the absolute basics
+        const { error: retryBasicError } = await supabase.from('companies').update({
           nome: formData.nome,
           cnpj: formData.cnpj,
           senha: formData.senha
         }).eq('id', companyId);
         
-        if (retryError) {
-          alert('Erro ao salvar configurações: ' + retryError.message);
+        if (retryBasicError) {
+          alert('Erro ao salvar configurações: ' + retryBasicError.message);
         } else {
-          alert('Configurações salvas com sucesso!\n\nAtenção: O campo "E-mail" não pôde ser salvo no banco de dados. Por favor, adicione a coluna "email" (tipo TEXT) na tabela "companies" no seu painel do Supabase para habilitar a recuperação de senha.');
+          const isCacheError = error.message.includes('schema cache');
+          if (isCacheError) {
+            alert('Configurações básicas salvas!\n\nO Supabase ainda está atualizando o cache da coluna "email". \n\nPor favor, aguarde 30 segundos e tente salvar novamente para confirmar o e-mail.');
+          } else {
+            alert('Configurações salvas, mas o E-mail não pôde ser gravado. Verifique se a coluna "email" no Supabase está com o nome exatamente assim (minúsculo).');
+          }
         }
       } else {
         alert('Erro ao salvar configurações: ' + error.message);

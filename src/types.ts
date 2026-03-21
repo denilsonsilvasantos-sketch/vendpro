@@ -105,7 +105,7 @@ export interface Order {
   seller_id: string;
   brand_id: string;
   total: number;
-  status: 'pending' | 'attended' | 'finished' | 'cancelled';
+  status: 'pending' | 'typed' | 'finished' | 'cancelled';
   whatsapp_sent: boolean;
   created_at: string;
   items: OrderItem[];

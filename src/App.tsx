@@ -347,16 +347,17 @@ export default function App() {
           }
         }
         
+        // Fetch banners and top bar messages (handles localStorage fallback)
+        const [bannerData, topBarData] = await Promise.all([
+          getBanners(activeCompanyId),
+          getTopBarMessages(activeCompanyId)
+        ]);
+        setBanners(bannerData);
+        setTopBarMessages(topBarData.map(m => m.text));
+
         // Also fetch categories and brands for this company
         if (supabase) {
-          const [catResponse, bannerData, topBarData] = await Promise.all([
-            supabase.from('categories').select('*').eq('company_id', activeCompanyId).order('nome'),
-            getBanners(activeCompanyId),
-            getTopBarMessages(activeCompanyId)
-          ]);
-
-          setBanners(bannerData);
-          setTopBarMessages(topBarData.map(m => m.text));
+          const { data: catData } = await supabase.from('categories').select('*').eq('company_id', activeCompanyId).order('nome');
 
           let releasedBrandIds: string[] = [];
           
@@ -367,7 +368,7 @@ export default function App() {
             finalProducts = fetchedProducts.filter(p => p.brand_id && releasedBrandIds.includes(p.brand_id));
           }
 
-          let filteredCats = catResponse.data || [];
+          let filteredCats = catData || [];
           
           let brandQuery = supabase.from('brands').select('*').eq('company_id', activeCompanyId).order('name');
           
@@ -768,7 +769,7 @@ export default function App() {
               role={role}
             />
           )}
-          {activeTab === 'dashboard' && <Dashboard companyId={activeCompanyId} role={role} user={user} />}
+          {activeTab === 'dashboard' && <Dashboard companyId={activeCompanyId} role={role} user={user} banners={banners} />}
           {activeTab === 'banners' && role === 'company' && <BannerManager companyId={activeCompanyId!} />}
           {activeTab === 'produtos' && <Produtos companyId={activeCompanyId} onRefresh={loadData} />}
           {activeTab === 'upload' && <Upload companyId={activeCompanyId} onRefresh={loadData} />}

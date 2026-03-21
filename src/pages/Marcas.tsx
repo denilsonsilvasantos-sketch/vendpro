@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../integrations/supabaseClient';
 import { Brand, Category } from '../types';
-import { Edit, Trash2, Plus, ChevronDown, ChevronUp, Tag, Info, AlertCircle, Loader2, ArrowUp, ArrowDown, AlertTriangle } from 'lucide-react';
+import { Edit, Trash2, Plus, ChevronDown, ChevronUp, Tag, Info, AlertCircle, Loader2, ArrowUp, ArrowDown, AlertTriangle, X, LayoutGrid, Settings2, Sparkles } from 'lucide-react';
 import BrandFormModal from '../components/BrandFormModal';
+import { motion, AnimatePresence } from 'motion/react';
 
 export default function Marcas({ companyId }: { companyId: string | null }) {
   const [brands, setBrands] = useState<Brand[]>([]);
@@ -31,7 +32,6 @@ export default function Marcas({ companyId }: { companyId: string | null }) {
       setCategories((cData || []).sort((a, b) => (a.order_index || 0) - (b.order_index || 0)));
     } catch (error: any) {
       console.error("Erro ao buscar dados:", error);
-      alert("Erro ao carregar marcas: " + error.message);
     } finally {
       setLoading(false);
     }
@@ -77,14 +77,12 @@ export default function Marcas({ companyId }: { companyId: string | null }) {
 
       if (error) {
         console.error('Erro ao adicionar categoria:', error);
-        alert('Erro ao adicionar categoria: ' + error.message);
       } else {
         setNewCategoryName(prev => ({ ...prev, [brandId]: '' }));
         fetchData();
       }
     } catch (err: any) {
       console.error('Erro inesperado:', err);
-      alert('Erro inesperado ao adicionar categoria.');
     }
   };
 
@@ -103,7 +101,6 @@ export default function Marcas({ companyId }: { companyId: string | null }) {
       const table = type === 'brand' ? 'brands' : 'categories';
 
       if (deleteAction === 'transfer' && transferTargetId) {
-        // Transfer products
         const updateData: any = { [idField]: transferTargetId };
         if (type === 'brand') {
           updateData.category_id = null;
@@ -115,7 +112,6 @@ export default function Marcas({ companyId }: { companyId: string | null }) {
         
         if (updateError) throw updateError;
       } else {
-        // Delete products
         const { error: deleteProductsError } = await supabase
           .from('products')
           .delete()
@@ -124,7 +120,6 @@ export default function Marcas({ companyId }: { companyId: string | null }) {
         if (deleteProductsError) throw deleteProductsError;
       }
 
-      // If deleting a brand, also delete its categories
       if (type === 'brand') {
         const { error: deleteCatsError } = await supabase
           .from('categories')
@@ -133,7 +128,6 @@ export default function Marcas({ companyId }: { companyId: string | null }) {
         if (deleteCatsError) throw deleteCatsError;
       }
 
-      // Delete the brand or category itself
       const { error: deleteError } = await supabase
         .from(table)
         .delete()
@@ -145,7 +139,6 @@ export default function Marcas({ companyId }: { companyId: string | null }) {
       fetchData();
     } catch (error: any) {
       console.error('Erro ao excluir:', error);
-      alert('Erro ao excluir: ' + error.message);
     } finally {
       setIsDeleting(false);
     }
@@ -168,7 +161,6 @@ export default function Marcas({ companyId }: { companyId: string | null }) {
 
     setBrands(newBrands);
     
-    // Update order_index in DB
     const updates = newBrands.map((b, i) => ({ id: b.id, order_index: i }));
     for (const update of updates) {
       const { error } = await supabase.from('brands').update({ order_index: update.order_index }).eq('id', update.id);
@@ -191,7 +183,6 @@ export default function Marcas({ companyId }: { companyId: string | null }) {
       return;
     }
 
-    // Update local state immediately for smooth UI
     const newCategories = categories.map(c => {
       const updatedCat = brandCategories.find(bc => bc.id === c.id);
       if (updatedCat) {
@@ -201,7 +192,6 @@ export default function Marcas({ companyId }: { companyId: string | null }) {
     });
     setCategories(newCategories.sort((a, b) => (a.order_index || 0) - (b.order_index || 0)));
 
-    // Update order_index in DB
     const updates = brandCategories.map((c, i) => ({ id: c.id, order_index: i }));
     for (const update of updates) {
       const { error } = await supabase.from('categories').update({ order_index: update.order_index }).eq('id', update.id);
@@ -211,253 +201,335 @@ export default function Marcas({ companyId }: { companyId: string | null }) {
 
   if (loading && brands.length === 0) {
     return (
-      <div className="p-6 flex flex-col items-center justify-center min-h-[400px] gap-4">
-        <Loader2 className="animate-spin text-primary" size={40} />
-        <p className="text-slate-500 font-medium">Carregando marcas e categorias...</p>
+      <div className="p-8 flex flex-col items-center justify-center min-h-[400px] gap-6 animate-pulse">
+        <div className="w-16 h-16 bg-primary/10 rounded-[24px] flex items-center justify-center text-primary border border-primary/20">
+          <Loader2 className="animate-spin" size={32} />
+        </div>
+        <p className="text-slate-500 font-black uppercase tracking-widest text-[10px]">Sincronizando marcas...</p>
       </div>
     );
   }
 
   return (
-    <div className="p-6 space-y-6 max-w-4xl mx-auto">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Marcas e Categorias</h1>
-          <p className="text-slate-500 text-sm mt-1">Gerencie as marcas que você representa e suas categorias de produtos.</p>
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="p-4 md:p-8 space-y-12"
+    >
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
+        <div className="space-y-2">
+          <div className="flex items-center gap-6">
+            <div className="w-16 h-16 bg-primary/10 rounded-[24px] flex items-center justify-center text-primary border border-primary/20 shadow-inner">
+              <Sparkles size={32} strokeWidth={2} />
+            </div>
+            <div>
+              <h1 className="text-4xl font-black text-slate-900 tracking-tight uppercase">Marcas e Categorias</h1>
+              <p className="text-slate-500 font-medium text-lg">Estruture seu catálogo por marcas e segmentos</p>
+            </div>
+          </div>
         </div>
         <button 
           onClick={() => { setEditingBrand(undefined); setIsModalOpen(true); }} 
-          className="bg-primary text-white px-6 py-3 rounded-2xl flex items-center gap-2 font-bold shadow-lg shadow-primary/20 hover:-translate-y-0.5 transition-all active:scale-95"
+          className="bg-primary text-white px-10 py-6 rounded-[32px] font-black uppercase tracking-widest text-xs flex items-center gap-4 shadow-2xl shadow-primary/40 hover:-translate-y-1 active:translate-y-0 transition-all w-full md:w-auto justify-center group"
         >
-          <Plus size={20} /> Nova Marca
+          <Plus size={24} strokeWidth={3} className="group-hover:rotate-90 transition-transform duration-500" /> Nova Marca
         </button>
       </div>
       
-      {brands.length === 0 ? (
-        <div className="bg-white p-12 rounded-3xl border-2 border-dashed border-slate-200 text-center space-y-4">
-          <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto">
-            <Tag className="text-slate-300" size={40} />
-          </div>
-          <div className="space-y-1">
-            <h2 className="text-xl font-bold text-slate-900">Nenhuma marca cadastrada</h2>
-            <p className="text-slate-500 max-w-xs mx-auto">Comece cadastrando as marcas que você trabalha para organizar seu catálogo.</p>
-          </div>
-          <button 
-            onClick={() => setIsModalOpen(true)}
-            className="text-primary font-bold hover:underline"
+      <AnimatePresence mode="popLayout">
+        {brands.length === 0 ? (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white p-40 rounded-[56px] border-2 border-dashed border-slate-100 text-center space-y-10 shadow-inner"
           >
-            Cadastrar minha primeira marca
-          </button>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {brands.map((brand, brandIndex) => (
-            <div key={brand.id} className={`bg-white rounded-3xl shadow-sm border transition-all ${expandedBrands.includes(brand.id) ? 'border-primary ring-4 ring-primary/5' : 'border-slate-100'}`}>
-              <div className="p-5 flex justify-between items-center">
-                <div className="flex items-center gap-4 cursor-pointer flex-1" onClick={() => toggleExpand(brand.id)}>
-                  <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center overflow-hidden border border-slate-100 shrink-0">
-                    {brand.logo_url ? (
-                      <img src={brand.logo_url} alt={brand.name} className="w-full h-full object-contain p-1" />
-                    ) : (
-                      <Tag className="text-slate-300" size={20} />
-                    )}
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-slate-900 text-lg">{brand.name}</h3>
-                    <div className="flex items-center gap-3 text-xs text-slate-500 mt-0.5">
-                      <span className="flex items-center gap-1"><Tag size={12} /> {categories.filter(c => c.brand_id === brand.id).length} categorias</span>
-                      <span className="w-1 h-1 bg-slate-300 rounded-full" />
-                      <span>Margem: {brand.margin_percentage}%</span>
+            <div className="w-40 h-40 bg-slate-50 rounded-[48px] flex items-center justify-center mx-auto shadow-inner border border-slate-100">
+              <Tag className="text-slate-200" size={80} strokeWidth={1} />
+            </div>
+            <div className="space-y-4">
+              <h2 className="text-4xl font-black text-slate-900 tracking-tight uppercase">Nenhuma marca cadastrada</h2>
+              <p className="text-slate-400 max-w-sm mx-auto font-medium text-lg">Comece cadastrando as marcas que você representa para organizar seu catálogo.</p>
+            </div>
+            <button 
+              onClick={() => setIsModalOpen(true)}
+              className="text-primary font-black uppercase tracking-[0.3em] text-[11px] hover:underline underline-offset-8 transition-all"
+            >
+              Cadastrar minha primeira marca
+            </button>
+          </motion.div>
+        ) : (
+          <div className="space-y-8">
+            {brands.map((brand, brandIndex) => (
+              <motion.div 
+                layout
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                key={brand.id} 
+                className={`bg-white rounded-[48px] shadow-2xl transition-all duration-500 overflow-hidden border ${expandedBrands.includes(brand.id) ? 'border-primary/40 shadow-primary/10 ring-[12px] ring-primary/5' : 'border-slate-100 shadow-slate-200/40'}`}
+              >
+                <div className="p-10 flex flex-col md:flex-row justify-between items-center gap-8 group">
+                  <div className="flex items-center gap-8 cursor-pointer flex-1 w-full" onClick={() => toggleExpand(brand.id)}>
+                    <div className="w-24 h-24 bg-slate-50 rounded-[28px] flex items-center justify-center overflow-hidden border border-slate-100 shrink-0 shadow-inner group-hover:scale-105 transition-transform duration-500">
+                      {brand.logo_url ? (
+                        <img src={brand.logo_url} alt={brand.name} className="w-full h-full object-contain p-4" referrerPolicy="no-referrer" />
+                      ) : (
+                        <Tag className="text-slate-200" size={40} strokeWidth={1.5} />
+                      )}
                     </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="flex flex-col mr-2">
-                    <button onClick={() => moveBrand(brandIndex, 'up')} disabled={brandIndex === 0} className="text-slate-300 hover:text-primary disabled:opacity-30"><ArrowUp size={16} /></button>
-                    <button onClick={() => moveBrand(brandIndex, 'down')} disabled={brandIndex === brands.length - 1} className="text-slate-300 hover:text-primary disabled:opacity-30"><ArrowDown size={16} /></button>
-                  </div>
-                  <button 
-                    onClick={() => { setEditingBrand(brand); setIsModalOpen(true); }} 
-                    className="p-3 text-slate-400 hover:text-primary hover:bg-primary/5 rounded-xl transition-all"
-                    title="Editar Marca"
-                  >
-                    <Edit size={20} />
-                  </button>
-                  <button 
-                    onClick={() => handleDeleteBrand(brand.id, brand.name)}
-                    className="p-3 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
-                    title="Excluir Marca"
-                  >
-                    <Trash2 size={20} />
-                  </button>
-                  <button 
-                    onClick={() => toggleExpand(brand.id)}
-                    className="p-3 text-slate-400 hover:text-slate-900 rounded-xl transition-all"
-                  >
-                    {expandedBrands.includes(brand.id) ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-                  </button>
-                </div>
-              </div>
-              
-              {expandedBrands.includes(brand.id) && (
-                <div className="px-5 pb-6 space-y-6 animate-in fade-in slide-in-from-top-2">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-1">
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Pedido Mínimo</p>
-                      <p className="text-lg font-bold text-slate-900">R$ {brand.minimum_order_value.toFixed(2)}</p>
-                    </div>
-                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-1">
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Margem de Venda</p>
-                      <p className="text-lg font-bold text-slate-900">{brand.margin_percentage}%</p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-3">
-                      <h4 className="font-bold text-slate-900 flex items-center gap-2"><Info size={16} className="text-primary" /> Políticas</h4>
-                      <div className="space-y-4 text-sm">
-                        <div className="space-y-1">
-                          <p className="text-[10px] font-bold text-slate-400 uppercase">Pagamento</p>
-                          <p className="text-slate-600 leading-relaxed">{brand.payment_policy || 'Não definida'}</p>
-                        </div>
-                        <div className="space-y-1">
-                          <p className="text-[10px] font-bold text-slate-400 uppercase">Frete e Envio</p>
-                          <p className="text-slate-600 leading-relaxed">{brand.shipping_policy || 'Não definida'}</p>
-                        </div>
-                        <div className="space-y-1">
-                          <p className="text-[10px] font-bold text-slate-400 uppercase">Estoque</p>
-                          <p className="text-slate-600 leading-relaxed">{brand.stock_policy || 'Não definida'}</p>
-                        </div>
+                    <div>
+                      <h3 className="font-black text-slate-900 text-3xl tracking-tight group-hover:text-primary transition-colors uppercase leading-none">{brand.name}</h3>
+                      <div className="flex flex-wrap items-center gap-5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mt-4">
+                        <span className="flex items-center gap-2.5 bg-slate-50 px-4 py-2 rounded-xl border border-slate-100 shadow-sm"><LayoutGrid size={16} /> {categories.filter(c => c.brand_id === brand.id).length} categorias</span>
+                        <span className="w-2 h-2 bg-slate-200 rounded-full" />
+                        <span className="text-primary bg-primary/5 px-4 py-2 rounded-xl border border-primary/10 shadow-sm">Margem: {brand.margin_percentage}%</span>
                       </div>
                     </div>
+                  </div>
+                  <div className="flex items-center gap-4 w-full md:w-auto justify-end">
+                    <div className="flex flex-col mr-6 bg-slate-50 p-1.5 rounded-[20px] border border-slate-100 shadow-inner">
+                      <button onClick={(e) => { e.stopPropagation(); moveBrand(brandIndex, 'up'); }} disabled={brandIndex === 0} className="text-slate-300 hover:text-primary disabled:opacity-20 p-2.5 transition-all hover:bg-white rounded-xl"><ArrowUp size={22} strokeWidth={3} /></button>
+                      <button onClick={(e) => { e.stopPropagation(); moveBrand(brandIndex, 'down'); }} disabled={brandIndex === brands.length - 1} className="text-slate-300 hover:text-primary disabled:opacity-20 p-2.5 transition-all hover:bg-white rounded-xl"><ArrowDown size={22} strokeWidth={3} /></button>
+                    </div>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setEditingBrand(brand); setIsModalOpen(true); }} 
+                      className="w-16 h-16 flex items-center justify-center text-slate-400 hover:text-primary hover:bg-primary/5 rounded-[24px] transition-all border border-transparent hover:border-primary/10 shadow-sm hover:shadow-xl"
+                      title="Editar Marca"
+                    >
+                      <Edit size={28} strokeWidth={2.5} />
+                    </button>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); handleDeleteBrand(brand.id, brand.name); }}
+                      className="w-16 h-16 flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-[24px] transition-all border border-transparent hover:border-rose-100 shadow-sm hover:shadow-xl"
+                      title="Excluir Marca"
+                    >
+                      <Trash2 size={28} strokeWidth={2.5} />
+                    </button>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); toggleExpand(brand.id); }}
+                      className={`w-16 h-16 flex items-center justify-center rounded-[24px] transition-all duration-500 ${expandedBrands.includes(brand.id) ? 'bg-primary text-white shadow-2xl shadow-primary/40 scale-110' : 'bg-slate-50 text-slate-400 hover:text-slate-900 border border-slate-100 shadow-sm'}`}
+                    >
+                      {expandedBrands.includes(brand.id) ? <ChevronUp size={28} strokeWidth={3} /> : <ChevronDown size={28} strokeWidth={3} />}
+                    </button>
+                  </div>
+                </div>
+                
+                <AnimatePresence>
+                  {expandedBrands.includes(brand.id) && (
+                    <motion.div 
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                      className="overflow-hidden"
+                    >
+                      <div className="px-10 pb-12 space-y-12">
+                        <div className="h-px bg-slate-100 w-full" />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                          <div className="p-10 bg-slate-50/50 rounded-[40px] border border-slate-100 space-y-4 group/stat hover:bg-white hover:shadow-2xl hover:shadow-slate-200/60 transition-all duration-500 shadow-inner">
+                            <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em] group-hover:text-primary transition-colors">Pedido Mínimo</p>
+                            <p className="text-4xl font-black text-slate-900 tracking-tighter">R$ {brand.minimum_order_value.toFixed(2)}</p>
+                          </div>
+                          <div className="p-10 bg-slate-50/50 rounded-[40px] border border-slate-100 space-y-4 group/stat hover:bg-white hover:shadow-2xl hover:shadow-slate-200/60 transition-all duration-500 shadow-inner">
+                            <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em] group-hover:text-primary transition-colors">Margem de Venda</p>
+                            <p className="text-4xl font-black text-slate-900 tracking-tighter">{brand.margin_percentage}%</p>
+                          </div>
+                        </div>
 
-                    <div className="space-y-4">
-                      <h4 className="font-bold text-slate-900 flex items-center gap-2"><Tag size={16} className="text-primary" /> Categorias</h4>
-                      <div className="space-y-2">
-                        {categories.filter(c => c.brand_id === brand.id).map((cat, catIndex, arr) => (
-                          <div key={cat.id} className="flex justify-between items-center p-3 bg-white border border-slate-100 rounded-xl group hover:border-primary/20 transition-all">
-                            <span className="text-sm font-medium text-slate-700">{cat.nome}</span>
-                            <div className="flex items-center gap-1">
-                              <button onClick={() => moveCategory(brand.id, catIndex, 'up')} disabled={catIndex === 0} className="text-slate-300 hover:text-primary disabled:opacity-30 p-1"><ArrowUp size={14} /></button>
-                              <button onClick={() => moveCategory(brand.id, catIndex, 'down')} disabled={catIndex === arr.length - 1} className="text-slate-300 hover:text-primary disabled:opacity-30 p-1"><ArrowDown size={14} /></button>
-                              <button 
-                                onClick={() => handleDeleteCategory(cat.id, cat.nome, brand.id)}
-                                className="text-slate-300 hover:text-rose-500 p-1 opacity-0 group-hover:opacity-100 transition-all ml-2"
-                              >
-                                <Trash2 size={14} />
-                              </button>
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
+                          <div className="space-y-10">
+                            <div className="flex items-center gap-5">
+                              <div className="w-14 h-14 bg-primary/10 rounded-[20px] flex items-center justify-center text-primary border border-primary/20 shadow-inner">
+                                <Settings2 size={28} strokeWidth={2.5} />
+                              </div>
+                              <h4 className="font-black text-slate-900 uppercase tracking-[0.3em] text-[11px]">Políticas Comerciais</h4>
+                            </div>
+                            <div className="space-y-8">
+                              {[
+                                { label: 'Pagamento', value: brand.payment_policy },
+                                { label: 'Frete e Envio', value: brand.shipping_policy },
+                                { label: 'Estoque', value: brand.stock_policy }
+                              ].map((policy) => (
+                                <div key={policy.label} className="space-y-4 p-8 bg-white rounded-[32px] border border-slate-100 shadow-sm hover:shadow-xl transition-all duration-500">
+                                  <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em]">{policy.label}</p>
+                                  <p className="text-slate-600 font-bold text-base leading-relaxed">{policy.value || 'Não definida'}</p>
+                                </div>
+                              ))}
                             </div>
                           </div>
-                        ))}
-                        
-                        <div className="pt-2">
-                          <div className="flex gap-2">
-                            <input 
-                              type="text" 
-                              placeholder="Nova categoria..."
-                              className="flex-1 p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary/20"
-                              value={newCategoryName[brand.id] || ''}
-                              onChange={(e) => setNewCategoryName(prev => ({ ...prev, [brand.id]: e.target.value }))}
-                              onKeyPress={(e) => e.key === 'Enter' && handleAddCategory(brand.id)}
-                            />
-                            <button 
-                              onClick={() => handleAddCategory(brand.id)}
-                              className="bg-primary text-white p-2.5 rounded-xl hover:bg-primary-dark transition-all active:scale-95"
-                            >
-                              <Plus size={20} />
-                            </button>
+
+                          <div className="space-y-10">
+                            <div className="flex items-center gap-5">
+                              <div className="w-14 h-14 bg-primary/10 rounded-[20px] flex items-center justify-center text-primary border border-primary/20 shadow-inner">
+                                <LayoutGrid size={28} strokeWidth={2.5} />
+                              </div>
+                              <h4 className="font-black text-slate-900 uppercase tracking-[0.3em] text-[11px]">Categorias de Produtos</h4>
+                            </div>
+                            <div className="space-y-6">
+                              <div className="grid grid-cols-1 gap-4">
+                                {categories.filter(c => c.brand_id === brand.id).map((cat, catIndex, arr) => (
+                                  <motion.div 
+                                    layout
+                                    key={cat.id} 
+                                    className="flex justify-between items-center p-6 bg-white border border-slate-100 rounded-[32px] group/cat hover:border-primary/40 transition-all shadow-sm hover:shadow-xl duration-500"
+                                  >
+                                    <span className="text-base font-black text-slate-700 group-hover/cat:text-primary transition-colors uppercase tracking-tight">{cat.nome}</span>
+                                    <div className="flex items-center gap-3">
+                                      <div className="flex items-center bg-slate-50 p-1.5 rounded-[18px] border border-slate-100 shadow-inner">
+                                        <button onClick={() => moveCategory(brand.id, catIndex, 'up')} disabled={catIndex === 0} className="text-slate-300 hover:text-primary disabled:opacity-20 p-2.5 transition-all hover:bg-white rounded-xl"><ArrowUp size={18} strokeWidth={3} /></button>
+                                        <button onClick={() => moveCategory(brand.id, catIndex, 'down')} disabled={catIndex === arr.length - 1} className="text-slate-300 hover:text-primary disabled:opacity-20 p-2.5 transition-all hover:bg-white rounded-xl"><ArrowDown size={18} strokeWidth={3} /></button>
+                                      </div>
+                                      <button 
+                                        onClick={() => handleDeleteCategory(cat.id, cat.nome, brand.id)}
+                                        className="w-12 h-12 flex items-center justify-center text-slate-200 hover:text-rose-500 hover:bg-rose-50 rounded-[18px] transition-all opacity-0 group-hover/cat:opacity-100 shadow-sm hover:shadow-xl"
+                                      >
+                                        <Trash2 size={22} strokeWidth={2.5} />
+                                      </button>
+                                    </div>
+                                  </motion.div>
+                                ))}
+                              </div>
+                              
+                              <div className="pt-8">
+                                <div className="flex gap-5 p-3 bg-slate-50 rounded-[40px] border border-slate-100 shadow-inner">
+                                  <input 
+                                    type="text" 
+                                    placeholder="Nova categoria..."
+                                    className="flex-1 pl-8 pr-4 py-5 bg-transparent text-base font-bold outline-none placeholder:text-slate-300"
+                                    value={newCategoryName[brand.id] || ''}
+                                    onChange={(e) => setNewCategoryName(prev => ({ ...prev, [brand.id]: e.target.value }))}
+                                    onKeyPress={(e) => e.key === 'Enter' && handleAddCategory(brand.id)}
+                                  />
+                                  <button 
+                                    onClick={() => handleAddCategory(brand.id)}
+                                    className="bg-primary text-white w-16 h-16 rounded-[32px] hover:bg-primary-dark transition-all active:scale-95 shadow-2xl shadow-primary/40 flex items-center justify-center shrink-0 group"
+                                  >
+                                    <Plus size={32} strokeWidth={3} className="group-hover:rotate-90 transition-transform duration-500" />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            ))}
+          </div>
+        )}
+      </AnimatePresence>
 
-      {deleteModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-          <div className="bg-white p-8 rounded-2xl w-full max-w-md shadow-2xl space-y-6">
-            <div className="w-16 h-16 bg-rose-100 text-rose-500 rounded-full flex items-center justify-center mx-auto">
-              <AlertTriangle size={32} />
-            </div>
-            <div className="text-center space-y-2">
-              <h2 className="text-xl font-bold text-slate-900">Excluir {deleteModal.type === 'brand' ? 'Marca' : 'Categoria'}</h2>
-              <p className="text-slate-500 text-sm">
-                Você está excluindo <strong>{deleteModal.name}</strong>. O que deseja fazer com os produtos vinculados?
-              </p>
-            </div>
-
-            <div className="space-y-3">
-              <label className="flex items-center gap-3 p-4 border rounded-xl cursor-pointer hover:bg-slate-50 transition-colors">
-                <input 
-                  type="radio" 
-                  name="deleteAction" 
-                  value="delete" 
-                  checked={deleteAction === 'delete'} 
-                  onChange={() => setDeleteAction('delete')}
-                  className="w-5 h-5 text-rose-500 focus:ring-rose-500"
-                />
-                <span className="font-medium text-slate-700">Excluir todos os produtos</span>
-              </label>
-
-              <label className="flex items-center gap-3 p-4 border rounded-xl cursor-pointer hover:bg-slate-50 transition-colors">
-                <input 
-                  type="radio" 
-                  name="deleteAction" 
-                  value="transfer" 
-                  checked={deleteAction === 'transfer'} 
-                  onChange={() => setDeleteAction('transfer')}
-                  className="w-5 h-5 text-primary focus:ring-primary"
-                />
-                <span className="font-medium text-slate-700">Transferir produtos para outra {deleteModal.type === 'brand' ? 'marca' : 'categoria'}</span>
-              </label>
-            </div>
-
-            {deleteAction === 'transfer' && (
-              <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
-                <label className="text-xs font-bold text-slate-500 uppercase">Selecione o destino</label>
-                <select 
-                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none"
-                  value={transferTargetId}
-                  onChange={(e) => setTransferTargetId(e.target.value)}
-                >
-                  <option value="">Selecione...</option>
-                  {deleteModal.type === 'brand' 
-                    ? brands.filter(b => b.id !== deleteModal.id).map(b => (
-                        <option key={b.id} value={b.id}>{b.name}</option>
-                      ))
-                    : categories.filter(c => c.brand_id === deleteModal.brandId && c.id !== deleteModal.id).map(c => (
-                        <option key={c.id} value={c.id}>{c.nome}</option>
-                      ))
-                  }
-                </select>
-              </div>
-            )}
-
-            <div className="flex gap-3 pt-4">
+      <AnimatePresence>
+        {deleteModal && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-slate-900/90 flex items-center justify-center z-[100] p-6 md:p-12 backdrop-blur-2xl"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, y: 40 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 40 }}
+              className="bg-white p-12 rounded-[64px] w-full max-w-2xl shadow-2xl space-y-12 relative overflow-hidden"
+            >
               <button 
                 onClick={() => setDeleteModal(null)}
-                disabled={isDeleting}
-                className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition-colors"
+                className="absolute top-10 right-10 text-slate-300 hover:text-slate-900 transition-colors"
               >
-                Cancelar
+                <X size={32} strokeWidth={3} />
               </button>
-              <button 
-                onClick={confirmDelete}
-                disabled={isDeleting || (deleteAction === 'transfer' && !transferTargetId)}
-                className="flex-1 py-3 bg-rose-500 text-white rounded-xl font-bold hover:bg-rose-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-              >
-                {isDeleting ? <Loader2 size={20} className="animate-spin" /> : <Trash2 size={20} />}
-                Confirmar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+
+              <div className="flex flex-col items-center text-center space-y-8">
+                <div className="w-32 h-32 bg-rose-50 text-rose-500 rounded-[48px] flex items-center justify-center shadow-inner border border-rose-100">
+                  <AlertTriangle size={64} strokeWidth={1.5} />
+                </div>
+                <div className="space-y-4">
+                  <h2 className="text-4xl font-black text-slate-900 tracking-tight uppercase">Excluir {deleteModal.type === 'brand' ? 'Marca' : 'Categoria'}</h2>
+                  <p className="text-slate-400 font-bold text-lg max-w-md mx-auto leading-relaxed">
+                    Você está removendo <span className="text-slate-900 font-black uppercase tracking-tight">{deleteModal.name}</span>. Como deseja tratar os produtos vinculados?
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-6">
+                {[
+                  { id: 'delete', label: 'Excluir permanentemente', sub: 'Todos os produtos vinculados serão apagados', icon: Trash2, color: 'rose' },
+                  { id: 'transfer', label: 'Transferir produtos', sub: `Mover para outra ${deleteModal.type === 'brand' ? 'marca' : 'categoria'}`, icon: ArrowUp, color: 'primary' }
+                ].map((action) => (
+                  <label 
+                    key={action.id}
+                    className={`flex items-center gap-8 p-8 rounded-[40px] border-4 cursor-pointer transition-all duration-500 ${deleteAction === action.id ? `border-${action.color}-500 bg-${action.color}-50/50 shadow-2xl shadow-${action.color}-500/20 scale-[1.02]` : 'border-slate-100 hover:border-slate-200 hover:bg-slate-50'}`}
+                  >
+                    <div className={`w-16 h-16 rounded-[24px] flex items-center justify-center shadow-lg ${deleteAction === action.id ? `bg-${action.color}-500 text-white` : 'bg-slate-100 text-slate-400'}`}>
+                      <action.icon size={32} strokeWidth={2.5} />
+                    </div>
+                    <div className="flex-1">
+                      <p className={`text-lg font-black uppercase tracking-tight ${deleteAction === action.id ? `text-${action.color}-600` : 'text-slate-900'}`}>{action.label}</p>
+                      <p className="text-sm text-slate-400 font-bold mt-1">{action.sub}</p>
+                    </div>
+                    <input 
+                      type="radio" 
+                      name="deleteAction" 
+                      value={action.id} 
+                      checked={deleteAction === action.id} 
+                      onChange={() => setDeleteAction(action.id as any)}
+                      className="hidden"
+                    />
+                  </label>
+                ))}
+              </div>
+
+              {deleteAction === 'transfer' && (
+                <motion.div 
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  className="space-y-4"
+                >
+                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em] ml-4">Destino da transferência</label>
+                  <div className="relative group">
+                    <select 
+                      className="w-full pl-8 pr-16 py-6 bg-slate-50 border border-slate-100 rounded-[32px] outline-none focus:ring-8 focus:ring-primary/5 focus:border-primary/40 transition-all appearance-none font-black uppercase tracking-[0.2em] text-[11px] text-slate-600 cursor-pointer shadow-inner"
+                      value={transferTargetId}
+                      onChange={(e) => setTransferTargetId(e.target.value)}
+                    >
+                      <option value="">Selecione o destino...</option>
+                      {deleteModal.type === 'brand' 
+                        ? brands.filter(b => b.id !== deleteModal.id).map(b => (
+                            <option key={b.id} value={b.id}>{b.name}</option>
+                          ))
+                        : categories.filter(c => c.brand_id === deleteModal.brandId && c.id !== deleteModal.id).map(c => (
+                            <option key={c.id} value={c.id}>{c.nome}</option>
+                          ))
+                      }
+                    </select>
+                    <ChevronDown className="absolute right-8 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={24} />
+                  </div>
+                </motion.div>
+              )}
+
+              <div className="flex gap-6 pt-6">
+                <button 
+                  onClick={() => setDeleteModal(null)}
+                  disabled={isDeleting}
+                  className="flex-1 py-7 bg-slate-100 text-slate-600 rounded-[32px] font-black uppercase tracking-[0.3em] text-[11px] hover:bg-slate-200 transition-all active:scale-95 shadow-sm"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  onClick={confirmDelete}
+                  disabled={isDeleting || (deleteAction === 'transfer' && !transferTargetId)}
+                  className="flex-1 py-7 bg-rose-500 text-white rounded-[32px] font-black uppercase tracking-[0.3em] text-[11px] hover:bg-rose-600 transition-all active:scale-95 shadow-2xl shadow-rose-500/40 flex items-center justify-center gap-4 disabled:opacity-50"
+                >
+                  {isDeleting ? <Loader2 size={24} className="animate-spin" /> : <Trash2 size={24} strokeWidth={2.5} />}
+                  Confirmar Exclusão
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {isModalOpen && (
         <BrandFormModal 
@@ -467,6 +539,7 @@ export default function Marcas({ companyId }: { companyId: string | null }) {
           companyId={companyId}
         />
       )}
-    </div>
+    </motion.div>
   );
 }
+

@@ -3,9 +3,10 @@ import { supabase } from '../integrations/supabaseClient';
 import { Card } from '../components/Card';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { Package, Users, ShoppingCart, TrendingUp } from 'lucide-react';
-import { UserRole } from '../types';
+import Banner from '../components/Banner';
+import { UserRole, BannerData } from '../types';
 
-export default function Dashboard({ companyId, role, user }: { companyId: string | null, role?: UserRole, user?: any }) {
+export default function Dashboard({ companyId, role, user, banners }: { companyId: string | null, role?: UserRole, user?: any, banners?: BannerData[] }) {
   const [stats, setStats] = useState({ products: 0, customers: 0, orders: 0, revenue: 0 });
   const [brandRevenue, setBrandRevenue] = useState<{ name: string, value: number }[]>([]);
   const [loading, setLoading] = useState(true);
@@ -136,6 +137,11 @@ export default function Dashboard({ companyId, role, user }: { companyId: string
 
   return (
     <div className="p-6 space-y-6">
+      {banners && banners.length > 0 && (
+        <div className="mb-8">
+          <Banner banners={banners} />
+        </div>
+      )}
       {newOrder && (
         <div className="fixed top-20 right-6 bg-green-500 text-white p-4 rounded-xl shadow-lg z-50">
           Novo pedido recebido! #{newOrder.id}

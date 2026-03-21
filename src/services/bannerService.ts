@@ -2,7 +2,10 @@ import { supabase } from '../integrations/supabaseClient';
 import { BannerData, TopBarMessage } from '../types';
 
 export async function getBanners(companyId: string): Promise<BannerData[]> {
-  if (!supabase) return [];
+  const saved = localStorage.getItem(`vendpro_banners_${companyId}`);
+  const localBanners = saved ? JSON.parse(saved) : [];
+
+  if (!supabase) return localBanners;
   
   const { data, error } = await supabase
     .from('banners')
@@ -12,14 +15,12 @@ export async function getBanners(companyId: string): Promise<BannerData[]> {
     
   if (error) {
     if (error.code !== 'PGRST205') {
-      console.error('Error fetching banners:', error);
+      console.error('Error fetching banners from Supabase:', error);
     }
-    // Fallback to localStorage if table doesn't exist
-    const saved = localStorage.getItem(`vendpro_banners_${companyId}`);
-    return saved ? JSON.parse(saved) : [];
+    return localBanners;
   }
   
-  return data || [];
+  return data && data.length > 0 ? data : localBanners;
 }
 
 export async function saveBanners(companyId: string, banners: BannerData[]): Promise<void> {
@@ -42,7 +43,10 @@ export async function saveBanners(companyId: string, banners: BannerData[]): Pro
 }
 
 export async function getTopBarMessages(companyId: string): Promise<TopBarMessage[]> {
-  if (!supabase) return [];
+  const saved = localStorage.getItem(`vendpro_topbar_${companyId}`);
+  const localMessages = saved ? JSON.parse(saved) : [];
+
+  if (!supabase) return localMessages;
   
   const { data, error } = await supabase
     .from('top_bar_messages')
@@ -52,13 +56,12 @@ export async function getTopBarMessages(companyId: string): Promise<TopBarMessag
     
   if (error) {
     if (error.code !== 'PGRST205') {
-      console.error('Error fetching top bar messages:', error);
+      console.error('Error fetching top bar messages from Supabase:', error);
     }
-    const saved = localStorage.getItem(`vendpro_topbar_${companyId}`);
-    return saved ? JSON.parse(saved) : [];
+    return localMessages;
   }
   
-  return data || [];
+  return data && data.length > 0 ? data : localMessages;
 }
 
 export async function saveTopBarMessages(companyId: string, messages: TopBarMessage[]): Promise<void> {

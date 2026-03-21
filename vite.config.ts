@@ -11,41 +11,31 @@ export default defineConfig(({mode}) => {
       react(), 
       tailwindcss(),
       VitePWA({
-        registerType: 'autoUpdate',
-        includeAssets: ['favicon.ico', 'pwa-192x192.png', 'pwa-512x512.png', 'pwa-192x192.svg', 'pwa-512x512.svg'],
-        manifest: {
-          name: 'VendPro',
-          short_name: 'VendPro',
-          theme_color: '#000000',
-          background_color: '#ffffff',
-          display: 'standalone',
-          start_url: '/',
-          icons: [
-            {
-              src: 'pwa-192x192.png',
-              sizes: '192x192',
-              type: 'image/png'
-            },
-            {
-              src: 'pwa-512x512.png',
-              sizes: '512x512',
-              type: 'image/png'
-            },
-            {
-              src: 'pwa-192x192.svg',
-              sizes: '192x192',
-              type: 'image/svg+xml',
-              purpose: 'any maskable'
-            },
-            {
-              src: 'pwa-512x512.svg',
-              sizes: '512x512',
-              type: 'image/svg+xml',
-              purpose: 'any maskable'
-            }
-          ]
-        }
-      })
+  registerType: 'autoUpdate',
+  includeAssets: ['favicon.ico'],
+  manifest: {
+    name: 'VendPro',
+    short_name: 'VendPro',
+    theme_color: '#000000',
+    background_color: '#ffffff',
+    display: 'standalone',
+    start_url: '/',
+    icons: [
+      {
+        src: 'pwa-192x192.png',
+        sizes: '192x192',
+        type: 'image/png',
+        purpose: 'any'
+      },
+      {
+        src: 'pwa-512x512.png',
+        sizes: '512x512',
+        type: 'image/png',
+        purpose: 'any maskable'
+      }
+    ]
+  }
+})
     ],
     define: {
       'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),

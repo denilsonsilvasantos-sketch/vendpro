@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Upload, FileText, CheckCircle2, AlertCircle, Loader2, Image as ImageIcon, Trash2, Send, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Upload, FileText, CheckCircle2, AlertCircle, Loader2, Image as ImageIcon, Trash2, Send, AlertTriangle, RefreshCw, ChevronDown, Sparkles, Layout, Database, Zap } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { supabase } from '../integrations/supabaseClient';
 import { extractProductsFromMedia, classifyCategory } from '../services/aiService';
 import { Brand, Product } from '../types';
@@ -549,81 +550,113 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
   };
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <h1 className="text-2xl font-bold">Upload de Catálogo</h1>
-        <div className="flex flex-wrap gap-2">
-          <div className="bg-slate-100 p-1 rounded-xl flex gap-1 mr-4">
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="p-4 md:p-8 space-y-12 pb-32"
+    >
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
+        <div className="space-y-2">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-primary/5 rounded-2xl flex items-center justify-center text-primary border border-primary/10 shadow-inner">
+              <Upload size={24} strokeWidth={2.5} />
+            </div>
+            <div>
+              <h1 className="text-3xl font-black text-slate-900 tracking-tight uppercase">Upload de Catálogo</h1>
+              <p className="text-slate-500 font-medium">Atualize seu estoque ou adicione novos produtos com IA</p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="bg-slate-100/50 backdrop-blur-sm p-1.5 rounded-[24px] flex gap-1 shadow-inner border border-slate-200/50">
             <button 
               onClick={() => { setUploadMode('catalog'); setUploadedFiles([]); setStatus(null); }}
-              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${uploadMode === 'catalog' ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+              className={`px-6 py-3 rounded-[18px] text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-2 ${uploadMode === 'catalog' ? 'bg-white text-primary shadow-xl shadow-slate-200/50' : 'text-slate-400 hover:text-slate-600'}`}
             >
-              <FileText size={16} />
+              <Sparkles size={14} strokeWidth={3} />
               Catálogo (IA)
             </button>
             <button 
               onClick={() => { setUploadMode('stock'); setUploadedFiles([]); setStatus(null); }}
-              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${uploadMode === 'stock' ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+              className={`px-6 py-3 rounded-[18px] text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-2 ${uploadMode === 'stock' ? 'bg-white text-primary shadow-xl shadow-slate-200/50' : 'text-slate-400 hover:text-slate-600'}`}
             >
-              <RefreshCw size={16} />
+              <Database size={14} strokeWidth={3} />
               Estoque (Excel)
             </button>
           </div>
 
           <button 
             onClick={() => setShowResetConfirm(true)}
-            className="px-4 py-2 rounded-lg text-sm font-bold transition-all bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 flex items-center gap-2"
+            className="px-6 py-4 rounded-[24px] text-[10px] font-black uppercase tracking-[0.2em] transition-all bg-rose-50 text-rose-600 hover:bg-rose-500 hover:text-white border border-rose-100 flex items-center gap-2 shadow-sm active:scale-95 group"
           >
-            <Trash2 size={16} />
-            Resetar Catálogo
+            <Trash2 size={16} strokeWidth={3} className="group-hover:scale-110 transition-transform" />
+            Resetar
           </button>
+          
           {uploadMode === 'catalog' && (
-            <>
+            <div className="bg-slate-100/50 backdrop-blur-sm p-1.5 rounded-[24px] flex gap-1 shadow-inner border border-slate-200/50">
               <button 
                 onClick={() => setCatalogType('weekly')}
-                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${catalogType === 'weekly' ? 'bg-primary text-white shadow-lg' : 'bg-slate-100 text-slate-600'}`}
+                className={`px-6 py-3 rounded-[18px] text-[10px] font-black uppercase tracking-[0.2em] transition-all ${catalogType === 'weekly' ? 'bg-primary text-white shadow-xl shadow-primary/20' : 'text-slate-400 hover:text-slate-600'}`}
               >
                 Semanal
               </button>
               <button 
                 onClick={() => setCatalogType('replenishment')}
-                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${catalogType === 'replenishment' ? 'bg-primary text-white shadow-lg' : 'bg-slate-100 text-slate-600'}`}
+                className={`px-6 py-3 rounded-[18px] text-[10px] font-black uppercase tracking-[0.2em] transition-all ${catalogType === 'replenishment' ? 'bg-primary text-white shadow-xl shadow-primary/20' : 'text-slate-400 hover:text-slate-600'}`}
               >
                 Reposição
               </button>
-            </>
+            </div>
           )}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="space-y-4">
-          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
-            <h2 className="font-bold flex items-center gap-2"><ImageIcon size={20} className="text-primary" /> Configurações</h2>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+        <div className="space-y-10">
+          <div className="bg-white p-10 rounded-[48px] border border-slate-100 shadow-2xl shadow-slate-200/50 space-y-10 relative overflow-hidden group">
+            <div className="absolute top-0 left-0 w-3 h-full bg-slate-50 group-hover:bg-primary transition-colors duration-500" />
             
-              <div className="flex justify-between items-center">
-                <label className="text-xs font-bold text-slate-400 uppercase">Marca do Catálogo</label>
-                {selectedBrandId && (
-                  <span className="text-[10px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
-                    Margem: {brands.find(b => b.id === selectedBrandId)?.margin_percentage || 0}%
-                  </span>
-                )}
+            <div className="flex items-center gap-4 relative z-10">
+              <div className="w-14 h-14 bg-primary/5 rounded-[22px] flex items-center justify-center border border-primary/10 shadow-inner">
+                <Layout size={28} className="text-primary" strokeWidth={2} />
               </div>
-              <select 
-                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none"
-                value={selectedBrandId || ''}
-                onChange={(e) => setSelectedBrandId(e.target.value)}
-              >
-                {brands.map(brand => (
-                  <option key={brand.id} value={brand.id}>{brand.name}</option>
-                ))}
-              </select>
+              <div>
+                <h2 className="text-2xl font-black text-slate-900 tracking-tight uppercase">Configurações</h2>
+                <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em]">Defina os parâmetros do upload</p>
+              </div>
+            </div>
+            
+            <div className="space-y-8">
+              <div className="space-y-3">
+                <div className="flex justify-between items-center px-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Marca do Catálogo</label>
+                  {selectedBrandId && (
+                    <span className="text-[9px] font-black bg-primary/5 text-primary px-4 py-1.5 rounded-full border border-primary/10 uppercase tracking-[0.15em] shadow-sm">
+                      Margem: {brands.find(b => b.id === selectedBrandId)?.margin_percentage || 0}%
+                    </span>
+                  )}
+                </div>
+                <div className="relative group/select">
+                  <select 
+                    className="w-full p-6 bg-slate-50 border border-slate-100 rounded-[24px] focus:ring-4 focus:ring-primary/5 focus:border-primary/30 outline-none appearance-none font-black text-slate-700 cursor-pointer transition-all text-sm uppercase tracking-tight"
+                    value={selectedBrandId || ''}
+                    onChange={(e) => setSelectedBrandId(e.target.value)}
+                  >
+                    {brands.map(brand => (
+                      <option key={brand.id} value={brand.id}>{brand.name}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none group-hover/select:text-primary transition-colors" size={24} strokeWidth={3} />
+                </div>
+              </div>
               
               {uploadMode === 'catalog' && (
-                <div className="pt-2">
-                  <label className="flex items-center gap-3 cursor-pointer group">
-                    <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${useCatalogNameAsCategory ? 'bg-primary border-primary' : 'border-slate-200 group-hover:border-primary/50'}`}>
-                      {useCatalogNameAsCategory && <CheckCircle2 size={14} className="text-white" />}
+                <div className="p-8 bg-slate-50 rounded-[32px] border border-slate-100 group/check hover:border-primary/20 transition-all">
+                  <label className="flex items-start gap-6 cursor-pointer">
+                    <div className={`mt-1 w-8 h-8 rounded-xl border-2 flex items-center justify-center transition-all shrink-0 ${useCatalogNameAsCategory ? 'bg-primary border-primary shadow-xl shadow-primary/20' : 'border-slate-200 bg-white group-hover/check:border-primary/50'}`}>
+                      {useCatalogNameAsCategory && <CheckCircle2 size={18} className="text-white" strokeWidth={3} />}
                     </div>
                     <input 
                       type="checkbox" 
@@ -631,20 +664,22 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
                       checked={useCatalogNameAsCategory} 
                       onChange={e => setUseCatalogNameAsCategory(e.target.checked)} 
                     />
-                    <div className="flex flex-col">
-                      <span className="text-sm font-bold text-slate-700">Criar categoria com nome do arquivo</span>
-                      <span className="text-[10px] text-slate-400">Se desativado, a IA tentará classificar cada produto em categorias existentes.</span>
+                    <div className="flex flex-col space-y-1">
+                      <span className="text-base font-black text-slate-900 tracking-tight uppercase">Criar categoria com nome do arquivo</span>
+                      <span className="text-[11px] text-slate-400 font-black uppercase tracking-[0.1em] leading-relaxed">A IA tentará classificar cada produto automaticamente se desativado.</span>
                     </div>
                   </label>
                 </div>
               )}
             </div>
 
-            <div className="p-4 bg-blue-50 rounded-xl border border-blue-100 flex gap-3">
-              <AlertCircle className="text-blue-500 shrink-0" size={20} />
-              <p className="text-xs text-blue-700 leading-relaxed">
+            <div className="p-8 bg-blue-50/50 rounded-[32px] border border-blue-100 flex gap-6 items-center">
+              <div className="w-14 h-14 bg-white rounded-[20px] flex items-center justify-center shrink-0 border border-blue-100 shadow-sm">
+                <Zap className="text-blue-500" size={28} strokeWidth={2.5} />
+              </div>
+              <p className="text-[11px] text-blue-700 leading-relaxed font-black uppercase tracking-[0.05em]">
                 {uploadMode === 'stock' 
-                  ? 'A sincronização de estoque via Excel atualizará apenas o status de disponibilidade (Normal, Últimas Unidades ou Esgotado) com base nas quantidades informadas.'
+                  ? 'A sincronização via Excel atualizará apenas o status de disponibilidade (Normal, Últimas Unidades ou Esgotado) com base nas quantidades.'
                   : catalogType === 'weekly' 
                     ? 'O catálogo semanal atualizará os preços e identificará produtos que saíram de linha para esta marca.' 
                     : 'O catálogo de reposição apenas adicionará ou atualizará produtos específicos sem afetar o status dos outros.'}
@@ -652,10 +687,11 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
             </div>
           </div>
 
-          <div 
+          <motion.div 
+            whileHover={{ y: -5 }}
             onClick={() => !isUploading && fileInputRef.current?.click()}
-            className={`border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center text-center transition-all ${
-              isUploading ? 'border-slate-200 bg-slate-50 cursor-not-allowed' : 'border-slate-300 hover:border-primary hover:bg-primary/5 cursor-pointer'
+            className={`border-2 border-dashed rounded-[48px] p-16 flex flex-col items-center justify-center text-center transition-all duration-500 relative overflow-hidden ${
+              isUploading ? 'border-slate-100 bg-slate-50 cursor-not-allowed opacity-50' : 'border-slate-200 bg-white hover:border-primary hover:bg-primary/5 hover:shadow-2xl hover:shadow-primary/5 cursor-pointer group'
             }`}
           >
             <input 
@@ -666,313 +702,383 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
               multiple={uploadMode === 'catalog'}
               className="hidden" 
             />
-            <Upload size={32} className="text-primary mb-2" />
-            <h3 className="font-bold">{uploadMode === 'stock' ? 'Selecionar Excel de Estoque' : 'Adicionar Arquivos'}</h3>
-            <p className="text-xs text-slate-500">{uploadMode === 'stock' ? 'Apenas arquivos .xlsx ou .xls' : 'PDF, PNG, JPG, CSV ou Excel'}</p>
-          </div>
+            <div className="w-24 h-24 bg-primary/5 rounded-[32px] flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-500 border border-primary/10 shadow-inner relative z-10">
+              <Upload size={48} className="text-primary" strokeWidth={2.5} />
+            </div>
+            <h3 className="text-2xl font-black text-slate-900 tracking-tight mb-3 uppercase relative z-10">{uploadMode === 'stock' ? 'Selecionar Excel de Estoque' : 'Adicionar Arquivos'}</h3>
+            <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] relative z-10">{uploadMode === 'stock' ? 'Apenas arquivos .xlsx ou .xls' : 'PDF, PNG, JPG, CSV ou Excel'}</p>
+            
+            <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+          </motion.div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col">
-          <h2 className="font-bold mb-4 flex items-center justify-between">
-            Arquivos na Fila
-            <span className="text-xs bg-slate-100 px-2 py-1 rounded-full text-slate-500">{uploadedFiles.length} arquivos</span>
-          </h2>
+        <div className="bg-white p-10 rounded-[48px] border border-slate-100 shadow-2xl shadow-slate-200/50 flex flex-col space-y-10 relative group">
+          <div className="absolute top-0 right-0 w-3 h-full bg-slate-50 group-hover:bg-primary transition-colors duration-500" />
           
-          <div className="flex-1 overflow-y-auto max-h-[300px] space-y-2 pr-2">
-            {uploadedFiles.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-slate-400 py-12">
-                <FileText size={40} className="mb-2 opacity-20" />
-                <p className="text-sm italic">Nenhum arquivo selecionado</p>
+          <div className="flex items-center justify-between relative z-10">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-primary/5 rounded-[22px] flex items-center justify-center border border-primary/10 shadow-inner">
+                <FileText size={28} className="text-primary" strokeWidth={2} />
               </div>
-            ) : (
-              uploadedFiles.map((item, idx) => (
-                <div key={idx} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-100 group">
-                  <div className="flex items-center gap-3 overflow-hidden">
-                    <div className="w-8 h-8 bg-white rounded flex items-center justify-center border border-slate-200 shrink-0">
-                      {item.file.name.toLowerCase().endsWith('.xlsx') || item.file.name.toLowerCase().endsWith('.xls') ? <FileText size={16} className="text-green-600" /> : item.file.type.includes('image') ? <ImageIcon size={16} className="text-blue-500" /> : <FileText size={16} className="text-red-500" />}
-                    </div>
-                    <div className="truncate">
-                      <p className="text-sm font-medium truncate">{item.file.name}</p>
-                      <p className="text-[10px] text-slate-400">{(item.file.size / 1024 / 1024).toFixed(2)} MB {item.pages.length > 1 ? `(${item.pages.length} partes)` : ''}</p>
-                    </div>
+              <div>
+                <h2 className="text-2xl font-black text-slate-900 tracking-tight uppercase">Arquivos na Fila</h2>
+                <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em]">Itens prontos para processamento</p>
+              </div>
+            </div>
+            <span className="text-[10px] font-black bg-slate-900 text-white px-5 py-2 rounded-full uppercase tracking-widest shadow-xl shadow-slate-900/20">{uploadedFiles.length} arquivos</span>
+          </div>
+          
+          <div className="flex-1 overflow-y-auto max-h-[450px] space-y-4 pr-4 custom-scrollbar relative z-10">
+            <AnimatePresence mode="popLayout">
+              {uploadedFiles.length === 0 ? (
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="h-full flex flex-col items-center justify-center text-slate-400 py-24 bg-slate-50 rounded-[40px] border-2 border-dashed border-slate-100"
+                >
+                  <div className="w-20 h-20 bg-white rounded-[28px] flex items-center justify-center mb-6 shadow-sm border border-slate-100">
+                    <FileText size={40} className="opacity-10" strokeWidth={1.5} />
                   </div>
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); removeFile(idx); }}
-                    className="p-1 text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30">Nenhum arquivo selecionado</p>
+                </motion.div>
+              ) : (
+                uploadedFiles.map((item, idx) => (
+                  <motion.div 
+                    layout
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    key={idx} 
+                    className="flex items-center justify-between p-6 bg-slate-50 rounded-[32px] border border-slate-100 group/item hover:bg-white hover:shadow-xl hover:shadow-slate-200/50 hover:border-primary/20 transition-all duration-300"
                   >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              ))
-            )}
+                    <div className="flex items-center gap-6 overflow-hidden">
+                      <div className="w-16 h-16 bg-white rounded-[22px] flex items-center justify-center border border-slate-100 shrink-0 shadow-sm group-hover/item:scale-110 transition-transform duration-500">
+                        {item.file.name.toLowerCase().endsWith('.xlsx') || item.file.name.toLowerCase().endsWith('.xls') ? <FileText size={24} className="text-emerald-500" strokeWidth={2.5} /> : item.file.type.includes('image') ? <ImageIcon size={24} className="text-blue-500" strokeWidth={2.5} /> : <FileText size={24} className="text-rose-500" strokeWidth={2.5} />}
+                      </div>
+                      <div className="truncate">
+                        <p className="text-sm font-black text-slate-900 truncate tracking-tight uppercase">{item.file.name}</p>
+                        <div className="flex items-center gap-3 mt-1">
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{(item.file.size / 1024 / 1024).toFixed(2)} MB</span>
+                          {item.pages.length > 1 && (
+                            <span className="text-[9px] font-black bg-primary/5 text-primary px-3 py-1 rounded-full border border-primary/10 uppercase tracking-widest">{item.pages.length} PARTES</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); removeFile(idx); }}
+                      className="w-12 h-12 flex items-center justify-center rounded-2xl text-slate-300 hover:text-rose-500 hover:bg-rose-50 transition-all active:scale-90"
+                    >
+                      <Trash2 size={20} strokeWidth={2.5} />
+                    </button>
+                  </motion.div>
+                ))
+              )}
+            </AnimatePresence>
           </div>
 
           <button 
             disabled={isUploading || uploadedFiles.length === 0}
             onClick={processCatalog}
-            className={`mt-6 w-full py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${
+            className={`w-full py-6 rounded-[32px] text-xs font-black uppercase tracking-[0.2em] flex items-center justify-center gap-4 transition-all duration-500 relative overflow-hidden group/btn ${
               isUploading || uploadedFiles.length === 0 
                 ? 'bg-slate-100 text-slate-400 cursor-not-allowed' 
-                : 'bg-primary text-white shadow-lg shadow-primary/20 hover:-translate-y-0.5 active:translate-y-0'
+                : 'bg-slate-900 text-white shadow-2xl shadow-slate-900/20 hover:-translate-y-1 hover:shadow-slate-900/40 active:translate-y-0'
             }`}
           >
+            <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-transparent opacity-0 group-hover/btn:opacity-100 transition-opacity" />
             {isUploading ? (
               <>
-                <Loader2 size={20} className="animate-spin" />
-                {uploadMode === 'stock' ? 'Sincronizando...' : 'Processando...'} {progress}%
+                <Loader2 size={24} className="animate-spin" strokeWidth={3} />
+                <span className="relative z-10">{uploadMode === 'stock' ? 'Sincronizando...' : 'Processando...'} {progress}%</span>
               </>
             ) : (
               <>
-                {uploadMode === 'stock' ? <RefreshCw size={20} /> : <Send size={20} />}
-                {uploadMode === 'stock' ? 'Sincronizar Estoque Agora' : 'Finalizar e Processar com IA'}
+                {uploadMode === 'stock' ? <RefreshCw size={24} strokeWidth={3} className="group-hover/btn:rotate-180 transition-transform duration-700" /> : <Send size={24} strokeWidth={3} className="group-hover/btn:translate-x-1 group-hover/btn:-translate-y-1 transition-transform" />}
+                <span className="relative z-10">{uploadMode === 'stock' ? 'Sincronizar Estoque' : 'Processar com IA'}</span>
               </>
             )}
           </button>
         </div>
+      </div>
 
-      {status && (
-        <div className={`p-4 rounded-xl flex items-start gap-3 animate-in fade-in slide-in-from-top-2 ${
-          status.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' :
-          status.type === 'error' ? 'bg-red-50 text-red-800 border border-red-200' :
-          status.type === 'warning' ? 'bg-yellow-50 text-yellow-800 border border-yellow-200' :
-          'bg-blue-50 text-blue-800 border border-blue-200'
-        }`}>
-          {status.type === 'success' ? <CheckCircle2 className="shrink-0" /> : <AlertCircle className="shrink-0" />}
-          <p className="text-sm font-medium">{status.message}</p>
-        </div>
-      )}
+      <AnimatePresence>
+        {status && (
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className={`p-8 rounded-[32px] flex items-start gap-6 shadow-2xl relative overflow-hidden ${
+              status.type === 'success' ? 'bg-emerald-50 text-emerald-800 border border-emerald-100 shadow-emerald-200/20' :
+              status.type === 'error' ? 'bg-rose-50 text-rose-800 border border-rose-100 shadow-rose-200/20' :
+              status.type === 'warning' ? 'bg-amber-50 text-amber-800 border border-amber-100 shadow-amber-200/20' :
+              'bg-blue-50 text-blue-800 border border-blue-100 shadow-blue-200/20'
+            }`}
+          >
+            <div className="absolute top-0 left-0 w-2 h-full opacity-50 bg-current" />
+            {status.type === 'success' ? <CheckCircle2 className="shrink-0 text-emerald-500" size={28} strokeWidth={2.5} /> : <AlertCircle className="shrink-0 text-rose-500" size={28} strokeWidth={2.5} />}
+            <p className="text-sm font-black uppercase tracking-tight leading-relaxed">{status.message}</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {showMissingAlert && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl max-w-md w-full p-8 shadow-2xl space-y-6 animate-in zoom-in-95">
-            <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto">
-              <AlertTriangle size={32} className="text-yellow-600" />
-            </div>
-            <div className="text-center space-y-2">
-              <h2 className="text-xl font-bold">Produtos Ausentes Detectados</h2>
-              <p className="text-slate-500 text-sm">
-                Identificamos <strong>{missingProducts.length} produtos</strong> que estavam no catálogo anterior mas não foram encontrados neste novo catálogo semanal.
-              </p>
-            </div>
-            <div className="flex flex-col gap-3">
-              <button 
-                onClick={() => handleInactivateMissing(true)}
-                className="w-full py-3 bg-red-500 text-white rounded-xl font-bold hover:bg-red-600 transition-colors"
-              >
-                Marcar como Esgotados
-              </button>
-              <button 
-                onClick={() => handleInactivateMissing(false)}
-                className="w-full py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition-colors"
-              >
-                Manter Estoque Inalterado
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showPriceAlert && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl max-w-md w-full p-8 shadow-2xl space-y-6 animate-in zoom-in-95">
-            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
-              <AlertCircle size={32} className="text-blue-600" />
-            </div>
-            <div className="text-center space-y-2">
-              <h2 className="text-xl font-bold">Mudanças de Preço de Venda Detectadas</h2>
-              <p className="text-slate-500 text-sm">
-                Identificamos <strong>{priceChanges.length} produtos</strong> com alteração no preço final (já aplicada a margem da marca).
-              </p>
-            </div>
-            <div className="max-h-[200px] overflow-y-auto border border-slate-100 rounded-xl p-4 space-y-2">
-              {priceChanges.map((pc, idx) => (
-                <div key={idx} className="flex justify-between text-xs">
-                  <span className="font-mono text-slate-500">{pc.sku}</span>
-                  <div className="flex gap-2">
-                    <span className="text-slate-400 line-through">R$ {pc.old.toFixed(2)}</span>
-                    <span className="font-bold text-primary">R$ {pc.new.toFixed(2)}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <button 
-              onClick={() => { setShowPriceAlert(false); setPriceChanges([]); }}
-              className="w-full py-3 bg-primary text-white rounded-xl font-bold hover:bg-primary/60 transition-colors"
+      {/* Modals with modern styling */}
+      <AnimatePresence>
+        {showMissingAlert && (
+          <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-xl flex items-center justify-center p-4 z-50">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-white rounded-[56px] max-w-lg w-full p-12 shadow-2xl space-y-10 border border-slate-100 text-center"
             >
-              Entendido
-            </button>
+              <div className="w-24 h-24 bg-amber-50 rounded-[32px] flex items-center justify-center mx-auto border border-amber-100 shadow-inner">
+                <AlertTriangle size={48} className="text-amber-500" strokeWidth={2} />
+              </div>
+              <div className="space-y-4">
+                <h2 className="text-3xl font-black text-slate-900 tracking-tight uppercase">Produtos Ausentes</h2>
+                <p className="text-slate-500 text-sm font-medium leading-relaxed max-w-sm mx-auto">
+                  Identificamos <strong className="text-slate-900">{missingProducts.length} produtos</strong> que estavam no catálogo anterior mas não foram encontrados neste novo catálogo semanal.
+                </p>
+              </div>
+              <div className="flex flex-col gap-4">
+                <button 
+                  onClick={() => handleInactivateMissing(true)}
+                  className="w-full py-6 bg-rose-500 text-white rounded-[24px] font-black uppercase tracking-[0.2em] text-[10px] shadow-2xl shadow-rose-500/30 hover:-translate-y-1 transition-all active:scale-95"
+                >
+                  Marcar como Esgotados
+                </button>
+                <button 
+                  onClick={() => handleInactivateMissing(false)}
+                  className="w-full py-6 bg-slate-100 text-slate-600 rounded-[24px] font-black uppercase tracking-[0.2em] text-[10px] hover:bg-slate-200 transition-all active:scale-95"
+                >
+                  Manter Estoque Inalterado
+                </button>
+              </div>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
 
-      {showUnregisteredAlert && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl max-w-md w-full p-8 shadow-2xl space-y-6 animate-in zoom-in-95">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto">
-              <AlertTriangle size={32} className="text-red-600" />
-            </div>
-            <div className="text-center space-y-2">
-              <h2 className="text-xl font-bold">SKUs Não Cadastrados</h2>
-              <p className="text-slate-500 text-sm">
-                Identificamos <strong>{unregisteredSkus.length} SKUs</strong> no seu arquivo que não estão cadastrados no sistema para esta marca.
-              </p>
-            </div>
-            <div className="max-h-[200px] overflow-y-auto border border-slate-100 rounded-xl p-4 space-y-2 bg-slate-50">
-              {unregisteredSkus.map((item, idx) => (
-                <div key={idx} className="flex justify-between text-xs border-b border-slate-200/50 last:border-0 pb-1 last:pb-0">
-                  <span className="font-mono font-bold text-slate-700">{item.sku}</span>
-                  <span className="text-slate-500">Qtd: {item.qtd}</span>
-                </div>
-              ))}
-            </div>
-            <div className="flex flex-col gap-3">
+        {showResetConfirm && (
+          <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-xl flex items-center justify-center p-4 z-50">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-white rounded-[56px] max-w-lg w-full p-12 shadow-2xl space-y-10 border border-slate-100 text-center"
+            >
+              <div className="w-24 h-24 bg-rose-50 rounded-[32px] flex items-center justify-center mx-auto border border-rose-100 shadow-inner">
+                <Trash2 size={48} className="text-rose-500" strokeWidth={2} />
+              </div>
+              <div className="space-y-4">
+                <h2 className="text-3xl font-black text-slate-900 tracking-tight uppercase">Resetar Catálogo</h2>
+                <p className="text-slate-500 text-sm font-medium leading-relaxed max-w-sm mx-auto">
+                  Tem certeza que deseja excluir todos os produtos {selectedBrandId ? 'desta marca' : 'do catálogo'}? Esta ação não pode ser desfeita.
+                </p>
+              </div>
+              <div className="flex flex-col gap-4">
+                <button 
+                  onClick={handleResetCatalog}
+                  disabled={isResetting}
+                  className="w-full py-6 bg-rose-500 text-white rounded-[24px] font-black uppercase tracking-[0.2em] text-[10px] shadow-2xl shadow-rose-500/30 hover:-translate-y-1 transition-all active:scale-95 disabled:opacity-50"
+                >
+                  {isResetting ? <Loader2 className="animate-spin mx-auto" size={20} /> : 'Sim, Excluir Tudo'}
+                </button>
+                <button 
+                  onClick={() => setShowResetConfirm(false)}
+                  className="w-full py-6 bg-slate-100 text-slate-600 rounded-[24px] font-black uppercase tracking-[0.2em] text-[10px] hover:bg-slate-200 transition-all active:scale-95"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {showPriceAlert && (
+          <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-xl flex items-center justify-center p-4 z-50">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-white rounded-[56px] max-w-lg w-full p-12 shadow-2xl space-y-10 border border-slate-100 text-center overflow-hidden flex flex-col max-h-[90vh]"
+            >
+              <div className="w-24 h-24 bg-blue-50 rounded-[32px] flex items-center justify-center mx-auto border border-blue-100 shadow-inner shrink-0">
+                <AlertCircle size={48} className="text-blue-500" strokeWidth={2} />
+              </div>
+              <div className="space-y-4 shrink-0">
+                <h2 className="text-3xl font-black text-slate-900 tracking-tight uppercase">Mudanças de Preço</h2>
+                <p className="text-slate-500 text-sm font-medium leading-relaxed max-w-sm mx-auto">
+                  Identificamos <strong className="text-slate-900">{priceChanges.length} produtos</strong> com alteração no preço final.
+                </p>
+              </div>
+              <div className="flex-1 overflow-y-auto border border-slate-100 rounded-[32px] p-6 space-y-3 bg-slate-50/50 custom-scrollbar">
+                {priceChanges.map((pc, idx) => (
+                  <div key={idx} className="flex justify-between items-center p-4 bg-white rounded-[20px] border border-slate-100 shadow-sm">
+                    <span className="font-black text-xs text-slate-500 tracking-wider uppercase">{pc.sku}</span>
+                    <div className="flex items-center gap-4">
+                      <span className="text-[10px] font-bold text-slate-300 line-through">R$ {pc.old.toFixed(2)}</span>
+                      <span className="font-black text-primary text-sm">R$ {pc.new.toFixed(2)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
               <button 
-                onClick={() => {
-                  setShowUnregisteredAlert(false);
-                  setShowSyncReport(true);
-                }}
-                className="w-full py-3 bg-primary text-white rounded-xl font-bold hover:bg-primary/60 transition-colors"
+                onClick={() => { setShowPriceAlert(false); setPriceChanges([]); }}
+                className="w-full py-6 bg-primary text-white rounded-[24px] font-black uppercase tracking-[0.2em] text-[10px] shadow-2xl shadow-primary/30 hover:-translate-y-1 transition-all active:scale-95 shrink-0"
               >
-                Ver Relatório Completo
+                Entendido
               </button>
+            </motion.div>
+          </div>
+        )}
+
+        {showUnregisteredAlert && (
+          <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-xl flex items-center justify-center p-4 z-50">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-white rounded-[56px] max-w-lg w-full p-12 shadow-2xl space-y-10 border border-slate-100 text-center overflow-hidden flex flex-col max-h-[90vh]"
+            >
+              <div className="w-24 h-24 bg-rose-50 rounded-[32px] flex items-center justify-center mx-auto border border-rose-100 shadow-inner shrink-0">
+                <AlertTriangle size={48} className="text-rose-500" strokeWidth={2} />
+              </div>
+              <div className="space-y-4 shrink-0">
+                <h2 className="text-3xl font-black text-slate-900 tracking-tight uppercase">SKUs Não Cadastrados</h2>
+                <p className="text-slate-500 text-sm font-medium leading-relaxed max-w-sm mx-auto">
+                  Identificamos <strong className="text-slate-900">{unregisteredSkus.length} SKUs</strong> no seu arquivo que não estão cadastrados no sistema para esta marca.
+                </p>
+              </div>
+              <div className="flex-1 overflow-y-auto border border-slate-100 rounded-[32px] p-6 space-y-3 bg-slate-50/50 custom-scrollbar">
+                {unregisteredSkus.map((item, idx) => (
+                  <div key={idx} className="flex justify-between items-center p-4 bg-white rounded-[20px] border border-slate-100 shadow-sm">
+                    <span className="font-black text-xs text-slate-700 tracking-wider uppercase">{item.sku}</span>
+                    <span className="text-[10px] font-black bg-slate-100 text-slate-400 px-3 py-1.5 rounded-xl uppercase tracking-widest">QTD: {item.qtd}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="flex flex-col gap-4 shrink-0">
+                <button 
+                  onClick={() => {
+                    setShowUnregisteredAlert(false);
+                    setShowSyncReport(true);
+                  }}
+                  className="w-full py-6 bg-primary text-white rounded-[24px] font-black uppercase tracking-[0.2em] text-[10px] shadow-2xl shadow-primary/30 hover:-translate-y-1 transition-all active:scale-95"
+                >
+                  Ver Relatório Completo
+                </button>
+                <button 
+                  onClick={() => {
+                    setShowUnregisteredAlert(false);
+                    setUnregisteredSkus([]);
+                    setShowSyncReport(true);
+                  }}
+                  className="w-full py-6 bg-slate-100 text-slate-600 rounded-[24px] font-black uppercase tracking-[0.2em] text-[10px] hover:bg-slate-200 transition-all active:scale-95"
+                >
+                  Ignorar e Continuar
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {showSyncReport && (
+          <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-xl flex items-center justify-center p-4 z-50">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-white rounded-[56px] max-w-lg w-full p-12 shadow-2xl space-y-10 border border-slate-100 overflow-hidden flex flex-col max-h-[90vh]"
+            >
+              <div className="w-24 h-24 bg-emerald-50 rounded-[32px] flex items-center justify-center mx-auto border border-emerald-100 shadow-inner shrink-0">
+                <CheckCircle2 size={48} className="text-emerald-500" strokeWidth={2} />
+              </div>
+              <div className="text-center space-y-4 shrink-0">
+                <h2 className="text-3xl font-black text-slate-900 tracking-tight uppercase">Relatório de Sincronização</h2>
+                <p className="text-slate-500 text-sm font-medium leading-relaxed max-w-sm mx-auto">
+                  Processamento concluído. Veja o resumo das alterações e pendências:
+                </p>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto space-y-10 pr-4 custom-scrollbar">
+                {unregisteredSkus.length > 0 && (
+                  <div className="space-y-6">
+                    <h3 className="text-xs font-black text-slate-400 flex items-center gap-3 uppercase tracking-[0.2em]">
+                      <AlertTriangle size={18} className="text-amber-500" strokeWidth={2.5} /> SKUs Não Cadastrados ({unregisteredSkus.length})
+                    </h3>
+                    <div className="bg-slate-50/50 rounded-[32px] p-6 space-y-3 border border-slate-100">
+                      <p className="text-[10px] text-slate-400 font-black italic uppercase tracking-widest mb-4 px-2">Estes SKUs estão no Excel mas não foram encontrados no sistema.</p>
+                      {unregisteredSkus.map((item, idx) => (
+                        <div key={idx} className="flex justify-between items-center p-4 bg-white rounded-[20px] border border-slate-100 shadow-sm">
+                          <span className="font-black text-xs text-slate-700 tracking-wider uppercase">{item.sku}</span>
+                          <span className="text-[10px] font-black bg-slate-100 text-slate-400 px-3 py-1.5 rounded-xl uppercase tracking-widest">QTD: {item.qtd}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {lastUnitsSkus.length > 0 && (
+                  <div className="space-y-6">
+                    <h3 className="text-xs font-black text-amber-500 flex items-center gap-3 uppercase tracking-[0.2em]">
+                      <AlertTriangle size={18} strokeWidth={2.5} /> Últimas Unidades ({lastUnitsSkus.length})
+                    </h3>
+                    <div className="bg-amber-50/50 rounded-[32px] p-6 space-y-3 border border-amber-100">
+                      <p className="text-[10px] text-amber-400 font-black italic uppercase tracking-widest mb-4 px-2">Produtos atualizados para o status "Últimas Unidades" (estoque baixo).</p>
+                      {lastUnitsSkus.map((item, idx) => (
+                        <div key={idx} className="flex justify-between items-center p-4 bg-white rounded-[20px] border border-amber-100 shadow-sm">
+                          <div className="flex flex-col">
+                            <span className="font-black text-xs text-amber-900 tracking-tight uppercase">{item.nome}</span>
+                            <span className="font-black text-[9px] text-amber-500 tracking-widest uppercase mt-1">{item.sku}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {outOfStockSkus.length > 0 && (
+                  <div className="space-y-6">
+                    <h3 className="text-xs font-black text-rose-500 flex items-center gap-3 uppercase tracking-[0.2em]">
+                      <AlertCircle size={18} strokeWidth={2.5} /> Esgotados ({outOfStockSkus.length})
+                    </h3>
+                    <div className="bg-rose-50/50 rounded-[32px] p-6 space-y-3 border border-rose-100">
+                      <p className="text-[10px] text-rose-400 font-black italic uppercase tracking-widest mb-4 px-2">Produtos atualizados para o status "Esgotado".</p>
+                      {outOfStockSkus.map((item, idx) => (
+                        <div key={idx} className="flex justify-between items-center p-4 bg-white rounded-[20px] border border-rose-100 shadow-sm">
+                          <div className="flex flex-col">
+                            <span className="font-black text-xs text-rose-900 tracking-tight uppercase">{item.nome}</span>
+                            <span className="font-black text-[9px] text-rose-500 tracking-widest uppercase mt-1">{item.sku}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {lastUnitsSkus.length === 0 && outOfStockSkus.length === 0 && unregisteredSkus.length === 0 && (
+                  <div className="text-center py-20 bg-slate-50/50 rounded-[40px] border-2 border-dashed border-slate-100">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic">Nenhuma alteração ou pendência detectada.</p>
+                  </div>
+                )}
+              </div>
+
               <button 
-                onClick={() => {
-                  setShowUnregisteredAlert(false);
+                onClick={() => { 
+                  setShowSyncReport(false); 
+                  setLastUnitsSkus([]); 
+                  setOutOfStockSkus([]); 
                   setUnregisteredSkus([]);
-                  setShowSyncReport(true);
                 }}
-                className="w-full py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition-colors"
+                className="w-full py-6 bg-slate-900 text-white rounded-[24px] font-black uppercase tracking-[0.2em] text-[10px] shadow-2xl shadow-slate-900/30 hover:-translate-y-1 transition-all active:scale-95 shrink-0"
               >
-                Ignorar e Continuar
+                Fechar Relatório
               </button>
-            </div>
+            </motion.div>
           </div>
-        </div>
-      )}
-
-      {showSyncReport && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-8 shadow-2xl space-y-6 animate-in zoom-in-95 overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto shrink-0">
-              <CheckCircle2 size={32} className="text-green-600" />
-            </div>
-            <div className="text-center space-y-2 shrink-0">
-              <h2 className="text-xl font-bold">Relatório de Sincronização</h2>
-              <p className="text-slate-500 text-sm">
-                Processamento concluído. Veja o resumo das alterações e pendências:
-              </p>
-            </div>
-            
-            <div className="flex-1 overflow-y-auto space-y-6 pr-2">
-              {unregisteredSkus.length > 0 && (
-                <div className="space-y-3">
-                  <h3 className="text-sm font-bold text-slate-600 flex items-center gap-2">
-                    <AlertTriangle size={16} className="text-slate-500" /> SKUs Não Cadastrados ({unregisteredSkus.length})
-                  </h3>
-                  <div className="bg-slate-50 rounded-xl p-4 space-y-2 border border-slate-100">
-                    <p className="text-[10px] text-slate-400 mb-2 italic">Estes SKUs estão no Excel mas não foram encontrados no sistema para esta marca.</p>
-                    {unregisteredSkus.map((item, idx) => (
-                      <div key={idx} className="flex justify-between text-xs border-b border-slate-200/50 last:border-0 pb-1 last:pb-0">
-                        <span className="font-mono font-bold text-slate-700">{item.sku}</span>
-                        <span className="text-slate-500">Qtd: {item.qtd}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {lastUnitsSkus.length > 0 && (
-                <div className="space-y-3">
-                  <h3 className="text-sm font-bold text-orange-600 flex items-center gap-2">
-                    <AlertTriangle size={16} /> Últimas Unidades ({lastUnitsSkus.length})
-                  </h3>
-                  <div className="bg-orange-50 rounded-xl p-4 space-y-2 border border-orange-100">
-                    <p className="text-[10px] text-orange-400 mb-2 italic">Produtos atualizados para o status "Últimas Unidades" (estoque baixo).</p>
-                    {lastUnitsSkus.map((item, idx) => (
-                      <div key={idx} className="flex justify-between text-xs border-b border-orange-200/50 last:border-0 pb-1 last:pb-0">
-                        <div className="flex flex-col">
-                          <span className="font-bold text-orange-900">{item.nome}</span>
-                          <span className="font-mono text-[10px] text-orange-700">{item.sku}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {outOfStockSkus.length > 0 && (
-                <div className="space-y-3">
-                  <h3 className="text-sm font-bold text-red-600 flex items-center gap-2">
-                    <AlertCircle size={16} /> Esgotados ({outOfStockSkus.length})
-                  </h3>
-                  <div className="bg-red-50 rounded-xl p-4 space-y-2 border border-red-100">
-                    <p className="text-[10px] text-red-400 mb-2 italic">Produtos atualizados para o status "Esgotado".</p>
-                    {outOfStockSkus.map((item, idx) => (
-                      <div key={idx} className="flex justify-between text-xs border-b border-red-200/50 last:border-0 pb-1 last:pb-0">
-                        <div className="flex flex-col">
-                          <span className="font-bold text-red-900">{item.nome}</span>
-                          <span className="font-mono text-[10px] text-red-700">{item.sku}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {lastUnitsSkus.length === 0 && outOfStockSkus.length === 0 && unregisteredSkus.length === 0 && (
-                <div className="text-center py-8 text-slate-400 italic text-sm">
-                  Nenhuma alteração ou pendência detectada. O sistema já está atualizado com os dados do Excel.
-                </div>
-              )}
-            </div>
-
-            <button 
-              onClick={() => { 
-                setShowSyncReport(false); 
-                setLastUnitsSkus([]); 
-                setOutOfStockSkus([]); 
-                setUnregisteredSkus([]);
-              }}
-              className="w-full py-3 bg-primary text-white rounded-xl font-bold hover:bg-primary/60 transition-colors shrink-0"
-            >
-              Fechar Relatório
-            </button>
-          </div>
-        </div>
-      )}
-      {showResetConfirm && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl max-w-md w-full p-8 shadow-2xl space-y-6 animate-in zoom-in-95">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto">
-              <AlertTriangle size={32} className="text-red-600" />
-            </div>
-            <div className="text-center space-y-2">
-              <h2 className="text-xl font-bold text-slate-900">Resetar Catálogo?</h2>
-              <p className="text-slate-500 text-sm">
-                Tem certeza que deseja apagar <strong>TODOS</strong> os produtos {selectedBrandId ? 'desta marca' : 'do catálogo'}? Esta ação não pode ser desfeita.
-              </p>
-            </div>
-            <div className="flex flex-col gap-3">
-              <button 
-                onClick={handleResetCatalog}
-                disabled={isResetting}
-                className="w-full py-3 bg-red-500 text-white rounded-xl font-bold hover:bg-red-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-              >
-                {isResetting ? <Loader2 size={20} className="animate-spin" /> : <Trash2 size={20} />}
-                Sim, Apagar Tudo
-              </button>
-              <button 
-                onClick={() => setShowResetConfirm(false)}
-                disabled={isResetting}
-                className="w-full py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition-colors"
-              >
-                Cancelar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-    </div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 }

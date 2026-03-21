@@ -9,8 +9,8 @@ const app = express();
 app.use(express.json());
 
 // API routes
-import routes from './routes';
-app.use('/api', routes);
+// import routes from './routes';
+// app.use('/api', routes);
 
 // Serve static files in production
 if (process.env.NODE_ENV === 'production') {

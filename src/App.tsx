@@ -1886,7 +1886,7 @@ function ProductCard({ product, onAdd, onEdit, role, onZoom, isInCart, ...props 
   };
 
   return (
-    <Card className={`p-2 md:p-3 flex flex-col group hover:border-primary/20 transition-all card-shadow rounded-2xl relative ${isEsgotado ? 'opacity-75 grayscale-[0.5]' : ''}`}>
+    <Card className={`p-2 md:p-3 flex flex-col group hover:border-primary/20 transition-all duration-500 card-shadow hover:shadow-2xl hover:shadow-primary/5 hover:-translate-y-1 rounded-2xl relative ${isEsgotado ? 'opacity-75 grayscale-[0.5]' : ''}`}>
       {isInCart && (
         <div className="absolute top-2 right-2 z-10 bg-emerald-500 text-white p-1.5 rounded-full shadow-lg shadow-emerald-500/20 animate-in zoom-in duration-300">
           <CheckCircle2 size={14} />
@@ -1902,11 +1902,11 @@ function ProductCard({ product, onAdd, onEdit, role, onZoom, isInCart, ...props 
       </div>
       
       <div className="text-center mb-3">
-        <h3 className="font-bold text-slate-800 text-[11px] md:text-xs leading-tight mb-1 h-8 flex items-center justify-center overflow-hidden line-clamp-2">{product.nome}</h3>
-        <p className="text-[11px] text-slate-500 font-bold uppercase tracking-widest mb-1.5">SKU: {product.sku}</p>
+        <h3 className="font-bold text-slate-800 text-[11px] md:text-xs leading-tight mb-1 h-10 flex items-center justify-center overflow-hidden line-clamp-2">{product.nome}</h3>
+        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1.5">SKU: {product.sku}</p>
         
         {!isEsgotado && (
-          <p className="text-lg md:text-xl font-black text-primary">R$ {(product.preco_unitario || 0).toFixed(2)}</p>
+          <p className="text-base md:text-lg font-black text-primary">R$ {(product.preco_unitario || 0).toFixed(2)}</p>
         )}
       </div>
 

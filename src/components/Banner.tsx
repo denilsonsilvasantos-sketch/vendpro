@@ -44,7 +44,8 @@ export default function Banner({ banners }: { banners?: BannerData[] }) {
           className={`absolute inset-0 flex items-center ${currentSlide.className || ''}`}
           style={currentSlide.imageUrl ? {
             backgroundImage: `url(${currentSlide.imageUrl})`,
-            backgroundSize: 'cover',
+            backgroundSize: 'contain',
+            backgroundRepeat: 'no-repeat',
             backgroundPosition: 'center'
           } : {}}
         >

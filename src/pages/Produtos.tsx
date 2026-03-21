@@ -150,7 +150,7 @@ export default function Produtos({ companyId, onRefresh }: { companyId: string |
             </div>
           </motion.div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 md:gap-6">
             {filteredProducts.map(product => {
               const isEsgotado = product.status_estoque === 'esgotado';
               const brand = brands.find(b => b.id === product.brand_id);
@@ -162,7 +162,7 @@ export default function Produtos({ companyId, onRefresh }: { companyId: string |
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   key={product.id} 
-                  className={`bg-white rounded-[40px] overflow-hidden border transition-all duration-500 hover:shadow-2xl hover:shadow-slate-200/50 group border-slate-100 flex flex-col relative ${isEsgotado ? 'opacity-75' : ''}`}
+                  className={`bg-white rounded-2xl overflow-hidden border transition-all duration-500 hover:shadow-2xl hover:shadow-primary/5 hover:-translate-y-1 group border-slate-100 flex flex-col relative ${isEsgotado ? 'opacity-75' : ''}`}
                 >
                   <div 
                     className="aspect-square relative overflow-hidden bg-slate-50/30 cursor-zoom-in"
@@ -171,69 +171,65 @@ export default function Produtos({ companyId, onRefresh }: { companyId: string |
                     <img 
                       src={product.imagem || `https://picsum.photos/seed/${product.sku}/400/400`} 
                       alt={product.nome} 
-                      className="w-full h-full object-contain p-8 group-hover:scale-110 transition-transform duration-1000 ease-out"
+                      className="w-full h-full object-contain p-4 group-hover:scale-110 transition-transform duration-1000 ease-out"
                       referrerPolicy="no-referrer"
                     />
-                    <div className="absolute top-6 right-6 flex flex-col gap-3 items-end z-10">
-                      {isEsgotado && <span className="bg-slate-900 text-white text-[9px] font-black px-4 py-2 rounded-xl shadow-2xl uppercase tracking-[0.2em] border border-white/10">Esgotado</span>}
-                      {!isEsgotado && product.is_last_units && <span className="bg-rose-500 text-white text-[9px] font-black px-4 py-2 rounded-xl shadow-2xl uppercase tracking-[0.2em] border border-white/10">Últimas Unidades</span>}
-                      {product.venda_somente_box && <span className="bg-amber-500 text-white text-[9px] font-black px-4 py-2 rounded-xl shadow-2xl uppercase tracking-[0.2em] border border-white/10">Somente Box</span>}
-                    </div>
-                    <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/5 transition-colors duration-500 flex items-center justify-center opacity-0 group-hover:opacity-100">
-                      <div className="w-12 h-12 bg-white rounded-2xl shadow-xl flex items-center justify-center text-primary transform translate-y-4 group-hover:translate-y-0 transition-all duration-500">
-                        <ZoomIn size={24} strokeWidth={2.5} />
-                      </div>
+                    <div className="absolute top-3 right-3 flex flex-col gap-2 items-end z-10">
+                      {isEsgotado && <span className="bg-slate-900 text-white text-[8px] font-black px-2 py-1 rounded-lg shadow-xl uppercase tracking-wider border border-white/10">Esgotado</span>}
+                      {!isEsgotado && product.is_last_units && <span className="bg-rose-500 text-white text-[8px] font-black px-2 py-1 rounded-lg shadow-xl uppercase tracking-wider border border-white/10">Últimas</span>}
+                      {product.venda_somente_box && <span className="bg-amber-500 text-white text-[8px] font-black px-2 py-1 rounded-lg shadow-xl uppercase tracking-wider border border-white/10">Somente Box</span>}
                     </div>
                   </div>
                   
-                  <div className="p-8 flex-1 flex flex-col justify-between space-y-8">
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-3">
-                        <span className="text-[9px] font-black text-primary uppercase tracking-[0.2em] bg-primary/5 px-2.5 py-1 rounded-lg border border-primary/10">{brand?.name}</span>
-                        <span className="w-1 h-1 bg-slate-200 rounded-full" />
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">{category?.nome}</span>
-                      </div>
-                      <h3 className="font-black text-slate-900 text-lg leading-tight group-hover:text-primary transition-colors line-clamp-2 uppercase tracking-tight">{product.nome}</h3>
+                  <div className="p-4 flex-1 flex flex-col justify-between space-y-4">
+                    <div className="space-y-2">
                       <div className="flex items-center gap-2">
-                        <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">SKU</span>
-                        <span className="text-[10px] font-mono font-black text-slate-400 bg-slate-50 px-3 py-1 rounded-lg border border-slate-100">{product.sku}</span>
+                        <span className="text-[8px] font-black text-primary uppercase tracking-wider bg-primary/5 px-2 py-0.5 rounded-md border border-primary/10">{brand?.name}</span>
+                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider">{category?.nome}</span>
+                      </div>
+                      <h3 className="font-bold text-slate-900 text-xs leading-tight group-hover:text-primary transition-colors line-clamp-2 uppercase tracking-tight h-10 flex items-center">{product.nome}</h3>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest">SKU</span>
+                        <span className="text-[9px] font-mono font-black text-slate-400 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">{product.sku}</span>
                       </div>
                     </div>
 
-                    <div className="space-y-6">
+                    <div className="space-y-4">
                       <div className="flex items-end justify-between">
-                        <div className="space-y-1">
-                          <p className="text-[9px] font-black text-slate-300 uppercase tracking-[0.2em]">Preço Unitário</p>
+                        <div className="space-y-0.5">
+                          <p className="text-[8px] font-black text-slate-300 uppercase tracking-wider">Preço Unitário</p>
                           {!isEsgotado ? (
-                            <p className="text-3xl font-black text-slate-900 tracking-tighter">R$ {product.preco_unitario.toFixed(2)}</p>
+                            <p className="text-xl font-black text-slate-900 tracking-tighter">R$ {product.preco_unitario.toFixed(2)}</p>
                           ) : (
-                            <p className="text-3xl font-black text-slate-200 tracking-tighter">--</p>
+                            <p className="text-xl font-black text-slate-200 tracking-tighter">--</p>
                           )}
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex gap-1">
                           <button 
                             onClick={() => { setEditingProduct(product); setIsModalOpen(true); }} 
-                            className="w-12 h-12 flex items-center justify-center text-slate-300 hover:text-primary hover:bg-primary/5 rounded-2xl transition-all border border-transparent hover:border-primary/10"
+                            className="w-8 h-8 flex items-center justify-center text-slate-300 hover:text-primary hover:bg-primary/5 rounded-xl transition-all"
                           >
-                            <Edit size={22} strokeWidth={2.5} />
+                            <Edit size={16} strokeWidth={2.5} />
                           </button>
                           <button 
                             onClick={() => handleDelete(product.id)} 
-                            className="w-12 h-12 flex items-center justify-center text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-2xl transition-all border border-transparent hover:border-rose-100"
+                            className="w-8 h-8 flex items-center justify-center text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
                           >
-                            <Trash2 size={22} strokeWidth={2.5} />
+                            <Trash2 size={16} strokeWidth={2.5} />
                           </button>
                         </div>
                       </div>
 
                       {(product.has_box_discount || product.venda_somente_box) && !isEsgotado && (
-                        <div className="p-4 bg-emerald-50 rounded-[20px] border border-emerald-100 text-[10px] font-black text-emerald-600 text-center uppercase tracking-[0.15em] flex items-center justify-center gap-2">
-                          <Info size={14} />
-                          {!product.venda_somente_box ? (
-                            `A partir de ${product.qtd_box} un: R$ ${product.preco_box.toFixed(2)}`
-                          ) : (
-                            `Box com ${product.qtd_box} un: R$ ${product.preco_box.toFixed(2)}`
-                          )}
+                        <div className="p-2 bg-emerald-50 rounded-xl border border-emerald-100 text-[9px] font-black text-emerald-600 text-center uppercase tracking-wider flex items-center justify-center gap-1.5">
+                          <Info size={12} />
+                          <span className="line-clamp-1">
+                            {!product.venda_somente_box ? (
+                              `A partir de ${product.qtd_box} un: R$ ${product.preco_box.toFixed(2)}`
+                            ) : (
+                              `Box com ${product.qtd_box} un: R$ ${product.preco_box.toFixed(2)}`
+                            )}
+                          </span>
                         </div>
                       )}
                     </div>

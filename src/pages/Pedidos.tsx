@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../integrations/supabaseClient';
-import { FileText, X, Eye, ShoppingBag } from 'lucide-react';
+import { FileText, X, Eye, ShoppingBag, TrendingUp, Package } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function Pedidos({ companyId, role, user }: { companyId: string | null, role?: string | null, user?: any }) {
@@ -9,6 +9,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
   const [orderItems, setOrderItems] = useState<any[]>([]);
   const [loadingItems, setLoadingItems] = useState(false);
+  const [abcCurve, setAbcCurve] = useState<any[]>([]);
 
   async function fetchOrders() {
     if (!supabase || companyId === null) return;
@@ -21,13 +22,54 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
     
     if (role === 'seller' && user?.id) {
       query = query.eq('seller_id', user.id);
+    } else if (role === 'customer' && user?.id) {
+      query = query.eq('customer_id', user.id);
     }
     
     const { data, error } = await query;
     
     if (error) console.error(error);
-    else setOrders(data || []);
+    else {
+      setOrders(data || []);
+      if (role === 'customer' && data && data.length > 0) {
+        fetchAbcCurve(data.map(o => o.id));
+      }
+    }
     setLoading(false);
+  }
+
+  async function fetchAbcCurve(orderIds: string[]) {
+    if (!supabase || orderIds.length === 0) return;
+    
+    const { data, error } = await supabase
+      .from('order_items')
+      .select('product_id, nome, sku, quantidade, subtotal')
+      .in('order_id', orderIds);
+      
+    if (error) {
+      console.error('Erro ao buscar curva ABC:', error);
+      return;
+    }
+    
+    const grouped = data.reduce((acc: any, item: any) => {
+      if (!acc[item.product_id]) {
+        acc[item.product_id] = { 
+          nome: item.nome, 
+          sku: item.sku, 
+          total_qtd: 0, 
+          total_valor: 0 
+        };
+      }
+      acc[item.product_id].total_qtd += item.quantidade;
+      acc[item.product_id].total_valor += Number(item.subtotal);
+      return acc;
+    }, {});
+    
+    const sorted = Object.values(grouped)
+      .sort((a: any, b: any) => b.total_valor - a.total_valor)
+      .slice(0, 5);
+      
+    setAbcCurve(sorted);
   }
 
   useEffect(() => {
@@ -65,19 +107,31 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
   };
 
   const openOrderDetails = async (order: any) => {
+    console.log('Abrindo detalhes do pedido:', order.id);
     setSelectedOrder(order);
     setLoadingItems(true);
+    setOrderItems([]); // Clear previous items
     
     if (!supabase) return;
     
-    const { data, error } = await supabase
-      .from('order_items')
-      .select('*')
-      .eq('order_id', order.id);
-      
-    if (error) console.error('Erro ao buscar itens:', error);
-    else setOrderItems(data || []);
-    setLoadingItems(false);
+    try {
+      const { data, error } = await supabase
+        .from('order_items')
+        .select('*')
+        .eq('order_id', order.id);
+        
+      if (error) {
+        console.error('Erro ao buscar itens:', error);
+        alert('Erro ao carregar itens do pedido.');
+      } else {
+        console.log('Itens do pedido carregados:', data?.length || 0);
+        setOrderItems(data || []);
+      }
+    } catch (err) {
+      console.error('Erro inesperado ao buscar itens:', err);
+    } finally {
+      setLoadingItems(false);
+    }
   };
 
   if (loading) return <div className="p-6 flex items-center justify-center min-h-[400px]"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>;
@@ -85,11 +139,55 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-black text-slate-900 tracking-tight">Pedidos</h1>
+        <h1 className="text-3xl font-black text-slate-900 tracking-tight">
+          {role === 'customer' ? 'Meus Pedidos' : 'Pedidos'}
+        </h1>
         <div className="bg-white px-4 py-2 rounded-full shadow-sm border border-slate-100 text-xs font-bold text-slate-500">
-          {orders.length} Pedidos Total
+          {orders.length} {role === 'customer' ? 'Pedidos Realizados' : 'Pedidos Total'}
         </div>
       </div>
+
+      {role === 'customer' && abcCurve.length > 0 && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <TrendingUp size={20} className="text-primary" />
+            <h2 className="text-lg font-bold text-slate-800 tracking-tight">Curva ABC - Seus Mais Comprados</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            {abcCurve.map((item, idx) => (
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.1 }}
+                key={item.sku} 
+                className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:border-primary/20 transition-all"
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <span className={`w-6 h-6 flex items-center justify-center rounded-full text-[10px] font-bold ${
+                    idx === 0 ? 'bg-amber-100 text-amber-600' : 
+                    idx === 1 ? 'bg-slate-100 text-slate-600' : 
+                    idx === 2 ? 'bg-orange-100 text-orange-600' : 'bg-slate-50 text-slate-400'
+                  }`}>
+                    {idx + 1}
+                  </span>
+                  <span className="text-[10px] font-mono font-bold text-slate-400">{item.sku}</span>
+                </div>
+                <h3 className="text-xs font-bold text-slate-800 line-clamp-1 mb-2">{item.nome}</h3>
+                <div className="flex justify-between items-end">
+                  <div>
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Quantidade</p>
+                    <p className="text-sm font-black text-slate-700">{item.total_qtd}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Total</p>
+                    <p className="text-sm font-black text-primary">R$ {item.total_valor.toFixed(2)}</p>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      )}
       
       <div className="bg-white rounded-[32px] shadow-xl shadow-slate-200/50 overflow-hidden border border-slate-100">
         <div className="overflow-x-auto">
@@ -123,21 +221,37 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                     <span className="font-black text-primary">R$ {Number(order.total || 0).toFixed(2)}</span>
                   </td>
                   <td className="p-6">
-                    <select 
-                      value={order.status || 'pending'}
-                      onChange={(e) => handleStatusChange(order.id, e.target.value)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold border-none outline-none cursor-pointer transition-all ${
+                    {role === 'customer' ? (
+                      <span className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
                         order.status === 'pending' ? 'bg-amber-50 text-amber-600' :
                         order.status === 'typed' ? 'bg-blue-50 text-blue-600' :
                         order.status === 'finished' ? 'bg-emerald-50 text-emerald-600' :
                         order.status === 'cancelled' ? 'bg-rose-50 text-rose-600' : 'bg-slate-100 text-slate-600'
-                      }`}
-                    >
-                      <option value="pending">Pendente</option>
-                      <option value="typed">Digitado</option>
-                      <option value="finished">Finalizado</option>
-                      <option value="cancelled">Cancelado</option>
-                    </select>
+                      }`}>
+                        {
+                          order.status === 'pending' ? 'Pendente' : 
+                          order.status === 'typed' ? 'Digitado' :
+                          order.status === 'finished' ? 'Finalizado' :
+                          order.status === 'cancelled' ? 'Cancelado' : order.status
+                        }
+                      </span>
+                    ) : (
+                      <select 
+                        value={order.status || 'pending'}
+                        onChange={(e) => handleStatusChange(order.id, e.target.value)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold border-none outline-none cursor-pointer transition-all ${
+                          order.status === 'pending' ? 'bg-amber-50 text-amber-600' :
+                          order.status === 'typed' ? 'bg-blue-50 text-blue-600' :
+                          order.status === 'finished' ? 'bg-emerald-50 text-emerald-600' :
+                          order.status === 'cancelled' ? 'bg-rose-50 text-rose-600' : 'bg-slate-100 text-slate-600'
+                        }`}
+                      >
+                        <option value="pending">Pendente</option>
+                        <option value="typed">Digitado</option>
+                        <option value="finished">Finalizado</option>
+                        <option value="cancelled">Cancelado</option>
+                      </select>
+                    )}
                   </td>
                   <td className="p-6 text-right">
                     <button 
@@ -220,24 +334,30 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                     <div className="space-y-3">
                       <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400">Itens do Pedido</h4>
                       <div className="space-y-2">
-                        {orderItems.map((item) => (
-                          <div key={item.id} className="flex items-center justify-between p-4 bg-white rounded-2xl border border-slate-100 hover:border-primary/20 transition-all group">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2">
-                                <span className="text-[10px] font-mono font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded">
-                                  {item.sku}
-                                </span>
-                                <h5 className="font-bold text-slate-800 text-sm">{item.nome}</h5>
+                        {orderItems.length > 0 ? (
+                          orderItems.map((item) => (
+                            <div key={item.id} className="flex items-center justify-between p-4 bg-white rounded-2xl border border-slate-100 hover:border-primary/20 transition-all group">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[10px] font-mono font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded">
+                                    {item.sku}
+                                  </span>
+                                  <h5 className="font-bold text-slate-800 text-sm">{item.nome}</h5>
+                                </div>
+                                <p className="text-xs text-slate-400 mt-1">
+                                  {item.quantidade} x R$ {Number(item.preco_unitario).toFixed(2)}
+                                </p>
                               </div>
-                              <p className="text-xs text-slate-400 mt-1">
-                                {item.quantidade} x R$ {Number(item.preco_unitario).toFixed(2)}
-                              </p>
+                              <div className="text-right">
+                                <p className="font-black text-slate-900">R$ {Number(item.subtotal).toFixed(2)}</p>
+                              </div>
                             </div>
-                            <div className="text-right">
-                              <p className="font-black text-slate-900">R$ {Number(item.subtotal).toFixed(2)}</p>
-                            </div>
+                          ))
+                        ) : (
+                          <div className="p-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                            <p className="text-slate-400 text-sm font-medium">Nenhum item encontrado para este pedido.</p>
                           </div>
-                        ))}
+                        )}
                       </div>
                     </div>
                   </div>

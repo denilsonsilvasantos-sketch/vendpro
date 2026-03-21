@@ -68,7 +68,7 @@ export default function CustomerFormModal({ onClose, onSave, customer, companyId
         <form onSubmit={handleSubmit} className="space-y-4">
           <input className="w-full p-2 border rounded" placeholder="Nome da Empresa" value={formData.nome} onChange={e => setFormData({...formData, nome: e.target.value})} required />
           <input className="w-full p-2 border rounded" placeholder="Telefone" value={formData.telefone} onChange={e => setFormData({...formData, telefone: e.target.value})} />
-          <input className="w-full p-2 border rounded" placeholder="CNPJ" value={formData.cnpj} onChange={e => setFormData({...formData, cnpj: e.target.value})} />
+          <input className="w-full p-2 border rounded" placeholder="CNPJ" value={formData.cnpj} onChange={e => setFormData({...formData, cnpj: e.target.value})} required />
           
           <select 
             className="w-full p-2 border rounded" 

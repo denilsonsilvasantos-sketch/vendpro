@@ -674,22 +674,24 @@ export default function App() {
                     
                     <SidebarItem icon={<Users size={20}/>} label="Clientes" active={activeTab === 'clientes'} onClick={() => { setActiveTab('clientes'); setIsSidebarOpen(false); }} />
                     <SidebarItem icon={<FileText size={20}/>} label="Pedidos" active={activeTab === 'pedidos'} onClick={() => { setActiveTab('pedidos'); setIsSidebarOpen(false); }} />
-                    
-                    <div className="h-px bg-slate-100 my-6 mx-2" />
-                    
-                    {role !== 'seller' && (
-                      <SidebarItem 
-                        icon={<User size={20}/>} 
-                        label="Visão do Cliente" 
-                        active={false} 
-                        onClick={() => { 
-                          setViewMode('customer'); 
-                          setActiveTab('catalog');
-                          setIsSidebarOpen(false); 
-                        }} 
-                      />
-                    )}
                   </>
+                )}
+
+                {effectiveRole === 'customer' && (
+                  <SidebarItem icon={<FileText size={20}/>} label="Meus Pedidos" active={activeTab === 'pedidos'} onClick={() => { setActiveTab('pedidos'); setIsSidebarOpen(false); }} />
+                )}
+                    
+                {role !== 'seller' && role !== 'customer' && (
+                  <SidebarItem 
+                    icon={<User size={20}/>} 
+                    label="Visão do Cliente" 
+                    active={false} 
+                    onClick={() => { 
+                      setViewMode('customer'); 
+                      setActiveTab('catalog');
+                      setIsSidebarOpen(false); 
+                    }} 
+                  />
                 )}
 
                 <div className="h-px bg-slate-100 my-6 mx-2" />
@@ -990,19 +992,19 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
   };
 
   const handleCustomerSubmit = async () => {
-    if (!customerData.nome || !customerData.telefone) {
-      alert("Por favor, preencha o nome e o telefone.");
+    if (!customerData.nome || !customerData.telefone || !customerData.cnpj) {
+      alert("Por favor, preencha o nome, o CNPJ e o telefone.");
       return;
     }
 
     if (supabase && sellerInfo) {
       try {
-        // Try to find existing customer by phone or name under this seller
+        // Try to find existing customer by phone, name or CNPJ under this seller
         const { data: existingCustomers, error: searchError } = await supabase
           .from('customers')
           .select('*')
           .eq('seller_id', sellerInfo.id)
-          .or(`telefone.eq.${customerData.telefone},nome.ilike.%${customerData.nome}%`);
+          .or(`telefone.eq.${customerData.telefone},nome.ilike.%${customerData.nome}%,cnpj.eq.${customerData.cnpj}`);
 
         if (searchError) throw searchError;
 
@@ -1019,6 +1021,7 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
               seller_id: sellerInfo.id,
               nome: customerData.nome,
               telefone: customerData.telefone,
+              cnpj: customerData.cnpj,
               ativo: true
             }])
             .select()
@@ -1410,6 +1413,7 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
             <p className="font-bold text-sm mb-6 text-center text-slate-700">Identificação do Cliente</p>
             <div className="space-y-3">
               <input placeholder="Seu Nome ou Nome da Empresa" className="w-full p-4 bg-white rounded-xl border border-slate-100 font-medium focus:ring-2 focus:ring-primary outline-none shadow-sm" onChange={e => setCustomerData({...customerData, nome: e.target.value})} />
+              <input placeholder="CNPJ" className="w-full p-4 bg-white rounded-xl border border-slate-100 font-medium focus:ring-2 focus:ring-primary outline-none shadow-sm" onChange={e => setCustomerData({...customerData, cnpj: e.target.value})} />
               <input placeholder="Telefone / WhatsApp" className="w-full p-4 bg-white rounded-xl border border-slate-100 font-medium focus:ring-2 focus:ring-primary outline-none shadow-sm" onChange={e => setCustomerData({...customerData, telefone: e.target.value})} />
             </div>
             <button 
@@ -1778,9 +1782,21 @@ function CatalogScreen({
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 md:gap-6">
-                {paginatedProducts.map(p => (
-                  <ProductCard key={p.id} product={p} onAdd={onAddToCart} onEdit={onEdit} role={role} onZoom={onZoom} />
-                ))}
+                {paginatedProducts.map(p => {
+                  const currentCart = carts[p.brand_id || ''] || [];
+                  const isInCart = currentCart.some(item => item.id === p.id);
+                  return (
+                    <ProductCard 
+                      key={p.id} 
+                      product={p} 
+                      onAdd={onAddToCart} 
+                      onEdit={onEdit} 
+                      role={role} 
+                      onZoom={onZoom}
+                      isInCart={isInCart}
+                    />
+                  );
+                })}
               </div>
             )}
 
@@ -1848,7 +1864,7 @@ function CatalogScreen({
   );
 }
 
-function ProductCard({ product, onAdd, onEdit, role, onZoom, ...props }: { product: Product, onAdd: (p: Product, q: number) => void, onEdit: (p: Product) => void, role: UserRole, onZoom: (img: string) => void, [key: string]: any }) {
+function ProductCard({ product, onAdd, onEdit, role, onZoom, isInCart, ...props }: { product: Product, onAdd: (p: Product, q: number) => void, onEdit: (p: Product) => void, role: UserRole, onZoom: (img: string) => void, isInCart?: boolean, [key: string]: any }) {
   const [qty, setQty] = useState(product.venda_somente_box ? 1 : (product.multiplo_venda || 1));
   const isEsgotado = product.status_estoque === 'esgotado';
 
@@ -1864,7 +1880,12 @@ function ProductCard({ product, onAdd, onEdit, role, onZoom, ...props }: { produ
   };
 
   return (
-    <Card className={`p-2 md:p-3 flex flex-col group hover:border-primary/20 transition-all card-shadow rounded-2xl ${isEsgotado ? 'opacity-75 grayscale-[0.5]' : ''}`}>
+    <Card className={`p-2 md:p-3 flex flex-col group hover:border-primary/20 transition-all card-shadow rounded-2xl relative ${isEsgotado ? 'opacity-75 grayscale-[0.5]' : ''}`}>
+      {isInCart && (
+        <div className="absolute top-2 right-2 z-10 bg-emerald-500 text-white p-1.5 rounded-full shadow-lg shadow-emerald-500/20 animate-in zoom-in duration-300">
+          <CheckCircle2 size={14} />
+        </div>
+      )}
       <div className="relative aspect-square mb-2 rounded-xl overflow-hidden bg-slate-50 cursor-zoom-in group-hover:scale-[1.02] transition-transform duration-500" onClick={() => onZoom(product.imagem || '')}>
         <img src={product.imagem || `https://picsum.photos/seed/${product.sku}/400/400`} className="w-full h-full object-contain p-1" alt={product.nome} referrerPolicy="no-referrer" />
         <div className="absolute top-2 w-full flex flex-col gap-1 items-center">

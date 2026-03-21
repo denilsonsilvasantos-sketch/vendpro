@@ -1700,7 +1700,7 @@ function CatalogScreen({
         )}
       </AnimatePresence>
 
-      <div className="max-w-7xl mx-auto px-4 md:px-8 pt-8">
+      <div className="max-w-7xl mx-auto px-0 sm:px-4 md:px-8 pt-4 sm:pt-8">
         <Banner banners={banners} />
       </div>
 
@@ -1903,7 +1903,7 @@ function ProductCard({ product, onAdd, onEdit, role, onZoom, isInCart, ...props 
       
       <div className="text-center mb-3">
         <h3 className="font-bold text-slate-800 text-[11px] md:text-xs leading-tight mb-1 h-8 flex items-center justify-center overflow-hidden line-clamp-2">{product.nome}</h3>
-        <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mb-1.5">SKU: {product.sku}</p>
+        <p className="text-[11px] text-slate-500 font-bold uppercase tracking-widest mb-1.5">SKU: {product.sku}</p>
         
         {!isEsgotado && (
           <p className="text-lg md:text-xl font-black text-primary">R$ {(product.preco_unitario || 0).toFixed(2)}</p>
@@ -1911,14 +1911,11 @@ function ProductCard({ product, onAdd, onEdit, role, onZoom, isInCart, ...props 
       </div>
 
       {(product.has_box_discount || product.venda_somente_box) && !isEsgotado && (
-        <div className="mb-3 p-2 bg-amber-50 border border-amber-200 rounded-xl text-center shadow-sm">
-          <p className="text-[9px] uppercase font-black text-amber-600 tracking-tighter mb-0.5">
-            {product.venda_somente_box ? 'SOMENTE NO BOX:' : 'A PARTIR DE:'}
+        <div className="mb-3 p-2 bg-amber-50 border border-amber-200 rounded-xl text-center shadow-sm flex flex-col items-center justify-center">
+          <span className="text-base md:text-lg font-black text-amber-700">R$ {(product.preco_box || 0).toFixed(2)}</span>
+          <p className="text-[10px] uppercase font-black text-amber-600 tracking-tighter mt-0.5">
+            {product.venda_somente_box ? 'SOMENTE NO BOX:' : 'A PARTIR DE:'} {product.qtd_box} UNIDADES
           </p>
-          <div className="flex items-center justify-center gap-1">
-            <span className="text-sm md:text-base font-black text-amber-700">R$ {(product.preco_box || 0).toFixed(2)}</span>
-            <span className="text-[9px] font-bold text-amber-600/70 italic">({product.qtd_box} un)</span>
-          </div>
         </div>
       )}
 

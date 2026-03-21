@@ -121,7 +121,7 @@ export interface OrderItem {
   nome: string;
   quantidade: number;
   preco_unitario: number;
-  preco_total: number;
+  subtotal: number;
 }
 
 export interface BannerData {

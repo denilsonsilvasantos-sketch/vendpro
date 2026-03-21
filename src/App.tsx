@@ -260,7 +260,8 @@ export default function App() {
             brand_id: selectedBrand,
             total: total,
             status: 'pending',
-            whatsapp_sent: true
+            whatsapp_sent: true,
+            client_name: clientName
           };
 
           const { data: order, error: orderError } = await supabase
@@ -285,7 +286,7 @@ export default function App() {
               nome: item.nome,
               quantidade: item.quantity,
               preco_unitario: unitPrice,
-              preco_total: item.quantity * unitPrice
+              subtotal: item.quantity * unitPrice
             };
           });
 
@@ -775,7 +776,7 @@ export default function App() {
           {activeTab === 'marcas' && <Marcas companyId={activeCompanyId} />}
           {activeTab === 'vendedores' && <Vendedores companyId={activeCompanyId} />}
           {activeTab === 'clientes' && <Clientes companyId={activeCompanyId} role={role} user={user} />}
-          {activeTab === 'pedidos' && <Pedidos companyId={activeCompanyId} />}
+          {activeTab === 'pedidos' && <Pedidos companyId={activeCompanyId} role={role} user={user} />}
           {activeTab === 'account' && <Configuracoes companyId={activeCompanyId} user={user} role={role} onLogout={handleLogout} />}
         </div>
       </main>

@@ -1583,48 +1583,42 @@ function CatalogScreen({
   const visibleCategories = selectedBrand ? categories.filter(c => c.brand_id === selectedBrand) : categories;
 
   return (
-    <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="space-y-0"
-    >
+    <div className="space-y-0">
       <AnimatePresence>
         {showConditions && currentBrand && (
           <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" />
-            <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="bg-white w-full max-w-md rounded-[48px] shadow-2xl relative z-10 p-10 space-y-8 border border-slate-100">
-              <div className="text-center space-y-4">
-                <div className="w-24 h-24 bg-primary/10 rounded-[32px] flex items-center justify-center mx-auto text-primary border border-primary/20 shadow-inner">
-                  <FileText size={48} strokeWidth={1.5} />
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-md rounded-[32px] shadow-2xl relative z-10 p-8 space-y-6">
+              <div className="text-center space-y-2">
+                <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto text-primary">
+                  <FileText size={40} />
                 </div>
-                <div className="space-y-1">
-                  <h3 className="text-3xl font-black text-slate-900 tracking-tight">Condições Comerciais</h3>
-                  <p className="text-primary font-black uppercase tracking-[0.2em] text-[10px]">{currentBrand.name}</p>
-                </div>
+                <h3 className="text-2xl font-bold text-slate-900">Condições Comerciais</h3>
+                <p className="text-primary font-bold uppercase tracking-widest text-xs">{currentBrand.name}</p>
               </div>
 
               <div className="space-y-4 max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar">
-                <div className="p-6 bg-slate-50 rounded-[32px] border border-slate-100 group hover:bg-white hover:shadow-md transition-all duration-300">
-                  <p className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 mb-2">Pedido Mínimo</p>
-                  <p className="text-2xl font-black text-slate-900 tracking-tight">R$ {currentBrand.minimum_order_value?.toFixed(2)}</p>
+                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Pedido Mínimo</p>
+                  <p className="font-bold text-slate-700">R$ {currentBrand.minimum_order_value?.toFixed(2)}</p>
                 </div>
                 {currentBrand.payment_policy && (
-                  <div className="p-6 bg-slate-50 rounded-[32px] border border-slate-100 group hover:bg-white hover:shadow-md transition-all duration-300">
-                    <p className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 mb-2">Pagamento</p>
-                    <p className="text-sm text-slate-600 leading-relaxed font-medium">{currentBrand.payment_policy}</p>
+                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Pagamento</p>
+                    <p className="text-sm text-slate-600 leading-relaxed">{currentBrand.payment_policy}</p>
                   </div>
                 )}
                 {currentBrand.shipping_policy && (
-                  <div className="p-6 bg-slate-50 rounded-[32px] border border-slate-100 group hover:bg-white hover:shadow-md transition-all duration-300">
-                    <p className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 mb-2">Envio / Frete</p>
-                    <p className="text-sm text-slate-600 leading-relaxed font-medium">{currentBrand.shipping_policy}</p>
+                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Envio / Frete</p>
+                    <p className="text-sm text-slate-600 leading-relaxed">{currentBrand.shipping_policy}</p>
                   </div>
                 )}
               </div>
 
               <button 
                 onClick={handleAcknowledgeConditions}
-                className="w-full py-5 bg-primary text-white rounded-[24px] font-black uppercase tracking-widest text-xs shadow-2xl shadow-primary/30 hover:-translate-y-1 transition-all active:translate-y-0"
+                className="w-full py-4 bg-primary text-white rounded-2xl font-bold shadow-lg shadow-primary/20 active:scale-95 transition-all"
               >
                 Ciente, continuar
               </button>
@@ -1635,32 +1629,32 @@ function CatalogScreen({
         {showSwitchWarning && (
           <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" />
-            <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="bg-white w-full max-w-sm rounded-[48px] shadow-2xl relative z-10 p-10 text-center space-y-8 border border-slate-100">
-              <div className="w-24 h-24 bg-amber-50 rounded-[32px] flex items-center justify-center mx-auto text-amber-500 border border-amber-100 shadow-inner">
-                <AlertCircle size={48} strokeWidth={1.5} />
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-sm rounded-[32px] shadow-2xl relative z-10 p-8 text-center space-y-6">
+              <div className="w-20 h-20 bg-amber-50 rounded-full flex items-center justify-center mx-auto text-amber-500">
+                <AlertCircle size={40} />
               </div>
-              <div className="space-y-3">
-                <h3 className="text-2xl font-black text-slate-900 tracking-tight">Mudar de Marca?</h3>
-                <p className="text-slate-500 text-sm font-medium leading-relaxed">
-                  Você tem itens no carrinho desta marca. Cada marca opera individualmente. Deseja finalizar este pedido agora ou salvar para depois?
+              <div className="space-y-2">
+                <h3 className="text-xl font-bold text-slate-900">Mudar de Marca?</h3>
+                <p className="text-slate-500 text-sm leading-relaxed">
+                  Você tem itens no carrinho desta marca. Deseja finalizar este pedido agora ou salvar para depois?
                 </p>
               </div>
-              <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-3">
                 <button 
                   onClick={onGoToCart}
-                  className="w-full py-5 bg-primary text-white rounded-[24px] font-black uppercase tracking-widest text-xs shadow-2xl shadow-primary/30 hover:-translate-y-1 transition-all active:translate-y-0"
+                  className="w-full py-4 bg-primary text-white rounded-2xl font-bold shadow-lg shadow-primary/20 active:scale-95 transition-all"
                 >
                   Finalizar Pedido Atual
                 </button>
                 <button 
                   onClick={() => confirmBrandSwitch(true)}
-                  className="w-full py-5 bg-slate-100 text-slate-600 rounded-[24px] font-black uppercase tracking-widest text-xs hover:bg-slate-200 transition-all"
+                  className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-200 transition-all"
                 >
                   Salvar e Mudar de Marca
                 </button>
                 <button 
                   onClick={() => setShowSwitchWarning(false)}
-                  className="w-full py-2 text-slate-400 font-black uppercase text-[10px] tracking-[0.2em] hover:text-slate-600 transition-colors"
+                  className="w-full py-2 text-slate-400 font-bold uppercase text-[10px] tracking-widest"
                 >
                   Cancelar
                 </button>
@@ -1672,21 +1666,21 @@ function CatalogScreen({
         {showLogisticsWarning && (
           <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" />
-            <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="bg-white w-full max-w-sm rounded-[48px] shadow-2xl relative z-10 p-10 text-center space-y-8 border border-slate-100">
-              <div className="w-24 h-24 bg-rose-50 rounded-[32px] flex items-center justify-center mx-auto text-rose-500 border border-rose-100 shadow-inner">
-                <AlertTriangle size={48} strokeWidth={1.5} />
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-sm rounded-[32px] shadow-2xl relative z-10 p-8 text-center space-y-6">
+              <div className="w-20 h-20 bg-rose-50 rounded-full flex items-center justify-center mx-auto text-rose-500">
+                <AlertTriangle size={40} />
               </div>
-              <div className="space-y-3">
-                <h3 className="text-2xl font-black text-slate-900 tracking-tight">Aviso de Logística</h3>
-                <p className="text-slate-500 text-sm font-medium leading-relaxed">
+              <div className="space-y-2">
+                <h3 className="text-xl font-bold text-slate-900">Aviso de Logística</h3>
+                <p className="text-slate-500 text-sm leading-relaxed">
                   Cada marca possui suas próprias **condições comerciais, estoque e envios**. 
                   <br/><br/>
-                  Os pedidos não poderão ser somados entre as marcas diferentes.
+                  Os pedidos não poderão ser somados entre as marcas.
                 </p>
               </div>
               <button 
                 onClick={handleAcknowledgeLogistics}
-                className="w-full py-5 bg-rose-500 text-white rounded-[24px] font-black uppercase tracking-widest text-xs shadow-2xl shadow-rose-500/30 hover:-translate-y-1 transition-all active:translate-y-0"
+                className="w-full py-4 bg-rose-500 text-white rounded-2xl font-bold shadow-lg shadow-rose-500/20 active:scale-95 transition-all"
               >
                 Estou ciente
               </button>
@@ -1701,12 +1695,12 @@ function CatalogScreen({
 
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-12">
         {/* Category Bar */}
-        <div className="flex items-center gap-4 mb-12 overflow-x-auto pb-6 custom-scrollbar scroll-smooth">
+        <div className="flex items-center gap-4 mb-12 overflow-x-auto pb-4 custom-scrollbar">
           {brands.map(brand => (
             <button 
               key={brand.id}
               onClick={() => handleBrandChange(brand.id)}
-              className={`px-8 py-4 rounded-[28px] text-xs font-black uppercase tracking-widest whitespace-nowrap transition-all duration-300 ${selectedBrand === brand.id ? 'bg-primary text-white shadow-2xl shadow-primary/30 -translate-y-1' : 'bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700 shadow-sm'}`}
+              className={`px-6 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all ${selectedBrand === brand.id ? 'pink-gradient text-white shadow-lg shadow-primary/20' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
             >
               {brand.name}
             </button>
@@ -1715,16 +1709,13 @@ function CatalogScreen({
 
         <div className="flex flex-col lg:flex-row gap-12">
           {/* Sidebar Filters */}
-          <aside className="lg:w-72 shrink-0 space-y-12">
-            <div className="bg-white rounded-[40px] p-8 border border-slate-100 shadow-sm">
-              <h3 className="text-xl font-black mb-8 text-slate-900 tracking-tight flex items-center gap-3">
-                <LayoutGrid size={20} className="text-primary" />
-                Categorias
-              </h3>
+          <aside className="lg:w-64 shrink-0 space-y-10">
+            <div>
+              <h3 className="font-display text-xl font-bold mb-6 text-slate-900">Categorias</h3>
               <div className="space-y-2">
                 <button 
                   onClick={() => setSelectedCategory(null)}
-                  className={`w-full text-left px-6 py-4 rounded-[20px] text-xs font-black uppercase tracking-widest transition-all ${!selectedCategory ? 'bg-primary/10 text-primary' : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'}`}
+                  className={`w-full text-left px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${!selectedCategory ? 'bg-primary/10 text-primary' : 'text-slate-500 hover:bg-slate-50'}`}
                 >
                   Todas as Categorias
                 </button>
@@ -1732,7 +1723,7 @@ function CatalogScreen({
                   <button 
                     key={cat.id}
                     onClick={() => setSelectedCategory(cat.id)}
-                    className={`w-full text-left px-6 py-4 rounded-[20px] text-xs font-black uppercase tracking-widest transition-all ${selectedCategory === cat.id ? 'bg-primary/10 text-primary' : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'}`}
+                    className={`w-full text-left px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${selectedCategory === cat.id ? 'bg-primary/10 text-primary' : 'text-slate-500 hover:bg-slate-50'}`}
                   >
                     {cat.nome}
                   </button>
@@ -1741,94 +1732,69 @@ function CatalogScreen({
             </div>
 
             {role === 'customer' && (
-              <div className="p-10 bg-slate-900 rounded-[48px] text-white relative overflow-hidden group shadow-2xl shadow-slate-900/20">
-                <div className="relative z-10 space-y-8">
-                  <div className="w-16 h-16 bg-white/10 rounded-[24px] flex items-center justify-center backdrop-blur-md border border-white/10">
-                    <Send size={32} className="text-primary" />
-                  </div>
-                  <div className="space-y-3">
-                    <h4 className="text-2xl font-black tracking-tight">Suporte VIP</h4>
-                    <p className="text-sm text-white/60 font-medium leading-relaxed">Dúvidas sobre produtos ou pedidos? Fale agora com seu consultor exclusivo.</p>
-                  </div>
+              <div className="p-6 bg-slate-900 rounded-3xl text-white relative overflow-hidden group">
+                <div className="relative z-10">
+                  <h4 className="font-display text-lg font-bold mb-2">Suporte VIP</h4>
+                  <p className="text-xs text-white/60 mb-6 leading-relaxed">Dúvidas sobre produtos ou pedidos? Fale com seu consultor.</p>
                   <button 
                     onClick={handleWhatsAppSupport}
-                    className="w-full py-5 bg-white text-slate-900 rounded-[24px] font-black uppercase tracking-widest text-[11px] hover:bg-primary hover:text-white transition-all duration-300 shadow-lg"
+                    className="w-full py-3 bg-white text-slate-900 rounded-xl text-xs font-bold hover:bg-primary hover:text-white transition-all"
                   >
-                    Chamar no WhatsApp
+                    WhatsApp Direto
                   </button>
                 </div>
-                <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-primary/20 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-1000" />
-                <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
+                <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-primary/20 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700" />
               </div>
             )}
           </aside>
 
           {/* Product Grid */}
           <div className="flex-1 min-w-0">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-12">
-              <div className="space-y-1">
-                <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Vitrine de Produtos</p>
-                <h2 className="text-3xl font-black text-slate-900 tracking-tight">
-                  Mostrando <span className="text-primary">{filtered.length}</span> itens
-                </h2>
-              </div>
+            <div className="flex items-center justify-between mb-8">
+              <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">
+                Mostrando <span className="text-slate-900">{filtered.length}</span> produtos
+              </p>
               
               <div className="flex items-center gap-4">
-                <div className="bg-white rounded-[24px] p-2 flex gap-1 shadow-sm border border-slate-100">
-                  <select 
-                    className="bg-transparent border-none text-[11px] font-black uppercase tracking-widest text-slate-500 rounded-xl px-5 py-2.5 outline-none cursor-pointer hover:text-primary transition-colors"
-                    value={itemsPerPage}
-                    onChange={(e) => setItemsPerPage(Number(e.target.value))}
-                  >
-                    <option value={24}>24 Itens</option>
-                    <option value={48}>48 Itens</option>
-                    <option value={96}>96 Itens</option>
-                  </select>
-                </div>
+                <select 
+                  className="bg-white border-none text-xs font-bold text-slate-600 rounded-xl px-4 py-2 outline-none cursor-pointer"
+                  value={itemsPerPage}
+                  onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                >
+                  <option value={24}>24 por página</option>
+                  <option value={48}>48 por página</option>
+                  <option value={96}>96 por página</option>
+                </select>
               </div>
             </div>
 
             {paginatedProducts.length === 0 ? (
-              <div className="py-40 text-center space-y-8 bg-white rounded-[56px] border border-dashed border-slate-200">
-                <div className="w-24 h-24 bg-slate-50 rounded-[32px] flex items-center justify-center mx-auto text-slate-200 border border-slate-100">
-                  <Search size={48} strokeWidth={1.5} />
+              <div className="py-32 text-center space-y-4">
+                <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto text-slate-200">
+                  <Search size={40} />
                 </div>
-                <div className="space-y-3">
-                  <p className="text-2xl font-black text-slate-900 tracking-tight">Nenhum produto encontrado</p>
-                  <p className="text-slate-400 font-medium">Tente ajustar seus filtros ou busca.</p>
-                </div>
-                <button 
-                  onClick={() => { setSearch(''); setSelectedCategory(null); }}
-                  className="px-10 py-4 bg-slate-100 text-slate-600 rounded-[20px] font-black uppercase tracking-widest text-[11px] hover:bg-slate-200 transition-all"
-                >
-                  Limpar Filtros
-                </button>
+                <p className="text-slate-400 font-medium">Nenhum produto encontrado.</p>
               </div>
             ) : (
-              <motion.div 
-                layout
-                className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-8 md:gap-10"
-              >
-                <AnimatePresence mode="popLayout">
-                  {paginatedProducts.map(p => (
-                    <ProductCard key={p.id} product={p} onAdd={onAddToCart} onEdit={onEdit} role={role} onZoom={onZoom} />
-                  ))}
-                </AnimatePresence>
-              </motion.div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 md:gap-6">
+                {paginatedProducts.map(p => (
+                  <ProductCard key={p.id} product={p} onAdd={onAddToCart} onEdit={onEdit} role={role} onZoom={onZoom} />
+                ))}
+              </div>
             )}
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="mt-24 flex items-center justify-center gap-4">
+              <div className="mt-16 flex items-center justify-center gap-2">
                 <button 
                   disabled={currentPage === 1}
                   onClick={() => setCurrentPage(prev => prev - 1)}
-                  className="w-14 h-14 bg-white rounded-[20px] text-slate-400 hover:text-primary hover:shadow-xl disabled:opacity-30 transition-all flex items-center justify-center border border-slate-100"
+                  className="p-3 bg-white rounded-xl text-slate-400 hover:text-primary disabled:opacity-30 transition-all"
                 >
-                  <ChevronLeft size={28} />
+                  <ChevronLeft size={20} />
                 </button>
                 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
                   {(() => {
                     const pages = [];
                     const maxVisible = 5;
@@ -1838,9 +1804,9 @@ function CatalogScreen({
 
                     if (start > 1) {
                       pages.push(
-                        <button key={1} onClick={() => setCurrentPage(1)} className="w-14 h-14 rounded-[20px] text-xs font-black bg-white text-slate-400 hover:bg-slate-50 hover:text-slate-600 border border-slate-100">1</button>
+                        <button key={1} onClick={() => setCurrentPage(1)} className="w-10 h-10 rounded-xl text-sm font-bold bg-white text-slate-400 hover:bg-slate-50">1</button>
                       );
-                      if (start > 2) pages.push(<span key="sep1" className="text-slate-300 font-black">...</span>);
+                      if (start > 2) pages.push(<span key="sep1" className="text-slate-300">...</span>);
                     }
 
                     for (let i = start; i <= end; i++) {
@@ -1848,7 +1814,7 @@ function CatalogScreen({
                         <button 
                           key={i}
                           onClick={() => setCurrentPage(i)}
-                          className={`w-14 h-14 rounded-[20px] text-xs font-black transition-all duration-300 ${currentPage === i ? 'bg-primary text-white shadow-2xl shadow-primary/30 -translate-y-1' : 'bg-white text-slate-400 hover:bg-slate-50 hover:text-slate-600 border border-slate-100'}`}
+                          className={`w-10 h-10 rounded-xl text-sm font-bold transition-all ${currentPage === i ? 'pink-gradient text-white shadow-lg shadow-primary/20' : 'bg-white text-slate-400 hover:bg-slate-50'}`}
                         >
                           {i}
                         </button>
@@ -1856,9 +1822,9 @@ function CatalogScreen({
                     }
 
                     if (end < totalPages) {
-                      if (end < totalPages - 1) pages.push(<span key="sep2" className="text-slate-300 font-black">...</span>);
+                      if (end < totalPages - 1) pages.push(<span key="sep2" className="text-slate-300">...</span>);
                       pages.push(
-                        <button key={totalPages} onClick={() => setCurrentPage(totalPages)} className="w-14 h-14 rounded-[20px] text-xs font-black bg-white text-slate-400 hover:bg-slate-50 hover:text-slate-600 border border-slate-100">{totalPages}</button>
+                        <button key={totalPages} onClick={() => setCurrentPage(totalPages)} className="w-10 h-10 rounded-xl text-sm font-bold bg-white text-slate-400 hover:bg-slate-50">{totalPages}</button>
                       );
                     }
                     return pages;
@@ -1868,16 +1834,16 @@ function CatalogScreen({
                 <button 
                   disabled={currentPage === totalPages}
                   onClick={() => setCurrentPage(prev => prev + 1)}
-                  className="w-14 h-14 bg-white rounded-[20px] text-slate-400 hover:text-primary hover:shadow-xl disabled:opacity-30 transition-all flex items-center justify-center border border-slate-100"
+                  className="p-3 bg-white rounded-xl text-slate-400 hover:text-primary disabled:opacity-30 transition-all"
                 >
-                  <ChevronRight size={28} />
+                  <ChevronRight size={20} />
                 </button>
               </div>
             )}
           </div>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -1897,111 +1863,52 @@ function ProductCard({ product, onAdd, onEdit, role, onZoom, ...props }: { produ
   };
 
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -8 }}
-      transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
-    >
-      <Card className={`p-3 md:p-5 flex flex-col group hover:border-primary/30 transition-all duration-500 card-shadow rounded-[40px] bg-white border border-slate-100 relative overflow-hidden h-full ${isEsgotado ? 'opacity-75 grayscale-[0.5]' : ''}`}>
-        <div 
-          className="relative aspect-square mb-5 rounded-[32px] overflow-hidden bg-slate-50 cursor-zoom-in group-hover:scale-[1.02] transition-transform duration-700 shadow-inner" 
-          onClick={() => onZoom(product.imagem || '')}
-        >
-          <img 
-            src={product.imagem || `https://picsum.photos/seed/${product.sku}/400/400`} 
-            className="w-full h-full object-contain p-4 mix-blend-multiply" 
-            alt={product.nome} 
-            referrerPolicy="no-referrer" 
-          />
-          <div className="absolute top-4 w-full flex flex-col gap-2 items-center px-3">
-            {isEsgotado && (
-              <motion.span 
-                initial={{ scale: 0.8 }}
-                animate={{ scale: 1 }}
-                className="bg-slate-900/90 backdrop-blur-md text-white text-[10px] font-black px-4 py-2 rounded-xl shadow-xl uppercase tracking-widest border border-white/10"
-              >
-                ESGOTADO
-              </motion.span>
-            )}
-            {!isEsgotado && product.is_last_units && (
-              <motion.span 
-                initial={{ scale: 0.8 }}
-                animate={{ scale: 1 }}
-                className="bg-rose-500/90 backdrop-blur-md text-white text-[10px] font-black px-4 py-2 rounded-xl shadow-xl uppercase tracking-widest border border-white/10"
-              >
-                ÚLTIMAS UNIDADES
-              </motion.span>
-            )}
-            {product.venda_somente_box && (
-              <motion.span 
-                initial={{ scale: 0.8 }}
-                animate={{ scale: 1 }}
-                className="bg-amber-500/90 backdrop-blur-md text-white text-[10px] font-black px-4 py-2 rounded-xl shadow-xl uppercase tracking-widest border border-white/10"
-              >
-                SOMENTE NO BOX
-              </motion.span>
-            )}
-          </div>
-          <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+    <Card className={`p-2 md:p-3 flex flex-col group hover:border-primary/20 transition-all card-shadow rounded-2xl ${isEsgotado ? 'opacity-75 grayscale-[0.5]' : ''}`}>
+      <div className="relative aspect-square mb-2 rounded-xl overflow-hidden bg-slate-50 cursor-zoom-in group-hover:scale-[1.02] transition-transform duration-500" onClick={() => onZoom(product.imagem || '')}>
+        <img src={product.imagem || `https://picsum.photos/seed/${product.sku}/400/400`} className="w-full h-full object-contain p-1" alt={product.nome} referrerPolicy="no-referrer" />
+        <div className="absolute top-2 w-full flex flex-col gap-1 items-center">
+          {isEsgotado && <span className="bg-slate-800 text-white text-[10px] font-black px-3 py-1 rounded shadow-lg uppercase tracking-wider">ESGOTADO</span>}
+          {!isEsgotado && product.is_last_units && <span className="bg-rose-500 text-white text-[10px] font-black px-3 py-1 rounded shadow-lg uppercase tracking-wider">ÚLTIMAS UNIDADES</span>}
+          {product.venda_somente_box && <span className="bg-amber-500 text-white text-[10px] font-black px-3 py-1 rounded shadow-lg uppercase tracking-wider">SOMENTE NO BOX</span>}
         </div>
+      </div>
+      
+      <div className="text-center mb-3">
+        <h3 className="font-bold text-slate-800 text-[11px] md:text-xs leading-tight mb-1 h-8 flex items-center justify-center overflow-hidden line-clamp-2">{product.nome}</h3>
+        <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mb-1.5">SKU: {product.sku}</p>
         
-        <div className="text-center mb-5 space-y-3">
-          <div className="h-12 flex items-center justify-center">
-            <h3 className="font-black text-slate-800 text-xs md:text-sm leading-tight line-clamp-2 uppercase tracking-tight px-2">{product.nome}</h3>
-          </div>
-          <div className="flex items-center justify-center gap-2">
-            <span className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] bg-slate-50 px-3 py-1 rounded-lg border border-slate-100">SKU: {product.sku}</span>
-          </div>
-          
-          {!isEsgotado && (
-            <div className="pt-2">
-              <p className="text-2xl md:text-3xl font-black text-primary tracking-tighter">R$ {(product.preco_unitario || 0).toFixed(2)}</p>
-            </div>
-          )}
-        </div>
-
-        {(product.has_box_discount || product.venda_somente_box) && !isEsgotado && (
-          <div className="mb-5 p-4 bg-slate-50 border border-slate-100 rounded-[24px] text-center shadow-inner group-hover:bg-amber-50 group-hover:border-amber-100 transition-colors duration-500">
-            <p className="text-[10px] uppercase font-black text-slate-400 group-hover:text-amber-600 tracking-[0.2em] mb-1.5">
-              {product.venda_somente_box ? 'SOMENTE NO BOX:' : 'A PARTIR DE:'}
-            </p>
-            <div className="flex items-center justify-center gap-2">
-              <span className="text-lg md:text-xl font-black text-slate-700 group-hover:text-amber-700 tracking-tight">R$ {(product.preco_box || 0).toFixed(2)}</span>
-              <span className="text-xs font-black text-slate-400 group-hover:text-amber-600/70 italic">({product.qtd_box} un)</span>
-            </div>
-          </div>
+        {!isEsgotado && (
+          <p className="text-lg md:text-xl font-black text-primary">R$ {(product.preco_unitario || 0).toFixed(2)}</p>
         )}
+      </div>
 
-        <div className="mt-auto flex flex-col items-center gap-4">
-          <div className="flex items-center bg-slate-50 rounded-[20px] p-2 w-full justify-between border border-slate-100 shadow-inner">
-            <button 
-              onClick={handleSubQty} 
-              disabled={isEsgotado} 
-              className="w-10 h-10 flex items-center justify-center text-slate-400 hover:bg-white hover:text-primary hover:shadow-md rounded-xl disabled:opacity-30 transition-all"
-            >
-              <Minus size={18} strokeWidth={2.5} />
-            </button>
-            <span className="text-base font-black text-slate-700">{qty}</span>
-            <button 
-              onClick={handleAddQty} 
-              disabled={isEsgotado} 
-              className="w-10 h-10 flex items-center justify-center text-slate-400 hover:bg-white hover:text-primary hover:shadow-md rounded-xl disabled:opacity-30 transition-all"
-            >
-              <Plus size={18} strokeWidth={2.5} />
-            </button>
+      {(product.has_box_discount || product.venda_somente_box) && !isEsgotado && (
+        <div className="mb-3 p-2 bg-amber-50 border border-amber-200 rounded-xl text-center shadow-sm">
+          <p className="text-[9px] uppercase font-black text-amber-600 tracking-tighter mb-0.5">
+            {product.venda_somente_box ? 'SOMENTE NO BOX:' : 'A PARTIR DE:'}
+          </p>
+          <div className="flex items-center justify-center gap-1">
+            <span className="text-sm md:text-base font-black text-amber-700">R$ {(product.preco_box || 0).toFixed(2)}</span>
+            <span className="text-[9px] font-bold text-amber-600/70 italic">({product.qtd_box} un)</span>
           </div>
-          <button 
-            onClick={() => onAdd(product, qty)} 
-            disabled={isEsgotado}
-            className="w-full py-5 bg-primary text-white rounded-[24px] font-black uppercase tracking-widest text-[11px] shadow-2xl shadow-primary/30 hover:-translate-y-1 transition-all active:translate-y-0 disabled:opacity-50 flex items-center justify-center gap-3 group/btn"
-          >
-            <ShoppingCart size={18} strokeWidth={2.5} className="group-hover/btn:scale-110 transition-transform" />
-            Adicionar
-          </button>
         </div>
-      </Card>
-    </motion.div>
+      )}
+
+      <div className="mt-auto flex flex-col items-center gap-2">
+        <div className="flex items-center bg-slate-100 rounded-xl p-1 w-full justify-between">
+          <button onClick={handleSubQty} disabled={isEsgotado} className="p-1 text-slate-600 hover:bg-white hover:text-primary rounded-lg disabled:opacity-50 transition-all"><Minus size={14}/></button>
+          <span className="text-xs font-bold text-slate-700">{qty}</span>
+          <button onClick={handleAddQty} disabled={isEsgotado} className="p-1 text-slate-600 hover:bg-white hover:text-primary rounded-lg disabled:opacity-50 transition-all"><Plus size={14}/></button>
+        </div>
+        <button 
+          onClick={() => onAdd(product, qty)} 
+          disabled={isEsgotado}
+          className="w-full py-2.5 pink-gradient text-white rounded-xl font-bold text-[10px] md:text-xs shadow-lg shadow-primary/20 hover:scale-[0.98] active:scale-95 disabled:opacity-50 transition-all"
+        >
+          <ShoppingCart size={14} className="inline-block mr-1" />
+          Adicionar
+        </button>
+      </div>
+    </Card>
   );
 }

@@ -12,9 +12,6 @@ export default defineConfig(({mode}) => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
-        workbox: {
-          maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5MB
-        },
         includeAssets: ['favicon.ico', 'pwa-192x192.png', 'pwa-512x512.png', 'pwa-192x192.svg', 'pwa-512x512.svg'],
         manifest: {
           name: 'VendPro',

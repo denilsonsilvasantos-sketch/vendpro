@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../integrations/supabaseClient';
 import { Seller } from '../types';
-import { Plus, Edit, Trash2, Users, Loader2, Sparkles, Phone, ShieldCheck, ShieldAlert, ChevronRight, X } from 'lucide-react';
+import { Plus, Edit, Trash2, Users, Loader2 } from 'lucide-react';
 import SellerFormModal from '../components/SellerFormModal';
-import { motion, AnimatePresence } from 'motion/react';
 
 export default function Vendedores({ companyId }: { companyId: string | null }) {
   const [sellers, setSellers] = useState<Seller[]>([]);
@@ -21,7 +20,8 @@ export default function Vendedores({ companyId }: { companyId: string | null }) 
       const { data, error } = await supabase.from('sellers').select('*').eq('company_id', companyId).order('nome');
       if (error) {
         if (error.message.includes('column "marcas_liberadas" does not exist')) {
-          console.warn("A coluna 'marcas_liberadas' ainda não foi criada no banco de dados.");
+          console.warn("A coluna 'marcas_liberadas' ainda não foi criada no banco de dados. Por favor, adicione-a à tabela 'sellers'.");
+          // Fetch without the column as a fallback
           const { data: fallbackData, error: fallbackError } = await supabase.from('sellers').select('id, company_id, nome, telefone, whatsapp, codigo_vinculo, ativo').eq('company_id', companyId).order('nome');
           if (fallbackError) throw fallbackError;
           setSellers(fallbackData || []);
@@ -33,6 +33,7 @@ export default function Vendedores({ companyId }: { companyId: string | null }) 
       }
     } catch (error: any) {
       console.error("Erro ao buscar vendedores:", error);
+      alert("Erro ao carregar vendedores: " + error.message);
     } finally {
       setLoading(false);
     }
@@ -47,6 +48,7 @@ export default function Vendedores({ companyId }: { companyId: string | null }) 
     
     setIsTransferring(true);
     try {
+      // 1. Transfer customers to the new seller
       const { error: transferError } = await supabase
         .from('customers')
         .update({ seller_id: transferToSellerId })
@@ -54,6 +56,7 @@ export default function Vendedores({ companyId }: { companyId: string | null }) 
 
       if (transferError) throw transferError;
 
+      // 2. Transfer orders to the new seller
       const { error: ordersError } = await supabase
         .from('orders')
         .update({ seller_id: transferToSellerId })
@@ -61,6 +64,7 @@ export default function Vendedores({ companyId }: { companyId: string | null }) 
 
       if (ordersError) throw ordersError;
 
+      // 3. Delete the seller
       const { error: deleteError } = await supabase
         .from('sellers')
         .delete()
@@ -71,8 +75,10 @@ export default function Vendedores({ companyId }: { companyId: string | null }) 
       setSellerToDelete(null);
       setTransferToSellerId('');
       fetchSellers();
+      alert('Vendedor excluído e clientes transferidos com sucesso!');
     } catch (error: any) {
       console.error("Erro ao excluir vendedor:", error);
+      alert("Erro ao excluir vendedor: " + error.message);
     } finally {
       setIsTransferring(false);
     }
@@ -81,7 +87,18 @@ export default function Vendedores({ companyId }: { companyId: string | null }) 
   const confirmDelete = (seller: Seller) => {
     const otherSellers = sellers.filter(s => s.id !== seller.id);
     if (otherSellers.length === 0) {
-      setSellerToDelete(seller);
+      if (confirm('Este é o seu único vendedor. Se excluí-lo, seus clientes ficarão sem vendedor vinculado. Deseja continuar?')) {
+        // Simple delete if no other sellers
+        (async () => {
+          try {
+            const { error } = await supabase!.from('sellers').delete().eq('id', seller.id);
+            if (error) throw error;
+            fetchSellers();
+          } catch (e: any) {
+            alert(e.message);
+          }
+        })();
+      }
       return;
     }
     setSellerToDelete(seller);
@@ -89,235 +106,148 @@ export default function Vendedores({ companyId }: { companyId: string | null }) 
 
   if (loading && sellers.length === 0) {
     return (
-      <div className="p-8 flex flex-col items-center justify-center min-h-[400px] gap-6 animate-pulse">
-        <div className="w-16 h-16 bg-primary/5 rounded-[24px] flex items-center justify-center text-primary border border-primary/10 shadow-inner">
-          <Loader2 className="animate-spin" size={32} />
-        </div>
-        <p className="text-slate-500 font-black uppercase tracking-widest text-[10px]">Sincronizando equipe...</p>
+      <div className="p-6 flex flex-col items-center justify-center min-h-[400px] gap-4">
+        <Loader2 className="animate-spin text-primary" size={40} />
+        <p className="text-slate-500 font-medium">Carregando vendedores...</p>
       </div>
     );
   }
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="p-4 md:p-8 space-y-12"
-    >
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
-        <div className="space-y-2">
-          <div className="flex items-center gap-6">
-            <div className="w-16 h-16 bg-primary/10 rounded-[24px] flex items-center justify-center text-primary border border-primary/20 shadow-inner">
-              <Users size={32} strokeWidth={2} />
-            </div>
-            <div>
-              <h1 className="text-4xl font-black text-slate-900 tracking-tight uppercase">Equipe de Vendas</h1>
-              <p className="text-slate-500 font-medium text-lg">Gerencie os vendedores e representantes da sua empresa</p>
-            </div>
-          </div>
+    <div className="p-6 space-y-6 max-w-4xl mx-auto">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Vendedores</h1>
+          <p className="text-slate-500 text-sm mt-1">Gerencie a equipe de vendas da sua empresa.</p>
         </div>
         <button 
           onClick={() => { setEditingSeller(undefined); setIsModalOpen(true); }} 
-          className="bg-primary text-white px-10 py-6 rounded-[32px] font-black uppercase tracking-widest text-xs flex items-center gap-4 shadow-2xl shadow-primary/40 hover:-translate-y-1 active:translate-y-0 transition-all w-full md:w-auto justify-center group"
+          className="bg-primary text-white px-6 py-3 rounded-2xl flex items-center gap-2 font-bold shadow-lg shadow-primary/20 hover:-translate-y-0.5 transition-all active:scale-95"
         >
-          <Plus size={24} strokeWidth={3} className="group-hover:rotate-90 transition-transform duration-500" /> Novo Vendedor
+          <Plus size={20} /> Novo Vendedor
         </button>
       </div>
 
-      <AnimatePresence mode="popLayout">
-        {sellers.length === 0 ? (
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white p-40 rounded-[56px] border-2 border-dashed border-slate-100 text-center space-y-10 shadow-inner"
-          >
-            <div className="w-40 h-40 bg-slate-50 rounded-[48px] flex items-center justify-center mx-auto shadow-inner border border-slate-100">
-              <Users className="text-slate-200" size={80} strokeWidth={1} />
-            </div>
-            <div className="space-y-4">
-              <h2 className="text-4xl font-black text-slate-900 tracking-tight uppercase">Nenhum vendedor cadastrado</h2>
-              <p className="text-slate-400 max-w-sm mx-auto font-medium text-lg">Adicione vendedores para que eles possam atender clientes e gerar pedidos no catálogo.</p>
-            </div>
-            <button 
-              onClick={() => setIsModalOpen(true)}
-              className="text-primary font-black uppercase tracking-[0.3em] text-[11px] hover:underline underline-offset-8 transition-all"
-            >
-              Cadastrar meu primeiro vendedor
-            </button>
-          </motion.div>
-        ) : (
-          <div className="grid grid-cols-1 gap-8">
-            <div className="bg-white rounded-[48px] shadow-2xl shadow-slate-200/40 border border-slate-100 overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-slate-50/50">
-                      <th className="p-10 text-[11px] font-black text-slate-400 uppercase tracking-[0.3em] border-b border-slate-100">Vendedor</th>
-                      <th className="p-10 text-[11px] font-black text-slate-400 uppercase tracking-[0.3em] border-b border-slate-100">Código de Vínculo</th>
-                      <th className="p-10 text-[11px] font-black text-slate-400 uppercase tracking-[0.3em] border-b border-slate-100">WhatsApp</th>
-                      <th className="p-10 text-[11px] font-black text-slate-400 uppercase tracking-[0.3em] border-b border-slate-100">Status</th>
-                      <th className="p-10 text-[11px] font-black text-slate-400 uppercase tracking-[0.3em] border-b border-slate-100 text-right">Gerenciar</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-50">
-                    {sellers.map((seller, index) => (
-                      <motion.tr 
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: index * 0.05 }}
-                        key={seller.id} 
-                        className="hover:bg-slate-50/80 transition-all group"
-                      >
-                        <td className="p-10">
-                          <div className="flex items-center gap-6">
-                            <div className="w-16 h-16 bg-slate-100 rounded-[20px] flex items-center justify-center text-slate-400 font-black text-xl group-hover:bg-primary group-hover:text-white transition-all duration-500 shadow-inner">
-                              {seller.nome.charAt(0)}
-                            </div>
-                            <span className="font-black text-slate-900 group-hover:text-primary transition-colors uppercase tracking-tight text-lg">{seller.nome}</span>
-                          </div>
-                        </td>
-                        <td className="p-10">
-                          <span className="font-mono text-[11px] font-black text-slate-400 bg-slate-50 px-4 py-2 rounded-xl border border-slate-100 uppercase tracking-widest shadow-sm">
-                            {seller.codigo_vinculo}
-                          </span>
-                        </td>
-                        <td className="p-10">
-                          <div className="flex items-center gap-4 text-slate-500 font-bold text-base">
-                            <Phone size={18} className="text-slate-300" />
-                            {seller.whatsapp || <span className="text-slate-200 italic font-medium">Não informado</span>}
-                          </div>
-                        </td>
-                        <td className="p-10">
-                          <span className={`inline-flex items-center gap-3 px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] shadow-sm ${
-                            seller.ativo 
-                              ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' 
-                              : 'bg-slate-50 text-slate-400 border border-slate-100'
-                          }`}>
-                            {seller.ativo ? <ShieldCheck size={14} strokeWidth={3} /> : <ShieldAlert size={14} strokeWidth={3} />}
-                            {seller.ativo ? 'Ativo' : 'Inativo'}
-                          </span>
-                        </td>
-                        <td className="p-10 text-right">
-                          <div className="flex items-center justify-end gap-4 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-4 group-hover:translate-x-0">
-                            <button 
-                              onClick={() => { setEditingSeller(seller); setIsModalOpen(true); }}
-                              className="w-14 h-14 flex items-center justify-center text-slate-400 hover:text-primary hover:bg-primary/5 rounded-[18px] transition-all border border-transparent hover:border-primary/10 shadow-sm hover:shadow-xl"
-                              title="Editar Vendedor"
-                            >
-                              <Edit size={24} strokeWidth={2.5} />
-                            </button>
-                            <button 
-                              onClick={() => confirmDelete(seller)}
-                              className="w-14 h-14 flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-[18px] transition-all border border-transparent hover:border-rose-100 shadow-sm hover:shadow-xl"
-                              title="Excluir Vendedor"
-                            >
-                              <Trash2 size={24} strokeWidth={2.5} />
-                            </button>
-                          </div>
-                        </td>
-                      </motion.tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+      {sellers.length === 0 ? (
+        <div className="bg-white p-12 rounded-3xl border-2 border-dashed border-slate-200 text-center space-y-4">
+          <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto">
+            <Users className="text-slate-300" size={40} />
           </div>
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {isModalOpen && (
-          <SellerFormModal 
-            onClose={() => setIsModalOpen(false)} 
-            onSave={() => { fetchSellers(); setIsModalOpen(false); }} 
-            seller={editingSeller}
-            companyId={companyId}
-          />
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {sellerToDelete && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center p-6 md:p-12 backdrop-blur-2xl bg-slate-900/90"
+          <div className="space-y-1">
+            <h2 className="text-xl font-bold text-slate-900">Nenhum vendedor cadastrado</h2>
+            <p className="text-slate-500 max-w-xs mx-auto">Adicione vendedores para que eles possam atender clientes e gerar pedidos.</p>
+          </div>
+          <button 
+            onClick={() => setIsModalOpen(true)}
+            className="text-primary font-bold hover:underline"
           >
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0, y: 40 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 40 }}
-              className="bg-white rounded-[64px] p-12 w-full max-w-2xl shadow-2xl relative z-10 space-y-12 border border-white/20 overflow-hidden"
-            >
+            Cadastrar meu primeiro vendedor
+          </button>
+        </div>
+      ) : (
+        <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-100">
+                  <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Nome</th>
+                  <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Código</th>
+                  <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">WhatsApp</th>
+                  <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
+                  <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Ações</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {sellers.map(seller => (
+                  <tr key={seller.id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="p-4 font-medium text-slate-900">{seller.nome}</td>
+                    <td className="p-4 font-mono text-slate-600">{seller.codigo_vinculo}</td>
+                    <td className="p-4 text-slate-600">{seller.whatsapp || '-'}</td>
+                    <td className="p-4">
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${seller.ativo ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-800'}`}>
+                        {seller.ativo ? 'Ativo' : 'Inativo'}
+                      </span>
+                    </td>
+                    <td className="p-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <button 
+                          onClick={() => { setEditingSeller(seller); setIsModalOpen(true); }}
+                          className="p-2 text-slate-400 hover:text-primary hover:bg-primary/5 rounded-lg transition-colors"
+                        >
+                          <Edit size={18} />
+                        </button>
+                        <button 
+                          onClick={() => confirmDelete(seller)}
+                          className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {isModalOpen && (
+        <SellerFormModal 
+          onClose={() => setIsModalOpen(false)} 
+          onSave={() => { fetchSellers(); setIsModalOpen(false); }} 
+          seller={editingSeller}
+          companyId={companyId}
+        />
+      )}
+
+      {sellerToDelete && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white rounded-[32px] p-8 w-full max-w-md shadow-2xl space-y-6">
+            <div className="text-center space-y-2">
+              <div className="w-16 h-16 bg-rose-50 rounded-2xl flex items-center justify-center text-rose-500 mx-auto mb-4">
+                <Trash2 size={32} />
+              </div>
+              <h3 className="text-xl font-bold text-slate-900">Excluir Vendedor</h3>
+              <p className="text-sm text-slate-500">
+                Para excluir <strong>{sellerToDelete.nome}</strong>, você precisa transferir os clientes vinculados a ele para outro vendedor.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-500 uppercase">Transferir clientes para:</label>
+              <select 
+                className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-100 focus:ring-2 focus:ring-primary outline-none font-medium text-slate-700"
+                value={transferToSellerId}
+                onChange={e => setTransferToSellerId(e.target.value)}
+              >
+                <option value="">Selecione um vendedor...</option>
+                {sellers.filter(s => s.id !== sellerToDelete.id).map(s => (
+                  <option key={s.id} value={s.id}>{s.nome}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex gap-3 pt-2">
               <button 
                 onClick={() => { setSellerToDelete(null); setTransferToSellerId(''); }}
-                className="absolute top-10 right-10 text-slate-300 hover:text-slate-900 transition-colors"
+                className="flex-1 py-4 text-slate-400 font-bold uppercase text-[10px] tracking-widest"
+                disabled={isTransferring}
               >
-                <X size={32} strokeWidth={3} />
+                Cancelar
               </button>
-
-              <div className="text-center space-y-8">
-                <div className="w-32 h-32 bg-rose-50 rounded-[48px] flex items-center justify-center text-rose-500 mx-auto shadow-inner border border-rose-100">
-                  <Trash2 size={64} strokeWidth={1.5} />
-                </div>
-                <div className="space-y-4">
-                  <h3 className="text-4xl font-black text-slate-900 tracking-tight uppercase">Excluir Vendedor</h3>
-                  <p className="text-slate-400 font-bold text-lg max-w-md mx-auto leading-relaxed">
-                    Para excluir <span className="text-slate-900 font-black uppercase tracking-tight">{sellerToDelete.nome}</span>, você precisa transferir os clientes vinculados a ele para outro vendedor.
-                  </p>
-                </div>
-              </div>
-
-              {sellers.filter(s => s.id !== sellerToDelete.id).length > 0 ? (
-                <div className="space-y-4">
-                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em] ml-4">Transferir clientes para:</label>
-                  <div className="relative group">
-                    <Users className="absolute left-8 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-primary transition-colors" size={24} strokeWidth={2.5} />
-                    <select 
-                      className="w-full pl-16 pr-16 py-6 bg-slate-50 border border-slate-100 rounded-[32px] outline-none focus:ring-8 focus:ring-primary/5 focus:border-primary/40 transition-all appearance-none font-black uppercase tracking-[0.2em] text-[11px] text-slate-600 cursor-pointer shadow-inner"
-                      value={transferToSellerId}
-                      onChange={e => setTransferToSellerId(e.target.value)}
-                    >
-                      <option value="">Selecione o novo responsável...</option>
-                      {sellers.filter(s => s.id !== sellerToDelete.id).map(s => (
-                        <option key={s.id} value={s.id}>{s.nome}</option>
-                      ))}
-                    </select>
-                    <ChevronRight className="absolute right-8 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none rotate-90" size={24} />
-                  </div>
-                </div>
-              ) : (
-                <div className="bg-amber-50 p-8 rounded-[40px] border border-amber-100 flex items-start gap-6 shadow-inner">
-                  <ShieldAlert className="text-amber-500 shrink-0" size={32} />
-                  <p className="text-base text-amber-800 font-bold leading-relaxed">
-                    Este é o seu único vendedor. Se excluí-lo, seus clientes ficarão sem vendedor vinculado.
-                  </p>
-                </div>
-              )}
-
-              <div className="flex flex-col sm:flex-row gap-6 pt-6">
-                <button 
-                  onClick={() => { setSellerToDelete(null); setTransferToSellerId(''); }}
-                  className="flex-1 py-7 bg-slate-100 text-slate-600 rounded-[32px] font-black uppercase tracking-[0.3em] text-[11px] hover:bg-slate-200 transition-all active:scale-95 shadow-sm"
-                  disabled={isTransferring}
-                >
-                  Cancelar
-                </button>
-                <button 
-                  onClick={handleDelete}
-                  disabled={(sellers.filter(s => s.id !== sellerToDelete.id).length > 0 && !transferToSellerId) || isTransferring}
-                  className="flex-[2] py-7 bg-rose-500 text-white rounded-[32px] font-black uppercase tracking-[0.3em] text-[11px] shadow-2xl shadow-rose-500/40 hover:bg-rose-600 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-4"
-                >
-                  {isTransferring ? <Loader2 className="animate-spin" size={24} strokeWidth={3} /> : <Trash2 size={24} strokeWidth={3} />}
-                  Confirmar Exclusão
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.div>
+              <button 
+                onClick={handleDelete}
+                disabled={!transferToSellerId || isTransferring}
+                className="flex-[2] py-4 bg-rose-500 text-white rounded-2xl font-bold shadow-lg shadow-rose-200 disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {isTransferring ? <Loader2 className="animate-spin" size={20} /> : <Trash2 size={20} />}
+                Confirmar Exclusão
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
-

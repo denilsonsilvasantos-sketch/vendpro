@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
 import { supabase } from '../integrations/supabaseClient';
-import { Settings, Building2, Phone, Mail, FileText, Save, Loader2, User, Shield, Calendar, LogOut, Upload, Image as ImageIcon, Palette, Eye, EyeOff, Lock, Sparkles, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Settings, Building2, Phone, Mail, FileText, Save, Loader2, User, Shield, Calendar, LogOut, Upload, Image as ImageIcon, Palette, Eye, EyeOff, Lock } from 'lucide-react';
 
 export default function Configuracoes({ companyId, user, role, onLogout }: { companyId: string | null, user: any, role: string | null, onLogout: () => void }) {
   const [company, setCompany] = useState<any>(null);
@@ -155,67 +154,24 @@ export default function Configuracoes({ companyId, user, role, onLogout }: { com
     }
   };
 
-  if (loading) return (
-    <div className="p-6 flex flex-col items-center justify-center min-h-[600px] space-y-6">
-      <div className="relative">
-        <Loader2 className="animate-spin text-primary" size={64} strokeWidth={2.5} />
-        <div className="absolute inset-0 blur-2xl bg-primary/20 animate-pulse rounded-full" />
-      </div>
-      <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] animate-pulse">Carregando Configurações</p>
-    </div>
-  );
+  if (loading) return <div className="p-6 flex items-center justify-center min-h-[400px]"><Loader2 className="animate-spin text-primary" size={40} /></div>;
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="p-4 md:p-8 space-y-12 max-w-5xl mx-auto pb-32"
-    >
-      {/* Profile Header Section */}
-      <div className="flex flex-col items-center text-center space-y-8 relative">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-64 bg-primary/5 blur-[100px] rounded-full -z-10" />
-        
-        <motion.div 
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ delay: 0.2, type: "spring", stiffness: 100 }}
-          className={`relative group ${role === 'company' ? 'cursor-pointer' : ''}`} 
-          onClick={() => role === 'company' && fileInputRef.current?.click()}
-        >
-          <div className="w-48 h-48 bg-white rounded-[56px] flex items-center justify-center text-primary border-[12px] border-white shadow-2xl overflow-hidden relative group-hover:scale-105 transition-all duration-500 hover:shadow-primary/20">
+    <div className="p-6 space-y-8 max-w-4xl mx-auto pb-20">
+      <div className="flex flex-col items-center text-center space-y-4">
+        <div className={`relative group ${role === 'company' ? 'cursor-pointer' : ''}`} onClick={() => role === 'company' && fileInputRef.current?.click()}>
+          <div className="w-32 h-32 bg-primary/10 rounded-full flex items-center justify-center text-primary border-4 border-white shadow-xl overflow-hidden">
             {formData.logo_url ? (
-              <img src={formData.logo_url} alt="Logo" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+              <img src={formData.logo_url} alt="Logo" className="w-full h-full object-cover" />
             ) : (
-              <div className="w-full h-full bg-slate-50 flex items-center justify-center text-slate-200">
-                <Building2 size={80} strokeWidth={1.5} />
-              </div>
+              <Building2 size={48} />
             )}
-            
             {role === 'company' && (
-              <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-500">
-                {uploadingLogo ? (
-                  <Loader2 className="animate-spin text-white" size={40} strokeWidth={3} />
-                ) : (
-                  <>
-                    <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center mb-3 backdrop-blur-xl border border-white/30">
-                      <Upload className="text-white" size={28} strokeWidth={2.5} />
-                    </div>
-                    <span className="text-white text-[10px] font-black uppercase tracking-[0.2em]">Alterar Logo</span>
-                  </>
-                )}
+              <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                {uploadingLogo ? <Loader2 className="animate-spin text-white" size={24} /> : <Upload className="text-white" size={24} />}
               </div>
             )}
           </div>
-          
-          {role === 'company' && (
-            <motion.div 
-              whileHover={{ scale: 1.1, rotate: 5 }}
-              className="absolute -bottom-2 -right-2 w-16 h-16 bg-primary text-white rounded-[24px] flex items-center justify-center shadow-2xl border-[6px] border-white group-hover:shadow-primary/40 transition-all"
-            >
-              <ImageIcon size={24} strokeWidth={2.5} />
-            </motion.div>
-          )}
-
           {role === 'company' && (
             <input 
               type="file" 
@@ -225,305 +181,207 @@ export default function Configuracoes({ companyId, user, role, onLogout }: { com
               className="hidden" 
             />
           )}
-        </motion.div>
-
-        <div className="space-y-3">
-          <div className="flex items-center justify-center gap-3">
-            <Sparkles className="text-primary animate-pulse" size={20} />
-            <h1 className="text-5xl font-black text-slate-900 tracking-tight uppercase">Minha Conta</h1>
-            <Sparkles className="text-primary animate-pulse" size={20} />
-          </div>
-          <p className="text-slate-500 font-medium max-w-lg mx-auto leading-relaxed">
-            Gerencie as informações da sua empresa, preferências de estilo e dados de acesso para uma experiência personalizada.
-          </p>
+        </div>
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Minha Conta</h1>
+          <p className="text-slate-500">Gerencie as informações da sua empresa e dados de acesso.</p>
         </div>
       </div>
 
-      {/* Account Info Card */}
-      <div className="bg-white rounded-[48px] border border-slate-100 shadow-2xl shadow-slate-200/50 overflow-hidden group">
-        <div className="p-10 grid grid-cols-1 md:grid-cols-2 gap-10">
-          <div className="flex items-center gap-6 p-6 rounded-[32px] bg-slate-50/50 border border-slate-100 hover:bg-white hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-500 group/item">
-            <div className="w-16 h-16 bg-white rounded-[22px] flex items-center justify-center text-primary shadow-inner border border-slate-100 group-hover/item:scale-110 transition-transform">
-              <User size={32} strokeWidth={2} />
+      <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
+        <div className="p-6 space-y-6">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400">
+              <User size={24} />
             </div>
             <div className="flex-1">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5">Usuário Logado</p>
-              <p className="font-black text-slate-900 text-xl tracking-tight uppercase">{user?.nome || user?.empresa || user?.email || 'Usuário'}</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Usuário Logado</p>
+              <p className="font-bold text-slate-900">{user?.nome || user?.empresa || user?.email || 'Usuário'}</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-6 p-6 rounded-[32px] bg-slate-50/50 border border-slate-100 hover:bg-white hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-500 group/item">
-            <div className="w-16 h-16 bg-white rounded-[22px] flex items-center justify-center text-indigo-500 shadow-inner border border-slate-100 group-hover/item:scale-110 transition-transform">
-              <Shield size={32} strokeWidth={2} />
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400">
+              <Shield size={24} />
             </div>
             <div className="flex-1">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5">Nível de Acesso</p>
-              <p className="font-black text-slate-900 text-xl tracking-tight uppercase">{role === 'company' ? 'Administrador' : role === 'seller' ? 'Vendedor' : 'Cliente'}</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Nível de Acesso</p>
+              <p className="font-bold text-slate-900 capitalize">{role || 'Cliente'}</p>
             </div>
           </div>
         </div>
 
-        <div className="p-10 bg-slate-50/80 border-t border-slate-100 flex justify-center">
+        <div className="p-6 bg-slate-50 border-t border-slate-100">
           <button 
             onClick={onLogout}
-            className="w-full max-w-md flex items-center justify-center gap-4 py-6 bg-white text-rose-500 border border-rose-100 rounded-[28px] font-black uppercase tracking-[0.2em] text-[10px] shadow-xl shadow-rose-200/20 hover:bg-rose-500 hover:text-white hover:border-rose-500 hover:shadow-rose-500/30 transition-all active:scale-95 group/logout"
+            className="w-full flex items-center justify-center gap-3 py-4 bg-white text-rose-500 border border-rose-100 rounded-2xl font-bold shadow-sm hover:bg-rose-50 transition-all active:scale-95"
           >
-            <LogOut size={20} strokeWidth={3} className="group-hover/logout:-translate-x-1 transition-transform" />
-            Sair da Conta com Segurança
+            <LogOut size={20} />
+            Sair da Conta
           </button>
         </div>
       </div>
 
       {role === 'seller' && (
-        <form onSubmit={handleSave} className="space-y-12">
-          <div className="bg-white rounded-[48px] border border-slate-100 shadow-2xl shadow-slate-200/50 overflow-hidden relative group">
-            <div className="absolute top-0 left-0 w-3 h-full bg-slate-50 group-hover:bg-primary transition-colors duration-500" />
-            
-            <div className="p-10 border-b border-slate-50 flex items-center gap-5">
-              <div className="w-12 h-12 bg-primary/10 rounded-[18px] flex items-center justify-center text-primary shadow-inner">
-                <User size={24} strokeWidth={2.5} />
-              </div>
-              <div>
-                <h2 className="text-2xl font-black text-slate-900 tracking-tight uppercase">Dados Profissionais</h2>
-                <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em]">Informações visíveis para seus clientes</p>
-              </div>
+        <form onSubmit={handleSave} className="space-y-6">
+          <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
+            <div className="p-6 border-b border-slate-50 flex items-center gap-3">
+              <User className="text-primary" size={20} />
+              <h2 className="font-bold text-slate-900">Meus Dados</h2>
             </div>
-            
-            <div className="p-10 grid grid-cols-1 md:grid-cols-2 gap-10">
-              <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Nome Completo</label>
-                <div className="relative group/input">
-                  <User className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within/input:text-primary transition-colors" size={20} strokeWidth={2.5} />
-                  <input 
-                    className="w-full pl-14 pr-6 py-5 bg-slate-50 border border-slate-100 rounded-[24px] focus:ring-4 focus:ring-primary/5 focus:border-primary/30 outline-none transition-all font-black text-slate-700 uppercase tracking-tight text-sm" 
-                    value={formData.nome} 
-                    onChange={e => setFormData({...formData, nome: e.target.value})} 
-                    required 
-                  />
-                </div>
+            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-500 uppercase">Meu Nome</label>
+                <input 
+                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none" 
+                  value={formData.nome} 
+                  onChange={e => setFormData({...formData, nome: e.target.value})} 
+                  required 
+                />
               </div>
-
-              <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">WhatsApp de Atendimento</label>
-                <div className="relative group/input">
-                  <Phone className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within/input:text-primary transition-colors" size={20} strokeWidth={2.5} />
-                  <input 
-                    className="w-full pl-14 pr-6 py-5 bg-slate-50 border border-slate-100 rounded-[24px] focus:ring-4 focus:ring-primary/5 focus:border-primary/30 outline-none transition-all font-black text-slate-700 uppercase tracking-tight text-sm" 
-                    value={formData.whatsapp} 
-                    onChange={e => setFormData({...formData, whatsapp: e.target.value})} 
-                    placeholder="(00) 00000-0000"
-                  />
-                </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-500 uppercase">WhatsApp de Atendimento</label>
+                <input 
+                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none" 
+                  value={formData.whatsapp} 
+                  onChange={e => setFormData({...formData, whatsapp: e.target.value})} 
+                  placeholder="(00) 00000-0000"
+                />
               </div>
-
-              <div className="space-y-3 md:col-span-2">
-                <label className="text-[10px] font-black text-primary uppercase tracking-[0.2em] ml-2">Código de Vínculo para Clientes</label>
-                <div className="relative group/input">
-                  <Shield className="absolute left-6 top-1/2 -translate-y-1/2 text-primary/40 group-focus-within/input:text-primary transition-colors" size={20} strokeWidth={2.5} />
-                  <input 
-                    className="w-full pl-14 pr-6 py-6 bg-primary/5 border border-primary/10 rounded-[28px] focus:ring-8 focus:ring-primary/5 focus:border-primary/30 outline-none transition-all font-black text-primary uppercase tracking-[0.2em] text-lg" 
-                    value={formData.codigo_cliente} 
-                    onChange={e => setFormData({...formData, codigo_cliente: e.target.value.toUpperCase()})} 
-                    placeholder="EX: MEULINK01"
-                    required
-                  />
-                </div>
-                <div className="flex items-start gap-3 mt-4 px-2">
-                  <AlertCircle size={16} className="text-slate-300 mt-0.5" />
-                  <p className="text-[11px] text-slate-400 leading-relaxed font-medium">
-                    Este é o código que seus clientes usarão para se vincular a você. Ele deve ser único, curto e fácil de lembrar.
-                  </p>
-                </div>
+              <div className="space-y-1 md:col-span-2">
+                <label className="text-xs font-bold text-slate-500 uppercase text-primary">Código de Vínculo para Clientes</label>
+                <input 
+                  className="w-full p-3 bg-slate-50 border border-primary/20 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none font-bold text-primary uppercase" 
+                  value={formData.codigo_cliente} 
+                  onChange={e => setFormData({...formData, codigo_cliente: e.target.value.toUpperCase()})} 
+                  placeholder="EX: MEULINK01"
+                  required
+                />
+                <p className="text-[10px] text-slate-400 mt-1 italic">Este é o código que seus clientes usarão para se vincular a você. Não pode ser igual ao seu código de acesso.</p>
               </div>
             </div>
           </div>
 
           <div className="flex justify-end">
-            <motion.button 
-              whileHover={{ y: -5 }}
-              whileTap={{ scale: 0.95 }}
+            <button 
               type="submit"
               disabled={saving}
-              className="group bg-slate-900 text-white px-12 py-6 rounded-[32px] font-black uppercase tracking-[0.2em] text-[10px] shadow-2xl shadow-slate-900/30 hover:shadow-slate-900/50 transition-all disabled:opacity-50 flex items-center gap-4"
+              className="bg-primary text-white px-8 py-4 rounded-2xl font-bold shadow-lg shadow-primary/20 hover:-translate-y-0.5 transition-all active:scale-95 flex items-center gap-2 disabled:opacity-50"
             >
-              {saving ? <Loader2 className="animate-spin" size={20} strokeWidth={3} /> : <Save size={20} strokeWidth={3} className="group-hover:scale-110 transition-transform" />}
-              {saving ? 'Salvando Alterações...' : 'Salvar Meus Dados'}
-            </motion.button>
+              {saving ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
+              {saving ? 'Salvando...' : 'Salvar Meus Dados'}
+            </button>
           </div>
         </form>
       )}
 
       {role === 'company' && (
-        <form onSubmit={handleSave} className="space-y-12">
-          {/* Company Data Card */}
-          <div className="bg-white rounded-[48px] border border-slate-100 shadow-2xl shadow-slate-200/50 overflow-hidden relative group">
-            <div className="absolute top-0 left-0 w-3 h-full bg-slate-50 group-hover:bg-primary transition-colors duration-500" />
-            
-            <div className="p-10 border-b border-slate-50 flex items-center gap-5">
-              <div className="w-12 h-12 bg-primary/10 rounded-[18px] flex items-center justify-center text-primary shadow-inner">
-                <Building2 size={24} strokeWidth={2.5} />
-              </div>
-              <div>
-                <h2 className="text-2xl font-black text-slate-900 tracking-tight uppercase">Dados da Empresa</h2>
-                <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em]">Informações corporativas e de acesso</p>
-              </div>
+        <form onSubmit={handleSave} className="space-y-6">
+          <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
+            <div className="p-6 border-b border-slate-50 flex items-center gap-3">
+              <Building2 className="text-primary" size={20} />
+              <h2 className="font-bold text-slate-900">Dados da Empresa</h2>
             </div>
-            
-            <div className="p-10 grid grid-cols-1 md:grid-cols-2 gap-10">
-              <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Nome Fantasia</label>
-                <div className="relative group/input">
-                  <Building2 className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within/input:text-primary transition-colors" size={20} strokeWidth={2.5} />
-                  <input 
-                    className="w-full pl-14 pr-6 py-5 bg-slate-50 border border-slate-100 rounded-[24px] focus:ring-4 focus:ring-primary/5 focus:border-primary/30 outline-none transition-all font-black text-slate-700 uppercase tracking-tight text-sm" 
-                    value={formData.nome} 
-                    onChange={e => setFormData({...formData, nome: e.target.value})} 
-                    required 
-                  />
-                </div>
+            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-500 uppercase">Nome da Empresa</label>
+                <input 
+                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none" 
+                  value={formData.nome} 
+                  onChange={e => setFormData({...formData, nome: e.target.value})} 
+                  required 
+                />
               </div>
-
-              <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">CNPJ (Acesso)</label>
-                <div className="relative group/input">
-                  <FileText className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within/input:text-primary transition-colors" size={20} strokeWidth={2.5} />
-                  <input 
-                    className="w-full pl-14 pr-6 py-5 bg-slate-50 border border-slate-100 rounded-[24px] focus:ring-4 focus:ring-primary/5 focus:border-primary/30 outline-none transition-all font-black text-slate-700 uppercase tracking-tight text-sm" 
-                    value={formData.cnpj} 
-                    onChange={e => setFormData({...formData, cnpj: e.target.value})} 
-                  />
-                </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-500 uppercase">CNPJ (Acesso)</label>
+                <input 
+                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none" 
+                  value={formData.cnpj} 
+                  onChange={e => setFormData({...formData, cnpj: e.target.value})} 
+                />
               </div>
-
-              <div className="space-y-3 md:col-span-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">E-mail de Recuperação</label>
-                <div className="relative group/input">
-                  <Mail className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within/input:text-primary transition-colors" size={20} strokeWidth={2.5} />
-                  <input 
-                    type="email"
-                    className="w-full pl-14 pr-6 py-5 bg-slate-50 border border-slate-100 rounded-[24px] focus:ring-4 focus:ring-primary/5 focus:border-primary/30 outline-none transition-all font-black text-slate-700 uppercase tracking-tight text-sm" 
-                    value={formData.email} 
-                    onChange={e => setFormData({...formData, email: e.target.value})} 
-                    required
-                    placeholder="exemplo@empresa.com"
-                  />
-                </div>
+              <div className="space-y-1 md:col-span-2">
+                <label className="text-xs font-bold text-slate-500 uppercase">E-mail (Recuperação)</label>
+                <input 
+                  type="email"
+                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none" 
+                  value={formData.email} 
+                  onChange={e => setFormData({...formData, email: e.target.value})} 
+                  required
+                  placeholder="E-mail obrigatório para recuperação"
+                />
               </div>
             </div>
 
-            {/* Password Section */}
-            <div className="p-10 border-t border-slate-50 bg-slate-50/30 space-y-8">
-              <div className="flex items-center gap-5">
-                <div className="w-12 h-12 bg-amber-100 rounded-[18px] flex items-center justify-center text-amber-600 shadow-inner">
-                  <Lock size={24} strokeWidth={2.5} />
-                </div>
-                <div>
-                  <h2 className="text-2xl font-black text-slate-900 tracking-tight uppercase">Segurança</h2>
-                  <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em]">Altere sua senha de acesso</p>
-                </div>
-              </div>
-              
-              <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Nova Senha de Acesso</label>
-                <div className="relative group/input">
-                  <Shield className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within/input:text-primary transition-colors" size={20} strokeWidth={2.5} />
+            <div className="p-6 border-t border-slate-50 flex items-center gap-3">
+              <Lock className="text-primary" size={20} />
+              <h2 className="font-bold text-slate-900">Alterar Senha</h2>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-500 uppercase">Nova Senha de Acesso</label>
+                <div className="relative">
                   <input 
                     type={showPassword ? "text" : "password"}
-                    className="w-full pl-14 pr-16 py-5 bg-white border border-slate-100 rounded-[24px] focus:ring-4 focus:ring-primary/5 focus:border-primary/30 outline-none transition-all font-black text-slate-700 uppercase tracking-tight text-sm" 
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none pr-12" 
                     value={formData.senha} 
                     onChange={e => setFormData({...formData, senha: e.target.value})} 
-                    placeholder="Deixe em branco para manter a atual"
+                    placeholder="Deixe em branco para não alterar"
                   />
                   <button 
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-6 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-slate-300 hover:text-primary transition-colors active:scale-90"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary transition-colors"
                   >
-                    {showPassword ? <EyeOff size={20} strokeWidth={2.5} /> : <Eye size={20} strokeWidth={2.5} />}
+                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                   </button>
                 </div>
               </div>
             </div>
 
-            {/* Customization Section */}
-            <div className="p-10 border-t border-slate-50 space-y-10">
-              <div className="flex items-center gap-5">
-                <div className="w-12 h-12 bg-indigo-100 rounded-[18px] flex items-center justify-center text-indigo-600 shadow-inner">
-                  <Palette size={24} strokeWidth={2.5} />
-                </div>
-                <div>
-                  <h2 className="text-2xl font-black text-slate-900 tracking-tight uppercase">Identidade Visual</h2>
-                  <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em]">Personalize as cores do seu catálogo</p>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 items-start">
-                <div className="lg:col-span-2 space-y-8">
-                  <div className="space-y-4">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Cor Predominante</label>
-                    <p className="text-[11px] text-slate-400 font-medium leading-relaxed px-2">Esta cor será aplicada em botões, destaques e elementos interativos de todo o seu catálogo digital.</p>
-                    
-                    <div className="flex items-center gap-6">
-                      <div className="relative group">
-                        <input 
-                          type="color" 
-                          className="w-20 h-20 rounded-[28px] cursor-pointer border-[6px] border-white shadow-2xl overflow-hidden appearance-none p-0 relative z-10" 
-                          value={formData.primary_color} 
-                          onChange={e => setFormData({...formData, primary_color: e.target.value})} 
-                        />
-                        <div className="absolute inset-0 rounded-[28px] border border-slate-100 pointer-events-none" />
-                        <div className="absolute inset-0 blur-2xl opacity-20 rounded-full" style={{ backgroundColor: formData.primary_color }} />
-                      </div>
-                      
-                      <div className="flex-1 relative group/input">
-                        <span className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 font-mono font-black text-xl group-focus-within/input:text-primary transition-colors">#</span>
-                        <input 
-                          type="text" 
-                          className="w-full pl-12 pr-6 py-6 bg-slate-50 border border-slate-100 rounded-[28px] focus:ring-4 focus:ring-primary/5 focus:border-primary/30 outline-none transition-all font-mono font-black text-slate-700 uppercase text-lg tracking-widest" 
-                          value={formData.primary_color.replace('#', '')} 
-                          onChange={e => setFormData({...formData, primary_color: `#${e.target.value.replace('#', '')}`})} 
-                        />
-                      </div>
-                    </div>
+            <div className="p-6 border-t border-slate-50 flex items-center gap-3">
+              <Palette className="text-primary" size={20} />
+              <h2 className="font-bold text-slate-900">Personalização</h2>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="flex items-center gap-6">
+                <div className="space-y-1 flex-1">
+                  <label className="text-xs font-bold text-slate-500 uppercase">Cor Predominante do Site</label>
+                  <p className="text-xs text-slate-400 mb-2">Esta cor será usada em botões, ícones e destaques.</p>
+                  <div className="flex items-center gap-4">
+                    <input 
+                      type="color" 
+                      className="w-12 h-12 rounded-xl cursor-pointer border-none p-0 overflow-hidden" 
+                      value={formData.primary_color} 
+                      onChange={e => setFormData({...formData, primary_color: e.target.value})} 
+                    />
+                    <input 
+                      type="text" 
+                      className="flex-1 p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none font-mono text-sm uppercase" 
+                      value={formData.primary_color} 
+                      onChange={e => setFormData({...formData, primary_color: e.target.value})} 
+                    />
                   </div>
                 </div>
-
-                <div className="space-y-4">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Pré-visualização</label>
-                  <motion.div 
-                    whileHover={{ y: -10, scale: 1.02 }}
-                    className="aspect-square rounded-[48px] flex flex-col items-center justify-center text-white p-8 shadow-2xl transition-all duration-500 relative overflow-hidden group/preview"
-                    style={{ 
-                      backgroundColor: formData.primary_color,
-                      boxShadow: `0 30px 60px ${formData.primary_color}44`
-                    }}
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-0 group-hover/preview:opacity-100 transition-opacity" />
-                    <div className="w-16 h-16 bg-white/20 rounded-[22px] flex items-center justify-center mb-4 backdrop-blur-xl border border-white/30 shadow-inner group-hover/preview:scale-110 transition-transform duration-500">
-                      <CheckCircle2 size={32} strokeWidth={3} />
-                    </div>
-                    <span className="font-black uppercase tracking-[0.2em] text-[10px] mb-2 opacity-70">Botão Ativo</span>
-                    <span className="text-2xl font-black tracking-tight uppercase">Preview</span>
-                  </motion.div>
+                <div className="w-24 h-24 rounded-2xl flex items-center justify-center text-white font-bold shadow-lg transition-all" style={{ backgroundColor: formData.primary_color }}>
+                  Preview
                 </div>
               </div>
             </div>
           </div>
 
           <div className="flex justify-end">
-            <motion.button 
-              whileHover={{ y: -5 }}
-              whileTap={{ scale: 0.95 }}
+            <button 
               type="submit"
               disabled={saving}
-              className="group bg-slate-900 text-white px-12 py-6 rounded-[32px] font-black uppercase tracking-[0.2em] text-[10px] shadow-2xl shadow-slate-900/30 hover:shadow-slate-900/50 transition-all disabled:opacity-50 flex items-center gap-4"
+              className="bg-primary text-white px-8 py-4 rounded-2xl font-bold shadow-lg shadow-primary/20 hover:-translate-y-0.5 transition-all active:scale-95 flex items-center gap-2 disabled:opacity-50"
             >
-              {saving ? <Loader2 className="animate-spin" size={20} strokeWidth={3} /> : <Save size={20} strokeWidth={3} className="group-hover:scale-110 transition-transform" />}
-              {saving ? 'Salvando Alterações...' : 'Salvar Configurações'}
-            </motion.button>
+              {saving ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
+              {saving ? 'Salvando...' : 'Salvar Alterações'}
+            </button>
           </div>
         </form>
       )}
-    </motion.div>
+    </div>
   );
 }

@@ -128,6 +128,9 @@ CREATE TABLE IF NOT EXISTS customers (
 DO $$ 
 BEGIN 
     IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='customers') THEN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='customers' AND column_name='company_id') THEN
+            ALTER TABLE customers ADD COLUMN company_id UUID;
+        END IF;
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='customers' AND column_name='cnpj') THEN
             ALTER TABLE customers ADD COLUMN cnpj TEXT;
         END IF;

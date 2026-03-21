@@ -114,14 +114,63 @@ CREATE TABLE IF NOT EXISTS order_items (
 CREATE TABLE IF NOT EXISTS customers (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     company_id UUID NOT NULL,
+    seller_id UUID,
     nome TEXT NOT NULL,
+    cnpj TEXT,
     email TEXT,
     telefone TEXT,
+    responsavel TEXT,
+    ativo BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- Update customers table if it already exists with missing columns
+DO $$ 
+BEGIN 
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='customers') THEN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='customers' AND column_name='cnpj') THEN
+            ALTER TABLE customers ADD COLUMN cnpj TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='customers' AND column_name='seller_id') THEN
+            ALTER TABLE customers ADD COLUMN seller_id UUID;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='customers' AND column_name='responsavel') THEN
+            ALTER TABLE customers ADD COLUMN responsavel TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='customers' AND column_name='ativo') THEN
+            ALTER TABLE customers ADD COLUMN ativo BOOLEAN DEFAULT TRUE;
+        END IF;
+    END IF;
+END $$;
+
 -- 6. Enable Realtime for these tables
-ALTER PUBLICATION supabase_realtime ADD TABLE orders;
-ALTER PUBLICATION supabase_realtime ADD TABLE order_items;
-ALTER PUBLICATION supabase_realtime ADD TABLE top_bar_messages;
-ALTER PUBLICATION supabase_realtime ADD TABLE banners;
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_publication_tables 
+        WHERE pubname = 'supabase_realtime' AND tablename = 'orders'
+    ) THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE orders;
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_publication_tables 
+        WHERE pubname = 'supabase_realtime' AND tablename = 'order_items'
+    ) THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE order_items;
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_publication_tables 
+        WHERE pubname = 'supabase_realtime' AND tablename = 'top_bar_messages'
+    ) THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE top_bar_messages;
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_publication_tables 
+        WHERE pubname = 'supabase_realtime' AND tablename = 'banners'
+    ) THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE banners;
+    END IF;
+END $$;

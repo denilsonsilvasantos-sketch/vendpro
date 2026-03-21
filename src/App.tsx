@@ -1018,6 +1018,7 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
           const { data: newCustomer, error: insertError } = await supabase
             .from('customers')
             .insert([{
+              company_id: sellerInfo.company_id,
               seller_id: sellerInfo.id,
               nome: customerData.nome,
               telefone: customerData.telefone,

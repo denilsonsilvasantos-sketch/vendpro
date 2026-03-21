@@ -248,6 +248,11 @@ export default function App() {
     }
 
     if (whatsappNumber) {
+      if (cart.length === 0) {
+        alert('Seu carrinho está vazio.');
+        return;
+      }
+
       const clientName = manualClientName || (role === 'customer' ? user?.nome : (role === 'seller' ? `Vendedor: ${user?.nome}` : ''));
       
       // Save order to database if supabase is available
@@ -297,9 +302,9 @@ export default function App() {
           if (itemsError) throw itemsError;
           
           console.log("Pedido salvo com sucesso no banco de dados.");
-        } catch (err) {
+        } catch (err: any) {
           console.error("Erro ao salvar pedido no banco de dados:", err);
-          // We still open WhatsApp even if saving fails, to not block the user
+          alert(`O pedido foi enviado via WhatsApp, mas houve um erro ao salvar no histórico: ${err.message || 'Erro desconhecido'}`);
         }
       }
 

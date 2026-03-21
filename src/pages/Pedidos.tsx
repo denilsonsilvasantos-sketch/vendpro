@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../integrations/supabaseClient';
-import { FileText, X, Eye, ShoppingBag, TrendingUp, Package } from 'lucide-react';
+import { FileText, X, Eye, ShoppingBag, TrendingUp, Package, AlertTriangle, PackageSearch } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function Pedidos({ companyId, role, user }: { companyId: string | null, role?: string | null, user?: any }) {
@@ -9,6 +9,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
   const [orderItems, setOrderItems] = useState<any[]>([]);
   const [loadingItems, setLoadingItems] = useState(false);
+  const [itemsError, setItemsError] = useState<string | null>(null);
   const [abcCurve, setAbcCurve] = useState<any[]>([]);
 
   async function fetchOrders() {
@@ -110,9 +111,14 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
     console.log('Abrindo detalhes do pedido:', order.id);
     setSelectedOrder(order);
     setLoadingItems(true);
+    setItemsError(null);
     setOrderItems([]); // Clear previous items
     
-    if (!supabase) return;
+    if (!supabase) {
+      setItemsError('Conexão com o banco de dados não disponível.');
+      setLoadingItems(false);
+      return;
+    }
     
     try {
       const { data, error } = await supabase
@@ -122,13 +128,17 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
         
       if (error) {
         console.error('Erro ao buscar itens:', error);
-        alert('Erro ao carregar itens do pedido.');
+        setItemsError(`Erro ao carregar itens: ${error.message}`);
       } else {
         console.log('Itens do pedido carregados:', data?.length || 0);
+        if (!data || data.length === 0) {
+          console.warn('Nenhum item encontrado para o pedido ID:', order.id);
+        }
         setOrderItems(data || []);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Erro inesperado ao buscar itens:', err);
+      setItemsError(`Erro inesperado: ${err.message || 'Erro desconhecido'}`);
     } finally {
       setLoadingItems(false);
     }
@@ -312,7 +322,28 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
               <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
                 {loadingItems ? (
                   <div className="flex items-center justify-center py-20">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                      <span className="text-sm text-slate-400 font-bold uppercase tracking-widest">Carregando Itens...</span>
+                    </div>
+                  </div>
+                ) : itemsError ? (
+                  <div className="p-12 text-center bg-rose-50 rounded-[32px] border-2 border-dashed border-rose-100">
+                    <div className="flex flex-col items-center gap-4">
+                      <div className="p-4 bg-white rounded-2xl shadow-sm text-rose-500">
+                        <AlertTriangle size={32} />
+                      </div>
+                      <div>
+                        <p className="text-rose-900 font-black text-lg">Ops! Algo deu errado.</p>
+                        <p className="text-rose-500 text-sm font-medium mt-1">{itemsError}</p>
+                      </div>
+                      <button 
+                        onClick={() => openOrderDetails(selectedOrder)}
+                        className="px-6 py-3 bg-rose-500 text-white rounded-2xl font-bold text-sm shadow-lg shadow-rose-200 hover:bg-rose-600 transition-all active:scale-95"
+                      >
+                        Tentar Novamente
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <div className="space-y-6">
@@ -354,8 +385,18 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                             </div>
                           ))
                         ) : (
-                          <div className="p-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-                            <p className="text-slate-400 text-sm font-medium">Nenhum item encontrado para este pedido.</p>
+                          <div className="p-12 text-center bg-slate-50 rounded-[32px] border-2 border-dashed border-slate-100">
+                            <div className="flex flex-col items-center gap-4">
+                              <div className="p-4 bg-white rounded-2xl shadow-sm text-slate-300">
+                                <PackageSearch size={32} />
+                              </div>
+                              <div>
+                                <p className="text-slate-900 font-black text-lg">Nenhum item encontrado.</p>
+                                <p className="text-slate-400 text-sm font-medium mt-1 max-w-[280px] mx-auto">
+                                  Isso pode acontecer se o pedido foi salvo antes da atualização do banco de dados ou se houve um erro na gravação.
+                                </p>
+                              </div>
+                            </div>
                           </div>
                         )}
                       </div>

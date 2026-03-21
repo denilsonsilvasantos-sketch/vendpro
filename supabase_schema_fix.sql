@@ -174,3 +174,28 @@ BEGIN
         ALTER PUBLICATION supabase_realtime ADD TABLE banners;
     END IF;
 END $$;
+
+-- 7. Configure Row Level Security (RLS)
+-- This allows the app to work without full Supabase Auth for customers
+ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE order_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE top_bar_messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE banners ENABLE ROW LEVEL SECURITY;
+
+-- Create policies for public access (anon role)
+-- Note: In a production environment, you might want to restrict this further
+DROP POLICY IF EXISTS "Public access for orders" ON orders;
+CREATE POLICY "Public access for orders" ON orders FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Public access for order_items" ON order_items;
+CREATE POLICY "Public access for order_items" ON order_items FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Public access for customers" ON customers;
+CREATE POLICY "Public access for customers" ON customers FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Public access for top_bar_messages" ON top_bar_messages;
+CREATE POLICY "Public access for top_bar_messages" ON top_bar_messages FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public access for banners" ON banners;
+CREATE POLICY "Public access for banners" ON banners FOR SELECT USING (true);

@@ -16,7 +16,7 @@ export default defineConfig(({mode}) => {
   manifest: {
     name: 'VendPro',
     short_name: 'VendPro',
-    theme_color: '#000000',
+    theme_color: '#1B2A4A',
     background_color: '#ffffff',
     display: 'standalone',
     start_url: '/',

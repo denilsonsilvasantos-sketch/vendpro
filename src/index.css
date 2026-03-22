@@ -38,7 +38,7 @@
   }
   
   .pink-gradient {
-    @apply bg-gradient-to-br from-primary to-primary-light;
+    background: linear-gradient(135deg, #C21863, #E8257A);
   }
 
   .purple-gradient {

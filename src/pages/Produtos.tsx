@@ -221,8 +221,8 @@ export default function Produtos({ companyId, onRefresh }: { companyId: string |
                       </div>
 
                       {(product.has_box_discount || product.venda_somente_box) && !isEsgotado && (
-                        <div className="p-2 bg-emerald-50 rounded-xl border border-emerald-100 text-[8px] font-black text-emerald-600 text-center uppercase tracking-wider flex items-center justify-center gap-1">
-                          <Info size={10} />
+                        <div className="p-2 bg-rose-50 rounded-xl border border-rose-100 text-[10px] font-black text-rose-600 text-center uppercase tracking-wider flex items-center justify-center gap-1">
+                          <Info size={11} />
                           <span className="line-clamp-1">
                             {!product.venda_somente_box ? (
                               `A partir de ${product.qtd_box} un: R$ ${product.preco_box.toFixed(2)}`

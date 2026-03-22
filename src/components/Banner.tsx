@@ -36,7 +36,7 @@ export default function Banner({ banners }: { banners?: BannerData[] }) {
               className={`absolute inset-0 flex items-center ${currentSlide.className || ''}`}
               style={currentSlide.imageUrl ? { backgroundImage: `url(${currentSlide.imageUrl})`, backgroundSize: 'cover', backgroundRepeat: 'no-repeat', backgroundPosition: 'center' } : {}}
             >
-              {currentSlide.imageUrl && <div className="absolute inset-0 bg-gradient-to-r from-black/55 via-black/25 to-transparent" />}
+              {currentSlide.imageUrl && <div className="absolute inset-0 bg-gradient-to-r from-black/30 via-transparent to-transparent" />}
 
               <div className="relative z-10 px-6 md:px-10 max-w-md">
                 {currentSlide.tag && (

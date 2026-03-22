@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { getProducts } from "./services/productService";
 import { validateSellerCode } from './services/sellerService';
 import { registerCompany, loginCompany, getCompanyById } from './services/companyService';
@@ -33,19 +33,37 @@ import {
   EyeOff,
   Mail,
   Shield,
-  Layout
+  Layout,
+  Loader2
 } from 'lucide-react';
 import { useCart } from './hooks/useCart';
 import { Product, Category, Seller, Customer, UserRole, CartItem, Company, Brand, BannerData } from './types';
 import { mockProducts, mockCategories, mockCompany } from './lib/mockData';
 import { Card } from './components/Card';
 import { Badge } from './components/Badge';
-import { Dashboard, Produtos, Clientes, Pedidos, Configuracoes, Marcas, Upload, Pendencias, Vendedores, BannerManager } from './pages';
-import ProductFormModal from './components/ProductFormModal';
 import CartScreen from './pages/CartScreen';
 import Banner from './components/Banner';
 import { formatWhatsAppMessage } from './utils/whatsapp';
 import { getBanners, getTopBarMessages } from './services/bannerService';
+
+// Lazy load heavy pages — só carrega quando o usuário navega até elas
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Produtos = lazy(() => import('./pages/Produtos'));
+const Clientes = lazy(() => import('./pages/Clientes'));
+const Pedidos = lazy(() => import('./pages/Pedidos'));
+const Configuracoes = lazy(() => import('./pages/Configuracoes'));
+const Marcas = lazy(() => import('./pages/Marcas'));
+const Upload = lazy(() => import('./pages/Upload'));
+const Pendencias = lazy(() => import('./pages/Pendencias'));
+const Vendedores = lazy(() => import('./pages/Vendedores'));
+const BannerManager = lazy(() => import('./pages/BannerManager'));
+const ProductFormModal = lazy(() => import('./components/ProductFormModal'));
+
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-[300px]">
+    <Loader2 className="animate-spin text-primary" size={24} />
+  </div>
+);
 
 // --- Helper Components ---
 
@@ -784,30 +802,34 @@ export default function App() {
               role={role}
             />
           )}
-          {activeTab === 'dashboard' && <Dashboard companyId={activeCompanyId} role={role} user={user} banners={banners} />}
-          {activeTab === 'banners' && role === 'company' && <BannerManager companyId={activeCompanyId!} />}
-          {activeTab === 'produtos' && <Produtos companyId={activeCompanyId} onRefresh={loadData} />}
-          {activeTab === 'upload' && <Upload companyId={activeCompanyId} onRefresh={loadData} />}
-          {activeTab === 'pendencias' && <Pendencias companyId={activeCompanyId} onRefresh={loadData} />}
-          {activeTab === 'marcas' && <Marcas companyId={activeCompanyId} />}
-          {activeTab === 'vendedores' && <Vendedores companyId={activeCompanyId} />}
-          {activeTab === 'clientes' && <Clientes companyId={activeCompanyId} role={role} user={user} />}
-          {activeTab === 'pedidos' && <Pedidos companyId={activeCompanyId} role={role} user={user} />}
-          {activeTab === 'account' && <Configuracoes companyId={activeCompanyId} user={user} role={role} onLogout={handleLogout} />}
+          <Suspense fallback={<PageLoader />}>
+            {activeTab === 'dashboard' && <Dashboard companyId={activeCompanyId} role={role} user={user} banners={banners} />}
+            {activeTab === 'banners' && role === 'company' && <BannerManager companyId={activeCompanyId!} />}
+            {activeTab === 'produtos' && <Produtos companyId={activeCompanyId} onRefresh={loadData} />}
+            {activeTab === 'upload' && <Upload companyId={activeCompanyId} onRefresh={loadData} />}
+            {activeTab === 'pendencias' && <Pendencias companyId={activeCompanyId} onRefresh={loadData} />}
+            {activeTab === 'marcas' && <Marcas companyId={activeCompanyId} />}
+            {activeTab === 'vendedores' && <Vendedores companyId={activeCompanyId} />}
+            {activeTab === 'clientes' && <Clientes companyId={activeCompanyId} role={role} user={user} />}
+            {activeTab === 'pedidos' && <Pedidos companyId={activeCompanyId} role={role} user={user} />}
+            {activeTab === 'account' && <Configuracoes companyId={activeCompanyId} user={user} role={role} onLogout={handleLogout} />}
+          </Suspense>
         </div>
       </main>
 
       <AnimatePresence>
         {editingProduct && (
-          <ProductFormModal 
-            product={editingProduct.id === 'new' ? undefined : editingProduct} 
-            companyId={activeCompanyId}
-            onClose={() => setEditingProduct(null)} 
-            onSave={() => { 
-              setEditingProduct(null);
-              loadData();
-            }} 
-          />
+          <Suspense fallback={<PageLoader />}>
+            <ProductFormModal 
+              product={editingProduct.id === 'new' ? undefined : editingProduct} 
+              companyId={activeCompanyId}
+              onClose={() => setEditingProduct(null)} 
+              onSave={() => { 
+                setEditingProduct(null);
+                loadData();
+              }} 
+            />
+          </Suspense>
         )}
       </AnimatePresence>
 
@@ -1387,6 +1409,14 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
           </div>
         )}
         </div>{/* end body */}
+
+        {/* LGPD footer */}
+        <div className="flex items-center justify-center gap-4 mt-3 pb-1">
+          <a href="/privacidade" className="text-[9px] text-slate-400 hover:text-primary transition-colors font-medium">Política de Privacidade</a>
+          <span className="text-slate-200">·</span>
+          <a href="/lgpd" className="text-[9px] text-slate-400 hover:text-primary transition-colors font-medium">LGPD</a>
+        </div>
+
       </motion.div>
     </div>
   );
@@ -1862,15 +1892,15 @@ function ProductCard({ product, onAdd, onEdit, role, onZoom, isInCart, ...props 
         <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mb-3">SKU: {product.sku}</p>
         
         {!isEsgotado && (
-          <p className="text-lg md:text-xl font-black text-primary tracking-tight">R$ {(product.preco_unitario || 0).toFixed(2)}</p>
+          <p className="text-lg md:text-xl font-black text-[#C21863] tracking-tight">R$ {(product.preco_unitario || 0).toFixed(2)}</p>
         )}
       </div>
 
       {(product.has_box_discount || product.venda_somente_box) && !isEsgotado && (
-        <div className="mb-4 p-3 bg-amber-50 border border-amber-100 rounded-[24px] text-center shadow-inner flex flex-col items-center justify-center">
-          <span className="text-xl md:text-2xl font-black text-amber-700 tracking-tight">R$ {(product.preco_box || 0).toFixed(2)}</span>
-          <p className="text-[9px] uppercase font-black text-amber-600 tracking-widest mt-1">
-            {product.venda_somente_box ? 'SOMENTE NO BOX:' : 'A PARTIR DE:'} {product.qtd_box} UNIDADES
+        <div className="mb-4 p-2.5 bg-rose-50 border border-rose-200 rounded-2xl text-center flex flex-col items-center justify-center">
+          <span className="text-base font-black text-rose-700 tracking-tight">R$ {(product.preco_box || 0).toFixed(2)}</span>
+          <p className="text-[9px] uppercase font-black text-rose-600 tracking-widest mt-0.5">
+            {product.venda_somente_box ? 'SOMENTE NO BOX:' : 'A PARTIR DE:'} {product.qtd_box} UN
           </p>
         </div>
       )}
@@ -1884,7 +1914,8 @@ function ProductCard({ product, onAdd, onEdit, role, onZoom, isInCart, ...props 
         <button 
           onClick={() => onAdd(product, qty)} 
           disabled={isEsgotado}
-          className="w-full py-4 pink-gradient text-white rounded-[20px] font-black uppercase tracking-widest text-[10px] shadow-lg shadow-primary/20 hover:scale-[0.98] active:scale-95 disabled:opacity-50 transition-all"
+          className="w-full py-4 text-white rounded-[20px] font-black uppercase tracking-widest text-[10px] shadow-lg hover:scale-[0.98] active:scale-95 disabled:opacity-50 transition-all"
+          style={{ background: 'linear-gradient(135deg, #C21863, #E8257A)' }}
         >
           <ShoppingCart size={14} className="inline-block mr-2" />
           Adicionar

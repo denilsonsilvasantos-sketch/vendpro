@@ -33,7 +33,8 @@ import {
   EyeOff,
   Mail,
   Shield,
-  Layout
+  Layout,
+  Home
 } from 'lucide-react';
 import { useCart } from './hooks/useCart';
 import { Product, Category, Seller, Customer, UserRole, CartItem, Company, Brand, BannerData } from './types';
@@ -577,23 +578,47 @@ export default function App() {
 
       <TopBar messages={topBarMessages} />
 
-      {/* Header */}
-      <header className="glass-effect px-4 md:px-8 py-4 sticky top-0 z-40 flex items-center justify-between shadow-sm">
-        <div className="flex items-center gap-4">
-          <button onClick={() => setIsSidebarOpen(true)} className="p-2 -ml-2 text-slate-600 hover:text-primary transition-colors">
+      {/* Mobile Header */}
+      <header className="md:hidden sticky top-0 z-[100] bg-white/80 backdrop-blur-xl border-b border-slate-100 px-4 py-3 flex items-center justify-between">
+        <button onClick={() => setIsSidebarOpen(true)} className="p-2 text-slate-600 hover:text-primary transition-colors">
+          <Menu size={24} />
+        </button>
+        
+        <div className="flex-1 flex justify-center">
+          <h1 className="text-sm font-black uppercase tracking-[2px] text-slate-900 truncate max-w-[150px]">
+            {company?.nome || 'VendPro'}
+          </h1>
+        </div>
+
+        <div className="flex items-center gap-1">
+          <button onClick={() => setActiveTab('catalog')} className="p-2 text-slate-600 hover:text-primary transition-colors">
+            <Search size={20} />
+          </button>
+          <button onClick={() => setActiveTab('cart')} className="relative p-2 text-slate-600 hover:text-primary transition-colors">
+            <ShoppingCart size={20} />
+            {cart.length > 0 && (
+              <span className="absolute top-1 right-1 w-4 h-4 pink-gradient text-white text-[8px] font-black flex items-center justify-center rounded-full shadow-lg border border-white">
+                {cart.length}
+              </span>
+            )}
+          </button>
+        </div>
+      </header>
+
+      {/* Desktop Header */}
+      <header className="hidden md:flex sticky top-0 z-[100] bg-white/80 backdrop-blur-xl border-b border-slate-100 px-4 md:px-12 py-4 md:py-6 items-center justify-between">
+        <div className="flex items-center gap-4 md:gap-12">
+          <button onClick={() => setIsSidebarOpen(true)} className="p-3 bg-white text-slate-600 hover:text-primary hover:bg-primary/5 rounded-full transition-all shadow-sm border border-slate-100">
             <Menu size={24} />
           </button>
-          <div className="flex items-center gap-3">
-            {company?.logo_url ? (
-              <img src={company.logo_url} alt={company.nome} className="w-10 h-10 rounded-xl object-cover shadow-sm" />
-            ) : (
-              <div className="w-10 h-10 pink-gradient rounded-xl flex items-center justify-center text-white shadow-sm shrink-0">
-                <CheckCircle2 size={24} />
-              </div>
-            )}
-            
-            <div className="hidden sm:block">
-              {availableCompanies.length > 1 ? (
+          
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 md:w-14 md:h-14 pink-gradient rounded-[14px] flex items-center justify-center text-white shadow-xl shadow-primary/20">
+              <CheckCircle2 size={24} className="md:w-8 md:h-8" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-[2px] mb-0.5">Distribuidor Oficial</span>
+              {availableCompanies.length > 1 && role !== 'customer' ? (
                 <select 
                   value={activeCompanyId || ''} 
                   onChange={(e) => handleCompanyChange(e.target.value)}
@@ -655,11 +680,11 @@ export default function App() {
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
-              className="fixed inset-y-0 left-0 w-80 bg-white z-50 shadow-2xl p-8 flex flex-col rounded-r-[48px]"
+              className="fixed inset-y-0 left-0 w-80 bg-white z-50 shadow-2xl p-8 flex flex-col rounded-r-[14px]"
             >
               <div className="flex items-center justify-between mb-12 px-2">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 pink-gradient rounded-[20px] flex items-center justify-center text-white shadow-lg shadow-primary/20">
+                  <div className="w-12 h-12 pink-gradient rounded-[10px] flex items-center justify-center text-white shadow-lg shadow-primary/20">
                     <CheckCircle2 size={24} />
                   </div>
                   <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">VendPro</h2>
@@ -738,8 +763,33 @@ export default function App() {
         )}
       </AnimatePresence>
 
+      {/* Mobile Bottom Navigation */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-[100] bg-white/90 backdrop-blur-xl border-t border-slate-100 px-6 py-3 flex items-center justify-between shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+        <button onClick={() => setActiveTab('catalog')} className={`flex flex-col items-center gap-1 ${activeTab === 'catalog' ? 'text-primary' : 'text-slate-400'}`}>
+          <Home size={20} />
+          <span className="text-[8px] font-black uppercase tracking-widest">Início</span>
+        </button>
+        <button onClick={() => setActiveTab('catalog')} className={`flex flex-col items-center gap-1 ${activeTab === 'catalog' ? 'text-primary' : 'text-slate-400'}`}>
+          <LayoutGrid size={20} />
+          <span className="text-[8px] font-black uppercase tracking-widest">Catálogo</span>
+        </button>
+        <button onClick={() => setActiveTab('cart')} className={`relative flex flex-col items-center gap-1 ${activeTab === 'cart' ? 'text-primary' : 'text-slate-400'}`}>
+          <ShoppingCart size={20} />
+          {cart.length > 0 && (
+            <span className="absolute -top-1 -right-1 w-4 h-4 pink-gradient text-white text-[8px] font-black flex items-center justify-center rounded-full shadow-lg border border-white">
+              {cart.length}
+            </span>
+          )}
+          <span className="text-[8px] font-black uppercase tracking-widest">Carrinho</span>
+        </button>
+        <button onClick={() => setActiveTab('pedidos')} className={`flex flex-col items-center gap-1 ${activeTab === 'pedidos' ? 'text-primary' : 'text-slate-400'}`}>
+          <FileText size={20} />
+          <span className="text-[8px] font-black uppercase tracking-widest">Pedidos</span>
+        </button>
+      </div>
+
       {/* Main Content */}
-      <main className="flex-1 w-full relative min-w-0 overflow-x-hidden">
+      <main className="flex-1 w-full relative min-w-0 overflow-x-hidden pb-20 md:pb-0">
         {viewMode === 'customer' && role !== 'customer' && (
           <button
             onClick={() => setViewMode('admin')}
@@ -1727,10 +1777,10 @@ function CatalogScreen({
         </div>
 
         <div className="flex flex-col lg:flex-row gap-12">
-          {/* Sidebar Filters */}
-          <aside className="lg:w-64 shrink-0 space-y-12">
+          {/* Sidebar Filters - Desktop */}
+          <aside className="hidden lg:block lg:w-64 shrink-0 space-y-12">
             <div>
-              <h3 className="text-[10px] font-black uppercase tracking-[0.2em] mb-6 text-slate-400">Categorias</h3>
+              <h3 className="text-[10px] font-black uppercase tracking-[2px] mb-6 text-slate-400">Categorias</h3>
               <div className="space-y-2">
                 <button 
                   onClick={() => setSelectedCategory(null)}
@@ -1751,13 +1801,13 @@ function CatalogScreen({
             </div>
 
             {role === 'customer' && (
-              <div className="p-8 bg-slate-900 rounded-[40px] text-white relative overflow-hidden group shadow-2xl">
+              <div className="p-8 bg-slate-900 rounded-[10px] text-white relative overflow-hidden group shadow-2xl">
                 <div className="relative z-10">
-                  <h4 className="text-lg font-black uppercase tracking-tight mb-2">Suporte VIP</h4>
-                  <p className="text-[10px] font-bold text-white/50 mb-8 leading-relaxed uppercase tracking-widest">Dúvidas sobre produtos ou pedidos? Fale com seu consultor.</p>
+                  <h4 className="text-[10px] font-black uppercase tracking-[2px] mb-2">Suporte VIP</h4>
+                  <p className="text-[9px] font-bold text-white/50 mb-8 leading-relaxed uppercase tracking-widest">Dúvidas sobre produtos ou pedidos? Fale com seu consultor.</p>
                   <button 
                     onClick={handleWhatsAppSupport}
-                    className="w-full py-4 bg-white text-slate-900 rounded-[20px] text-[10px] font-black uppercase tracking-widest hover:bg-primary hover:text-white transition-all shadow-lg"
+                    className="w-full py-4 bg-white text-slate-900 rounded-[6px] text-[9px] font-black uppercase tracking-widest hover:bg-primary hover:text-white transition-all shadow-lg"
                   >
                     WhatsApp Direto
                   </button>
@@ -1767,16 +1817,38 @@ function CatalogScreen({
             )}
           </aside>
 
+          {/* Mobile Category Pills */}
+          <div className="lg:hidden mb-8">
+            <h3 className="text-[10px] font-black uppercase tracking-[2px] mb-4 text-slate-400 px-4">Categorias</h3>
+            <div className="flex items-center gap-2 overflow-x-auto px-4 pb-2 custom-scrollbar no-scrollbar">
+              <button 
+                onClick={() => setSelectedCategory(null)}
+                className={`px-6 py-2.5 rounded-[20px] text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${!selectedCategory ? 'pink-gradient text-white shadow-lg shadow-primary/20' : 'bg-white text-slate-500 border border-slate-100 shadow-sm'}`}
+              >
+                Todas
+              </button>
+              {[...visibleCategories].sort((a, b) => (a.order_index || 0) - (b.order_index || 0)).map(cat => (
+                <button 
+                  key={cat.id}
+                  onClick={() => setSelectedCategory(cat.id)}
+                  className={`px-6 py-2.5 rounded-[20px] text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${selectedCategory === cat.id ? 'pink-gradient text-white shadow-lg shadow-primary/20' : 'bg-white text-slate-500 border border-slate-100 shadow-sm'}`}
+                >
+                  {cat.nome}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Product Grid */}
           <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between mb-8">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+            <div className="flex items-center justify-between mb-8 px-4 lg:px-0">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[2px]">
                 Mostrando <span className="text-slate-900">{filtered.length}</span> produtos
               </p>
               
               <div className="flex items-center gap-4">
                 <select 
-                  className="bg-white border-none text-[10px] font-black uppercase tracking-widest text-slate-500 rounded-xl px-4 py-2 outline-none cursor-pointer shadow-sm"
+                  className="bg-white border-none text-[10px] font-black uppercase tracking-widest text-slate-500 rounded-[6px] px-4 py-2 outline-none cursor-pointer shadow-sm"
                   value={itemsPerPage}
                   onChange={(e) => setItemsPerPage(Number(e.target.value))}
                 >
@@ -1795,7 +1867,7 @@ function CatalogScreen({
                 <p className="text-slate-400 font-medium">Nenhum produto encontrado.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 md:gap-6">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2 px-2 lg:px-0">
                 {paginatedProducts.map(p => {
                   const currentCart = carts[p.brand_id || ''] || [];
                   const isInCart = currentCart.some(item => item.id === p.id);
@@ -1894,51 +1966,51 @@ function ProductCard({ product, onAdd, onEdit, role, onZoom, isInCart, ...props 
   };
 
   return (
-    <Card className={`p-3 md:p-4 flex flex-col group hover:border-primary/20 transition-all duration-500 neumorphic-shadow hover:shadow-2xl hover:shadow-primary/5 hover:-translate-y-1 rounded-[32px] relative ${isEsgotado ? 'opacity-75 grayscale-[0.5]' : ''}`}>
+    <Card className={`p-2 flex flex-col group hover:border-primary/20 transition-all duration-300 rounded-[10px] relative ${isEsgotado ? 'opacity-75 grayscale-[0.5]' : ''}`}>
       {isInCart && (
-        <div className="absolute top-4 right-4 z-10 bg-emerald-500 text-white p-2 rounded-full shadow-lg shadow-emerald-500/20 animate-in zoom-in duration-300">
-          <CheckCircle2 size={16} />
+        <div className="absolute top-2 right-2 z-10 bg-emerald-500 text-white p-1 rounded-full shadow-lg shadow-emerald-500/20 animate-in zoom-in duration-300">
+          <CheckCircle2 size={12} />
         </div>
       )}
-      <div className="relative aspect-square mb-4 rounded-[24px] overflow-hidden bg-slate-50 cursor-zoom-in group-hover:scale-[1.02] transition-transform duration-500 shadow-inner" onClick={() => onZoom(product.imagem || '')}>
-        <img src={product.imagem || `https://picsum.photos/seed/${product.sku}/400/400`} className="w-full h-full object-contain p-2" alt={product.nome} referrerPolicy="no-referrer" />
-        <div className="absolute top-3 w-full flex flex-col gap-1 items-center">
-          {isEsgotado && <span className="bg-slate-900 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-widest">ESGOTADO</span>}
-          {!isEsgotado && product.is_last_units && <span className="bg-rose-500 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-widest">ÚLTIMAS UNIDADES</span>}
-          {product.venda_somente_box && <span className="bg-amber-500 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-widest">SOMENTE NO BOX</span>}
+      <div className="relative aspect-square mb-2 rounded-[8px] overflow-hidden bg-slate-50 cursor-zoom-in group-hover:scale-[1.02] transition-transform duration-500 shadow-inner" onClick={() => onZoom(product.imagem || '')}>
+        <img src={product.imagem || `https://picsum.photos/seed/${product.sku}/400/400`} className="w-full h-full object-contain p-1" alt={product.nome} referrerPolicy="no-referrer" />
+        <div className="absolute top-2 w-full flex flex-col gap-1 items-center">
+          {isEsgotado && <span className="bg-slate-900 text-white text-[8px] font-black px-2 py-0.5 rounded-full shadow-lg uppercase tracking-widest">ESGOTADO</span>}
+          {!isEsgotado && product.is_last_units && <span className="bg-rose-500 text-white text-[8px] font-black px-2 py-0.5 rounded-full shadow-lg uppercase tracking-widest">ÚLTIMAS UNIDADES</span>}
+          {product.venda_somente_box && <span className="bg-amber-500 text-white text-[8px] font-black px-2 py-0.5 rounded-full shadow-lg uppercase tracking-widest">SOMENTE NO BOX</span>}
         </div>
       </div>
       
-      <div className="text-center mb-4">
-        <h3 className="font-black text-slate-800 text-[11px] md:text-xs leading-tight mb-2 h-10 flex items-center justify-center overflow-hidden line-clamp-2 uppercase tracking-tight">{product.nome}</h3>
-        <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mb-3">SKU: {product.sku}</p>
+      <div className="text-center mb-2">
+        <h3 className="font-black text-slate-800 text-[11px] leading-tight mb-1 h-8 flex items-center justify-center overflow-hidden line-clamp-2 uppercase tracking-tight">{product.nome}</h3>
+        <p className="text-[9px] text-slate-400 font-black uppercase tracking-[0.1em] mb-2">SKU: {product.sku}</p>
         
         {!isEsgotado && (
-          <p className="text-lg md:text-xl font-black text-primary tracking-tight">R$ {(product.preco_unitario || 0).toFixed(2)}</p>
+          <p className="text-[13px] font-black text-primary tracking-tight">R$ {(product.preco_unitario || 0).toFixed(2)}</p>
         )}
       </div>
 
       {(product.has_box_discount || product.venda_somente_box) && !isEsgotado && (
-        <div className="mb-4 p-3 bg-amber-50 border border-amber-100 rounded-[24px] text-center shadow-inner flex flex-col items-center justify-center">
-          <span className="text-xl md:text-2xl font-black text-amber-700 tracking-tight">R$ {(product.preco_box || 0).toFixed(2)}</span>
-          <p className="text-[9px] uppercase font-black text-amber-600 tracking-widest mt-1">
+        <div className="mb-2 p-2 bg-amber-50 border border-amber-100 rounded-[8px] text-center shadow-inner flex flex-col items-center justify-center">
+          <span className="text-[13px] font-black text-amber-700 tracking-tight">R$ {(product.preco_box || 0).toFixed(2)}</span>
+          <p className="text-[8px] uppercase font-black text-amber-600 tracking-widest mt-0.5">
             {product.venda_somente_box ? 'SOMENTE NO BOX:' : 'A PARTIR DE:'} {product.qtd_box} UNIDADES
           </p>
         </div>
       )}
 
-      <div className="mt-auto flex flex-col items-center gap-3">
-        <div className="flex items-center bg-slate-50 rounded-[20px] p-1.5 w-full justify-between shadow-inner border border-slate-100">
-          <button onClick={handleSubQty} disabled={isEsgotado} className="p-2 text-slate-400 hover:bg-white hover:text-primary rounded-xl disabled:opacity-50 transition-all shadow-sm"><Minus size={14}/></button>
-          <span className="text-xs font-black text-slate-700">{qty}</span>
-          <button onClick={handleAddQty} disabled={isEsgotado} className="p-2 text-slate-400 hover:bg-white hover:text-primary rounded-xl disabled:opacity-50 transition-all shadow-sm"><Plus size={14}/></button>
+      <div className="mt-auto flex flex-col items-center gap-2">
+        <div className="flex items-center bg-slate-50 rounded-[6px] p-1 w-full justify-between shadow-inner border border-slate-100">
+          <button onClick={handleSubQty} disabled={isEsgotado} className="p-1 text-slate-400 hover:bg-white hover:text-primary rounded-[4px] disabled:opacity-50 transition-all shadow-sm"><Minus size={12}/></button>
+          <span className="text-[11px] font-black text-slate-700">{qty}</span>
+          <button onClick={handleAddQty} disabled={isEsgotado} className="p-1 text-slate-400 hover:bg-white hover:text-primary rounded-[4px] disabled:opacity-50 transition-all shadow-sm"><Plus size={12}/></button>
         </div>
         <button 
           onClick={() => onAdd(product, qty)} 
           disabled={isEsgotado}
-          className="w-full py-4 pink-gradient text-white rounded-[20px] font-black uppercase tracking-widest text-[10px] shadow-lg shadow-primary/20 hover:scale-[0.98] active:scale-95 disabled:opacity-50 transition-all"
+          className="w-full py-[5px] pink-gradient text-white rounded-[6px] font-black uppercase tracking-widest text-[9px] shadow-lg shadow-primary/20 hover:scale-[0.98] active:scale-95 disabled:opacity-50 transition-all"
         >
-          <ShoppingCart size={14} className="inline-block mr-2" />
+          <ShoppingCart size={12} className="inline-block mr-1" />
           Adicionar
         </button>
       </div>

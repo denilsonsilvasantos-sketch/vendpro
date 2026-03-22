@@ -135,10 +135,10 @@ export default function Dashboard({ companyId, role, user, banners }: { companyI
 
   if (loading) return (
     <div className="p-8 flex flex-col items-center justify-center min-h-[400px] gap-6 animate-pulse">
-      <div className="w-16 h-16 bg-primary/10 rounded-3xl flex items-center justify-center text-primary border border-primary/20">
+      <div className="w-16 h-16 bg-primary/10 rounded-[10px] flex items-center justify-center text-primary border border-primary/20">
         <TrendingUp className="animate-spin" size={32} />
       </div>
-      <p className="text-slate-500 font-black uppercase tracking-widest text-[10px]">Carregando dados...</p>
+      <p className="text-slate-500 font-black uppercase tracking-[2px] text-[10px]">Carregando dados...</p>
     </div>
   );
 
@@ -150,18 +150,18 @@ export default function Dashboard({ companyId, role, user, banners }: { companyI
         </div>
       )}
       {newOrder && (
-        <div className="fixed top-24 right-8 bg-primary text-white p-6 rounded-3xl shadow-2xl z-50 font-black uppercase tracking-widest text-[10px] animate-in fade-in slide-in-from-right-4 border border-white/20">
+        <div className="fixed top-24 right-8 bg-primary text-white p-6 rounded-[14px] shadow-2xl z-50 font-black uppercase tracking-[2px] text-[10px] animate-in fade-in slide-in-from-right-4 border border-white/20">
           Novo pedido recebido! #{newOrder.id}
         </div>
       )}
       
       <div className="flex items-center gap-6 mb-12">
-        <div className="w-16 h-16 bg-primary/10 rounded-3xl flex items-center justify-center text-primary border border-primary/20 shadow-inner">
+        <div className="w-16 h-16 bg-primary/10 rounded-[10px] flex items-center justify-center text-primary border border-primary/20 shadow-inner">
           <TrendingUp size={32} strokeWidth={2.5} />
         </div>
         <div>
           <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight uppercase">Dashboard</h1>
-          <p className="text-slate-500 font-black uppercase tracking-[0.2em] text-[10px] mt-1">Visão geral do seu negócio em tempo real</p>
+          <p className="text-slate-500 font-black uppercase tracking-[2px] text-[10px] mt-1">Visão geral do seu negócio em tempo real</p>
         </div>
       </div>
       
@@ -173,8 +173,8 @@ export default function Dashboard({ companyId, role, user, banners }: { companyI
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12">
-        <div className="bg-white p-8 md:p-10 rounded-[40px] border border-slate-100 neumorphic-shadow hover:shadow-2xl transition-all duration-500">
-          <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-10">Visão Geral</h2>
+        <div className="bg-white p-8 md:p-10 rounded-[14px] border border-slate-100 neumorphic-shadow hover:shadow-2xl transition-all duration-500">
+          <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[2px] mb-10">Visão Geral</h2>
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={data}>
@@ -183,9 +183,9 @@ export default function Dashboard({ companyId, role, user, banners }: { companyI
                 <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 9, fontWeight: 900 }} />
                 <Tooltip 
                   cursor={{ fill: '#f8fafc' }}
-                  contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', padding: '16px' }}
+                  contentStyle={{ borderRadius: '14px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', padding: '16px' }}
                 />
-                <Bar dataKey="value" radius={[12, 12, 0, 0]} barSize={48}>
+                <Bar dataKey="value" radius={[6, 6, 0, 0]} barSize={48}>
                   {data.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={['#ff3ea5', '#8b3ea9', '#e250c5'][index]} />
                   ))}
@@ -195,8 +195,8 @@ export default function Dashboard({ companyId, role, user, banners }: { companyI
           </div>
         </div>
 
-        <div className="bg-white p-8 md:p-10 rounded-[40px] border border-slate-100 neumorphic-shadow hover:shadow-2xl transition-all duration-500">
-          <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-10">Faturamento por Marca</h2>
+        <div className="bg-white p-8 md:p-10 rounded-[14px] border border-slate-100 neumorphic-shadow hover:shadow-2xl transition-all duration-500">
+          <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[2px] mb-10">Faturamento por Marca</h2>
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={brandRevenue} layout="vertical">
@@ -206,9 +206,9 @@ export default function Dashboard({ companyId, role, user, banners }: { companyI
                 <Tooltip 
                   cursor={{ fill: '#f8fafc' }}
                   formatter={(value: any) => `R$ ${Number(value).toFixed(2)}`}
-                  contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', padding: '16px' }}
+                  contentStyle={{ borderRadius: '14px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', padding: '16px' }}
                 />
-                <Bar dataKey="value" fill="#ff3ea5" radius={[0, 12, 12, 0]} barSize={28} />
+                <Bar dataKey="value" fill="#ff3ea5" radius={[0, 6, 6, 0]} barSize={28} />
               </BarChart>
             </ResponsiveContainer>
           </div>

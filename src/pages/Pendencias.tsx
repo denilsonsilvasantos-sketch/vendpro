@@ -164,189 +164,106 @@ export default function Pendencias({ companyId, onRefresh }: { companyId: string
             </div>
           </motion.div>
         ) : (
-          <div className="grid grid-cols-1 gap-8">
+          <div className="flex flex-col gap-2">
             {products.map((product, index) => (
               <motion.div 
                 layout
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
+                transition={{ delay: index * 0.03 }}
                 key={product.id} 
-                className={`bg-white p-6 md:p-8 rounded-[40px] shadow-2xl transition-all duration-500 border neumorphic-shadow ${editingId === product.id ? 'border-primary/40 shadow-primary/10 ring-[12px] ring-primary/5' : 'border-slate-100 shadow-slate-200/40 hover:border-slate-200 hover:-translate-y-1'} flex flex-col md:flex-row gap-8 md:gap-12`}
+                className={`bg-white h-[70px] rounded-[10px] shadow-sm transition-all duration-300 border flex items-center px-3 gap-4 ${editingId === product.id ? 'border-primary/40 ring-4 ring-primary/5' : 'border-slate-100 hover:border-slate-200'}`}
               >
-                <div className="relative group shrink-0 self-center md:self-start">
-                  <div className="w-48 h-48 bg-slate-50 rounded-[32px] flex items-center justify-center overflow-hidden border border-slate-100 shadow-inner group-hover:scale-105 transition-transform duration-500">
+                <div className="relative shrink-0">
+                  <div className="w-14 h-14 bg-slate-50 rounded-[8px] flex items-center justify-center overflow-hidden border border-slate-100 shadow-inner">
                     {(editData.imagem && editingId === product.id) || product.imagem ? (
                       <img 
                         src={editingId === product.id ? (editData.imagem || product.imagem) : product.imagem} 
                         alt={product.nome} 
-                        className="w-full h-full object-contain p-6 bg-white transition-transform duration-700 group-hover:scale-110" 
+                        className="w-full h-full object-contain p-1 bg-white" 
                         referrerPolicy="no-referrer"
                       />
                     ) : (
-                      <ImageIcon className="text-slate-200" size={64} strokeWidth={1} />
+                      <ImageIcon className="text-slate-200" size={24} strokeWidth={1} />
                     )}
-                    <AnimatePresence>
-                      {isUploading && editingId === product.id && (
-                        <motion.div 
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          className="absolute inset-0 bg-white/90 backdrop-blur-sm flex items-center justify-center flex-col gap-4"
-                        >
-                          <Loader2 className="animate-spin text-primary" size={32} strokeWidth={3} />
-                          <span className="text-[10px] font-black text-primary uppercase tracking-[0.3em]">Enviando...</span>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
                   </div>
                   {editingId === product.id && (
-                    <motion.button 
-                      initial={{ scale: 0, rotate: -45 }}
-                      animate={{ scale: 1, rotate: 0 }}
+                    <button 
                       onClick={() => fileInputRef.current?.click()}
-                      className="absolute -bottom-2 -right-2 bg-primary text-white p-4 rounded-2xl shadow-2xl shadow-primary/40 hover:scale-110 transition-transform active:scale-95 border-4 border-white group/btn"
-                      title="Upload para Cloudinary"
+                      className="absolute -bottom-1 -right-1 bg-primary text-white p-1 rounded-[6px] shadow-lg hover:scale-110 transition-transform border-2 border-white"
                     >
-                      <Upload size={20} strokeWidth={3} className="group-hover/btn:animate-bounce" />
-                    </motion.button>
+                      <Upload size={10} strokeWidth={3} />
+                    </button>
                   )}
                 </div>
                 
-                <div className="flex-1 flex flex-col justify-between py-2 space-y-8">
-                  <div className="space-y-6">
-                    <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
-                      <div className="space-y-3">
-                        <h3 className="font-black text-2xl text-slate-900 leading-none tracking-tight uppercase">
-                          {product.nome}
-                        </h3>
-                        <div className="flex flex-wrap items-center gap-4">
-                          <span className="text-[9px] font-black bg-slate-50 text-slate-400 px-3 py-1.5 rounded-lg border border-slate-100 uppercase tracking-[0.2em] shadow-sm">SKU: {product.sku}</span>
-                          <span className="w-1.5 h-1.5 bg-slate-200 rounded-full" />
-                          <span className="text-xl font-black text-primary tracking-tighter">R$ {(product.preco_unitario || 0).toFixed(2)}</span>
-                        </div>
-                      </div>
-                      <div className="flex flex-wrap gap-3">
-                        {product.categoria_pendente && (
-                          <span className="text-[9px] uppercase tracking-[0.2em] bg-amber-50 text-amber-600 px-4 py-2 rounded-full font-black border border-amber-100 shadow-xl shadow-amber-500/5 flex items-center gap-2">
-                            <Tag size={12} strokeWidth={3} /> Categoria Pendente
-                          </span>
-                        )}
-                        {product.imagem_pendente && (
-                          <span className="text-[9px] uppercase tracking-[0.2em] bg-rose-50 text-rose-600 px-4 py-2 rounded-full font-black border border-rose-100 shadow-xl shadow-rose-500/5 flex items-center gap-2">
-                            <ImageIcon size={12} strokeWidth={3} /> Imagem Pendente
-                          </span>
-                        )}
-                      </div>
+                <div className="flex-1 flex items-center justify-between gap-4 min-w-0">
+                  <div className="flex flex-col justify-center min-w-0">
+                    <h3 className="font-black text-[11px] text-slate-900 leading-tight tracking-tight uppercase truncate">
+                      {product.nome}
+                    </h3>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">SKU: {product.sku}</span>
+                      <span className="text-[11px] font-black text-primary">R$ {(product.preco_unitario || 0).toFixed(2)}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <div className="hidden sm:flex gap-1">
+                      {product.categoria_pendente && (
+                        <span className="text-[8px] uppercase tracking-widest bg-amber-50 text-amber-600 px-[6px] py-[2px] rounded-[20px] font-black border border-amber-100 flex items-center gap-1">
+                          <Tag size={8} strokeWidth={3} /> CAT
+                        </span>
+                      )}
+                      {product.imagem_pendente && (
+                        <span className="text-[8px] uppercase tracking-widest bg-rose-50 text-rose-600 px-[6px] py-[2px] rounded-[20px] font-black border border-rose-100 flex items-center gap-1">
+                          <ImageIcon size={8} strokeWidth={3} /> IMG
+                        </span>
+                      )}
                     </div>
 
                     {editingId === product.id ? (
-                      <motion.div 
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-4"
-                      >
-                        <div className="space-y-3">
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] ml-4">Definir Categoria</label>
-                          <div className="relative group">
-                            <Tag className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-primary transition-colors" size={18} strokeWidth={2.5} />
-                            <select 
-                              className="w-full pl-14 pr-10 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-8 focus:ring-primary/5 focus:border-primary/40 transition-all appearance-none font-black uppercase tracking-[0.2em] text-[10px] text-slate-600 cursor-pointer shadow-inner"
-                              value={editData.category_id || ''}
-                              onChange={e => setEditData({...editData, category_id: e.target.value})}
-                            >
-                              <option value="">Selecionar Categoria</option>
-                              {categories.map(cat => (
-                                <option key={cat.id} value={cat.id}>{cat.nome}</option>
-                              ))}
-                            </select>
-                            <ChevronDown className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={18} />
-                          </div>
-                        </div>
-                        <div className="space-y-3">
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] ml-4">URL da Imagem</label>
-                          <div className="relative group">
-                            <LinkIcon className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-primary transition-colors" size={18} strokeWidth={2.5} />
-                            <input 
-                              type="text"
-                              className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-8 focus:ring-primary/5 focus:border-primary/40 transition-all font-bold text-slate-700 placeholder:text-slate-300 shadow-inner text-sm"
-                              placeholder="https://cloudinary.com/..."
-                              value={editData.imagem || ''}
-                              onChange={e => setEditData({...editData, imagem: e.target.value})}
-                            />
-                          </div>
-                        </div>
-                      </motion.div>
-                    ) : (
-                      <div className="flex flex-col lg:flex-row lg:items-center gap-8 text-sm text-slate-600 bg-slate-50/50 p-6 rounded-[32px] border border-slate-100 shadow-inner">
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm border border-slate-100 shrink-0">
-                            <Tag size={20} strokeWidth={2.5} className="text-primary" />
-                          </div>
-                          <div className="space-y-0.5">
-                            <p className="text-[9px] font-black text-slate-300 uppercase tracking-[0.3em]">Categoria</p>
-                            <span className="font-black text-slate-700 uppercase tracking-tight text-sm">{categories.find(c => c.id === product.category_id)?.nome || <span className="italic text-slate-300 font-medium">Não definida</span>}</span>
-                          </div>
-                        </div>
-                        {product.descricao && (
-                          <div className="flex items-center gap-4 lg:border-l lg:border-slate-200 lg:pl-8">
-                            <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm border border-slate-100 shrink-0">
-                              <Sparkles size={20} strokeWidth={2.5} className="text-amber-500" />
-                            </div>
-                            <div className="space-y-0.5">
-                              <p className="text-[9px] font-black text-slate-300 uppercase tracking-[0.3em]">Descrição</p>
-                              <span className="text-xs text-slate-500 font-bold line-clamp-1">{product.descricao}</span>
-                            </div>
-                          </div>
-                        )}
+                      <div className="flex items-center gap-2">
+                        <select 
+                          className="px-2 py-1 bg-slate-50 border border-slate-100 rounded-[6px] outline-none font-black uppercase tracking-widest text-[8px] text-slate-600 cursor-pointer"
+                          value={editData.category_id || ''}
+                          onChange={e => setEditData({...editData, category_id: e.target.value})}
+                        >
+                          <option value="">Categoria</option>
+                          {categories.map(cat => (
+                            <option key={cat.id} value={cat.id}>{cat.nome}</option>
+                          ))}
+                        </select>
+                        <button 
+                          onClick={() => handleSave(product.id)}
+                          className="px-[10px] py-[5px] bg-emerald-500 text-white rounded-[6px] shadow-lg hover:bg-emerald-600 transition-all active:scale-95 flex items-center justify-center"
+                        >
+                          <Check size={14} strokeWidth={3} />
+                        </button>
+                        <button 
+                          onClick={() => setEditingId(null)}
+                          className="px-[10px] py-[5px] bg-slate-100 text-slate-600 rounded-[6px] hover:bg-slate-200 transition-all flex items-center justify-center"
+                        >
+                          <X size={14} strokeWidth={3} />
+                        </button>
                       </div>
+                    ) : (
+                      <button 
+                        onClick={() => {
+                          setEditingId(product.id);
+                          setEditData({ category_id: product.category_id, imagem: product.imagem });
+                        }}
+                        className="px-[10px] py-[5px] text-primary bg-primary/5 hover:bg-primary hover:text-white rounded-[6px] transition-all flex items-center gap-2 font-black text-[9px] uppercase tracking-widest active:scale-95"
+                      >
+                        <Edit size={10} strokeWidth={3} /> Revisar
+                      </button>
                     )}
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row justify-end gap-4 pt-6 border-t border-slate-50">
-                    <AnimatePresence mode="wait">
-                      {editingId === product.id ? (
-                        <motion.div 
-                          key="editing-actions"
-                          initial={{ opacity: 0, x: 20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: -20 }}
-                          className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto"
-                        >
-                          <button 
-                            onClick={() => setEditingId(null)}
-                            className="flex-1 sm:flex-none px-8 py-4 bg-slate-100 text-slate-600 rounded-full font-black text-[10px] uppercase tracking-[0.3em] hover:bg-slate-200 transition-all active:scale-95 shadow-sm"
-                          >
-                            Cancelar
-                          </button>
-                          <button 
-                            onClick={() => handleSave(product.id)}
-                            className="flex-1 sm:flex-none px-8 py-4 bg-emerald-500 text-white rounded-full font-black text-[10px] uppercase tracking-[0.3em] hover:bg-emerald-600 shadow-2xl shadow-emerald-500/40 transition-all flex items-center justify-center gap-3 active:scale-95"
-                          >
-                            <Check size={18} strokeWidth={3} /> Salvar Alterações
-                          </button>
-                        </motion.div>
-                      ) : (
-                        <motion.button 
-                          key="review-action"
-                          initial={{ opacity: 0, x: 20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: -20 }}
-                          onClick={() => {
-                            setEditingId(product.id);
-                            setEditData({ category_id: product.category_id, imagem: product.imagem });
-                          }}
-                          className="w-full sm:w-auto px-10 py-5 text-primary bg-primary/5 hover:bg-primary hover:text-white rounded-full transition-all flex items-center justify-center gap-4 font-black text-[10px] uppercase tracking-[0.3em] active:scale-95 shadow-sm hover:shadow-2xl hover:shadow-primary/40 group"
-                        >
-                          <Edit size={20} strokeWidth={3} className="group-hover:rotate-12 transition-transform" /> Revisar Item
-                        </motion.button>
-                      )}
-                    </AnimatePresence>
                   </div>
                 </div>
               </motion.div>
             ))}
           </div>
+
         )}
       </AnimatePresence>
 

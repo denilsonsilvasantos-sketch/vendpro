@@ -150,7 +150,7 @@ export default function Produtos({ companyId, onRefresh }: { companyId: string |
             </div>
           </motion.div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 md:gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2">
             {filteredProducts.map(product => {
               const isEsgotado = product.status_estoque === 'esgotado';
               const brand = brands.find(b => b.id === product.brand_id);
@@ -162,7 +162,7 @@ export default function Produtos({ companyId, onRefresh }: { companyId: string |
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   key={product.id} 
-                  className={`bg-white rounded-[32px] overflow-hidden border transition-all duration-500 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1 group border-slate-100 flex flex-col relative neumorphic-shadow ${isEsgotado ? 'opacity-75' : ''}`}
+                  className={`bg-white rounded-[10px] overflow-hidden border transition-all duration-500 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1 group border-slate-100 flex flex-col relative neumorphic-shadow ${isEsgotado ? 'opacity-75' : ''}`}
                 >
                   <div 
                     className="aspect-square relative overflow-hidden bg-slate-50/30 cursor-zoom-in"
@@ -181,7 +181,7 @@ export default function Produtos({ companyId, onRefresh }: { companyId: string |
                     </div>
                   </div>
                   
-                  <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
+                  <div className="p-2 flex-1 flex flex-col justify-between space-y-3">
                     <div className="space-y-1.5">
                       <div className="flex items-center gap-1.5">
                         <span className="text-[7px] font-black text-primary uppercase tracking-wider bg-primary/5 px-1.5 py-0.5 rounded border border-primary/10">{brand?.name}</span>
@@ -199,9 +199,9 @@ export default function Produtos({ companyId, onRefresh }: { companyId: string |
                         <div className="space-y-0.5">
                           <p className="text-[7px] font-black text-slate-300 uppercase tracking-wider">Preço Unitário</p>
                           {!isEsgotado ? (
-                            <p className="text-lg font-black text-slate-900 tracking-tighter">R$ {product.preco_unitario.toFixed(2)}</p>
+                            <p className="text-[13px] font-black text-slate-900 tracking-tighter">R$ {product.preco_unitario.toFixed(2)}</p>
                           ) : (
-                            <p className="text-lg font-black text-slate-200 tracking-tighter">--</p>
+                            <p className="text-[13px] font-black text-slate-200 tracking-tighter">--</p>
                           )}
                         </div>
                         <div className="flex gap-1">

@@ -12,129 +12,195 @@ export default function Dashboard({ companyId, role, user, banners }: { companyI
   const [loading, setLoading] = useState(true);
   const [newOrder, setNewOrder] = useState<any>(null);
 
+  const [recentOrders, setRecentOrders] = useState<any[]>([]);
+
   useEffect(() => {
     async function fetchStats() {
       if (!supabase || companyId === null) return;
+      
       let releasedBrandIds: string[] = [];
+      
+      // If seller, fetch released brands from DB to be sure it's fresh
       if (role === 'seller' && user?.id) {
-        const { data: sellerData } = await supabase.from('sellers').select('marcas_liberadas').eq('id', user.id).maybeSingle();
+        const { data: sellerData } = await supabase
+          .from('sellers')
+          .select('marcas_liberadas')
+          .eq('id', user.id)
+          .maybeSingle();
+        
         releasedBrandIds = sellerData?.marcas_liberadas || user.marcas_liberadas || [];
       }
+      
+      // Fetch counts
       let productQuery = supabase.from('products').select('*', { count: 'exact', head: true }).eq('company_id', companyId);
-      if (role === 'seller' && releasedBrandIds.length > 0) productQuery = productQuery.in('brand_id', releasedBrandIds);
+      
+      if (role === 'seller' && releasedBrandIds.length > 0) {
+        productQuery = productQuery.in('brand_id', releasedBrandIds);
+      }
+      
       const { count: productCount } = await productQuery;
+      
+      // Clientes estão vinculados a vendedores, que estão vinculados a empresas
       let sellerIds: string[] = [];
-      if (role === 'seller' && user?.id) { sellerIds = [user.id]; }
-      else { const { data: sellers } = await supabase.from('sellers').select('id').eq('company_id', companyId); sellerIds = sellers?.map(s => s.id) || []; }
-      const { count: customerCount } = sellerIds.length > 0 ? await supabase.from('customers').select('*', { count: 'exact', head: true }).in('seller_id', sellerIds) : { count: 0 };
+      if (role === 'seller' && user?.id) {
+        sellerIds = [user.id];
+      } else {
+        const { data: sellers } = await supabase.from('sellers').select('id').eq('company_id', companyId);
+        sellerIds = sellers?.map(s => s.id) || [];
+      }
+      
+      const { count: customerCount } = sellerIds.length > 0 
+        ? await supabase.from('customers').select('*', { count: 'exact', head: true }).in('seller_id', sellerIds)
+        : { count: 0 };
+
       let orderQuery = supabase.from('orders').select('*', { count: 'exact', head: true }).eq('company_id', companyId);
-      if (role === 'seller' && user?.id) orderQuery = orderQuery.eq('seller_id', user.id);
+      if (role === 'seller' && user?.id) {
+        orderQuery = orderQuery.eq('seller_id', user.id);
+      }
       const { count: orderCount } = await orderQuery;
+      
+      // Fetch total revenue
       let revenueQuery = supabase.from('orders').select('id, total').eq('company_id', companyId);
-      if (role === 'seller' && user?.id) revenueQuery = revenueQuery.eq('seller_id', user.id);
+      if (role === 'seller' && user?.id) {
+        revenueQuery = revenueQuery.eq('seller_id', user.id);
+      }
       const { data: orders } = await revenueQuery;
       const totalRevenue = orders?.reduce((acc, order) => acc + (order.total || 0), 0) || 0;
-      const orderIds = orders?.map(o => o.id) || [];
-      let orderItemsQuery = supabase.from('order_items').select('subtotal, product:product_id (brand:brand_id (name))');
-      if (orderIds.length > 0) orderItemsQuery = orderItemsQuery.in('order_id', orderIds);
-      else orderItemsQuery = orderItemsQuery.eq('order_id', 'none');
-      const { data: orderItems } = await orderItemsQuery;
-      const brandMap: Record<string, number> = {};
-      orderItems?.forEach((item: any) => { const n = item.product?.brand?.name || 'Sem Marca'; brandMap[n] = (brandMap[n] || 0) + (item.subtotal || 0); });
-      setStats({ products: productCount || 0, customers: customerCount || 0, orders: orderCount || 0, revenue: totalRevenue });
-      setBrandRevenue(Object.entries(brandMap).map(([name, value]) => ({ name, value })));
+
+      // Fetch recent orders
+      let recentOrdersQuery = supabase
+        .from('orders')
+        .select(`
+          id,
+          total,
+          status,
+          created_at,
+          customer:customer_id (nome),
+          seller:seller_id (nome)
+        `)
+        .eq('company_id', companyId)
+        .order('created_at', { ascending: false })
+        .limit(10);
+      
+      if (role === 'seller' && user?.id) {
+        recentOrdersQuery = recentOrdersQuery.eq('seller_id', user.id);
+      }
+      
+      const { data: recentOrdersData } = await recentOrdersQuery;
+      setRecentOrders(recentOrdersData || []);
+
+      setStats({
+        products: productCount || 0,
+        customers: customerCount || 0,
+        orders: orderCount || 0,
+        revenue: totalRevenue
+      });
       setLoading(false);
     }
     fetchStats();
+
     if (!supabase || !companyId) return;
-    const channel = supabase.channel('new-orders')
+    const channel = supabase
+      .channel('new-orders')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders', filter: `company_id=eq.${companyId}` }, (payload) => {
-        if (role !== 'seller' || payload.new.seller_id === user?.id) { setNewOrder(payload.new); setTimeout(() => setNewOrder(null), 5000); }
-      }).subscribe();
-    return () => { if (supabase && channel) supabase.removeChannel(channel); };
+        // Only notify if it's for this seller or if company
+        if (role !== 'seller' || payload.new.seller_id === user?.id) {
+          setNewOrder(payload.new);
+          setTimeout(() => setNewOrder(null), 5000); // Hide after 5s
+        }
+      })
+      .subscribe();
+
+    return () => {
+      if (supabase && channel) {
+        supabase.removeChannel(channel);
+      }
+    };
   }, [companyId, role, user?.id]);
 
+  const data = [
+    { name: 'Produtos', value: stats.products },
+    { name: 'Clientes', value: stats.customers },
+    { name: 'Pedidos', value: stats.orders },
+  ];
+
   if (loading) return (
-    <div className="p-6 flex items-center justify-center min-h-[300px]">
-      <TrendingUp className="animate-spin text-primary" size={24} />
+    <div className="p-8 flex flex-col items-center justify-center min-h-[400px] gap-6 animate-pulse">
+      <div className="w-16 h-16 bg-primary/10 rounded-[10px] flex items-center justify-center text-primary border border-primary/20">
+        <TrendingUp className="animate-spin" size={32} />
+      </div>
+      <p className="text-slate-500 font-black uppercase tracking-[2px] text-[10px]">Carregando dados...</p>
     </div>
   );
 
   return (
-    <div className="p-4 md:p-6 space-y-6">
-      {banners && banners.length > 0 && <Banner banners={banners} />}
-
-      {newOrder && (
-        <div className="fixed top-16 right-4 bg-primary text-white px-4 py-3 rounded-xl shadow-xl z-50 text-xs font-bold animate-in fade-in slide-in-from-right-4">
-          🛍 Novo pedido recebido!
+    <div className="p-[12px_16px] max-w-7xl mx-auto space-y-6">
+      {banners && banners.length > 0 && (
+        <div className="mb-6">
+          <Banner banners={banners} />
         </div>
       )}
-
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
-          <TrendingUp size={16} strokeWidth={2} />
+      {newOrder && (
+        <div className="fixed top-24 right-8 bg-primary text-white p-6 rounded-[14px] shadow-2xl z-50 font-black uppercase tracking-[2px] text-[10px] animate-in fade-in slide-in-from-right-4 border border-white/20">
+          Novo pedido recebido! #{newOrder.id}
         </div>
-        <div>
-          <h1 className="text-base font-black text-slate-900 uppercase tracking-tight">Dashboard</h1>
-          <p className="text-xs text-slate-400">Visão geral do seu negócio</p>
-        </div>
+      )}
+      
+      <div className="mb-6">
+        <h1 className="text-2xl font-black text-slate-900 tracking-tight uppercase">Dashboard</h1>
+        <p className="text-slate-500 font-black uppercase tracking-[2px] text-[8px] mt-0.5">Visão geral em tempo real</p>
       </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      
+      <div className="grid grid-cols-4 gap-2">
         {[
-          { title: 'Produtos', value: stats.products, icon: <Package size={14} />, color: 'text-primary' },
-          { title: 'Clientes', value: stats.customers, icon: <Users size={14} />, color: 'text-blue-500' },
-          { title: 'Pedidos', value: stats.orders, icon: <ShoppingCart size={14} />, color: 'text-amber-500' },
-          { title: 'Faturamento', value: `R$ ${stats.revenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, icon: <TrendingUp size={14} />, color: 'text-emerald-500' },
-        ].map(s => (
-          <div key={s.title} className="bg-white rounded-xl border border-slate-100 shadow-sm p-3">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{s.title}</span>
-              <span className={s.color}>{s.icon}</span>
-            </div>
-            <div className="text-lg font-black text-slate-900">{s.value}</div>
+          { label: 'Produtos', value: stats.products },
+          { label: 'Clientes', value: stats.customers },
+          { label: 'Pedidos', value: stats.orders },
+          { label: 'Receita', value: `R$ ${stats.revenue.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}` }
+        ].map((stat, i) => (
+          <div key={i} className="bg-white rounded-[10px] border border-slate-100 p-2.5 h-[70px] flex flex-col justify-center shadow-sm">
+            <span className="text-slate-400 font-black uppercase text-[9px] tracking-widest leading-none mb-1">{stat.label}</span>
+            <div className="text-[18px] font-black text-slate-900 tracking-tight leading-none">{stat.value}</div>
           </div>
         ))}
       </div>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
-          <h2 className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-4">Visão Geral</h2>
-          <div className="h-48">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={[{ name: 'Produtos', value: stats.products }, { name: 'Clientes', value: stats.customers }, { name: 'Pedidos', value: stats.orders }]}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 9, fontWeight: 700 }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 9, fontWeight: 700 }} />
-                <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '10px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', padding: '8px 12px', fontSize: '11px' }} />
-                <Bar dataKey="value" radius={[6, 6, 0, 0]} barSize={32}>
-                  {['#ff3ea5', '#8b3ea9', '#e250c5'].map((fill, i) => <Cell key={i} fill={fill} />)}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+      <div className="bg-white rounded-[14px] border border-slate-100 shadow-sm overflow-hidden">
+        <div className="p-4 border-bottom border-slate-50 flex justify-between items-center">
+          <h2 className="text-[10px] font-black text-slate-900 uppercase tracking-[2px]">Pedidos Recentes</h2>
+          <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Últimos 10</span>
         </div>
-
-        <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
-          <h2 className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-4">Faturamento por Marca</h2>
-          <div className="h-48">
-            {brandRevenue.length === 0 ? (
-              <div className="h-full flex items-center justify-center text-slate-300 text-xs">Nenhum pedido ainda</div>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={brandRevenue} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
-                  <XAxis type="number" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 9, fontWeight: 700 }} />
-                  <YAxis dataKey="name" type="category" width={90} axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 9, fontWeight: 700 }} />
-                  <Tooltip cursor={{ fill: '#f8fafc' }} formatter={(v: any) => `R$ ${Number(v).toFixed(2)}`} contentStyle={{ borderRadius: '10px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', padding: '8px 12px', fontSize: '11px' }} />
-                  <Bar dataKey="value" fill="#ff3ea5" radius={[0, 6, 6, 0]} barSize={18} />
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </div>
+        <div className="divide-y divide-slate-50">
+          {recentOrders.length > 0 ? (
+            recentOrders.map((order) => (
+              <div key={order.id} className="h-[44px] px-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                <div className="flex flex-col">
+                  <span className="text-[11px] font-black text-slate-900 truncate max-w-[150px]">
+                    {order.customer?.nome || 'Cliente Final'}
+                  </span>
+                  <span className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">
+                    {order.seller?.nome || 'Venda Direta'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest ${
+                    order.status === 'pago' ? 'bg-emerald-100 text-emerald-600' : 
+                    order.status === 'pendente' ? 'bg-amber-100 text-amber-600' : 
+                    'bg-slate-100 text-slate-600'
+                  }`}>
+                    {order.status}
+                  </span>
+                  <span className="text-[11px] font-black text-slate-900">
+                    R$ {order.total?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="p-8 text-center">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nenhum pedido encontrado</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

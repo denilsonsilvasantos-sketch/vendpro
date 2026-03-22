@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { BannerData, TopBarMessage } from '../types';
 import { getBanners, saveBanners, getTopBarMessages, saveTopBarMessages } from '../services/bannerService';
-import { Plus, Trash2, Save, Layout, Image as ImageIcon, Link as LinkIcon, ShoppingBag, Loader2, Megaphone } from 'lucide-react';
+import { Plus, Trash2, Save, MoveUp, MoveDown, Layout, Type, Image as ImageIcon, Link as LinkIcon, ShoppingBag, Sparkles, Loader2, ChevronRight, Palette, Megaphone } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function BannerManager({ companyId }: { companyId: string }) {
@@ -12,180 +12,398 @@ export default function BannerManager({ companyId }: { companyId: string }) {
 
   useEffect(() => {
     async function load() {
-      const [b, t] = await Promise.all([getBanners(companyId), getTopBarMessages(companyId)]);
-      setBanners(b); setTopBarMessages(t); setLoading(false);
+      const [b, t] = await Promise.all([
+        getBanners(companyId),
+        getTopBarMessages(companyId)
+      ]);
+      setBanners(b);
+      setTopBarMessages(t);
+      setLoading(false);
     }
     load();
   }, [companyId]);
 
-  const handleAddBanner = () => setBanners([...banners, { id: Math.random().toString(36).substr(2, 9), company_id: companyId, tag: '', title: '', sub: '', cta: '', className: 'bg-slate-900', imageUrl: '', visuals: [], order_index: banners.length }]);
-  const handleRemoveBanner = (id: string) => setBanners(banners.filter(b => b.id !== id));
-  const handleUpdateBanner = (id: string, updates: Partial<BannerData>) => setBanners(banners.map(b => b.id === id ? { ...b, ...updates } : b));
-  const handleAddTopBar = () => setTopBarMessages([...topBarMessages, { id: Math.random().toString(36).substr(2, 9), company_id: companyId, text: 'Nova mensagem', order_index: topBarMessages.length }]);
-  const handleRemoveTopBar = (id: string) => setTopBarMessages(topBarMessages.filter(m => m.id !== id));
-  const handleUpdateTopBar = (id: string, text: string) => setTopBarMessages(topBarMessages.map(m => m.id === id ? { ...m, text } : m));
-  const handleSave = async () => {
-    setSaving(true);
-    try { await Promise.all([saveBanners(companyId, banners), saveTopBarMessages(companyId, topBarMessages)]); }
-    catch (err) { console.error('Erro ao salvar.'); }
-    finally { setSaving(false); }
+  const handleAddBanner = () => {
+    const newBanner: BannerData = {
+      id: Math.random().toString(36).substr(2, 9),
+      company_id: companyId,
+      tag: '',
+      title: '',
+      sub: '',
+      cta: '',
+      className: 'bg-slate-900',
+      imageUrl: '',
+      visuals: [],
+      order_index: banners.length
+    };
+    setBanners([...banners, newBanner]);
   };
 
-  if (loading) return (
-    <div className="p-6 flex items-center justify-center min-h-[300px]">
-      <Loader2 className="animate-spin text-primary" size={24} />
-    </div>
-  );
+  const handleRemoveBanner = (id: string) => {
+    setBanners(banners.filter(b => b.id !== id));
+  };
+
+  const handleUpdateBanner = (id: string, updates: Partial<BannerData>) => {
+    setBanners(banners.map(b => b.id === id ? { ...b, ...updates } : b));
+  };
+
+  const handleAddTopBar = () => {
+    const newMessage: TopBarMessage = {
+      id: Math.random().toString(36).substr(2, 9),
+      company_id: companyId,
+      text: 'Nova mensagem do Top Bar',
+      order_index: topBarMessages.length
+    };
+    setTopBarMessages([...topBarMessages, newMessage]);
+  };
+
+  const handleRemoveTopBar = (id: string) => {
+    setTopBarMessages(topBarMessages.filter(m => m.id !== id));
+  };
+
+  const handleUpdateTopBar = (id: string, text: string) => {
+    setTopBarMessages(topBarMessages.map(m => m.id === id ? { ...m, text } : m));
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await Promise.all([
+        saveBanners(companyId, banners),
+        saveTopBarMessages(companyId, topBarMessages)
+      ]);
+      console.log('Configurações salvas com sucesso!');
+    } catch (err) {
+      console.error('Erro ao salvar configurações.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="p-8 flex flex-col items-center justify-center min-h-[400px] gap-6 animate-pulse">
+        <div className="w-16 h-16 bg-primary/5 rounded-[24px] flex items-center justify-center text-primary border border-primary/10 shadow-inner">
+          <Loader2 className="animate-spin" size={32} />
+        </div>
+        <p className="text-slate-500 font-black uppercase tracking-widest text-[10px]">Carregando personalização...</p>
+      </div>
+    );
+  }
 
   return (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="p-4 md:p-6 space-y-6">
-
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
-            <Layout size={16} strokeWidth={2} />
-          </div>
-          <div>
-            <h1 className="text-base font-black text-slate-900 uppercase tracking-tight">Personalização</h1>
-            <p className="text-xs text-slate-400">Banners e mensagens do catálogo</p>
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="p-4 md:p-8 space-y-20 pb-40"
+    >
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
+        <div className="space-y-2">
+          <div className="flex items-center gap-6">
+            <div className="w-16 h-16 bg-primary/10 rounded-[24px] flex items-center justify-center text-primary border border-primary/20 shadow-inner">
+              <Palette size={32} strokeWidth={2} />
+            </div>
+            <div>
+              <h1 className="text-4xl font-black text-slate-900 tracking-tight uppercase">Personalização</h1>
+              <p className="text-slate-500 font-medium text-lg">Gerencie a identidade visual e os destaques do seu catálogo</p>
+            </div>
           </div>
         </div>
-        <button onClick={handleSave} disabled={saving} className="bg-primary text-white px-4 py-2 rounded-lg font-bold text-xs flex items-center gap-2 shadow-md shadow-primary/20 hover:-translate-y-0.5 transition-all disabled:opacity-50">
-          {saving ? <Loader2 className="animate-spin" size={14} /> : <Save size={14} />}
-          {saving ? 'Salvando...' : 'Salvar'}
+        <button 
+          onClick={handleSave}
+          disabled={saving}
+          className="bg-primary text-white px-10 py-6 rounded-[32px] font-black uppercase tracking-widest text-xs flex items-center gap-4 shadow-2xl shadow-primary/40 hover:-translate-y-1 active:translate-y-0 transition-all w-full md:w-auto justify-center group disabled:opacity-50"
+        >
+          {saving ? <Loader2 className="animate-spin" size={24} strokeWidth={3} /> : <Save size={24} strokeWidth={3} />}
+          {saving ? 'Salvando...' : 'Salvar Alterações'}
         </button>
       </div>
 
-      {/* Top Bar */}
-      <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50">
-          <div className="flex items-center gap-2">
-            <Megaphone size={14} className="text-amber-500" />
-            <span className="text-xs font-black text-slate-700 uppercase tracking-wide">Mensagens do Top Bar</span>
+      {/* Top Bar Section */}
+      <section className="space-y-10">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-8">
+          <div className="flex items-center gap-6">
+            <div className="w-16 h-16 bg-amber-50 rounded-[28px] flex items-center justify-center text-amber-500 border border-amber-100 shadow-inner">
+              <Megaphone size={32} strokeWidth={2} />
+            </div>
+            <div>
+              <h2 className="text-3xl font-black text-slate-900 tracking-tight uppercase">Mensagens do Top Bar</h2>
+              <p className="text-[11px] text-slate-400 font-black uppercase tracking-[0.3em]">Avisos e promoções no topo do catálogo</p>
+            </div>
           </div>
-          <button onClick={handleAddTopBar} className="text-primary text-xs font-bold flex items-center gap-1 hover:opacity-70 transition-opacity">
-            <Plus size={12} strokeWidth={3} /> Adicionar
+          <button 
+            onClick={handleAddTopBar}
+            className="flex items-center gap-4 px-8 py-4 bg-white text-slate-600 rounded-[24px] font-black text-[11px] uppercase tracking-[0.3em] hover:bg-slate-50 transition-all border border-slate-100 shadow-sm active:scale-95"
+          >
+            <Plus size={20} strokeWidth={3} />
+            Adicionar Mensagem
           </button>
         </div>
-        <div className="divide-y divide-slate-50">
+
+        <div className="grid grid-cols-1 gap-6">
           <AnimatePresence mode="popLayout">
-            {topBarMessages.length === 0 ? (
-              <div className="px-4 py-6 text-center text-xs text-slate-300 font-medium">Nenhuma mensagem configurada</div>
-            ) : topBarMessages.map((msg, index) => (
-              <motion.div layout initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, scale: 0.98 }} key={msg.id} className="flex items-center gap-3 px-4 py-2.5">
-                <span className="text-[9px] font-black text-slate-300 w-4">{index + 1}</span>
-                <input
-                  type="text" value={msg.text}
-                  onChange={e => handleUpdateTopBar(msg.id, e.target.value)}
-                  className="flex-1 bg-transparent border-none outline-none text-xs font-medium text-slate-700 placeholder:text-slate-300"
-                  placeholder="Digite a mensagem..."
-                />
-                <button onClick={() => handleRemoveTopBar(msg.id)} className="w-6 h-6 flex items-center justify-center text-slate-200 hover:text-rose-500 rounded-md transition-all">
-                  <Trash2 size={12} strokeWidth={2.5} />
+            {topBarMessages.map((msg, index) => (
+              <motion.div 
+                layout
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                key={msg.id} 
+                className="flex items-center gap-8 bg-white p-8 rounded-[40px] border border-slate-100 shadow-2xl shadow-slate-200/30 group hover:border-primary/40 transition-all"
+              >
+                <div className="w-14 h-14 bg-slate-50 rounded-[20px] flex items-center justify-center text-sm font-black text-slate-300 group-hover:bg-primary/10 group-hover:text-primary transition-all shrink-0 shadow-inner">
+                  {index + 1}
+                </div>
+                <div className="flex-1 relative">
+                  <input 
+                    type="text" 
+                    value={msg.text}
+                    onChange={(e) => handleUpdateTopBar(msg.id, e.target.value)}
+                    className="w-full bg-transparent border-none outline-none text-lg font-black text-slate-700 placeholder:text-slate-300 tracking-tight"
+                    placeholder="Digite a mensagem que aparecerá no topo..."
+                  />
+                  <div className="absolute -bottom-2 left-0 w-0 h-1 bg-primary group-hover:w-full transition-all duration-700 rounded-full opacity-20" />
+                </div>
+                <button 
+                  onClick={() => handleRemoveTopBar(msg.id)}
+                  className="w-14 h-14 flex items-center justify-center text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-[20px] transition-all active:scale-90 shadow-sm hover:shadow-xl"
+                >
+                  <Trash2 size={24} strokeWidth={2.5} />
                 </button>
               </motion.div>
             ))}
           </AnimatePresence>
+          {topBarMessages.length === 0 && (
+            <div className="text-center py-32 bg-slate-50/50 rounded-[56px] border-2 border-dashed border-slate-100 shadow-inner">
+              <p className="text-slate-400 font-black uppercase tracking-[0.3em] text-[11px]">Nenhuma mensagem configurada</p>
+            </div>
+          )}
         </div>
-      </div>
+      </section>
 
-      {/* Banners */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Banners Rotativos</span>
-          <button onClick={handleAddBanner} className="text-primary text-xs font-bold flex items-center gap-1 hover:opacity-70 transition-opacity">
-            <Plus size={12} strokeWidth={3} /> Novo Banner
+      {/* Banners Section */}
+      <section className="space-y-12">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-8">
+          <div className="flex items-center gap-6">
+            <div className="w-16 h-16 bg-primary/5 rounded-[28px] flex items-center justify-center text-primary border border-primary/10 shadow-inner">
+              <Layout size={32} strokeWidth={2} />
+            </div>
+            <div>
+              <h2 className="text-3xl font-black text-slate-900 tracking-tight uppercase">Banners Rotativos</h2>
+              <p className="text-[11px] text-slate-400 font-black uppercase tracking-[0.3em]">Destaques visuais principais do catálogo</p>
+            </div>
+          </div>
+          <button 
+            onClick={handleAddBanner}
+            className="flex items-center gap-4 px-10 py-5 bg-primary text-white rounded-[32px] font-black text-[11px] uppercase tracking-[0.3em] hover:bg-primary/90 transition-all shadow-2xl shadow-primary/30 active:scale-95"
+          >
+            <Plus size={20} strokeWidth={3} />
+            Adicionar Novo Banner
           </button>
         </div>
 
-        <AnimatePresence mode="popLayout">
-          {banners.map((banner, index) => (
-            <motion.div layout initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.98 }} key={banner.id} className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
-              {/* Banner preview strip */}
-              <div className={`h-10 flex items-center px-4 justify-between ${banner.className || 'bg-slate-800'}`}
-                style={banner.imageUrl ? { backgroundImage: `url(${banner.imageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}>
-                <span className="text-white text-xs font-bold truncate opacity-90">{banner.title || `Banner ${index + 1}`}</span>
-                <button onClick={() => handleRemoveBanner(banner.id)} className="bg-rose-500 text-white rounded-md px-2 py-0.5 text-[9px] font-bold hover:bg-rose-600 transition-colors">Remover</button>
-              </div>
+        <div className="grid grid-cols-1 gap-16">
+          <AnimatePresence mode="popLayout">
+            {banners.map((banner, index) => (
+              <motion.div 
+                layout
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                key={banner.id} 
+                className="bg-white rounded-[64px] p-12 border border-slate-100 shadow-2xl shadow-slate-200/60 space-y-12 relative overflow-hidden group"
+              >
+                <div className="absolute top-0 left-0 w-4 h-full bg-slate-50 group-hover:bg-primary transition-colors duration-700" />
+                
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-8 relative z-10">
+                  <div className="flex items-center gap-6">
+                    <div className="w-16 h-16 rounded-[24px] bg-slate-900 text-white flex items-center justify-center font-black text-2xl shadow-2xl shadow-slate-900/40">
+                      {index + 1}
+                    </div>
+                    <div>
+                      <h3 className="font-black text-slate-900 tracking-tight uppercase text-lg">Configurações do Banner</h3>
+                      <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.3em]">ID: {banner.id}</p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => handleRemoveBanner(banner.id)}
+                    className="flex items-center gap-4 px-8 py-4 text-rose-500 bg-rose-50/50 hover:bg-rose-500 hover:text-white rounded-[24px] text-[11px] font-black uppercase tracking-[0.3em] transition-all active:scale-95 shadow-sm hover:shadow-xl"
+                  >
+                    <Trash2 size={20} strokeWidth={3} />
+                    Remover Banner
+                  </button>
+                </div>
 
-              {/* Fields */}
-              <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div className="md:col-span-2">
-                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Imagem de Fundo (URL)</label>
-                  <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
-                    <ImageIcon size={12} className="text-slate-300 shrink-0" />
-                    <input type="text" value={banner.imageUrl || ''} onChange={e => handleUpdateBanner(banner.id, { imageUrl: e.target.value })} className="flex-1 bg-transparent border-none outline-none text-xs text-slate-600 placeholder:text-slate-300" placeholder="https://res.cloudinary.com/..." />
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
+                  <div className="space-y-10">
+                    <div className="space-y-4">
+                      <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em] ml-4">Link da Imagem de Fundo</label>
+                      <div className="flex items-center bg-slate-50 rounded-[32px] px-8 py-6 border border-slate-100 focus-within:border-primary/40 focus-within:ring-8 focus-within:ring-primary/5 transition-all shadow-inner">
+                        <ImageIcon size={24} strokeWidth={2} className="text-slate-300 mr-6" />
+                        <input 
+                          type="text" 
+                          value={banner.imageUrl || ''}
+                          onChange={(e) => handleUpdateBanner(banner.id, { imageUrl: e.target.value })}
+                          className="flex-1 bg-transparent border-none outline-none text-base font-bold text-slate-700 placeholder:text-slate-300"
+                          placeholder="https://res.cloudinary.com/..."
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                      <div className="space-y-4">
+                        <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em] ml-4">Tag (Texto acima)</label>
+                        <input 
+                          type="text" 
+                          value={banner.tag || ''}
+                          onChange={(e) => handleUpdateBanner(banner.id, { tag: e.target.value })}
+                          className="w-full bg-slate-50 border border-slate-100 rounded-[32px] px-8 py-6 text-base font-bold text-slate-700 outline-none focus:border-primary/40 focus:ring-8 focus:ring-primary/5 transition-all shadow-inner"
+                          placeholder="Ex: Coleção 2026"
+                        />
+                      </div>
+                      <div className="space-y-4">
+                        <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em] ml-4">Texto do Botão</label>
+                        <input 
+                          type="text" 
+                          value={banner.cta || ''}
+                          onChange={(e) => handleUpdateBanner(banner.id, { cta: e.target.value })}
+                          className="w-full bg-slate-50 border border-slate-100 rounded-[32px] px-8 py-6 text-base font-bold text-slate-700 outline-none focus:border-primary/40 focus:ring-8 focus:ring-primary/5 transition-all shadow-inner"
+                          placeholder="Ex: Ver Mais"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em] ml-4">Título (Use \n para quebrar linha)</label>
+                      <textarea 
+                        value={banner.title || ''}
+                        onChange={(e) => handleUpdateBanner(banner.id, { title: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-100 rounded-[40px] px-10 py-8 text-2xl font-black text-slate-900 outline-none focus:border-primary/40 focus:ring-8 focus:ring-primary/5 transition-all h-48 resize-none tracking-tight leading-tight shadow-inner"
+                        placeholder="Ex: Beleza que\nTransforma"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-10">
+                    <div className="space-y-4">
+                      <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em] ml-4">Subtítulo</label>
+                      <input 
+                        type="text" 
+                        value={banner.sub || ''}
+                        onChange={(e) => handleUpdateBanner(banner.id, { sub: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-100 rounded-[32px] px-8 py-6 text-base font-bold text-slate-700 outline-none focus:border-primary/40 focus:ring-8 focus:ring-primary/5 transition-all shadow-inner"
+                        placeholder="Ex: Descubra os melhores cosméticos..."
+                      />
+                    </div>
+
+                    <div className="space-y-4">
+                      <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em] ml-4">Link de Destino</label>
+                      <div className="flex items-center bg-slate-50 rounded-[32px] px-8 py-6 border border-slate-100 focus-within:border-primary/40 focus-within:ring-8 focus-within:ring-primary/5 transition-all shadow-inner">
+                        <LinkIcon size={24} strokeWidth={2} className="text-slate-300 mr-6" />
+                        <input 
+                          type="text" 
+                          value={banner.link || ''}
+                          onChange={(e) => handleUpdateBanner(banner.id, { link: e.target.value })}
+                          className="flex-1 bg-transparent border-none outline-none text-base font-bold text-slate-700 placeholder:text-slate-300"
+                          placeholder="https://..."
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em] ml-4">Estilo CSS / Cor de Fundo</label>
+                      <input 
+                        type="text" 
+                        value={banner.className || ''}
+                        onChange={(e) => handleUpdateBanner(banner.id, { className: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-100 rounded-[32px] px-8 py-6 text-[11px] font-mono font-black text-slate-400 outline-none focus:border-primary/40 focus:ring-8 focus:ring-primary/5 transition-all uppercase tracking-widest shadow-inner"
+                        placeholder="Ex: bg-slate-900"
+                      />
+                    </div>
+
+                    <div className="p-10 bg-slate-50/50 rounded-[56px] border border-slate-100 space-y-8 shadow-inner">
+                      <div className="flex items-center justify-between px-2">
+                        <div className="flex items-center gap-4">
+                          <ShoppingBag size={24} className="text-primary" />
+                          <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">Produtos em Destaque</label>
+                        </div>
+                        <button 
+                          onClick={() => {
+                            const newVisuals = [...(banner.visuals || []), { emoji: '🎁', name: 'Novo Item', price: 'R$ 0,00' }];
+                            handleUpdateBanner(banner.id, { visuals: newVisuals });
+                          }}
+                          className="text-[11px] font-black text-primary hover:text-primary/70 uppercase tracking-[0.3em] flex items-center gap-3 transition-all"
+                        >
+                          <Plus size={18} strokeWidth={3} /> Adicionar
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <AnimatePresence mode="popLayout">
+                          {(banner.visuals || []).map((v, vIndex) => (
+                            <motion.div 
+                              layout
+                              initial={{ opacity: 0, scale: 0.9 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              exit={{ opacity: 0, scale: 0.9 }}
+                              key={vIndex} 
+                              className="bg-white p-6 rounded-[32px] border border-slate-100 flex items-center gap-6 relative group/item shadow-sm hover:shadow-2xl hover:shadow-slate-200/60 transition-all"
+                            >
+                              <button 
+                                onClick={() => {
+                                  const newVisuals = (banner.visuals || []).filter((_, i) => i !== vIndex);
+                                  handleUpdateBanner(banner.id, { visuals: newVisuals });
+                                }}
+                                className="absolute -top-3 -right-3 w-10 h-10 bg-rose-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-all shadow-2xl active:scale-90 z-10"
+                              >
+                                <Trash2 size={18} strokeWidth={2.5} />
+                              </button>
+                              <input 
+                                type="text" 
+                                value={v.emoji}
+                                onChange={(e) => {
+                                  const newVisuals = [...(banner.visuals || [])];
+                                  newVisuals[vIndex].emoji = e.target.value;
+                                  handleUpdateBanner(banner.id, { visuals: newVisuals });
+                                }}
+                                className="w-16 h-16 bg-slate-50 rounded-[20px] text-center text-3xl outline-none border border-slate-100 shadow-inner shrink-0"
+                              />
+                              <div className="flex-1 min-w-0 space-y-2">
+                                <input 
+                                  type="text" 
+                                  value={v.name}
+                                  onChange={(e) => {
+                                    const newVisuals = [...(banner.visuals || [])];
+                                    newVisuals[vIndex].name = e.target.value;
+                                    handleUpdateBanner(banner.id, { visuals: newVisuals });
+                                  }}
+                                  className="w-full bg-transparent border-none text-[11px] font-black text-slate-900 outline-none truncate uppercase tracking-tight"
+                                  placeholder="Nome"
+                                />
+                                <input 
+                                  type="text" 
+                                  value={v.price}
+                                  onChange={(e) => {
+                                    const newVisuals = [...(banner.visuals || [])];
+                                    newVisuals[vIndex].price = e.target.value;
+                                    handleUpdateBanner(banner.id, { visuals: newVisuals });
+                                  }}
+                                  className="w-full bg-transparent border-none text-[11px] text-primary font-black outline-none tracking-tighter"
+                                  placeholder="Preço"
+                                />
+                              </div>
+                            </motion.div>
+                          ))}
+                        </AnimatePresence>
+                      </div>
+                    </div>
                   </div>
                 </div>
-
-                <div>
-                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Tag</label>
-                  <input type="text" value={banner.tag || ''} onChange={e => handleUpdateBanner(banner.id, { tag: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs outline-none focus:border-primary/40" placeholder="Ex: Novidades" />
-                </div>
-
-                <div>
-                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Botão CTA</label>
-                  <input type="text" value={banner.cta || ''} onChange={e => handleUpdateBanner(banner.id, { cta: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs outline-none focus:border-primary/40" placeholder="Ex: Ver Mais" />
-                </div>
-
-                <div>
-                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Título</label>
-                  <input type="text" value={banner.title || ''} onChange={e => handleUpdateBanner(banner.id, { title: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs outline-none focus:border-primary/40" placeholder="Ex: Beleza que Transforma" />
-                </div>
-
-                <div>
-                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Subtítulo</label>
-                  <input type="text" value={banner.sub || ''} onChange={e => handleUpdateBanner(banner.id, { sub: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs outline-none focus:border-primary/40" placeholder="Ex: Descubra os melhores..." />
-                </div>
-
-                <div>
-                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Link</label>
-                  <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
-                    <LinkIcon size={12} className="text-slate-300 shrink-0" />
-                    <input type="text" value={banner.link || ''} onChange={e => handleUpdateBanner(banner.id, { link: e.target.value })} className="flex-1 bg-transparent border-none outline-none text-xs text-slate-600 placeholder:text-slate-300" placeholder="https://..." />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Estilo CSS</label>
-                  <input type="text" value={banner.className || ''} onChange={e => handleUpdateBanner(banner.id, { className: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono outline-none focus:border-primary/40" placeholder="bg-slate-900" />
-                </div>
-
-                {/* Visuals */}
-                <div className="md:col-span-2">
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1"><ShoppingBag size={10} /> Produtos em Destaque</label>
-                    <button onClick={() => handleUpdateBanner(banner.id, { visuals: [...(banner.visuals || []), { emoji: '🎁', name: 'Novo Item', price: 'R$ 0,00' }] })} className="text-primary text-[9px] font-bold flex items-center gap-1 hover:opacity-70">
-                      <Plus size={10} strokeWidth={3} /> Adicionar
-                    </button>
-                  </div>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                    <AnimatePresence mode="popLayout">
-                      {(banner.visuals || []).map((v, vIndex) => (
-                        <motion.div layout initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} key={vIndex} className="bg-slate-50 border border-slate-200 rounded-lg p-2 flex items-center gap-2 relative group/v">
-                          <button onClick={() => handleUpdateBanner(banner.id, { visuals: (banner.visuals || []).filter((_, i) => i !== vIndex) })} className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-rose-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover/v:opacity-100 transition-all text-[8px]">×</button>
-                          <input type="text" value={v.emoji} onChange={e => { const nv = [...(banner.visuals || [])]; nv[vIndex].emoji = e.target.value; handleUpdateBanner(banner.id, { visuals: nv }); }} className="w-8 h-8 bg-white rounded-md text-center text-base outline-none border border-slate-200 shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <input type="text" value={v.name} onChange={e => { const nv = [...(banner.visuals || [])]; nv[vIndex].name = e.target.value; handleUpdateBanner(banner.id, { visuals: nv }); }} className="w-full bg-transparent border-none text-[9px] font-bold text-slate-700 outline-none truncate uppercase" placeholder="Nome" />
-                            <input type="text" value={v.price} onChange={e => { const nv = [...(banner.visuals || [])]; nv[vIndex].price = e.target.value; handleUpdateBanner(banner.id, { visuals: nv }); }} className="w-full bg-transparent border-none text-[9px] text-primary font-bold outline-none" placeholder="Preço" />
-                          </div>
-                        </motion.div>
-                      ))}
-                    </AnimatePresence>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
-
-        {banners.length === 0 && (
-          <div className="bg-white rounded-xl border-2 border-dashed border-slate-100 p-10 text-center">
-            <p className="text-xs text-slate-300 font-medium">Nenhum banner criado</p>
-          </div>
-        )}
-      </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </div>
+      </section>
     </motion.div>
   );
 }
+

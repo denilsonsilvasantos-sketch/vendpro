@@ -542,4 +542,3 @@ export default function Marcas({ companyId }: { companyId: string | null }) {
     </motion.div>
   );
 }
-

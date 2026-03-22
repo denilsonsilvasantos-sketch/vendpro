@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Política de Privacidade — VendPro</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,300&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --navy: #1B2A4A;
+    --gold: #B8952A;
+    --gold-light: #D4AF5A;
+    --text: #2C2C2C;
+    --muted: #6B6B6B;
+    --border: #E8E2D9;
+    --bg: #FAFAF7;
+    --white: #FFFFFF;
+  }
+
+  body {
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-weight: 300;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.8;
+    font-size: 16px;
+  }
+
+  header {
+    background: var(--navy);
+    padding: 48px 0 40px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  header::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 60px,
+      rgba(184,149,42,0.04) 60px,
+      rgba(184,149,42,0.04) 61px
+    );
+  }
+
+  .header-inner { position: relative; z-index: 1; }
+
+  .logo-text {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 32px;
+    font-weight: 600;
+    color: var(--white);
+    letter-spacing: 2px;
+  }
+
+  .logo-text span { color: var(--gold-light); }
+
+  .header-sub {
+    font-size: 11px;
+    letter-spacing: 5px;
+    color: rgba(255,255,255,0.45);
+    text-transform: uppercase;
+    margin-top: 6px;
+  }
+
+  .divider-gold {
+    width: 48px;
+    height: 2px;
+    background: var(--gold);
+    margin: 20px auto 0;
+  }
+
+  .page-title {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 28px;
+    font-weight: 400;
+    color: var(--white);
+    margin-top: 32px;
+    letter-spacing: 0.5px;
+  }
+
+  .page-date {
+    font-size: 12px;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-top: 8px;
+  }
+
+  .container {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 60px 32px 80px;
+  }
+
+  .notice-box {
+    background: var(--white);
+    border-left: 3px solid var(--gold);
+    padding: 20px 24px;
+    margin-bottom: 48px;
+    border-radius: 0 6px 6px 0;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+  }
+
+  .notice-box p {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.7;
+    font-style: italic;
+  }
+
+  .notice-box strong {
+    color: var(--navy);
+    font-style: normal;
+    font-weight: 600;
+  }
+
+  section {
+    margin-bottom: 44px;
+  }
+
+  h2 {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--navy);
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  h2::before {
+    content: '';
+    display: inline-block;
+    width: 4px;
+    height: 20px;
+    background: var(--gold);
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  p { margin-bottom: 12px; color: var(--text); }
+
+  ul {
+    padding-left: 0;
+    list-style: none;
+    margin-bottom: 12px;
+  }
+
+  ul li {
+    padding: 6px 0 6px 20px;
+    position: relative;
+    color: var(--text);
+    border-bottom: 1px solid var(--border);
+  }
+
+  ul li:last-child { border-bottom: none; }
+
+  ul li::before {
+    content: '—';
+    position: absolute;
+    left: 0;
+    color: var(--gold);
+    font-weight: 600;
+  }
+
+  .highlight {
+    background: #FFF9EE;
+    border: 1px solid #E8D5A0;
+    border-radius: 6px;
+    padding: 16px 20px;
+    margin: 16px 0;
+    font-size: 14px;
+    color: #5A4A1A;
+  }
+
+  .highlight strong { color: #3A2E0A; }
+
+  footer {
+    background: var(--navy);
+    text-align: center;
+    padding: 32px;
+    color: rgba(255,255,255,0.4);
+    font-size: 12px;
+    letter-spacing: 1px;
+  }
+
+  footer strong { color: var(--gold-light); }
+
+  @media (max-width: 600px) {
+    .container { padding: 40px 20px 60px; }
+    .page-title { font-size: 22px; }
+    h2 { font-size: 17px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo-text">Vend<span>Pro</span></div>
+    <div class="header-sub">Catálogos Inteligentes</div>
+    <div class="divider-gold"></div>
+    <div class="page-title">Política de Privacidade</div>
+    <div class="page-date">Última atualização: Janeiro de 2025</div>
+  </div>
+</header>
+
+<div class="container">
+
+  <div class="notice-box">
+    <p><strong>Aviso importante:</strong> O VendPro é uma plataforma exclusiva de visualização de catálogos e geração de orçamentos. Nenhuma venda é efetivada diretamente pelo aplicativo. O orçamento gerado representa uma intenção de compra e somente se torna um pedido formal após análise e confirmação pelo vendedor responsável junto à empresa representada.</p>
+  </div>
+
+  <section>
+    <h2>1. Sobre o VendPro</h2>
+    <p>O VendPro é um aplicativo web desenvolvido para facilitar a visualização de catálogos de produtos e a geração de orçamentos entre lojistas (clientes) e representantes comerciais (vendedores).</p>
+    <p>O sistema <strong>não realiza vendas diretas</strong> nem processa pagamentos. Todo orçamento gerado na plataforma é encaminhado ao vendedor responsável, que analisa a disponibilidade dos itens e formaliza o pedido junto à empresa distribuidora.</p>
+    <div class="highlight">
+      <strong>⚠ Disponibilidade de estoque:</strong> Os catálogos exibidos no VendPro são atualizados periodicamente e <strong>não refletem o estoque em tempo real</strong>. Itens listados podem estar indisponíveis no momento da formalização do pedido. A confirmação de disponibilidade ocorre somente após o processamento pelo vendedor.
+    </div>
+  </section>
+
+  <section>
+    <h2>2. Dados Coletados</h2>
+    <p>Para o funcionamento da plataforma, coletamos os seguintes dados:</p>
+    <ul>
+      <li>Nome completo do usuário (lojista ou vendedor)</li>
+      <li>Endereço de e-mail para autenticação e comunicação</li>
+      <li>Dados da empresa vinculada (razão social, CNPJ quando aplicável)</li>
+      <li>Histórico de orçamentos gerados na plataforma</li>
+      <li>Dados de acesso (data, horário e dispositivo utilizado)</li>
+    </ul>
+    <p>Não coletamos dados de cartão de crédito, dados bancários ou quaisquer informações de pagamento.</p>
+  </section>
+
+  <section>
+    <h2>3. Uso das Informações</h2>
+    <p>As informações coletadas são utilizadas exclusivamente para:</p>
+    <ul>
+      <li>Autenticação e acesso seguro à plataforma</li>
+      <li>Vinculação de clientes aos seus vendedores responsáveis</li>
+      <li>Geração e encaminhamento de orçamentos</li>
+      <li>Comunicação sobre o status dos orçamentos enviados</li>
+      <li>Melhoria contínua da plataforma</li>
+    </ul>
+    <p>Não compartilhamos, vendemos ou cedemos seus dados pessoais a terceiros, exceto quando exigido por obrigação legal.</p>
+  </section>
+
+  <section>
+    <h2>4. Armazenamento e Segurança</h2>
+    <p>Os dados são armazenados em servidores seguros com acesso restrito e protegido. Utilizamos criptografia e boas práticas de segurança da informação para proteger seus dados contra acesso não autorizado, alteração, divulgação ou destruição.</p>
+    <p>Os dados são mantidos enquanto a conta do usuário estiver ativa na plataforma. Após o encerramento da conta, os dados são removidos em até 90 dias, salvo obrigação legal de retenção.</p>
+  </section>
+
+  <section>
+    <h2>5. Cookies e Tecnologias</h2>
+    <p>O VendPro utiliza cookies de sessão estritamente necessários para o funcionamento da autenticação e navegação. Não utilizamos cookies de rastreamento, publicidade ou análise comportamental de terceiros.</p>
+  </section>
+
+  <section>
+    <h2>6. Direitos do Usuário</h2>
+    <p>O usuário tem direito a:</p>
+    <ul>
+      <li>Acessar seus dados pessoais armazenados na plataforma</li>
+      <li>Solicitar a correção de dados incorretos ou desatualizados</li>
+      <li>Solicitar a exclusão de seus dados pessoais</li>
+      <li>Revogar o consentimento para uso dos dados a qualquer momento</li>
+    </ul>
+    <p>Para exercer esses direitos, entre em contato pelo e-mail indicado ao final desta política.</p>
+  </section>
+
+  <section>
+    <h2>7. Limitação de Responsabilidade</h2>
+    <p>O VendPro não se responsabiliza por:</p>
+    <ul>
+      <li>Indisponibilidade de produtos listados nos catálogos</li>
+      <li>Divergências de preço após a data de atualização do catálogo</li>
+      <li>Orçamentos não formalizados por indisponibilidade de estoque</li>
+      <li>Atrasos ou cancelamentos decorrentes de questões operacionais das empresas representadas</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>8. Alterações nesta Política</h2>
+    <p>Esta política pode ser atualizada periodicamente. Alterações relevantes serão comunicadas aos usuários através da plataforma. O uso contínuo do VendPro após a publicação de alterações implica na aceitação dos novos termos.</p>
+  </section>
+
+  <section>
+    <h2>9. Contato</h2>
+    <p>Para dúvidas, solicitações ou exercício de direitos relacionados a esta política, entre em contato:</p>
+    <ul>
+      <li>Plataforma: vendpro.com.br</li>
+      <li>Responsável: Administrador VendPro</li>
+    </ul>
+  </section>
+
+</div>
+
+<footer>
+  <p>&copy; 2025 <strong>VendPro</strong> — Catálogos Inteligentes. Todos os direitos reservados.</p>
+  <p style="margin-top:8px;">vendpro.com.br</p>
+</footer>
+
+</body>
+</html>

@@ -1144,43 +1144,92 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
   };
 
   return (
-    <div className="min-h-screen bg-fixed bg-gradient-to-br from-white via-soft-pink to-white flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen flex flex-col items-center justify-center p-4" style={{background: 'linear-gradient(160deg, #f8f6ff 0%, #fff5f9 50%, #f0f4ff 100%)'}}>
       <motion.div 
         initial={{ scale: 0.95, opacity: 0, y: 10 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
         className="w-full max-w-sm"
       >
-        {/* Header */}
-        <div className="bg-gradient-to-br from-[#2d1b69] to-[#7c3aed] rounded-t-2xl px-8 py-8 text-center">
-          <div className="w-14 h-14 bg-white/15 rounded-2xl mx-auto mb-4 flex items-center justify-center text-white shadow-lg border border-white/20">
-            <CheckCircle2 size={28} strokeWidth={1.5} />
-          </div>
-          <h1 className="text-2xl font-black tracking-[2px] text-white uppercase">VendPro</h1>
-          <p className="text-white/50 font-bold text-[9px] tracking-[4px] uppercase mt-1">Catálogos Inteligentes</p>
+        {/* Header — logo real em fundo branco */}
+        <div className="bg-white rounded-t-2xl px-8 py-8 text-center border-b border-slate-100 shadow-sm">
+          <img
+            src="/LOGO_VENDPRO.png"
+            alt="VendPro"
+            className="h-24 w-auto mx-auto object-contain"
+            onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
+          />
         </div>
 
         {/* Body */}
-        <div className="bg-white rounded-b-2xl px-6 py-6 shadow-2xl shadow-slate-300/40">
+        <div className="bg-white rounded-b-2xl px-6 py-6 shadow-2xl shadow-slate-200/60">
 
         {view === 'role' && (
-          <div className="space-y-3">
-            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-4 text-center">Selecione seu perfil</p>
-            <div className="grid grid-cols-3 gap-2 mb-4">
+          <div className="space-y-4">
+            <p className="text-xs font-black text-slate-400 uppercase tracking-widest text-center">Como deseja entrar?</p>
+            <div className="grid grid-cols-3 gap-3">
               {[
-                { label: 'Empresa', icon: '🏢', action: () => { setLoginType('company'); setView('company-login'); } },
-                { label: 'Vendedor', icon: '👤', action: () => { setLoginType('seller'); setView('seller-code'); } },
-                { label: 'Cliente', icon: '🛍', action: () => { setLoginType('customer'); setView('seller-code'); } },
+                {
+                  label: 'Empresa',
+                  desc: 'Gerencie seu catálogo',
+                  color: '#1B2A4A',
+                  bg: '#EEF1F8',
+                  svg: (
+                    <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+                      <rect x="4" y="10" width="20" height="14" rx="2" fill="#1B2A4A" opacity="0.15"/>
+                      <rect x="8" y="6" width="12" height="18" rx="2" fill="#1B2A4A" opacity="0.3"/>
+                      <rect x="11" y="2" width="6" height="22" rx="2" fill="#1B2A4A"/>
+                      <rect x="12" y="16" width="4" height="6" rx="1" fill="white"/>
+                    </svg>
+                  ),
+                  action: () => { setLoginType('company'); setView('company-login'); }
+                },
+                {
+                  label: 'Vendedor',
+                  desc: 'Acesse seu painel',
+                  color: '#B8952A',
+                  bg: '#FBF5E6',
+                  svg: (
+                    <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+                      <circle cx="14" cy="9" r="5" fill="#B8952A" opacity="0.3"/>
+                      <circle cx="14" cy="9" r="3" fill="#B8952A"/>
+                      <path d="M5 24c0-5 4-8 9-8s9 3 9 8" stroke="#B8952A" strokeWidth="2.5" strokeLinecap="round" fill="none"/>
+                      <circle cx="21" cy="8" r="3" fill="#B8952A" opacity="0.5"/>
+                      <path d="M24 16c2 1 3 3 3 5" stroke="#B8952A" strokeWidth="2" strokeLinecap="round" fill="none" opacity="0.5"/>
+                    </svg>
+                  ),
+                  action: () => { setLoginType('seller'); setView('seller-code'); }
+                },
+                {
+                  label: 'Cliente',
+                  desc: 'Ver catálogo',
+                  color: '#C21863',
+                  bg: '#FDF0F6',
+                  svg: (
+                    <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+                      <circle cx="14" cy="9" r="5" fill="#C21863" opacity="0.2"/>
+                      <circle cx="14" cy="9" r="3" fill="#C21863"/>
+                      <path d="M5 24c0-5 4-8 9-8s9 3 9 8" stroke="#C21863" strokeWidth="2.5" strokeLinecap="round" fill="none"/>
+                      <path d="M19 18l3 3-3 3" stroke="#C21863" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity="0.6"/>
+                    </svg>
+                  ),
+                  action: () => { setLoginType('customer'); setView('seller-code'); }
+                },
               ].map(opt => (
                 <button key={opt.label} onClick={opt.action}
-                  className="bg-slate-50 border border-slate-200 hover:border-primary hover:bg-primary/5 rounded-xl py-3 px-2 text-center transition-all cursor-pointer">
-                  <div className="text-xl mb-1">{opt.icon}</div>
-                  <div className="text-[10px] font-bold text-slate-700">{opt.label}</div>
+                  className="rounded-xl py-4 px-2 text-center transition-all cursor-pointer hover:-translate-y-0.5 hover:shadow-md border border-transparent"
+                  style={{ background: opt.bg }}
+                  onMouseEnter={e => (e.currentTarget.style.borderColor = opt.color + '40')}
+                  onMouseLeave={e => (e.currentTarget.style.borderColor = 'transparent')}
+                >
+                  <div className="flex justify-center mb-2">{opt.svg}</div>
+                  <div className="text-[11px] font-black uppercase tracking-wide" style={{ color: opt.color }}>{opt.label}</div>
+                  <div className="text-[9px] font-medium mt-0.5" style={{ color: opt.color + 'aa' }}>{opt.desc}</div>
                 </button>
               ))}
             </div>
             <button 
               onClick={() => { setLoginType('admin'); setView('seller-code'); }}
-              className="w-full py-2 text-[9px] font-bold text-slate-300 uppercase tracking-widest hover:text-primary transition-colors"
+              className="w-full py-2 text-[10px] font-bold text-slate-300 uppercase tracking-widest hover:text-primary transition-colors"
             >
               Acesso Administrativo
             </button>
@@ -1420,10 +1469,10 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
         </div>{/* end body */}
 
         {/* LGPD footer */}
-        <div className="flex items-center justify-center gap-4 mt-3 pb-1">
-          <a href="/privacidade" className="text-[9px] text-slate-400 hover:text-primary transition-colors font-medium">Política de Privacidade</a>
-          <span className="text-slate-200">·</span>
-          <a href="/lgpd" className="text-[9px] text-slate-400 hover:text-primary transition-colors font-medium">LGPD</a>
+        <div className="flex items-center justify-center gap-4 mt-4 pt-4 border-t border-slate-100">
+          <a href="/privacidade" className="text-xs text-slate-500 hover:text-primary transition-colors font-semibold underline underline-offset-2">Política de Privacidade</a>
+          <span className="text-slate-300">·</span>
+          <a href="/lgpd" className="text-xs text-slate-500 hover:text-primary transition-colors font-semibold underline underline-offset-2">LGPD</a>
         </div>
 
       </motion.div>
@@ -1933,4 +1982,3 @@ function ProductCard({ product, onAdd, onEdit, role, onZoom, isInCart, ...props 
     </Card>
   );
 }
-

@@ -73,18 +73,18 @@ export async function registerCompany(companyData: any) {
   return { success: true, company: data };
 }
 
-export async function loginCompany(cnpj: string, senha?: string) {
+export async function loginCompany(identifier: string, senha?: string) {
   if (!supabase) {
     console.error("Supabase não inicializado.");
     return { success: false };
   }
 
   // Se for admin, faz login pelo nome
-  if (cnpj.toUpperCase() === 'ADMIN') {
+  if (identifier.toUpperCase() === 'ADMIN') {
     const { data, error } = await supabase
       .from("companies")
       .select("*")
-      .ilike("nome", cnpj)
+      .ilike("nome", identifier)
       .maybeSingle();
     
     if (error) {
@@ -96,20 +96,21 @@ export async function loginCompany(cnpj: string, senha?: string) {
     return { success: true, company: data };
   }
 
+  // Tenta login por CNPJ ou E-mail
   const { data, error } = await supabase
     .from("companies")
     .select("*")
-    .eq("cnpj", cnpj)
+    .or(`cnpj.eq.${identifier},email.eq.${identifier}`)
     .eq("senha", senha)
     .maybeSingle();
 
   if (error) {
     console.error("Erro ao fazer login:", error);
-    return { success: false, message: "CNPJ ou senha incorretos" };
+    return { success: false, message: "Identificador ou senha incorretos" };
   }
 
   if (!data) {
-    return { success: false, message: "CNPJ ou senha incorretos" };
+    return { success: false, message: "Identificador ou senha incorretos" };
   }
 
   return { success: true, company: data };

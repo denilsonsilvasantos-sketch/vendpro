@@ -42,6 +42,8 @@ import { mockProducts, mockCategories, mockCompany } from './lib/mockData';
 import { Card } from './components/Card';
 import { Badge } from './components/Badge';
 import { Dashboard, Produtos, Clientes, Pedidos, Configuracoes, Marcas, Upload, Pendencias, Vendedores, BannerManager } from './pages';
+import Privacidade from './pages/privacidade';
+import Lgpd from './pages/lgpd';
 import ProductFormModal from './components/ProductFormModal';
 import CartScreen from './pages/CartScreen';
 import Banner from './components/Banner';
@@ -92,6 +94,52 @@ function SidebarItem({ icon, label, active, onClick }: { icon: React.ReactNode, 
   );
 }
 
+function Footer() {
+  return (
+    <footer className="w-full py-12 px-6 bg-white border-t border-slate-100 mt-20">
+      <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12">
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 pink-gradient rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary/20">
+              <CheckCircle2 size={24} />
+            </div>
+            <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">VendPro</h2>
+          </div>
+          <p className="text-xs text-slate-500 font-medium leading-relaxed max-w-xs">
+            A plataforma definitiva para orçamentos e catálogos digitais premium. Transforme sua forma de vender.
+          </p>
+        </div>
+
+        <div className="space-y-6">
+          <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Legal</h3>
+          <nav className="flex flex-col gap-3">
+            <a href="/privacidade" className="text-xs font-black text-slate-600 uppercase tracking-widest hover:text-primary transition-colors">Política de Privacidade</a>
+            <a href="/lgpd" className="text-xs font-black text-slate-600 uppercase tracking-widest hover:text-primary transition-colors">LGPD</a>
+          </nav>
+        </div>
+
+        <div className="space-y-6">
+          <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Suporte</h3>
+          <p className="text-xs font-black text-slate-600 uppercase tracking-widest">contato@vendpro.com.br</p>
+          <div className="flex items-center gap-4">
+            <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400 hover:text-primary transition-colors cursor-pointer">
+              <Share2 size={16} />
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div className="max-w-7xl mx-auto mt-12 pt-8 border-t border-slate-50 flex flex-col md:flex-row items-center justify-between gap-4">
+        <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">© 2026 VendPro. Todos os direitos reservados.</p>
+        <div className="flex items-center gap-2">
+          <Shield size={12} className="text-slate-300" />
+          <span className="text-[9px] font-black text-slate-300 uppercase tracking-[0.2em]">Ambiente Seguro</span>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
 function TabItem({ icon, label, active, onClick, badge }: { icon: React.ReactNode, label: string, active: boolean, onClick: () => void, badge?: number }) {
   return (
     <button onClick={onClick} className={`flex flex-col items-center gap-1 p-2 relative transition-all ${active ? 'text-primary scale-110' : 'text-slate-400 hover:text-slate-600'}`}>
@@ -137,10 +185,10 @@ const safeLocalStorage = {
 export default function App() {
   const path = window.location.pathname;
   if (path === '/lgpd') {
-    return <iframe src="/lgpd.html" className="fixed inset-0 w-full h-full border-none z-[200] bg-white" />;
+    return <Lgpd />;
   }
   if (path === '/privacidade') {
-    return <iframe src="/politica-de-privacidade.html" className="fixed inset-0 w-full h-full border-none z-[200] bg-white" />;
+    return <Privacidade />;
   }
 
   const [role, setRole] = useState<UserRole>(() => {
@@ -845,6 +893,7 @@ export default function App() {
           {activeTab === 'pedidos' && <Pedidos companyId={activeCompanyId} role={role} user={user} />}
           {activeTab === 'account' && <Configuracoes companyId={activeCompanyId} user={user} role={role} onLogout={handleLogout} />}
         </div>
+        <Footer />
       </main>
 
       <AnimatePresence>
@@ -958,7 +1007,7 @@ function CompanyInfoModal({ company, onClose }: { company: any, onClose: () => v
 }
 function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, companies?: any[], sellers?: any[]) => void }) {
   const [view, setView] = useState<'role' | 'seller-code' | 'customer-form' | 'company-login' | 'company-register'>('role');
-  const [loginType, setLoginType] = useState<'seller' | 'customer' | 'admin' | 'company' | null>(null);
+  const [loginType, setLoginType] = useState<'seller' | 'customer' | 'company' | null>(null);
   const [sellerCode, setSellerCode] = useState('');
   const [customerData, setCustomerData] = useState({ nome: '', cnpj: '', telefone: '', responsavel: '' });
   const [companyData, setCompanyData] = useState({ nome: '', cnpj: '', telefone: '', responsavel: '', email: '', senha: '' });
@@ -984,56 +1033,8 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
     }
   }, []);
 
-  // Auto-validar código de vendedor se presente no localStorage
-  useEffect(() => {
-    const savedCode = safeLocalStorage.getItem('vendpro_seller_code');
-    if (savedCode && view === 'role' && supabase) {
-      console.log("Auto-validando código do vendedor salvo:", savedCode);
-      const autoValidate = async () => {
-        try {
-          // Use type: 'customer' for auto-validation from URL link
-          const result = await validateSellerCode(savedCode, 'customer');
-          if (result.success && result.sellers && result.sellers.length > 0) {
-            const mainSeller = result.sellers[0];
-            console.log("Código validado com sucesso:", mainSeller.nome);
-            setSellerCode(savedCode);
-            setSellerInfo(mainSeller);
-            setAvailableCompanies(result.companies || []);
-            setLoginType('customer');
-            setView('customer-form');
-          } else {
-            console.warn("Código salvo no localStorage é inválido para cliente:", savedCode);
-            // Se o código for inválido, removemos para não tentar novamente
-            safeLocalStorage.removeItem('vendpro_seller_code');
-          }
-        } catch (err) {
-          console.error("Erro na auto-validação do código:", err);
-        }
-      };
-      autoValidate();
-    }
-  }, [view, supabase]);
-
   const handleSellerCodeSubmit = async () => {
     const code = sellerCode.trim().toUpperCase();
-    if (code === 'ADMIN') {
-      if (supabase) {
-        const { data } = await supabase.from('companies').select('*').limit(1);
-        if (data && data.length > 0) {
-          onLogin('company', data[0], [data[0]]);
-        } else {
-          const { data: newCompany, error } = await supabase.from('companies').insert([{ nome: 'VendPro Matriz' }]).select().single();
-          if (newCompany) {
-            onLogin('company', newCompany, [newCompany]);
-          } else {
-            alert('Erro ao criar empresa padrão: ' + (error?.message || 'Erro desconhecido'));
-          }
-        }
-      }
-      return;
-    }
-    
-    // Use the correct validation type based on loginType
     const validationType = loginType === 'seller' ? 'seller' : 'customer';
     const result = await validateSellerCode(code, validationType);
     
@@ -1047,10 +1048,7 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
         setView('customer-form');
       }
     } else {
-      const msg = loginType === 'seller' 
-        ? 'Código de vendedor inválido.' 
-        : 'Código de vínculo inválido. Peça o código correto ao seu vendedor.';
-      alert(msg);
+      alert(loginType === 'seller' ? 'Código de vendedor inválido.' : 'Código de vínculo inválido.');
     }
   };
 
@@ -1062,22 +1060,16 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
 
     if (supabase && sellerInfo) {
       try {
-        // Try to find existing customer by phone, name or CNPJ under this seller
-        const { data: existingCustomers, error: searchError } = await supabase
+        const { data: existingCustomers } = await supabase
           .from('customers')
           .select('*')
           .eq('seller_id', sellerInfo.id)
           .or(`telefone.eq.${customerData.telefone},nome.ilike.%${customerData.nome}%,cnpj.eq.${customerData.cnpj}`);
 
-        if (searchError) throw searchError;
-
         let finalCustomer;
-
         if (existingCustomers && existingCustomers.length > 0) {
-          // Found existing customer
           finalCustomer = existingCustomers[0];
         } else {
-          // Create new customer
           const { data: newCustomer, error: insertError } = await supabase
             .from('customers')
             .insert([{
@@ -1104,18 +1096,8 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
         }, availableCompanies);
 
       } catch (error: any) {
-        console.error("Erro ao processar cliente:", error);
         alert("Erro ao processar login do cliente: " + error.message);
       }
-    } else {
-      // Fallback if no supabase (shouldn't happen)
-      onLogin('customer', { 
-        ...customerData, 
-        sellerCode,
-        vendedor_nome: sellerInfo?.nome,
-        vendedor_whatsapp: sellerInfo?.whatsapp,
-        vendedor_telefone: sellerInfo?.telefone
-      }, availableCompanies);
     }
   };
 
@@ -1132,23 +1114,6 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
     const cnpj = companyLoginCnpj.trim();
     const senha = companyLoginSenha.trim();
     
-    if (cnpj.toUpperCase() === 'ADMIN') {
-      if (supabase) {
-        const { data } = await supabase.from('companies').select('*').limit(1);
-        if (data && data.length > 0) {
-          onLogin('company', data[0]);
-        } else {
-          const { data: newCompany, error } = await supabase.from('companies').insert([{ nome: 'VendPro Matriz' }]).select().single();
-          if (newCompany) {
-            onLogin('company', newCompany);
-          } else {
-            alert('Erro ao criar empresa padrão: ' + (error?.message || 'Erro desconhecido'));
-          }
-        }
-      }
-      return;
-    }
-    
     if (!cnpj || !senha) {
       alert('Preencha o CNPJ e a senha.');
       return;
@@ -1163,333 +1128,206 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
   };
 
   return (
-    <div className="min-h-screen bg-fixed bg-gradient-to-br from-white via-soft-pink to-white flex flex-col items-center justify-center p-8">
-      <motion.div 
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        className="w-full max-w-sm text-center"
-      >
-        <div className="w-24 h-24 blue-gradient rounded-4xl mx-auto mb-8 flex items-center justify-center text-white shadow-lg shadow-primary/20 rotate-3">
-          <CheckCircle2 size={48} strokeWidth={1.5} />
-        </div>
-        <h1 className="text-4xl font-black tracking-tight mb-2 text-slate-900 uppercase">VendPro</h1>
-        <p className="text-primary font-black mb-12 tracking-[0.2em] uppercase text-[10px]">Catálogo Premium de Beleza</p>
+    <div className="min-h-screen bg-white flex flex-col">
+      {/* Header com degradê roxo escuro */}
+      <div className="w-full bg-gradient-to-br from-[#2D1B69] to-[#7C3AED] pt-16 pb-12 px-8 text-center flex flex-col items-center">
+        <motion.div 
+          initial={{ y: -20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-white mb-4 border border-white/30"
+        >
+          <span className="text-3xl font-black">V</span>
+        </motion.div>
+        <h1 className="text-3xl font-black text-white tracking-tight uppercase">VendPro</h1>
+        <p className="text-white/60 text-[10px] font-black uppercase tracking-[0.2em] mt-1">Catálogo Premium de Beleza</p>
+      </div>
 
-        {view === 'role' && (
-          <div className="space-y-4">
-            <button 
-              onClick={() => { setLoginType('seller'); setView('seller-code'); }}
-              className="w-full py-5 bg-primary text-white rounded-full font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 shadow-lg shadow-primary/20 hover:bg-primary-dark transition-all"
-            >
-              Sou Vendedor
-              <ChevronRight size={18} />
-            </button>
-            <button 
-              onClick={() => { setLoginType('customer'); setView('seller-code'); }}
-              className="w-full py-5 bg-white text-primary border border-primary/10 rounded-full font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 hover:bg-primary-light/20 transition-all"
-            >
-              Sou Cliente
-              <ChevronRight size={18} />
-            </button>
-            <button 
-              onClick={() => { setLoginType('company'); setView('company-login'); }}
-              className="w-full mt-6 py-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] hover:text-primary transition-colors"
-            >
-              Sou Empresa (Criar Catálogo)
-            </button>
-            <button 
-              onClick={() => { setLoginType('admin'); setView('seller-code'); }}
-              className="w-full mt-2 py-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] hover:text-primary transition-colors"
-            >
-              Acesso Administrativo
-            </button>
-          </div>
-        )}
-
-        {view === 'company-login' && (
-          <div className="space-y-4">
-            <p className="font-black text-[10px] text-slate-400 uppercase tracking-[0.2em] mb-2">
-              Acesso Empresa
-            </p>
-            <input 
-              type="text" 
-              placeholder="CNPJ" 
-              className="w-full p-5 bg-white rounded-3xl border border-slate-100 focus:ring-2 focus:ring-primary outline-none text-center font-black uppercase text-slate-700 shadow-inner"
-              value={companyLoginCnpj}
-              onChange={e => setCompanyLoginCnpj(e.target.value)}
-            />
-            <div className="relative">
-              <input 
-                type={showPassword ? "text" : "password"} 
-                placeholder="Senha" 
-                className="w-full p-5 bg-white rounded-3xl border border-slate-100 focus:ring-2 focus:ring-primary outline-none text-center font-black text-slate-700 shadow-inner"
-                value={companyLoginSenha}
-                onChange={e => setCompanyLoginSenha(e.target.value)}
-              />
-              <button 
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary transition-colors"
-              >
-                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-              </button>
-            </div>
-            <button 
-              onClick={handleCompanyLogin}
-              className="w-full py-5 bg-primary text-white rounded-full font-black uppercase tracking-widest text-xs shadow-lg shadow-primary/20 hover:bg-primary-dark transition-all"
-            >
-              Entrar
-            </button>
-            <div className="flex flex-col gap-2">
-              <button 
-                onClick={() => setShowForgotPassword(true)}
-                className="text-[10px] font-black text-primary uppercase tracking-widest hover:underline"
-              >
-                Esqueci minha senha
-              </button>
-              <button 
-                onClick={() => setView('company-register')}
-                className="w-full py-5 bg-white text-primary border border-primary/10 rounded-full font-black uppercase tracking-widest text-xs hover:bg-primary-light/20 transition-all"
-              >
-                Cadastrar Nova Empresa
-              </button>
-            </div>
-            <button onClick={() => setView('role')} className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-4 hover:text-primary transition-colors">Voltar</button>
-          </div>
-        )}
-
-        {view === 'company-register' && (
-          <div className="space-y-4 text-left">
-            <p className="font-black text-[10px] text-slate-400 uppercase tracking-[0.2em] mb-6 text-center">Cadastro de Empresa</p>
-            <div className="space-y-3">
-              <input placeholder="Nome da Empresa" className="w-full p-5 bg-white rounded-3xl border border-slate-100 font-bold focus:ring-2 focus:ring-primary outline-none shadow-inner" value={companyData.nome} onChange={e => setCompanyData({...companyData, nome: e.target.value})} />
-              <input placeholder="CNPJ" className="w-full p-5 bg-white rounded-3xl border border-slate-100 font-bold focus:ring-2 focus:ring-primary outline-none shadow-inner" value={companyData.cnpj} onChange={e => setCompanyData({...companyData, cnpj: e.target.value})} />
-              <input placeholder="Responsável" className="w-full p-5 bg-white rounded-3xl border border-slate-100 font-bold focus:ring-2 focus:ring-primary outline-none shadow-inner" value={companyData.responsavel} onChange={e => setCompanyData({...companyData, responsavel: e.target.value})} />
-              <input placeholder="E-mail" type="email" className="w-full p-5 bg-white rounded-3xl border border-slate-100 font-bold focus:ring-2 focus:ring-primary outline-none shadow-inner" value={companyData.email} onChange={e => setCompanyData({...companyData, email: e.target.value})} required />
-              <input placeholder="Telefone" className="w-full p-5 bg-white rounded-3xl border border-slate-100 font-bold focus:ring-2 focus:ring-primary outline-none shadow-inner" value={companyData.telefone} onChange={e => setCompanyData({...companyData, telefone: e.target.value})} />
-              <div className="relative">
-                <input 
-                  type={showPassword ? "text" : "password"} 
-                  placeholder="Senha de Acesso" 
-                  className="w-full p-5 bg-white rounded-3xl border border-slate-100 font-bold focus:ring-2 focus:ring-primary outline-none shadow-inner" 
-                  value={companyData.senha} 
-                  onChange={e => setCompanyData({...companyData, senha: e.target.value})} 
-                />
-                <button 
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary transition-colors"
-                >
-                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                </button>
-              </div>
-            </div>
-            <button 
-              onClick={handleCompanyRegister}
-              className="w-full py-5 bg-primary text-white rounded-full font-black uppercase tracking-widest text-xs mt-6 shadow-lg shadow-primary/20 hover:bg-primary-dark transition-all"
-            >
-              Finalizar Cadastro
-            </button>
-            <button onClick={() => setView('company-login')} className="w-full text-center text-[10px] font-black text-slate-400 uppercase tracking-widest mt-4 hover:text-primary transition-colors">Voltar</button>
-          </div>
-        )}
-
-        {view === 'seller-code' && (
-          <div className="space-y-4">
-            <p className="font-black text-[10px] text-slate-400 uppercase tracking-[0.2em] mb-2">
-              {loginType === 'seller' ? 'Acesso Vendedor' : loginType === 'customer' ? 'Acesso Cliente' : 'Acesso Admin'}
-            </p>
-            <input 
-              type="text" 
-              placeholder={loginType === 'admin' ? "Código de Acesso" : "Código do Vendedor"} 
-              className="w-full p-5 bg-white rounded-3xl border border-slate-100 focus:ring-2 focus:ring-primary outline-none text-center font-black uppercase text-slate-700 shadow-inner"
-              value={sellerCode}
-              onChange={e => setSellerCode(e.target.value)}
-            />
-            <button 
-              onClick={handleSellerCodeSubmit}
-              className="w-full py-5 bg-primary text-white rounded-full font-black uppercase tracking-widest text-xs shadow-lg shadow-primary/20 hover:bg-primary-dark transition-all"
-            >
-              Validar Código
-            </button>
-            <button 
-              onClick={() => setShowForgotCode(true)}
-              className="text-[10px] font-black text-primary uppercase tracking-widest hover:underline"
-            >
-              Esqueci meu código
-            </button>
-            <button onClick={() => setView('role')} className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-4 hover:text-primary transition-colors">Voltar</button>
-          </div>
-        )}
-
-        {showForgotPassword && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              className="bg-white rounded-4xl p-10 w-full max-w-sm shadow-2xl space-y-8"
-            >
-              <div className="text-center space-y-2">
-                <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mx-auto mb-4 shadow-inner">
-                  <Mail size={32} />
-                </div>
-                <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Recuperar Senha</h3>
-                <p className="text-sm text-slate-500 font-medium">Informe seu e-mail cadastrado para receber as instruções de recuperação.</p>
-              </div>
-              <input 
-                type="email" 
-                placeholder="Seu e-mail" 
-                className="w-full p-5 bg-slate-50 rounded-3xl border border-slate-100 focus:ring-2 focus:ring-primary outline-none text-center font-bold text-slate-700 shadow-inner"
-                value={forgotPasswordEmail}
-                onChange={e => setForgotPasswordEmail(e.target.value)}
-              />
-              <div className="space-y-3">
-                <button 
-                  onClick={async () => {
-                    if (!forgotPasswordEmail) return alert('Informe seu e-mail');
-                    
-                    if (supabase) {
-                      try {
-                        // Primeiro verifica se o e-mail existe na tabela de empresas
-                        const { data: company, error: searchError } = await supabase
-                          .from('companies')
-                          .select('id')
-                          .eq('email', forgotPasswordEmail)
-                          .maybeSingle();
-
-                        if (searchError && !searchError.message.includes('column')) {
-                          console.error('Erro ao buscar empresa:', searchError);
-                        }
-
-                        // Dispara o reset de senha do Supabase Auth
-                        // Nota: Para que isso funcione, o usuário deve existir no Supabase Auth.
-                        // Se o usuário foi criado apenas na tabela 'companies', o e-mail não será enviado.
-                        const { error: resetError } = await supabase.auth.resetPasswordForEmail(forgotPasswordEmail, {
-                          redirectTo: `${window.location.origin}`,
-                        });
-
-                        if (resetError) {
-                          console.error('Erro ao solicitar reset de senha:', resetError);
-                        }
-                      } catch (err) {
-                        console.error('Erro inesperado no reset de senha:', err);
-                      }
-                    }
-                    
-                    alert('Se o e-mail estiver cadastrado em nosso sistema de autenticação, você receberá um link para redefinir sua senha em instantes. Verifique também sua caixa de spam.');
-                    setShowForgotPassword(false);
-                  }}
-                  className="w-full py-5 bg-primary text-white rounded-full font-black uppercase tracking-widest text-xs shadow-lg shadow-primary/20"
-                >
-                  Enviar Link
-                </button>
-                <button 
-                  onClick={() => setShowForgotPassword(false)}
-                  className="w-full py-4 text-slate-400 font-black uppercase text-[10px] tracking-widest"
-                >
-                  Cancelar
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-
-        {showForgotCode && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              className="bg-white rounded-4xl p-10 w-full max-w-sm shadow-2xl space-y-8"
-            >
-              <div className="text-center space-y-2">
-                <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mx-auto mb-4 shadow-inner">
-                  <Shield size={32} />
-                </div>
-                <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Código de Acesso</h3>
-                <p className="text-sm text-slate-600 font-medium leading-relaxed">
-                  {loginType === 'customer' 
-                    ? 'Por favor, entre em contato com seu vendedor para que ele forneça seu código de acesso ao catálogo.' 
-                    : loginType === 'seller'
-                    ? 'Por favor, entre em contato com a empresa para que ela forneça seu código de acesso ao sistema.'
-                    : 'Por favor, entre em contato com o suporte do sistema.'}
-                </p>
-              </div>
-              <button 
-                onClick={() => setShowForgotCode(false)}
-                className="w-full py-5 bg-primary text-white rounded-full font-black uppercase tracking-widest text-xs shadow-lg shadow-primary/20"
-              >
-                Entendi
-              </button>
-            </motion.div>
-          </div>
-        )}
-
-        {showResetPassword && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              className="bg-white rounded-4xl p-10 w-full max-w-sm shadow-2xl space-y-8"
-            >
-              <div className="text-center space-y-2">
-                <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mx-auto mb-4 shadow-inner">
-                  <Shield size={32} />
-                </div>
-                <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Nova Senha</h3>
-                <p className="text-sm text-slate-500 font-medium">Digite sua nova senha de acesso.</p>
-              </div>
-              <input 
-                type="password" 
-                placeholder="Nova senha" 
-                className="w-full p-5 bg-slate-50 rounded-3xl border border-slate-100 focus:ring-2 focus:ring-primary outline-none text-center font-bold text-slate-700 shadow-inner"
-                value={newPassword}
-                onChange={e => setNewPassword(e.target.value)}
-              />
-              <button 
-                onClick={async () => {
-                  if (!newPassword) return alert('Digite a nova senha');
-                  if (!supabase) return alert('Erro: Supabase não inicializado');
-                  
-                  const { error } = await supabase.auth.updateUser({ password: newPassword });
-                  if (error) {
-                    alert('Erro ao atualizar senha: ' + error.message);
-                  } else {
-                    // Tenta atualizar também na tabela companies para manter sincronia
-                    const { data: { user } } = await supabase.auth.getUser();
-                    if (user?.email) {
-                      await supabase.from('companies').update({ senha: newPassword }).eq('email', user.email);
-                    }
-                    alert('Senha atualizada com sucesso!');
-                    setShowResetPassword(false);
-                    setView('company-login');
-                  }
+      <div className="flex-1 -mt-6 bg-white rounded-t-[32px] px-8 pt-8 pb-12 shadow-2xl">
+        <motion.div 
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          className="max-w-sm mx-auto"
+        >
+          {/* Seletor de Perfil */}
+          <div className="grid grid-cols-3 gap-3 mb-8">
+            {[
+              { id: 'company', label: 'Empresa', icon: <Package size={20} /> },
+              { id: 'seller', label: 'Vendedor', icon: <Users size={20} /> },
+              { id: 'customer', label: 'Cliente', icon: <User size={20} /> }
+            ].map((role) => (
+              <button
+                key={role.id}
+                onClick={() => {
+                  setLoginType(role.id as any);
+                  if (role.id === 'company') setView('company-login');
+                  else setView('seller-code');
                 }}
-                className="w-full py-5 bg-primary text-white rounded-full font-black uppercase tracking-widest text-xs shadow-lg shadow-primary/20"
+                className={`flex flex-col items-center gap-2 p-4 rounded-2xl border transition-all ${
+                  loginType === role.id 
+                    ? 'border-[#7C3AED] bg-[#7C3AED]/5 text-[#7C3AED]' 
+                    : 'border-slate-100 bg-slate-50 text-slate-400'
+                }`}
               >
-                Atualizar Senha
+                {role.icon}
+                <span className="text-[9px] font-black uppercase tracking-tight">{role.label}</span>
               </button>
-            </motion.div>
+            ))}
           </div>
-        )}
 
-        {view === 'customer-form' && (
-          <div className="space-y-4 text-left">
-            <p className="font-black text-[10px] text-slate-400 uppercase tracking-[0.2em] mb-6 text-center">Identificação do Cliente</p>
-            <div className="space-y-3">
-              <input placeholder="Seu Nome ou Nome da Empresa" className="w-full p-5 bg-white rounded-3xl border border-slate-100 font-bold focus:ring-2 focus:ring-primary outline-none shadow-inner" onChange={e => setCustomerData({...customerData, nome: e.target.value})} />
-              <input placeholder="CNPJ" className="w-full p-5 bg-white rounded-3xl border border-slate-100 font-bold focus:ring-2 focus:ring-primary outline-none shadow-inner" onChange={e => setCustomerData({...customerData, cnpj: e.target.value})} />
-              <input placeholder="Telefone / WhatsApp" className="w-full p-5 bg-white rounded-3xl border border-slate-100 font-bold focus:ring-2 focus:ring-primary outline-none shadow-inner" onChange={e => setCustomerData({...customerData, telefone: e.target.value})} />
-            </div>
-            <button 
-              onClick={handleCustomerSubmit}
-              className="w-full py-5 bg-primary text-white rounded-full font-black uppercase tracking-widest text-xs mt-6 shadow-lg shadow-primary/20 hover:bg-primary-dark transition-all"
-            >
-              Acessar Catálogo
-            </button>
-            <button onClick={() => setView('seller-code')} className="w-full text-center text-[10px] font-black text-slate-400 uppercase tracking-widest mt-4 hover:text-primary transition-colors">Voltar</button>
+          {/* Formulário */}
+          <div className="bg-[#FAFAFA] border-[0.5px] border-slate-200 rounded-[32px] p-[24px_28px] space-y-4">
+            {view === 'company-login' && (
+              <>
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-4">E-mail ou CNPJ</label>
+                  <input 
+                    type="text" 
+                    placeholder="empresa@email.com ou 00.000.000/0000-00" 
+                    className="w-full p-4 bg-white rounded-2xl border border-slate-100 outline-none focus:ring-2 focus:ring-[#7C3AED]/20 font-bold text-slate-700"
+                    value={companyLoginCnpj}
+                    onChange={e => setCompanyLoginCnpj(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-4">Senha</label>
+                  <div className="relative">
+                    <input 
+                      type={showPassword ? "text" : "password"} 
+                      placeholder="••••••••" 
+                      className="w-full p-4 bg-white rounded-2xl border border-slate-100 outline-none focus:ring-2 focus:ring-[#7C3AED]/20 font-bold text-slate-700"
+                      value={companyLoginSenha}
+                      onChange={e => setCompanyLoginSenha(e.target.value)}
+                    />
+                    <button 
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"
+                    >
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                </div>
+                <button 
+                  onClick={handleCompanyLogin}
+                  className="w-full py-4 bg-gradient-to-r from-[#E91E8C] to-[#7C3AED] text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-[#7C3AED]/20 mt-4"
+                >
+                  Entrar
+                </button>
+                <div className="flex flex-col gap-3 pt-2">
+                  <button onClick={() => setShowForgotPassword(true)} className="text-[9px] font-black text-[#7C3AED] uppercase tracking-widest text-center">Esqueci minha senha</button>
+                  <button onClick={() => setView('company-register')} className="text-[9px] font-black text-slate-400 uppercase tracking-widest text-center">Criar nova conta empresa</button>
+                </div>
+              </>
+            )}
+
+            {view === 'seller-code' && (
+              <>
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-4">Código de Acesso</label>
+                  <input 
+                    type="text" 
+                    placeholder="EX: VEND-001" 
+                    className="w-full p-4 bg-white rounded-2xl border border-slate-100 outline-none focus:ring-2 focus:ring-[#7C3AED]/20 font-black uppercase text-center text-slate-700"
+                    value={sellerCode}
+                    onChange={e => setSellerCode(e.target.value)}
+                  />
+                </div>
+                <button 
+                  onClick={handleSellerCodeSubmit}
+                  className="w-full py-4 bg-gradient-to-r from-[#E91E8C] to-[#7C3AED] text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-[#7C3AED]/20 mt-4"
+                >
+                  Validar Código
+                </button>
+                <button onClick={() => setShowForgotCode(true)} className="w-full text-[9px] font-black text-[#7C3AED] uppercase tracking-widest text-center pt-2">Esqueci meu código</button>
+              </>
+            )}
+
+            {view === 'customer-form' && (
+              <>
+                <div className="space-y-3">
+                  <input placeholder="Nome Completo" className="w-full p-4 bg-white rounded-2xl border border-slate-100 font-bold outline-none" onChange={e => setCustomerData({...customerData, nome: e.target.value})} />
+                  <input placeholder="CNPJ / CPF" className="w-full p-4 bg-white rounded-2xl border border-slate-100 font-bold outline-none" onChange={e => setCustomerData({...customerData, cnpj: e.target.value})} />
+                  <input placeholder="WhatsApp" className="w-full p-4 bg-white rounded-2xl border border-slate-100 font-bold outline-none" onChange={e => setCustomerData({...customerData, telefone: e.target.value})} />
+                </div>
+                <button 
+                  onClick={handleCustomerSubmit}
+                  className="w-full py-4 bg-gradient-to-r from-[#E91E8C] to-[#7C3AED] text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-[#7C3AED]/20 mt-4"
+                >
+                  Acessar Catálogo
+                </button>
+                <div className="mt-4 text-center">
+                  <p className="text-[8px] text-slate-400 font-medium leading-relaxed">
+                    Ao acessar, você concorda com nossa <br/>
+                    <a href="/privacidade" className="text-[#7C3AED] font-black uppercase hover:underline">Política de Privacidade</a> e <a href="/lgpd" className="text-[#7C3AED] font-black uppercase hover:underline">LGPD</a>.
+                  </p>
+                </div>
+              </>
+            )}
+
+            {view === 'company-register' && (
+              <>
+                <div className="space-y-3">
+                  <input placeholder="Nome da Empresa" className="w-full p-4 bg-white rounded-2xl border border-slate-100 font-bold outline-none" value={companyData.nome} onChange={e => setCompanyData({...companyData, nome: e.target.value})} />
+                  <input placeholder="CNPJ" className="w-full p-4 bg-white rounded-2xl border border-slate-100 font-bold outline-none" value={companyData.cnpj} onChange={e => setCompanyData({...companyData, cnpj: e.target.value})} />
+                  <input placeholder="E-mail" type="email" className="w-full p-4 bg-white rounded-2xl border border-slate-100 font-bold outline-none" value={companyData.email} onChange={e => setCompanyData({...companyData, email: e.target.value})} />
+                  <input placeholder="Senha" type="password" className="w-full p-4 bg-white rounded-2xl border border-slate-100 font-bold outline-none" value={companyData.senha} onChange={e => setCompanyData({...companyData, senha: e.target.value})} />
+                </div>
+                <button 
+                  onClick={handleCompanyRegister}
+                  className="w-full py-4 bg-gradient-to-r from-[#E91E8C] to-[#7C3AED] text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-[#7C3AED]/20 mt-4"
+                >
+                  Finalizar Cadastro
+                </button>
+                <div className="mt-4 text-center">
+                  <p className="text-[8px] text-slate-400 font-medium leading-relaxed">
+                    Ao cadastrar, você concorda com nossa <br/>
+                    <a href="/privacidade" className="text-[#7C3AED] font-black uppercase hover:underline">Política de Privacidade</a> e <a href="/lgpd" className="text-[#7C3AED] font-black uppercase hover:underline">LGPD</a>.
+                  </p>
+                </div>
+                <button onClick={() => setView('company-login')} className="w-full text-[9px] font-black text-slate-400 uppercase tracking-widest text-center pt-2">Já tenho conta</button>
+              </>
+            )}
           </div>
-        )}
-      </motion.div>
+
+          {view === 'role' && (
+            <div className="text-center mt-8">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Selecione seu perfil acima para entrar</p>
+            </div>
+          )}
+        </motion.div>
+      </div>
+
+      {/* Modais de Recuperação (Mantidos os originais simplificados) */}
+      {showForgotPassword && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl space-y-6">
+            <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight text-center">Recuperar Senha</h3>
+            <input 
+              type="email" 
+              placeholder="Seu e-mail" 
+              className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-100 outline-none font-bold text-center"
+              value={forgotPasswordEmail}
+              onChange={e => setForgotPasswordEmail(e.target.value)}
+            />
+            <div className="space-y-2">
+              <button onClick={() => setShowForgotPassword(false)} className="w-full py-4 bg-[#7C3AED] text-white rounded-2xl font-black uppercase tracking-widest text-xs">Enviar Link</button>
+              <button onClick={() => setShowForgotPassword(false)} className="w-full py-2 text-slate-400 font-black uppercase text-[9px] tracking-widest">Cancelar</button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {showForgotCode && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl space-y-6 text-center">
+            <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">Código de Acesso</h3>
+            <p className="text-xs text-slate-600 font-medium leading-relaxed">
+              Entre em contato com seu vendedor ou empresa para obter seu código de acesso.
+            </p>
+            <button onClick={() => setShowForgotCode(false)} className="w-full py-4 bg-[#7C3AED] text-white rounded-2xl font-black uppercase tracking-widest text-xs">Entendi</button>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }

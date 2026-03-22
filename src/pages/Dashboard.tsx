@@ -12,6 +12,8 @@ export default function Dashboard({ companyId, role, user, banners }: { companyI
   const [loading, setLoading] = useState(true);
   const [newOrder, setNewOrder] = useState<any>(null);
 
+  const [recentOrders, setRecentOrders] = useState<any[]>([]);
+
   useEffect(() => {
     async function fetchStats() {
       if (!supabase || companyId === null) return;
@@ -57,7 +59,7 @@ export default function Dashboard({ companyId, role, user, banners }: { companyI
       }
       const { count: orderCount } = await orderQuery;
       
-      // Fetch total revenue and breakdown by brand
+      // Fetch total revenue
       let revenueQuery = supabase.from('orders').select('id, total').eq('company_id', companyId);
       if (role === 'seller' && user?.id) {
         revenueQuery = revenueQuery.eq('seller_id', user.id);
@@ -65,37 +67,27 @@ export default function Dashboard({ companyId, role, user, banners }: { companyI
       const { data: orders } = await revenueQuery;
       const totalRevenue = orders?.reduce((acc, order) => acc + (order.total || 0), 0) || 0;
 
-      // Fetch order items to calculate revenue by brand
-      // We filter by order_id to only include orders the seller has access to
-      const orderIds = orders?.map(o => o.id) || [];
-      
-      let orderItemsQuery = supabase
-        .from('order_items')
+      // Fetch recent orders
+      let recentOrdersQuery = supabase
+        .from('orders')
         .select(`
-          subtotal,
-          product:product_id (
-            brand:brand_id (
-              name
-            )
-          )
-        `);
+          id,
+          total,
+          status,
+          created_at,
+          customer:customer_id (nome),
+          seller:seller_id (nome)
+        `)
+        .eq('company_id', companyId)
+        .order('created_at', { ascending: false })
+        .limit(10);
       
-      if (orderIds.length > 0) {
-        orderItemsQuery = orderItemsQuery.in('order_id', orderIds);
-      } else {
-        // No orders, no items
-        orderItemsQuery = orderItemsQuery.eq('order_id', 'none');
+      if (role === 'seller' && user?.id) {
+        recentOrdersQuery = recentOrdersQuery.eq('seller_id', user.id);
       }
-
-      const { data: orderItems } = await orderItemsQuery;
       
-      const brandMap: Record<string, number> = {};
-      orderItems?.forEach((item: any) => {
-        const brandName = item.product?.brand?.name || 'Sem Marca';
-        brandMap[brandName] = (brandMap[brandName] || 0) + (item.subtotal || 0);
-      });
-
-      const brandData = Object.entries(brandMap).map(([name, value]) => ({ name, value }));
+      const { data: recentOrdersData } = await recentOrdersQuery;
+      setRecentOrders(recentOrdersData || []);
 
       setStats({
         products: productCount || 0,
@@ -103,7 +95,6 @@ export default function Dashboard({ companyId, role, user, banners }: { companyI
         orders: orderCount || 0,
         revenue: totalRevenue
       });
-      setBrandRevenue(brandData);
       setLoading(false);
     }
     fetchStats();
@@ -143,9 +134,9 @@ export default function Dashboard({ companyId, role, user, banners }: { companyI
   );
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 max-w-6xl xl:max-w-7xl mx-auto space-y-12">
+    <div className="p-[12px_16px] max-w-7xl mx-auto space-y-6">
       {banners && banners.length > 0 && (
-        <div className="mb-12">
+        <div className="mb-6">
           <Banner banners={banners} />
         </div>
       )}
@@ -155,63 +146,61 @@ export default function Dashboard({ companyId, role, user, banners }: { companyI
         </div>
       )}
       
-      <div className="flex items-center gap-6 mb-12">
-        <div className="w-16 h-16 bg-primary/10 rounded-[10px] flex items-center justify-center text-primary border border-primary/20 shadow-inner">
-          <TrendingUp size={32} strokeWidth={2.5} />
-        </div>
-        <div>
-          <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight uppercase">Dashboard</h1>
-          <p className="text-slate-500 font-black uppercase tracking-[2px] text-[10px] mt-1">Visão geral do seu negócio em tempo real</p>
-        </div>
+      <div className="mb-6">
+        <h1 className="text-2xl font-black text-slate-900 tracking-tight uppercase">Dashboard</h1>
+        <p className="text-slate-500 font-black uppercase tracking-[2px] text-[8px] mt-0.5">Visão geral em tempo real</p>
       </div>
       
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
-        <Card title="Produtos" value={stats.products} icon={<Package size={20} />} className="neumorphic-shadow" />
-        <Card title="Clientes" value={stats.customers} icon={<Users size={20} />} className="neumorphic-shadow" />
-        <Card title="Pedidos" value={stats.orders} icon={<ShoppingCart size={20} />} className="neumorphic-shadow" />
-        <Card title="Receita Total" value={`R$ ${stats.revenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} icon={<TrendingUp size={20} />} className="neumorphic-shadow" />
+      <div className="grid grid-cols-4 gap-2">
+        {[
+          { label: 'Produtos', value: stats.products },
+          { label: 'Clientes', value: stats.customers },
+          { label: 'Pedidos', value: stats.orders },
+          { label: 'Receita', value: `R$ ${stats.revenue.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}` }
+        ].map((stat, i) => (
+          <div key={i} className="bg-white rounded-[10px] border border-slate-100 p-2.5 h-[70px] flex flex-col justify-center shadow-sm">
+            <span className="text-slate-400 font-black uppercase text-[9px] tracking-widest leading-none mb-1">{stat.label}</span>
+            <div className="text-[18px] font-black text-slate-900 tracking-tight leading-none">{stat.value}</div>
+          </div>
+        ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12">
-        <div className="bg-white p-8 md:p-10 rounded-[14px] border border-slate-100 neumorphic-shadow hover:shadow-2xl transition-all duration-500">
-          <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[2px] mb-10">Visão Geral</h2>
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 9, fontWeight: 900, textAnchor: 'middle' }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 9, fontWeight: 900 }} />
-                <Tooltip 
-                  cursor={{ fill: '#f8fafc' }}
-                  contentStyle={{ borderRadius: '14px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', padding: '16px' }}
-                />
-                <Bar dataKey="value" radius={[6, 6, 0, 0]} barSize={48}>
-                  {data.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={['#ff3ea5', '#8b3ea9', '#e250c5'][index]} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+      <div className="bg-white rounded-[14px] border border-slate-100 shadow-sm overflow-hidden">
+        <div className="p-4 border-bottom border-slate-50 flex justify-between items-center">
+          <h2 className="text-[10px] font-black text-slate-900 uppercase tracking-[2px]">Pedidos Recentes</h2>
+          <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Últimos 10</span>
         </div>
-
-        <div className="bg-white p-8 md:p-10 rounded-[14px] border border-slate-100 neumorphic-shadow hover:shadow-2xl transition-all duration-500">
-          <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[2px] mb-10">Faturamento por Marca</h2>
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={brandRevenue} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
-                <XAxis type="number" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 9, fontWeight: 900 }} />
-                <YAxis dataKey="name" type="category" width={100} axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 9, fontWeight: 900 }} />
-                <Tooltip 
-                  cursor={{ fill: '#f8fafc' }}
-                  formatter={(value: any) => `R$ ${Number(value).toFixed(2)}`}
-                  contentStyle={{ borderRadius: '14px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', padding: '16px' }}
-                />
-                <Bar dataKey="value" fill="#ff3ea5" radius={[0, 6, 6, 0]} barSize={28} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+        <div className="divide-y divide-slate-50">
+          {recentOrders.length > 0 ? (
+            recentOrders.map((order) => (
+              <div key={order.id} className="h-[44px] px-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                <div className="flex flex-col">
+                  <span className="text-[11px] font-black text-slate-900 truncate max-w-[150px]">
+                    {order.customer?.nome || 'Cliente Final'}
+                  </span>
+                  <span className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">
+                    {order.seller?.nome || 'Venda Direta'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest ${
+                    order.status === 'pago' ? 'bg-emerald-100 text-emerald-600' : 
+                    order.status === 'pendente' ? 'bg-amber-100 text-amber-600' : 
+                    'bg-slate-100 text-slate-600'
+                  }`}>
+                    {order.status}
+                  </span>
+                  <span className="text-[11px] font-black text-slate-900">
+                    R$ {order.total?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="p-8 text-center">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nenhum pedido encontrado</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

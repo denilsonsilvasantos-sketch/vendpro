@@ -169,11 +169,11 @@ export default function Configuracoes({ companyId, user, role, onLogout }: { com
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="p-4 md:p-8 space-y-12 max-w-5xl mx-auto pb-32"
+      className="p-3 md:p-4 space-y-6 max-w-4xl mx-auto pb-24"
     >
       {/* Profile Header Section */}
-      <div className="flex flex-col items-center text-center space-y-8 relative">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-64 bg-primary/5 blur-[100px] rounded-full -z-10" />
+      <div className="flex flex-col items-center text-center space-y-4 relative">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-32 bg-primary/5 blur-[60px] rounded-full -z-10" />
         
         <motion.div 
           initial={{ scale: 0.9, opacity: 0 }}
@@ -182,26 +182,21 @@ export default function Configuracoes({ companyId, user, role, onLogout }: { com
           className={`relative group ${role === 'company' ? 'cursor-pointer' : ''}`} 
           onClick={() => role === 'company' && fileInputRef.current?.click()}
         >
-          <div className="w-48 h-48 bg-white rounded-[56px] flex items-center justify-center text-primary border-[12px] border-white shadow-2xl overflow-hidden relative group-hover:scale-105 transition-all duration-500 hover:shadow-primary/20">
+          <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center text-primary border-4 border-white shadow-lg overflow-hidden relative group-hover:scale-105 transition-all duration-500">
             {formData.logo_url ? (
               <img src={formData.logo_url} alt="Logo" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
             ) : (
               <div className="w-full h-full bg-slate-50 flex items-center justify-center text-slate-200">
-                <Building2 size={80} strokeWidth={1.5} />
+                <Building2 size={32} strokeWidth={1.5} />
               </div>
             )}
             
             {role === 'company' && (
-              <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-500">
+              <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-500">
                 {uploadingLogo ? (
-                  <Loader2 className="animate-spin text-white" size={40} strokeWidth={3} />
+                  <Loader2 className="animate-spin text-white" size={20} strokeWidth={3} />
                 ) : (
-                  <>
-                    <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center mb-3 backdrop-blur-xl border border-white/30">
-                      <Upload className="text-white" size={28} strokeWidth={2.5} />
-                    </div>
-                    <span className="text-white text-[10px] font-black uppercase tracking-[0.2em]">Alterar Logo</span>
-                  </>
+                  <Upload className="text-white" size={16} strokeWidth={2.5} />
                 )}
               </div>
             )}
@@ -209,10 +204,10 @@ export default function Configuracoes({ companyId, user, role, onLogout }: { com
           
           {role === 'company' && (
             <motion.div 
-              whileHover={{ scale: 1.1, rotate: 5 }}
-              className="absolute -bottom-2 -right-2 w-16 h-16 bg-primary text-white rounded-[24px] flex items-center justify-center shadow-2xl border-[6px] border-white group-hover:shadow-primary/40 transition-all"
+              whileHover={{ scale: 1.1 }}
+              className="absolute -bottom-1 -right-1 w-7 h-7 bg-primary text-white rounded-lg flex items-center justify-center shadow-lg border-2 border-white"
             >
-              <ImageIcon size={24} strokeWidth={2.5} />
+              <ImageIcon size={12} strokeWidth={2.5} />
             </motion.div>
           )}
 
@@ -227,75 +222,68 @@ export default function Configuracoes({ companyId, user, role, onLogout }: { com
           )}
         </motion.div>
 
-        <div className="space-y-3">
-          <div className="flex items-center justify-center gap-3">
-            <Sparkles className="text-primary animate-pulse" size={20} />
-            <h1 className="text-5xl font-black text-slate-900 tracking-tight uppercase">Minha Conta</h1>
-            <Sparkles className="text-primary animate-pulse" size={20} />
-          </div>
-          <p className="text-slate-500 font-medium max-w-lg mx-auto leading-relaxed">
-            Gerencie as informações da sua empresa, preferências de estilo e dados de acesso para uma experiência personalizada.
-          </p>
+        <div className="flex items-center justify-center gap-2">
+          <Settings className="text-primary" size={20} />
+          <h1 className="text-base font-black text-slate-900 tracking-tight uppercase">Minha Conta</h1>
         </div>
       </div>
 
       {/* Account Info Card */}
-      <div className="bg-white rounded-[48px] border border-slate-100 shadow-2xl shadow-slate-200/50 overflow-hidden group">
-        <div className="p-10 grid grid-cols-1 md:grid-cols-2 gap-10">
-          <div className="flex items-center gap-6 p-6 rounded-[32px] bg-slate-50/50 border border-slate-100 hover:bg-white hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-500 group/item">
-            <div className="w-16 h-16 bg-white rounded-[22px] flex items-center justify-center text-primary shadow-inner border border-slate-100 group-hover/item:scale-110 transition-transform">
-              <User size={32} strokeWidth={2} />
+      <div className="bg-white rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/50 overflow-hidden">
+        <div className="p-4 grid grid-cols-2 gap-3">
+          <div className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50/50 border border-slate-100 h-[52px]">
+            <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-primary shadow-sm border border-slate-100">
+              <User size={16} strokeWidth={2} />
             </div>
-            <div className="flex-1">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5">Usuário Logado</p>
-              <p className="font-black text-slate-900 text-xl tracking-tight uppercase">{user?.nome || user?.empresa || user?.email || 'Usuário'}</p>
+            <div className="flex-1 min-w-0">
+              <p className="text-[8px] font-black text-slate-400 uppercase tracking-wider truncate">Usuário Logado</p>
+              <p className="font-black text-slate-900 text-[11px] tracking-tight uppercase truncate">{user?.nome || user?.empresa || user?.email || 'Usuário'}</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-6 p-6 rounded-[32px] bg-slate-50/50 border border-slate-100 hover:bg-white hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-500 group/item">
-            <div className="w-16 h-16 bg-white rounded-[22px] flex items-center justify-center text-indigo-500 shadow-inner border border-slate-100 group-hover/item:scale-110 transition-transform">
-              <Shield size={32} strokeWidth={2} />
+          <div className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50/50 border border-slate-100 h-[52px]">
+            <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-indigo-500 shadow-sm border border-slate-100">
+              <Shield size={16} strokeWidth={2} />
             </div>
-            <div className="flex-1">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5">Nível de Acesso</p>
-              <p className="font-black text-slate-900 text-xl tracking-tight uppercase">{role === 'company' ? 'Administrador' : role === 'seller' ? 'Vendedor' : 'Cliente'}</p>
+            <div className="flex-1 min-w-0">
+              <p className="text-[8px] font-black text-slate-400 uppercase tracking-wider truncate">Nível de Acesso</p>
+              <p className="font-black text-slate-900 text-[11px] tracking-tight uppercase truncate">{role === 'company' ? 'Administrador' : role === 'seller' ? 'Vendedor' : 'Cliente'}</p>
             </div>
           </div>
         </div>
 
-        <div className="p-10 bg-slate-50/80 border-t border-slate-100 flex justify-center">
+        <div className="p-4 bg-slate-50/80 border-t border-slate-100 flex justify-center">
           <button 
             onClick={onLogout}
-            className="w-full max-w-md flex items-center justify-center gap-4 py-6 bg-white text-rose-500 border border-rose-100 rounded-[28px] font-black uppercase tracking-[0.2em] text-[10px] shadow-xl shadow-rose-200/20 hover:bg-rose-500 hover:text-white hover:border-rose-500 hover:shadow-rose-500/30 transition-all active:scale-95 group/logout"
+            className="w-full flex items-center justify-center gap-2 py-2.5 bg-white text-rose-500 border border-rose-100 rounded-xl font-black uppercase tracking-wider text-[9px] shadow-sm hover:bg-rose-500 hover:text-white transition-all active:scale-95"
           >
-            <LogOut size={20} strokeWidth={3} className="group-hover/logout:-translate-x-1 transition-transform" />
-            Sair da Conta com Segurança
+            <LogOut size={14} strokeWidth={3} />
+            Sair da Conta
           </button>
         </div>
       </div>
 
       {role === 'seller' && (
-        <form onSubmit={handleSave} className="space-y-12">
-          <div className="bg-white rounded-[48px] border border-slate-100 shadow-2xl shadow-slate-200/50 overflow-hidden relative group">
-            <div className="absolute top-0 left-0 w-3 h-full bg-slate-50 group-hover:bg-primary transition-colors duration-500" />
+        <form onSubmit={handleSave} className="space-y-6">
+          <div className="bg-white rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/50 overflow-hidden relative group">
+            <div className="absolute top-0 left-0 w-1.5 h-full bg-slate-50 group-hover:bg-primary transition-colors duration-500" />
             
-            <div className="p-10 border-b border-slate-50 flex items-center gap-5">
-              <div className="w-12 h-12 bg-primary/10 rounded-[18px] flex items-center justify-center text-primary shadow-inner">
-                <User size={24} strokeWidth={2.5} />
+            <div className="p-4 border-b border-slate-50 flex items-center gap-3">
+              <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
+                <User size={16} strokeWidth={2.5} />
               </div>
               <div>
-                <h2 className="text-2xl font-black text-slate-900 tracking-tight uppercase">Dados Profissionais</h2>
-                <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em]">Informações visíveis para seus clientes</p>
+                <h2 className="text-sm font-black text-slate-900 tracking-tight uppercase">Dados Profissionais</h2>
               </div>
             </div>
             
-            <div className="p-10 grid grid-cols-1 md:grid-cols-2 gap-10">
-              <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Nome Completo</label>
+            <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider ml-1">Nome Completo</label>
                 <div className="relative group/input">
-                  <User className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within/input:text-primary transition-colors" size={20} strokeWidth={2.5} />
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within/input:text-primary transition-colors" size={14} strokeWidth={2.5} />
                   <input 
-                    className="w-full pl-14 pr-6 py-5 bg-slate-50 border border-slate-100 rounded-[24px] focus:ring-4 focus:ring-primary/5 focus:border-primary/30 outline-none transition-all font-black text-slate-700 uppercase tracking-tight text-sm" 
+                    className="w-full pl-9 pr-3 h-9 bg-slate-50 border border-slate-100 rounded-xl focus:ring-2 focus:ring-primary/5 focus:border-primary/30 outline-none transition-all font-black text-slate-700 uppercase tracking-tight text-[11px]" 
                     value={formData.nome} 
                     onChange={e => setFormData({...formData, nome: e.target.value})} 
                     required 
@@ -303,12 +291,12 @@ export default function Configuracoes({ companyId, user, role, onLogout }: { com
                 </div>
               </div>
 
-              <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">WhatsApp de Atendimento</label>
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider ml-1">WhatsApp</label>
                 <div className="relative group/input">
-                  <Phone className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within/input:text-primary transition-colors" size={20} strokeWidth={2.5} />
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within/input:text-primary transition-colors" size={14} strokeWidth={2.5} />
                   <input 
-                    className="w-full pl-14 pr-6 py-5 bg-slate-50 border border-slate-100 rounded-[24px] focus:ring-4 focus:ring-primary/5 focus:border-primary/30 outline-none transition-all font-black text-slate-700 uppercase tracking-tight text-sm" 
+                    className="w-full pl-9 pr-3 h-9 bg-slate-50 border border-slate-100 rounded-xl focus:ring-2 focus:ring-primary/5 focus:border-primary/30 outline-none transition-all font-black text-slate-700 uppercase tracking-tight text-[11px]" 
                     value={formData.whatsapp} 
                     onChange={e => setFormData({...formData, whatsapp: e.target.value})} 
                     placeholder="(00) 00000-0000"
@@ -316,23 +304,17 @@ export default function Configuracoes({ companyId, user, role, onLogout }: { com
                 </div>
               </div>
 
-              <div className="space-y-3 md:col-span-2">
-                <label className="text-[10px] font-black text-primary uppercase tracking-[0.2em] ml-2">Código de Vínculo para Clientes</label>
+              <div className="space-y-1.5 md:col-span-2">
+                <label className="text-[9px] font-black text-primary uppercase tracking-wider ml-1">Código de Vínculo</label>
                 <div className="relative group/input">
-                  <Shield className="absolute left-6 top-1/2 -translate-y-1/2 text-primary/40 group-focus-within/input:text-primary transition-colors" size={20} strokeWidth={2.5} />
+                  <Shield className="absolute left-3 top-1/2 -translate-y-1/2 text-primary/40 group-focus-within/input:text-primary transition-colors" size={14} strokeWidth={2.5} />
                   <input 
-                    className="w-full pl-14 pr-6 py-6 bg-primary/5 border border-primary/10 rounded-[28px] focus:ring-8 focus:ring-primary/5 focus:border-primary/30 outline-none transition-all font-black text-primary uppercase tracking-[0.2em] text-lg" 
+                    className="w-full pl-9 pr-3 h-10 bg-primary/5 border border-primary/10 rounded-xl focus:ring-4 focus:ring-primary/5 focus:border-primary/30 outline-none transition-all font-black text-primary uppercase tracking-wider text-sm" 
                     value={formData.codigo_cliente} 
                     onChange={e => setFormData({...formData, codigo_cliente: e.target.value.toUpperCase()})} 
                     placeholder="EX: MEULINK01"
                     required
                   />
-                </div>
-                <div className="flex items-start gap-3 mt-4 px-2">
-                  <AlertCircle size={16} className="text-slate-300 mt-0.5" />
-                  <p className="text-[11px] text-slate-400 leading-relaxed font-medium">
-                    Este é o código que seus clientes usarão para se vincular a você. Ele deve ser único, curto e fácil de lembrar.
-                  </p>
                 </div>
               </div>
             </div>
@@ -340,42 +322,41 @@ export default function Configuracoes({ companyId, user, role, onLogout }: { com
 
           <div className="flex justify-end">
             <motion.button 
-              whileHover={{ y: -5 }}
-              whileTap={{ scale: 0.95 }}
+              whileHover={{ y: -2 }}
+              whileTap={{ scale: 0.98 }}
               type="submit"
               disabled={saving}
-              className="group bg-slate-900 text-white px-12 py-6 rounded-[32px] font-black uppercase tracking-[0.2em] text-[10px] shadow-2xl shadow-slate-900/30 hover:shadow-slate-900/50 transition-all disabled:opacity-50 flex items-center gap-4"
+              className="group bg-slate-900 text-white px-8 py-3 rounded-2xl font-black uppercase tracking-wider text-[9px] shadow-lg hover:shadow-slate-900/30 transition-all disabled:opacity-50 flex items-center gap-2"
             >
-              {saving ? <Loader2 className="animate-spin" size={20} strokeWidth={3} /> : <Save size={20} strokeWidth={3} className="group-hover:scale-110 transition-transform" />}
-              {saving ? 'Salvando Alterações...' : 'Salvar Meus Dados'}
+              {saving ? <Loader2 className="animate-spin" size={14} strokeWidth={3} /> : <Save size={14} strokeWidth={3} />}
+              {saving ? 'Salvando...' : 'Salvar Meus Dados'}
             </motion.button>
           </div>
         </form>
       )}
 
       {role === 'company' && (
-        <form onSubmit={handleSave} className="space-y-12">
+        <form onSubmit={handleSave} className="space-y-6">
           {/* Company Data Card */}
-          <div className="bg-white rounded-[48px] border border-slate-100 shadow-2xl shadow-slate-200/50 overflow-hidden relative group">
-            <div className="absolute top-0 left-0 w-3 h-full bg-slate-50 group-hover:bg-primary transition-colors duration-500" />
+          <div className="bg-white rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/50 overflow-hidden relative group">
+            <div className="absolute top-0 left-0 w-1.5 h-full bg-slate-50 group-hover:bg-primary transition-colors duration-500" />
             
-            <div className="p-10 border-b border-slate-50 flex items-center gap-5">
-              <div className="w-12 h-12 bg-primary/10 rounded-[18px] flex items-center justify-center text-primary shadow-inner">
-                <Building2 size={24} strokeWidth={2.5} />
+            <div className="p-4 border-b border-slate-50 flex items-center gap-3">
+              <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
+                <Building2 size={16} strokeWidth={2.5} />
               </div>
               <div>
-                <h2 className="text-2xl font-black text-slate-900 tracking-tight uppercase">Dados da Empresa</h2>
-                <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em]">Informações corporativas e de acesso</p>
+                <h2 className="text-sm font-black text-slate-900 tracking-tight uppercase">Dados da Empresa</h2>
               </div>
             </div>
             
-            <div className="p-10 grid grid-cols-1 md:grid-cols-2 gap-10">
-              <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Nome Fantasia</label>
+            <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider ml-1">Nome Fantasia</label>
                 <div className="relative group/input">
-                  <Building2 className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within/input:text-primary transition-colors" size={20} strokeWidth={2.5} />
+                  <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within/input:text-primary transition-colors" size={14} strokeWidth={2.5} />
                   <input 
-                    className="w-full pl-14 pr-6 py-5 bg-slate-50 border border-slate-100 rounded-[24px] focus:ring-4 focus:ring-primary/5 focus:border-primary/30 outline-none transition-all font-black text-slate-700 uppercase tracking-tight text-sm" 
+                    className="w-full pl-9 pr-3 h-9 bg-slate-50 border border-slate-100 rounded-xl focus:ring-2 focus:ring-primary/5 focus:border-primary/30 outline-none transition-all font-black text-slate-700 uppercase tracking-tight text-[11px]" 
                     value={formData.nome} 
                     onChange={e => setFormData({...formData, nome: e.target.value})} 
                     required 
@@ -383,63 +364,61 @@ export default function Configuracoes({ companyId, user, role, onLogout }: { com
                 </div>
               </div>
 
-              <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">CNPJ (Acesso)</label>
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider ml-1">CNPJ</label>
                 <div className="relative group/input">
-                  <FileText className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within/input:text-primary transition-colors" size={20} strokeWidth={2.5} />
+                  <FileText className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within/input:text-primary transition-colors" size={14} strokeWidth={2.5} />
                   <input 
-                    className="w-full pl-14 pr-6 py-5 bg-slate-50 border border-slate-100 rounded-[24px] focus:ring-4 focus:ring-primary/5 focus:border-primary/30 outline-none transition-all font-black text-slate-700 uppercase tracking-tight text-sm" 
+                    className="w-full pl-9 pr-3 h-9 bg-slate-50 border border-slate-100 rounded-xl focus:ring-2 focus:ring-primary/5 focus:border-primary/30 outline-none transition-all font-black text-slate-700 uppercase tracking-tight text-[11px]" 
                     value={formData.cnpj} 
                     onChange={e => setFormData({...formData, cnpj: e.target.value})} 
                   />
                 </div>
               </div>
 
-              <div className="space-y-3 md:col-span-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">E-mail de Recuperação</label>
+              <div className="space-y-1.5 md:col-span-2">
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider ml-1">E-mail</label>
                 <div className="relative group/input">
-                  <Mail className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within/input:text-primary transition-colors" size={20} strokeWidth={2.5} />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within/input:text-primary transition-colors" size={14} strokeWidth={2.5} />
                   <input 
                     type="email"
-                    className="w-full pl-14 pr-6 py-5 bg-slate-50 border border-slate-100 rounded-[24px] focus:ring-4 focus:ring-primary/5 focus:border-primary/30 outline-none transition-all font-black text-slate-700 uppercase tracking-tight text-sm" 
+                    className="w-full pl-9 pr-3 h-9 bg-slate-50 border border-slate-100 rounded-xl focus:ring-2 focus:ring-primary/5 focus:border-primary/30 outline-none transition-all font-black text-slate-700 uppercase tracking-tight text-[11px]" 
                     value={formData.email} 
                     onChange={e => setFormData({...formData, email: e.target.value})} 
                     required
-                    placeholder="exemplo@empresa.com"
                   />
                 </div>
               </div>
             </div>
 
             {/* Password Section */}
-            <div className="p-10 border-t border-slate-50 bg-slate-50/30 space-y-8">
-              <div className="flex items-center gap-5">
-                <div className="w-12 h-12 bg-amber-100 rounded-[18px] flex items-center justify-center text-amber-600 shadow-inner">
-                  <Lock size={24} strokeWidth={2.5} />
+            <div className="p-4 border-t border-slate-50 bg-slate-50/30 space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center text-amber-600">
+                  <Lock size={16} strokeWidth={2.5} />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-black text-slate-900 tracking-tight uppercase">Segurança</h2>
-                  <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em]">Altere sua senha de acesso</p>
+                  <h2 className="text-sm font-black text-slate-900 tracking-tight uppercase">Segurança</h2>
                 </div>
               </div>
               
-              <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Nova Senha de Acesso</label>
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider ml-1">Nova Senha</label>
                 <div className="relative group/input">
-                  <Shield className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within/input:text-primary transition-colors" size={20} strokeWidth={2.5} />
+                  <Shield className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within/input:text-primary transition-colors" size={14} strokeWidth={2.5} />
                   <input 
                     type={showPassword ? "text" : "password"}
-                    className="w-full pl-14 pr-16 py-5 bg-white border border-slate-100 rounded-[24px] focus:ring-4 focus:ring-primary/5 focus:border-primary/30 outline-none transition-all font-black text-slate-700 uppercase tracking-tight text-sm" 
+                    className="w-full pl-9 pr-10 h-9 bg-white border border-slate-100 rounded-xl focus:ring-2 focus:ring-primary/5 focus:border-primary/30 outline-none transition-all font-black text-slate-700 uppercase tracking-tight text-[11px]" 
                     value={formData.senha} 
                     onChange={e => setFormData({...formData, senha: e.target.value})} 
-                    placeholder="Deixe em branco para manter a atual"
+                    placeholder="Manter atual"
                   />
                   <button 
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-6 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-slate-300 hover:text-primary transition-colors active:scale-90"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center text-slate-300 hover:text-primary transition-colors"
                   >
-                    {showPassword ? <EyeOff size={20} strokeWidth={2.5} /> : <Eye size={20} strokeWidth={2.5} />}
+                    {showPassword ? <EyeOff size={14} strokeWidth={2.5} /> : <Eye size={14} strokeWidth={2.5} />}
                   </button>
                 </div>
               </div>
@@ -448,14 +427,14 @@ export default function Configuracoes({ companyId, user, role, onLogout }: { com
 
           <div className="flex justify-end">
             <motion.button 
-              whileHover={{ y: -5 }}
-              whileTap={{ scale: 0.95 }}
+              whileHover={{ y: -2 }}
+              whileTap={{ scale: 0.98 }}
               type="submit"
               disabled={saving}
-              className="group bg-slate-900 text-white px-12 py-6 rounded-[32px] font-black uppercase tracking-[0.2em] text-[10px] shadow-2xl shadow-slate-900/30 hover:shadow-slate-900/50 transition-all disabled:opacity-50 flex items-center gap-4"
+              className="group bg-slate-900 text-white px-8 py-3 rounded-2xl font-black uppercase tracking-wider text-[9px] shadow-lg hover:shadow-slate-900/30 transition-all disabled:opacity-50 flex items-center gap-2"
             >
-              {saving ? <Loader2 className="animate-spin" size={20} strokeWidth={3} /> : <Save size={20} strokeWidth={3} className="group-hover:scale-110 transition-transform" />}
-              {saving ? 'Salvando Alterações...' : 'Salvar Configurações'}
+              {saving ? <Loader2 className="animate-spin" size={14} strokeWidth={3} /> : <Save size={14} strokeWidth={3} />}
+              {saving ? 'Salvando...' : 'Salvar Configurações'}
             </motion.button>
           </div>
         </form>

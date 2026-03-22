@@ -33,8 +33,7 @@ import {
   EyeOff,
   Mail,
   Shield,
-  Layout,
-  Home
+  Layout
 } from 'lucide-react';
 import { useCart } from './hooks/useCart';
 import { Product, Category, Seller, Customer, UserRole, CartItem, Company, Brand, BannerData } from './types';
@@ -42,8 +41,6 @@ import { mockProducts, mockCategories, mockCompany } from './lib/mockData';
 import { Card } from './components/Card';
 import { Badge } from './components/Badge';
 import { Dashboard, Produtos, Clientes, Pedidos, Configuracoes, Marcas, Upload, Pendencias, Vendedores, BannerManager } from './pages';
-import Privacidade from './pages/privacidade';
-import Lgpd from './pages/lgpd';
 import ProductFormModal from './components/ProductFormModal';
 import CartScreen from './pages/CartScreen';
 import Banner from './components/Banner';
@@ -86,57 +83,11 @@ function SidebarItem({ icon, label, active, onClick }: { icon: React.ReactNode, 
   return (
     <button 
       onClick={onClick}
-      className={`w-full flex items-center gap-4 px-6 py-4 rounded-full font-black text-sm transition-all ${active ? 'bg-primary text-white neumorphic-shadow' : 'text-slate-600 hover:bg-white/50'}`}
+      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg font-semibold text-[11px] transition-all ${active ? 'bg-primary text-white shadow-md shadow-primary/20' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'}`}
     >
       {icon}
-      <span className="uppercase tracking-[0.1em]">{label}</span>
+      <span className="uppercase tracking-[0.08em]">{label}</span>
     </button>
-  );
-}
-
-function Footer() {
-  return (
-    <footer className="w-full py-12 px-6 bg-white border-t border-slate-100 mt-20">
-      <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12">
-        <div className="space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 pink-gradient rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary/20">
-              <CheckCircle2 size={24} />
-            </div>
-            <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">VendPro</h2>
-          </div>
-          <p className="text-xs text-slate-500 font-medium leading-relaxed max-w-xs">
-            A plataforma definitiva para orçamentos e catálogos digitais premium. Transforme sua forma de vender.
-          </p>
-        </div>
-
-        <div className="space-y-6">
-          <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Legal</h3>
-          <nav className="flex flex-col gap-3">
-            <a href="/privacidade" className="text-xs font-black text-slate-600 uppercase tracking-widest hover:text-primary transition-colors">Política de Privacidade</a>
-            <a href="/lgpd" className="text-xs font-black text-slate-600 uppercase tracking-widest hover:text-primary transition-colors">LGPD</a>
-          </nav>
-        </div>
-
-        <div className="space-y-6">
-          <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Suporte</h3>
-          <p className="text-xs font-black text-slate-600 uppercase tracking-widest">contato@vendpro.com.br</p>
-          <div className="flex items-center gap-4">
-            <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400 hover:text-primary transition-colors cursor-pointer">
-              <Share2 size={16} />
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <div className="max-w-7xl mx-auto mt-12 pt-8 border-t border-slate-50 flex flex-col md:flex-row items-center justify-between gap-4">
-        <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">© 2026 VendPro. Todos os direitos reservados.</p>
-        <div className="flex items-center gap-2">
-          <Shield size={12} className="text-slate-300" />
-          <span className="text-[9px] font-black text-slate-300 uppercase tracking-[0.2em]">Ambiente Seguro</span>
-        </div>
-      </div>
-    </footer>
   );
 }
 
@@ -185,10 +136,10 @@ const safeLocalStorage = {
 export default function App() {
   const path = window.location.pathname;
   if (path === '/lgpd') {
-    return <Lgpd />;
+    return <iframe src="/lgpd.html" className="fixed inset-0 w-full h-full border-none z-[200] bg-white" />;
   }
   if (path === '/privacidade') {
-    return <Privacidade />;
+    return <iframe src="/politica-de-privacidade.html" className="fixed inset-0 w-full h-full border-none z-[200] bg-white" />;
   }
 
   const [role, setRole] = useState<UserRole>(() => {
@@ -626,47 +577,23 @@ export default function App() {
 
       <TopBar messages={topBarMessages} />
 
-      {/* Mobile Header */}
-      <header className="md:hidden sticky top-0 z-[100] bg-white/80 backdrop-blur-xl border-b border-slate-100 px-4 py-3 flex items-center justify-between">
-        <button onClick={() => setIsSidebarOpen(true)} className="p-2 text-slate-600 hover:text-primary transition-colors">
-          <Menu size={24} />
-        </button>
-        
-        <div className="flex-1 flex justify-center">
-          <h1 className="text-sm font-black uppercase tracking-[2px] text-slate-900 truncate max-w-[150px]">
-            {company?.nome || 'VendPro'}
-          </h1>
-        </div>
-
-        <div className="flex items-center gap-1">
-          <button onClick={() => setActiveTab('catalog')} className="p-2 text-slate-600 hover:text-primary transition-colors">
-            <Search size={20} />
-          </button>
-          <button onClick={() => setActiveTab('cart')} className="relative p-2 text-slate-600 hover:text-primary transition-colors">
-            <ShoppingCart size={20} />
-            {cart.length > 0 && (
-              <span className="absolute top-1 right-1 w-4 h-4 pink-gradient text-white text-[8px] font-black flex items-center justify-center rounded-full shadow-lg border border-white">
-                {cart.length}
-              </span>
-            )}
-          </button>
-        </div>
-      </header>
-
-      {/* Desktop Header */}
-      <header className="hidden md:flex sticky top-0 z-[100] bg-white/80 backdrop-blur-xl border-b border-slate-100 px-4 md:px-12 py-4 md:py-6 items-center justify-between">
-        <div className="flex items-center gap-4 md:gap-12">
-          <button onClick={() => setIsSidebarOpen(true)} className="p-3 bg-white text-slate-600 hover:text-primary hover:bg-primary/5 rounded-full transition-all shadow-sm border border-slate-100">
+      {/* Header */}
+      <header className="glass-effect px-4 md:px-8 py-4 sticky top-0 z-40 flex items-center justify-between shadow-sm">
+        <div className="flex items-center gap-4">
+          <button onClick={() => setIsSidebarOpen(true)} className="p-2 -ml-2 text-slate-600 hover:text-primary transition-colors">
             <Menu size={24} />
           </button>
-          
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 md:w-14 md:h-14 pink-gradient rounded-[14px] flex items-center justify-center text-white shadow-xl shadow-primary/20">
-              <CheckCircle2 size={24} className="md:w-8 md:h-8" />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-[9px] font-black text-slate-400 uppercase tracking-[2px] mb-0.5">Distribuidor Oficial</span>
-              {availableCompanies.length > 1 && role !== 'customer' ? (
+          <div className="flex items-center gap-3">
+            {company?.logo_url ? (
+              <img src={company.logo_url} alt={company.nome} className="w-10 h-10 rounded-xl object-cover shadow-sm" />
+            ) : (
+              <div className="w-10 h-10 pink-gradient rounded-xl flex items-center justify-center text-white shadow-sm shrink-0">
+                <CheckCircle2 size={24} />
+              </div>
+            )}
+            
+            <div className="hidden sm:block">
+              {availableCompanies.length > 1 ? (
                 <select 
                   value={activeCompanyId || ''} 
                   onChange={(e) => handleCompanyChange(e.target.value)}
@@ -728,11 +655,11 @@ export default function App() {
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
-              className="fixed inset-y-0 left-0 w-80 bg-white z-50 shadow-2xl p-8 flex flex-col rounded-r-[14px]"
+              className="fixed inset-y-0 left-0 w-80 bg-white z-50 shadow-2xl p-8 flex flex-col rounded-r-[48px]"
             >
               <div className="flex items-center justify-between mb-12 px-2">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 pink-gradient rounded-[10px] flex items-center justify-center text-white shadow-lg shadow-primary/20">
+                  <div className="w-12 h-12 pink-gradient rounded-[20px] flex items-center justify-center text-white shadow-lg shadow-primary/20">
                     <CheckCircle2 size={24} />
                   </div>
                   <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">VendPro</h2>
@@ -741,35 +668,35 @@ export default function App() {
               </div>
 
               <nav className="space-y-1.5 flex-1 overflow-y-auto pr-2 custom-scrollbar">
-                <SidebarItem icon={<LayoutGrid size={20}/>} label="Catálogo" active={activeTab === 'catalog'} onClick={() => { setActiveTab('catalog'); setIsSidebarOpen(false); }} />
+                <SidebarItem icon={<LayoutGrid size={16}/>} label="Catálogo" active={activeTab === 'catalog'} onClick={() => { setActiveTab('catalog'); setIsSidebarOpen(false); }} />
                 
                 {effectiveRole !== 'customer' && (
                   <>
-                    <SidebarItem icon={<LayoutGrid size={20}/>} label="Dashboard" active={activeTab === 'dashboard'} onClick={() => { setActiveTab('dashboard'); setIsSidebarOpen(false); }} />
+                    <SidebarItem icon={<LayoutGrid size={16}/>} label="Dashboard" active={activeTab === 'dashboard'} onClick={() => { setActiveTab('dashboard'); setIsSidebarOpen(false); }} />
                     
                     {role !== 'seller' && (
                       <>
-                        <SidebarItem icon={<Layout size={20}/>} label="Banners" active={activeTab === 'banners'} onClick={() => { setActiveTab('banners'); setIsSidebarOpen(false); }} />
-                        <SidebarItem icon={<Package size={20}/>} label="Produtos" active={activeTab === 'produtos'} onClick={() => { setActiveTab('produtos'); setIsSidebarOpen(false); }} />
-                        <SidebarItem icon={<UploadIcon size={20}/>} label="Upload" active={activeTab === 'upload'} onClick={() => { setActiveTab('upload'); setIsSidebarOpen(false); }} />
-                        <SidebarItem icon={<AlertTriangle size={20}/>} label="Pendências" active={activeTab === 'pendencias'} onClick={() => { setActiveTab('pendencias'); setIsSidebarOpen(false); }} />
-                        <SidebarItem icon={<Tag size={20}/>} label="Marcas" active={activeTab === 'marcas'} onClick={() => { setActiveTab('marcas'); setIsSidebarOpen(false); }} />
-                        <SidebarItem icon={<Users size={20}/>} label="Vendedores" active={activeTab === 'vendedores'} onClick={() => { setActiveTab('vendedores'); setIsSidebarOpen(false); }} />
+                        <SidebarItem icon={<Layout size={16}/>} label="Banners" active={activeTab === 'banners'} onClick={() => { setActiveTab('banners'); setIsSidebarOpen(false); }} />
+                        <SidebarItem icon={<Package size={16}/>} label="Produtos" active={activeTab === 'produtos'} onClick={() => { setActiveTab('produtos'); setIsSidebarOpen(false); }} />
+                        <SidebarItem icon={<UploadIcon size={16}/>} label="Upload" active={activeTab === 'upload'} onClick={() => { setActiveTab('upload'); setIsSidebarOpen(false); }} />
+                        <SidebarItem icon={<AlertTriangle size={16}/>} label="Pendências" active={activeTab === 'pendencias'} onClick={() => { setActiveTab('pendencias'); setIsSidebarOpen(false); }} />
+                        <SidebarItem icon={<Tag size={16}/>} label="Marcas" active={activeTab === 'marcas'} onClick={() => { setActiveTab('marcas'); setIsSidebarOpen(false); }} />
+                        <SidebarItem icon={<Users size={16}/>} label="Vendedores" active={activeTab === 'vendedores'} onClick={() => { setActiveTab('vendedores'); setIsSidebarOpen(false); }} />
                       </>
                     )}
                     
-                    <SidebarItem icon={<Users size={20}/>} label="Clientes" active={activeTab === 'clientes'} onClick={() => { setActiveTab('clientes'); setIsSidebarOpen(false); }} />
-                    <SidebarItem icon={<FileText size={20}/>} label="Pedidos" active={activeTab === 'pedidos'} onClick={() => { setActiveTab('pedidos'); setIsSidebarOpen(false); }} />
+                    <SidebarItem icon={<Users size={16}/>} label="Clientes" active={activeTab === 'clientes'} onClick={() => { setActiveTab('clientes'); setIsSidebarOpen(false); }} />
+                    <SidebarItem icon={<FileText size={16}/>} label="Pedidos" active={activeTab === 'pedidos'} onClick={() => { setActiveTab('pedidos'); setIsSidebarOpen(false); }} />
                   </>
                 )}
 
                 {effectiveRole === 'customer' && (
-                  <SidebarItem icon={<FileText size={20}/>} label="Meus Pedidos" active={activeTab === 'pedidos'} onClick={() => { setActiveTab('pedidos'); setIsSidebarOpen(false); }} />
+                  <SidebarItem icon={<FileText size={16}/>} label="Meus Pedidos" active={activeTab === 'pedidos'} onClick={() => { setActiveTab('pedidos'); setIsSidebarOpen(false); }} />
                 )}
                     
                 {role !== 'seller' && role !== 'customer' && (
                   <SidebarItem 
-                    icon={<User size={20}/>} 
+                    icon={<User size={16}/>} 
                     label="Visão do Cliente" 
                     active={false} 
                     onClick={() => { 
@@ -781,11 +708,11 @@ export default function App() {
                 )}
 
                 <div className="h-px bg-slate-100 my-6 mx-2" />
-                <SidebarItem icon={<User size={20}/>} label="Minha Conta" active={activeTab === 'account'} onClick={() => { setActiveTab('account'); setIsSidebarOpen(false); }} />
+                <SidebarItem icon={<User size={16}/>} label="Minha Conta" active={activeTab === 'account'} onClick={() => { setActiveTab('account'); setIsSidebarOpen(false); }} />
                 
                 {availableCompanies.length > 1 && (
                   <SidebarItem 
-                    icon={<LayoutGrid size={20}/>} 
+                    icon={<LayoutGrid size={16}/>} 
                     label="Trocar Marca" 
                     active={false} 
                     onClick={() => { 
@@ -811,33 +738,8 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* Mobile Bottom Navigation */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-[100] bg-white/90 backdrop-blur-xl border-t border-slate-100 px-6 py-3 flex items-center justify-between shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
-        <button onClick={() => setActiveTab('catalog')} className={`flex flex-col items-center gap-1 ${activeTab === 'catalog' ? 'text-primary' : 'text-slate-400'}`}>
-          <Home size={20} />
-          <span className="text-[8px] font-black uppercase tracking-widest">Início</span>
-        </button>
-        <button onClick={() => setActiveTab('catalog')} className={`flex flex-col items-center gap-1 ${activeTab === 'catalog' ? 'text-primary' : 'text-slate-400'}`}>
-          <LayoutGrid size={20} />
-          <span className="text-[8px] font-black uppercase tracking-widest">Catálogo</span>
-        </button>
-        <button onClick={() => setActiveTab('cart')} className={`relative flex flex-col items-center gap-1 ${activeTab === 'cart' ? 'text-primary' : 'text-slate-400'}`}>
-          <ShoppingCart size={20} />
-          {cart.length > 0 && (
-            <span className="absolute -top-1 -right-1 w-4 h-4 pink-gradient text-white text-[8px] font-black flex items-center justify-center rounded-full shadow-lg border border-white">
-              {cart.length}
-            </span>
-          )}
-          <span className="text-[8px] font-black uppercase tracking-widest">Carrinho</span>
-        </button>
-        <button onClick={() => setActiveTab('pedidos')} className={`flex flex-col items-center gap-1 ${activeTab === 'pedidos' ? 'text-primary' : 'text-slate-400'}`}>
-          <FileText size={20} />
-          <span className="text-[8px] font-black uppercase tracking-widest">Pedidos</span>
-        </button>
-      </div>
-
       {/* Main Content */}
-      <main className="flex-1 w-full relative min-w-0 overflow-x-hidden pb-20 md:pb-0">
+      <main className="flex-1 w-full relative min-w-0 overflow-x-hidden">
         {viewMode === 'customer' && role !== 'customer' && (
           <button
             onClick={() => setViewMode('admin')}
@@ -893,7 +795,6 @@ export default function App() {
           {activeTab === 'pedidos' && <Pedidos companyId={activeCompanyId} role={role} user={user} />}
           {activeTab === 'account' && <Configuracoes companyId={activeCompanyId} user={user} role={role} onLogout={handleLogout} />}
         </div>
-        <Footer />
       </main>
 
       <AnimatePresence>
@@ -1007,7 +908,7 @@ function CompanyInfoModal({ company, onClose }: { company: any, onClose: () => v
 }
 function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, companies?: any[], sellers?: any[]) => void }) {
   const [view, setView] = useState<'role' | 'seller-code' | 'customer-form' | 'company-login' | 'company-register'>('role');
-  const [loginType, setLoginType] = useState<'seller' | 'customer' | 'company' | null>(null);
+  const [loginType, setLoginType] = useState<'seller' | 'customer' | 'admin' | 'company' | null>(null);
   const [sellerCode, setSellerCode] = useState('');
   const [customerData, setCustomerData] = useState({ nome: '', cnpj: '', telefone: '', responsavel: '' });
   const [companyData, setCompanyData] = useState({ nome: '', cnpj: '', telefone: '', responsavel: '', email: '', senha: '' });
@@ -1033,8 +934,56 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
     }
   }, []);
 
+  // Auto-validar código de vendedor se presente no localStorage
+  useEffect(() => {
+    const savedCode = safeLocalStorage.getItem('vendpro_seller_code');
+    if (savedCode && view === 'role' && supabase) {
+      console.log("Auto-validando código do vendedor salvo:", savedCode);
+      const autoValidate = async () => {
+        try {
+          // Use type: 'customer' for auto-validation from URL link
+          const result = await validateSellerCode(savedCode, 'customer');
+          if (result.success && result.sellers && result.sellers.length > 0) {
+            const mainSeller = result.sellers[0];
+            console.log("Código validado com sucesso:", mainSeller.nome);
+            setSellerCode(savedCode);
+            setSellerInfo(mainSeller);
+            setAvailableCompanies(result.companies || []);
+            setLoginType('customer');
+            setView('customer-form');
+          } else {
+            console.warn("Código salvo no localStorage é inválido para cliente:", savedCode);
+            // Se o código for inválido, removemos para não tentar novamente
+            safeLocalStorage.removeItem('vendpro_seller_code');
+          }
+        } catch (err) {
+          console.error("Erro na auto-validação do código:", err);
+        }
+      };
+      autoValidate();
+    }
+  }, [view, supabase]);
+
   const handleSellerCodeSubmit = async () => {
     const code = sellerCode.trim().toUpperCase();
+    if (code === 'ADMIN') {
+      if (supabase) {
+        const { data } = await supabase.from('companies').select('*').limit(1);
+        if (data && data.length > 0) {
+          onLogin('company', data[0], [data[0]]);
+        } else {
+          const { data: newCompany, error } = await supabase.from('companies').insert([{ nome: 'VendPro Matriz' }]).select().single();
+          if (newCompany) {
+            onLogin('company', newCompany, [newCompany]);
+          } else {
+            alert('Erro ao criar empresa padrão: ' + (error?.message || 'Erro desconhecido'));
+          }
+        }
+      }
+      return;
+    }
+    
+    // Use the correct validation type based on loginType
     const validationType = loginType === 'seller' ? 'seller' : 'customer';
     const result = await validateSellerCode(code, validationType);
     
@@ -1048,7 +997,10 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
         setView('customer-form');
       }
     } else {
-      alert(loginType === 'seller' ? 'Código de vendedor inválido.' : 'Código de vínculo inválido.');
+      const msg = loginType === 'seller' 
+        ? 'Código de vendedor inválido.' 
+        : 'Código de vínculo inválido. Peça o código correto ao seu vendedor.';
+      alert(msg);
     }
   };
 
@@ -1060,16 +1012,22 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
 
     if (supabase && sellerInfo) {
       try {
-        const { data: existingCustomers } = await supabase
+        // Try to find existing customer by phone, name or CNPJ under this seller
+        const { data: existingCustomers, error: searchError } = await supabase
           .from('customers')
           .select('*')
           .eq('seller_id', sellerInfo.id)
           .or(`telefone.eq.${customerData.telefone},nome.ilike.%${customerData.nome}%,cnpj.eq.${customerData.cnpj}`);
 
+        if (searchError) throw searchError;
+
         let finalCustomer;
+
         if (existingCustomers && existingCustomers.length > 0) {
+          // Found existing customer
           finalCustomer = existingCustomers[0];
         } else {
+          // Create new customer
           const { data: newCustomer, error: insertError } = await supabase
             .from('customers')
             .insert([{
@@ -1096,8 +1054,18 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
         }, availableCompanies);
 
       } catch (error: any) {
+        console.error("Erro ao processar cliente:", error);
         alert("Erro ao processar login do cliente: " + error.message);
       }
+    } else {
+      // Fallback if no supabase (shouldn't happen)
+      onLogin('customer', { 
+        ...customerData, 
+        sellerCode,
+        vendedor_nome: sellerInfo?.nome,
+        vendedor_whatsapp: sellerInfo?.whatsapp,
+        vendedor_telefone: sellerInfo?.telefone
+      }, availableCompanies);
     }
   };
 
@@ -1114,6 +1082,23 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
     const cnpj = companyLoginCnpj.trim();
     const senha = companyLoginSenha.trim();
     
+    if (cnpj.toUpperCase() === 'ADMIN') {
+      if (supabase) {
+        const { data } = await supabase.from('companies').select('*').limit(1);
+        if (data && data.length > 0) {
+          onLogin('company', data[0]);
+        } else {
+          const { data: newCompany, error } = await supabase.from('companies').insert([{ nome: 'VendPro Matriz' }]).select().single();
+          if (newCompany) {
+            onLogin('company', newCompany);
+          } else {
+            alert('Erro ao criar empresa padrão: ' + (error?.message || 'Erro desconhecido'));
+          }
+        }
+      }
+      return;
+    }
+    
     if (!cnpj || !senha) {
       alert('Preencha o CNPJ e a senha.');
       return;
@@ -1128,206 +1113,281 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
-      {/* Header com degradê roxo escuro */}
-      <div className="w-full bg-gradient-to-br from-[#2D1B69] to-[#7C3AED] pt-16 pb-12 px-8 text-center flex flex-col items-center">
-        <motion.div 
-          initial={{ y: -20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-white mb-4 border border-white/30"
-        >
-          <span className="text-3xl font-black">V</span>
-        </motion.div>
-        <h1 className="text-3xl font-black text-white tracking-tight uppercase">VendPro</h1>
-        <p className="text-white/60 text-[10px] font-black uppercase tracking-[0.2em] mt-1">Catálogo Premium de Beleza</p>
-      </div>
+    <div className="min-h-screen bg-fixed bg-gradient-to-br from-white via-soft-pink to-white flex flex-col items-center justify-center p-4">
+      <motion.div 
+        initial={{ scale: 0.95, opacity: 0, y: 10 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        className="w-full max-w-sm"
+      >
+        {/* Header */}
+        <div className="bg-gradient-to-br from-[#2d1b69] to-[#7c3aed] rounded-t-2xl px-8 py-8 text-center">
+          <div className="w-14 h-14 bg-white/15 rounded-2xl mx-auto mb-4 flex items-center justify-center text-white shadow-lg border border-white/20">
+            <CheckCircle2 size={28} strokeWidth={1.5} />
+          </div>
+          <h1 className="text-2xl font-black tracking-[2px] text-white uppercase">VendPro</h1>
+          <p className="text-white/50 font-bold text-[9px] tracking-[4px] uppercase mt-1">Catálogos Inteligentes</p>
+        </div>
 
-      <div className="flex-1 -mt-6 bg-white rounded-t-[32px] px-8 pt-8 pb-12 shadow-2xl">
-        <motion.div 
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          className="max-w-sm mx-auto"
-        >
-          {/* Seletor de Perfil */}
-          <div className="grid grid-cols-3 gap-3 mb-8">
+        {/* Body */}
+        <div className="bg-white rounded-b-2xl px-6 py-6 shadow-2xl shadow-slate-300/40">
+
+        {view === 'role' && (
+          <div className="space-y-3">
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-4 text-center">Selecione seu perfil</p>
+            <div className="grid grid-cols-3 gap-2 mb-4">
+              {[
+                { label: 'Empresa', icon: '🏢', action: () => { setLoginType('company'); setView('company-login'); } },
+                { label: 'Vendedor', icon: '👤', action: () => { setLoginType('seller'); setView('seller-code'); } },
+                { label: 'Cliente', icon: '🛍', action: () => { setLoginType('customer'); setView('seller-code'); } },
+              ].map(opt => (
+                <button key={opt.label} onClick={opt.action}
+                  className="bg-slate-50 border border-slate-200 hover:border-primary hover:bg-primary/5 rounded-xl py-3 px-2 text-center transition-all cursor-pointer">
+                  <div className="text-xl mb-1">{opt.icon}</div>
+                  <div className="text-[10px] font-bold text-slate-700">{opt.label}</div>
+                </button>
+              ))}
+            </div>
+            <button 
+              onClick={() => { setLoginType('admin'); setView('seller-code'); }}
+              className="w-full py-2 text-[9px] font-bold text-slate-300 uppercase tracking-widest hover:text-primary transition-colors"
+            >
+              Acesso Administrativo
+            </button>
+          </div>
+        )}
+
+        {view === 'company-login' && (
+          <div className="space-y-3">
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3 text-center">Acesso Empresa</p>
+            <div>
+              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 block">CNPJ</label>
+              <input type="text" placeholder="Digite seu CNPJ" className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:border-primary/40 outline-none text-sm font-bold text-slate-700" value={companyLoginCnpj} onChange={e => setCompanyLoginCnpj(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Senha</label>
+              <div className="relative">
+                <input type={showPassword ? "text" : "password"} placeholder="••••••••" className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:border-primary/40 outline-none text-sm font-bold text-slate-700 pr-9" value={companyLoginSenha} onChange={e => setCompanyLoginSenha(e.target.value)} />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 hover:text-primary transition-colors">
+                  {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                </button>
+              </div>
+            </div>
+            <button onClick={handleCompanyLogin} className="w-full py-2.5 bg-gradient-to-r from-[#e91e8c] to-[#7c3aed] text-white rounded-lg font-black text-xs uppercase tracking-wide shadow-lg hover:-translate-y-0.5 transition-all mt-1">Entrar</button>
+            <div className="flex items-center justify-between pt-1">
+              <button onClick={() => setShowForgotPassword(true)} className="text-[10px] font-bold text-primary hover:underline">Esqueci a senha</button>
+              <button onClick={() => setView('company-register')} className="text-[10px] font-bold text-slate-400 hover:text-primary transition-colors">Cadastrar empresa</button>
+            </div>
+            <button onClick={() => setView('role')} className="w-full text-center text-[9px] font-bold text-slate-300 uppercase tracking-widest hover:text-primary transition-colors pt-1">← Voltar</button>
+          </div>
+        )}
+
+        {view === 'company-register' && (
+          <div className="space-y-2">
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3 text-center">Cadastro de Empresa</p>
             {[
-              { id: 'company', label: 'Empresa', icon: <Package size={20} /> },
-              { id: 'seller', label: 'Vendedor', icon: <Users size={20} /> },
-              { id: 'customer', label: 'Cliente', icon: <User size={20} /> }
-            ].map((role) => (
-              <button
-                key={role.id}
-                onClick={() => {
-                  setLoginType(role.id as any);
-                  if (role.id === 'company') setView('company-login');
-                  else setView('seller-code');
-                }}
-                className={`flex flex-col items-center gap-2 p-4 rounded-2xl border transition-all ${
-                  loginType === role.id 
-                    ? 'border-[#7C3AED] bg-[#7C3AED]/5 text-[#7C3AED]' 
-                    : 'border-slate-100 bg-slate-50 text-slate-400'
-                }`}
-              >
-                {role.icon}
-                <span className="text-[9px] font-black uppercase tracking-tight">{role.label}</span>
-              </button>
+              { ph: 'Nome da Empresa', key: 'nome', type: 'text' },
+              { ph: 'CNPJ', key: 'cnpj', type: 'text' },
+              { ph: 'Responsável', key: 'responsavel', type: 'text' },
+              { ph: 'E-mail', key: 'email', type: 'email' },
+              { ph: 'Telefone', key: 'telefone', type: 'text' },
+            ].map(f => (
+              <input key={f.key} type={f.type} placeholder={f.ph} className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:border-primary/40 outline-none text-sm font-bold text-slate-700" value={(companyData as any)[f.key]} onChange={e => setCompanyData({...companyData, [f.key]: e.target.value})} required={f.key === 'email'} />
             ))}
-          </div>
-
-          {/* Formulário */}
-          <div className="bg-[#FAFAFA] border-[0.5px] border-slate-200 rounded-[32px] p-[24px_28px] space-y-4">
-            {view === 'company-login' && (
-              <>
-                <div className="space-y-1">
-                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-4">E-mail ou CNPJ</label>
-                  <input 
-                    type="text" 
-                    placeholder="empresa@email.com ou 00.000.000/0000-00" 
-                    className="w-full p-4 bg-white rounded-2xl border border-slate-100 outline-none focus:ring-2 focus:ring-[#7C3AED]/20 font-bold text-slate-700"
-                    value={companyLoginCnpj}
-                    onChange={e => setCompanyLoginCnpj(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-4">Senha</label>
-                  <div className="relative">
-                    <input 
-                      type={showPassword ? "text" : "password"} 
-                      placeholder="••••••••" 
-                      className="w-full p-4 bg-white rounded-2xl border border-slate-100 outline-none focus:ring-2 focus:ring-[#7C3AED]/20 font-bold text-slate-700"
-                      value={companyLoginSenha}
-                      onChange={e => setCompanyLoginSenha(e.target.value)}
-                    />
-                    <button 
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"
-                    >
-                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </button>
-                  </div>
-                </div>
-                <button 
-                  onClick={handleCompanyLogin}
-                  className="w-full py-4 bg-gradient-to-r from-[#E91E8C] to-[#7C3AED] text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-[#7C3AED]/20 mt-4"
-                >
-                  Entrar
-                </button>
-                <div className="flex flex-col gap-3 pt-2">
-                  <button onClick={() => setShowForgotPassword(true)} className="text-[9px] font-black text-[#7C3AED] uppercase tracking-widest text-center">Esqueci minha senha</button>
-                  <button onClick={() => setView('company-register')} className="text-[9px] font-black text-slate-400 uppercase tracking-widest text-center">Criar nova conta empresa</button>
-                </div>
-              </>
-            )}
-
-            {view === 'seller-code' && (
-              <>
-                <div className="space-y-1">
-                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-4">Código de Acesso</label>
-                  <input 
-                    type="text" 
-                    placeholder="EX: VEND-001" 
-                    className="w-full p-4 bg-white rounded-2xl border border-slate-100 outline-none focus:ring-2 focus:ring-[#7C3AED]/20 font-black uppercase text-center text-slate-700"
-                    value={sellerCode}
-                    onChange={e => setSellerCode(e.target.value)}
-                  />
-                </div>
-                <button 
-                  onClick={handleSellerCodeSubmit}
-                  className="w-full py-4 bg-gradient-to-r from-[#E91E8C] to-[#7C3AED] text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-[#7C3AED]/20 mt-4"
-                >
-                  Validar Código
-                </button>
-                <button onClick={() => setShowForgotCode(true)} className="w-full text-[9px] font-black text-[#7C3AED] uppercase tracking-widest text-center pt-2">Esqueci meu código</button>
-              </>
-            )}
-
-            {view === 'customer-form' && (
-              <>
-                <div className="space-y-3">
-                  <input placeholder="Nome Completo" className="w-full p-4 bg-white rounded-2xl border border-slate-100 font-bold outline-none" onChange={e => setCustomerData({...customerData, nome: e.target.value})} />
-                  <input placeholder="CNPJ / CPF" className="w-full p-4 bg-white rounded-2xl border border-slate-100 font-bold outline-none" onChange={e => setCustomerData({...customerData, cnpj: e.target.value})} />
-                  <input placeholder="WhatsApp" className="w-full p-4 bg-white rounded-2xl border border-slate-100 font-bold outline-none" onChange={e => setCustomerData({...customerData, telefone: e.target.value})} />
-                </div>
-                <button 
-                  onClick={handleCustomerSubmit}
-                  className="w-full py-4 bg-gradient-to-r from-[#E91E8C] to-[#7C3AED] text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-[#7C3AED]/20 mt-4"
-                >
-                  Acessar Catálogo
-                </button>
-                <div className="mt-4 text-center">
-                  <p className="text-[8px] text-slate-400 font-medium leading-relaxed">
-                    Ao acessar, você concorda com nossa <br/>
-                    <a href="/privacidade" className="text-[#7C3AED] font-black uppercase hover:underline">Política de Privacidade</a> e <a href="/lgpd" className="text-[#7C3AED] font-black uppercase hover:underline">LGPD</a>.
-                  </p>
-                </div>
-              </>
-            )}
-
-            {view === 'company-register' && (
-              <>
-                <div className="space-y-3">
-                  <input placeholder="Nome da Empresa" className="w-full p-4 bg-white rounded-2xl border border-slate-100 font-bold outline-none" value={companyData.nome} onChange={e => setCompanyData({...companyData, nome: e.target.value})} />
-                  <input placeholder="CNPJ" className="w-full p-4 bg-white rounded-2xl border border-slate-100 font-bold outline-none" value={companyData.cnpj} onChange={e => setCompanyData({...companyData, cnpj: e.target.value})} />
-                  <input placeholder="E-mail" type="email" className="w-full p-4 bg-white rounded-2xl border border-slate-100 font-bold outline-none" value={companyData.email} onChange={e => setCompanyData({...companyData, email: e.target.value})} />
-                  <input placeholder="Senha" type="password" className="w-full p-4 bg-white rounded-2xl border border-slate-100 font-bold outline-none" value={companyData.senha} onChange={e => setCompanyData({...companyData, senha: e.target.value})} />
-                </div>
-                <button 
-                  onClick={handleCompanyRegister}
-                  className="w-full py-4 bg-gradient-to-r from-[#E91E8C] to-[#7C3AED] text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-[#7C3AED]/20 mt-4"
-                >
-                  Finalizar Cadastro
-                </button>
-                <div className="mt-4 text-center">
-                  <p className="text-[8px] text-slate-400 font-medium leading-relaxed">
-                    Ao cadastrar, você concorda com nossa <br/>
-                    <a href="/privacidade" className="text-[#7C3AED] font-black uppercase hover:underline">Política de Privacidade</a> e <a href="/lgpd" className="text-[#7C3AED] font-black uppercase hover:underline">LGPD</a>.
-                  </p>
-                </div>
-                <button onClick={() => setView('company-login')} className="w-full text-[9px] font-black text-slate-400 uppercase tracking-widest text-center pt-2">Já tenho conta</button>
-              </>
-            )}
-          </div>
-
-          {view === 'role' && (
-            <div className="text-center mt-8">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Selecione seu perfil acima para entrar</p>
+            <div className="relative">
+              <input type={showPassword ? "text" : "password"} placeholder="Senha de Acesso" className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:border-primary/40 outline-none text-sm font-bold text-slate-700 pr-9" value={companyData.senha} onChange={e => setCompanyData({...companyData, senha: e.target.value})} />
+              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 hover:text-primary"><EyeOff size={14} /></button>
             </div>
-          )}
-        </motion.div>
-      </div>
+            <button onClick={handleCompanyRegister} className="w-full py-2.5 bg-gradient-to-r from-[#e91e8c] to-[#7c3aed] text-white rounded-lg font-black text-xs uppercase tracking-wide shadow-lg hover:-translate-y-0.5 transition-all mt-2">Finalizar Cadastro</button>
+            <button onClick={() => setView('company-login')} className="w-full text-center text-[9px] font-bold text-slate-300 uppercase tracking-widest hover:text-primary transition-colors pt-1">← Voltar</button>
+          </div>
+        )}
 
-      {/* Modais de Recuperação (Mantidos os originais simplificados) */}
-      {showForgotPassword && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl space-y-6">
-            <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight text-center">Recuperar Senha</h3>
-            <input 
-              type="email" 
-              placeholder="Seu e-mail" 
-              className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-100 outline-none font-bold text-center"
-              value={forgotPasswordEmail}
-              onChange={e => setForgotPasswordEmail(e.target.value)}
-            />
-            <div className="space-y-2">
-              <button onClick={() => setShowForgotPassword(false)} className="w-full py-4 bg-[#7C3AED] text-white rounded-2xl font-black uppercase tracking-widest text-xs">Enviar Link</button>
-              <button onClick={() => setShowForgotPassword(false)} className="w-full py-2 text-slate-400 font-black uppercase text-[9px] tracking-widest">Cancelar</button>
-            </div>
-          </motion.div>
-        </div>
-      )}
-
-      {showForgotCode && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl space-y-6 text-center">
-            <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">Código de Acesso</h3>
-            <p className="text-xs text-slate-600 font-medium leading-relaxed">
-              Entre em contato com seu vendedor ou empresa para obter seu código de acesso.
+        {view === 'seller-code' && (
+          <div className="space-y-3">
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3 text-center">
+              {loginType === 'seller' ? 'Acesso Vendedor' : loginType === 'customer' ? 'Acesso Cliente' : 'Acesso Admin'}
             </p>
-            <button onClick={() => setShowForgotCode(false)} className="w-full py-4 bg-[#7C3AED] text-white rounded-2xl font-black uppercase tracking-widest text-xs">Entendi</button>
-          </motion.div>
-        </div>
-      )}
+            <div>
+              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Código de Acesso</label>
+              <input type="text" placeholder={loginType === 'admin' ? "Código de Acesso" : "Código do Vendedor"} className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:border-primary/40 outline-none text-sm font-black uppercase text-slate-700 text-center" value={sellerCode} onChange={e => setSellerCode(e.target.value)} onKeyPress={e => e.key === 'Enter' && handleSellerCodeSubmit()} />
+            </div>
+            <button onClick={handleSellerCodeSubmit} className="w-full py-2.5 bg-gradient-to-r from-[#e91e8c] to-[#7c3aed] text-white rounded-lg font-black text-xs uppercase tracking-wide shadow-lg hover:-translate-y-0.5 transition-all">Validar Código</button>
+            <div className="flex items-center justify-between pt-1">
+              <button onClick={() => setShowForgotCode(true)} className="text-[10px] font-bold text-primary hover:underline">Esqueci meu código</button>
+              <button onClick={() => setView('role')} className="text-[10px] font-bold text-slate-300 hover:text-primary transition-colors">← Voltar</button>
+            </div>
+          </div>
+        )}
+
+        {showForgotPassword && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="bg-white rounded-4xl p-10 w-full max-w-sm shadow-2xl space-y-8"
+            >
+              <div className="text-center space-y-2">
+                <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mx-auto mb-4 shadow-inner">
+                  <Mail size={32} />
+                </div>
+                <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Recuperar Senha</h3>
+                <p className="text-sm text-slate-500 font-medium">Informe seu e-mail cadastrado para receber as instruções de recuperação.</p>
+              </div>
+              <input 
+                type="email" 
+                placeholder="Seu e-mail" 
+                className="w-full p-5 bg-slate-50 rounded-3xl border border-slate-100 focus:ring-2 focus:ring-primary outline-none text-center font-bold text-slate-700 shadow-inner"
+                value={forgotPasswordEmail}
+                onChange={e => setForgotPasswordEmail(e.target.value)}
+              />
+              <div className="space-y-3">
+                <button 
+                  onClick={async () => {
+                    if (!forgotPasswordEmail) return alert('Informe seu e-mail');
+                    
+                    if (supabase) {
+                      try {
+                        // Primeiro verifica se o e-mail existe na tabela de empresas
+                        const { data: company, error: searchError } = await supabase
+                          .from('companies')
+                          .select('id')
+                          .eq('email', forgotPasswordEmail)
+                          .maybeSingle();
+
+                        if (searchError && !searchError.message.includes('column')) {
+                          console.error('Erro ao buscar empresa:', searchError);
+                        }
+
+                        // Dispara o reset de senha do Supabase Auth
+                        // Nota: Para que isso funcione, o usuário deve existir no Supabase Auth.
+                        // Se o usuário foi criado apenas na tabela 'companies', o e-mail não será enviado.
+                        const { error: resetError } = await supabase.auth.resetPasswordForEmail(forgotPasswordEmail, {
+                          redirectTo: `${window.location.origin}`,
+                        });
+
+                        if (resetError) {
+                          console.error('Erro ao solicitar reset de senha:', resetError);
+                        }
+                      } catch (err) {
+                        console.error('Erro inesperado no reset de senha:', err);
+                      }
+                    }
+                    
+                    alert('Se o e-mail estiver cadastrado em nosso sistema de autenticação, você receberá um link para redefinir sua senha em instantes. Verifique também sua caixa de spam.');
+                    setShowForgotPassword(false);
+                  }}
+                  className="w-full py-5 bg-primary text-white rounded-full font-black uppercase tracking-widest text-xs shadow-lg shadow-primary/20"
+                >
+                  Enviar Link
+                </button>
+                <button 
+                  onClick={() => setShowForgotPassword(false)}
+                  className="w-full py-4 text-slate-400 font-black uppercase text-[10px] tracking-widest"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {showForgotCode && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="bg-white rounded-4xl p-10 w-full max-w-sm shadow-2xl space-y-8"
+            >
+              <div className="text-center space-y-2">
+                <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mx-auto mb-4 shadow-inner">
+                  <Shield size={32} />
+                </div>
+                <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Código de Acesso</h3>
+                <p className="text-sm text-slate-600 font-medium leading-relaxed">
+                  {loginType === 'customer' 
+                    ? 'Por favor, entre em contato com seu vendedor para que ele forneça seu código de acesso ao catálogo.' 
+                    : loginType === 'seller'
+                    ? 'Por favor, entre em contato com a empresa para que ela forneça seu código de acesso ao sistema.'
+                    : 'Por favor, entre em contato com o suporte do sistema.'}
+                </p>
+              </div>
+              <button 
+                onClick={() => setShowForgotCode(false)}
+                className="w-full py-5 bg-primary text-white rounded-full font-black uppercase tracking-widest text-xs shadow-lg shadow-primary/20"
+              >
+                Entendi
+              </button>
+            </motion.div>
+          </div>
+        )}
+
+        {showResetPassword && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="bg-white rounded-4xl p-10 w-full max-w-sm shadow-2xl space-y-8"
+            >
+              <div className="text-center space-y-2">
+                <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mx-auto mb-4 shadow-inner">
+                  <Shield size={32} />
+                </div>
+                <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Nova Senha</h3>
+                <p className="text-sm text-slate-500 font-medium">Digite sua nova senha de acesso.</p>
+              </div>
+              <input 
+                type="password" 
+                placeholder="Nova senha" 
+                className="w-full p-5 bg-slate-50 rounded-3xl border border-slate-100 focus:ring-2 focus:ring-primary outline-none text-center font-bold text-slate-700 shadow-inner"
+                value={newPassword}
+                onChange={e => setNewPassword(e.target.value)}
+              />
+              <button 
+                onClick={async () => {
+                  if (!newPassword) return alert('Digite a nova senha');
+                  if (!supabase) return alert('Erro: Supabase não inicializado');
+                  
+                  const { error } = await supabase.auth.updateUser({ password: newPassword });
+                  if (error) {
+                    alert('Erro ao atualizar senha: ' + error.message);
+                  } else {
+                    // Tenta atualizar também na tabela companies para manter sincronia
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (user?.email) {
+                      await supabase.from('companies').update({ senha: newPassword }).eq('email', user.email);
+                    }
+                    alert('Senha atualizada com sucesso!');
+                    setShowResetPassword(false);
+                    setView('company-login');
+                  }
+                }}
+                className="w-full py-5 bg-primary text-white rounded-full font-black uppercase tracking-widest text-xs shadow-lg shadow-primary/20"
+              >
+                Atualizar Senha
+              </button>
+            </motion.div>
+          </div>
+        )}
+
+        {view === 'customer-form' && (
+          <div className="space-y-4 text-left">
+            <p className="font-black text-[10px] text-slate-400 uppercase tracking-[0.2em] mb-6 text-center">Identificação do Cliente</p>
+            <div className="space-y-3">
+              <input placeholder="Seu Nome ou Nome da Empresa" className="w-full p-5 bg-white rounded-3xl border border-slate-100 font-bold focus:ring-2 focus:ring-primary outline-none shadow-inner" onChange={e => setCustomerData({...customerData, nome: e.target.value})} />
+              <input placeholder="CNPJ" className="w-full p-5 bg-white rounded-3xl border border-slate-100 font-bold focus:ring-2 focus:ring-primary outline-none shadow-inner" onChange={e => setCustomerData({...customerData, cnpj: e.target.value})} />
+              <input placeholder="Telefone / WhatsApp" className="w-full p-5 bg-white rounded-3xl border border-slate-100 font-bold focus:ring-2 focus:ring-primary outline-none shadow-inner" onChange={e => setCustomerData({...customerData, telefone: e.target.value})} />
+            </div>
+            <button 
+              onClick={handleCustomerSubmit}
+              className="w-full py-5 bg-primary text-white rounded-full font-black uppercase tracking-widest text-xs mt-6 shadow-lg shadow-primary/20 hover:bg-primary-dark transition-all"
+            >
+              Acessar Catálogo
+            </button>
+            <button onClick={() => setView('seller-code')} className="w-full text-center text-[10px] font-black text-slate-400 uppercase tracking-widest mt-4 hover:text-primary transition-colors">Voltar</button>
+          </div>
+        )}
+        </div>{/* end body */}
+      </motion.div>
     </div>
   );
 }
@@ -1615,10 +1675,10 @@ function CatalogScreen({
         </div>
 
         <div className="flex flex-col lg:flex-row gap-12">
-          {/* Sidebar Filters - Desktop */}
-          <aside className="hidden lg:block lg:w-64 shrink-0 space-y-12">
+          {/* Sidebar Filters */}
+          <aside className="lg:w-64 shrink-0 space-y-12">
             <div>
-              <h3 className="text-[10px] font-black uppercase tracking-[2px] mb-6 text-slate-400">Categorias</h3>
+              <h3 className="text-[10px] font-black uppercase tracking-[0.2em] mb-6 text-slate-400">Categorias</h3>
               <div className="space-y-2">
                 <button 
                   onClick={() => setSelectedCategory(null)}
@@ -1639,13 +1699,13 @@ function CatalogScreen({
             </div>
 
             {role === 'customer' && (
-              <div className="p-8 bg-slate-900 rounded-[10px] text-white relative overflow-hidden group shadow-2xl">
+              <div className="p-8 bg-slate-900 rounded-[40px] text-white relative overflow-hidden group shadow-2xl">
                 <div className="relative z-10">
-                  <h4 className="text-[10px] font-black uppercase tracking-[2px] mb-2">Suporte VIP</h4>
-                  <p className="text-[9px] font-bold text-white/50 mb-8 leading-relaxed uppercase tracking-widest">Dúvidas sobre produtos ou pedidos? Fale com seu consultor.</p>
+                  <h4 className="text-lg font-black uppercase tracking-tight mb-2">Suporte VIP</h4>
+                  <p className="text-[10px] font-bold text-white/50 mb-8 leading-relaxed uppercase tracking-widest">Dúvidas sobre produtos ou pedidos? Fale com seu consultor.</p>
                   <button 
                     onClick={handleWhatsAppSupport}
-                    className="w-full py-4 bg-white text-slate-900 rounded-[6px] text-[9px] font-black uppercase tracking-widest hover:bg-primary hover:text-white transition-all shadow-lg"
+                    className="w-full py-4 bg-white text-slate-900 rounded-[20px] text-[10px] font-black uppercase tracking-widest hover:bg-primary hover:text-white transition-all shadow-lg"
                   >
                     WhatsApp Direto
                   </button>
@@ -1655,38 +1715,16 @@ function CatalogScreen({
             )}
           </aside>
 
-          {/* Mobile Category Pills */}
-          <div className="lg:hidden mb-8">
-            <h3 className="text-[10px] font-black uppercase tracking-[2px] mb-4 text-slate-400 px-4">Categorias</h3>
-            <div className="flex items-center gap-2 overflow-x-auto px-4 pb-2 custom-scrollbar no-scrollbar">
-              <button 
-                onClick={() => setSelectedCategory(null)}
-                className={`px-6 py-2.5 rounded-[20px] text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${!selectedCategory ? 'pink-gradient text-white shadow-lg shadow-primary/20' : 'bg-white text-slate-500 border border-slate-100 shadow-sm'}`}
-              >
-                Todas
-              </button>
-              {[...visibleCategories].sort((a, b) => (a.order_index || 0) - (b.order_index || 0)).map(cat => (
-                <button 
-                  key={cat.id}
-                  onClick={() => setSelectedCategory(cat.id)}
-                  className={`px-6 py-2.5 rounded-[20px] text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${selectedCategory === cat.id ? 'pink-gradient text-white shadow-lg shadow-primary/20' : 'bg-white text-slate-500 border border-slate-100 shadow-sm'}`}
-                >
-                  {cat.nome}
-                </button>
-              ))}
-            </div>
-          </div>
-
           {/* Product Grid */}
           <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between mb-8 px-4 lg:px-0">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[2px]">
+            <div className="flex items-center justify-between mb-8">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
                 Mostrando <span className="text-slate-900">{filtered.length}</span> produtos
               </p>
               
               <div className="flex items-center gap-4">
                 <select 
-                  className="bg-white border-none text-[10px] font-black uppercase tracking-widest text-slate-500 rounded-[6px] px-4 py-2 outline-none cursor-pointer shadow-sm"
+                  className="bg-white border-none text-[10px] font-black uppercase tracking-widest text-slate-500 rounded-xl px-4 py-2 outline-none cursor-pointer shadow-sm"
                   value={itemsPerPage}
                   onChange={(e) => setItemsPerPage(Number(e.target.value))}
                 >
@@ -1705,7 +1743,7 @@ function CatalogScreen({
                 <p className="text-slate-400 font-medium">Nenhum produto encontrado.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2 px-2 lg:px-0">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 md:gap-6">
                 {paginatedProducts.map(p => {
                   const currentCart = carts[p.brand_id || ''] || [];
                   const isInCart = currentCart.some(item => item.id === p.id);
@@ -1804,51 +1842,51 @@ function ProductCard({ product, onAdd, onEdit, role, onZoom, isInCart, ...props 
   };
 
   return (
-    <Card className={`p-2 flex flex-col group hover:border-primary/20 transition-all duration-300 rounded-[10px] relative ${isEsgotado ? 'opacity-75 grayscale-[0.5]' : ''}`}>
+    <Card className={`p-3 md:p-4 flex flex-col group hover:border-primary/20 transition-all duration-500 neumorphic-shadow hover:shadow-2xl hover:shadow-primary/5 hover:-translate-y-1 rounded-[32px] relative ${isEsgotado ? 'opacity-75 grayscale-[0.5]' : ''}`}>
       {isInCart && (
-        <div className="absolute top-2 right-2 z-10 bg-emerald-500 text-white p-1 rounded-full shadow-lg shadow-emerald-500/20 animate-in zoom-in duration-300">
-          <CheckCircle2 size={12} />
+        <div className="absolute top-4 right-4 z-10 bg-emerald-500 text-white p-2 rounded-full shadow-lg shadow-emerald-500/20 animate-in zoom-in duration-300">
+          <CheckCircle2 size={16} />
         </div>
       )}
-      <div className="relative aspect-square mb-2 rounded-[8px] overflow-hidden bg-slate-50 cursor-zoom-in group-hover:scale-[1.02] transition-transform duration-500 shadow-inner" onClick={() => onZoom(product.imagem || '')}>
-        <img src={product.imagem || `https://picsum.photos/seed/${product.sku}/400/400`} className="w-full h-full object-contain p-1" alt={product.nome} referrerPolicy="no-referrer" />
-        <div className="absolute top-2 w-full flex flex-col gap-1 items-center">
-          {isEsgotado && <span className="bg-slate-900 text-white text-[8px] font-black px-2 py-0.5 rounded-full shadow-lg uppercase tracking-widest">ESGOTADO</span>}
-          {!isEsgotado && product.is_last_units && <span className="bg-rose-500 text-white text-[8px] font-black px-2 py-0.5 rounded-full shadow-lg uppercase tracking-widest">ÚLTIMAS UNIDADES</span>}
-          {product.venda_somente_box && <span className="bg-amber-500 text-white text-[8px] font-black px-2 py-0.5 rounded-full shadow-lg uppercase tracking-widest">SOMENTE NO BOX</span>}
+      <div className="relative aspect-square mb-4 rounded-[24px] overflow-hidden bg-slate-50 cursor-zoom-in group-hover:scale-[1.02] transition-transform duration-500 shadow-inner" onClick={() => onZoom(product.imagem || '')}>
+        <img src={product.imagem || `https://picsum.photos/seed/${product.sku}/400/400`} className="w-full h-full object-contain p-2" alt={product.nome} referrerPolicy="no-referrer" />
+        <div className="absolute top-3 w-full flex flex-col gap-1 items-center">
+          {isEsgotado && <span className="bg-slate-900 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-widest">ESGOTADO</span>}
+          {!isEsgotado && product.is_last_units && <span className="bg-rose-500 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-widest">ÚLTIMAS UNIDADES</span>}
+          {product.venda_somente_box && <span className="bg-amber-500 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-widest">SOMENTE NO BOX</span>}
         </div>
       </div>
       
-      <div className="text-center mb-2">
-        <h3 className="font-black text-slate-800 text-[11px] leading-tight mb-1 h-8 flex items-center justify-center overflow-hidden line-clamp-2 uppercase tracking-tight">{product.nome}</h3>
-        <p className="text-[9px] text-slate-400 font-black uppercase tracking-[0.1em] mb-2">SKU: {product.sku}</p>
+      <div className="text-center mb-4">
+        <h3 className="font-black text-slate-800 text-[11px] md:text-xs leading-tight mb-2 h-10 flex items-center justify-center overflow-hidden line-clamp-2 uppercase tracking-tight">{product.nome}</h3>
+        <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mb-3">SKU: {product.sku}</p>
         
         {!isEsgotado && (
-          <p className="text-[13px] font-black text-primary tracking-tight">R$ {(product.preco_unitario || 0).toFixed(2)}</p>
+          <p className="text-lg md:text-xl font-black text-primary tracking-tight">R$ {(product.preco_unitario || 0).toFixed(2)}</p>
         )}
       </div>
 
       {(product.has_box_discount || product.venda_somente_box) && !isEsgotado && (
-        <div className="mb-2 p-2 bg-amber-50 border border-amber-100 rounded-[8px] text-center shadow-inner flex flex-col items-center justify-center">
-          <span className="text-[13px] font-black text-amber-700 tracking-tight">R$ {(product.preco_box || 0).toFixed(2)}</span>
-          <p className="text-[8px] uppercase font-black text-amber-600 tracking-widest mt-0.5">
+        <div className="mb-4 p-3 bg-amber-50 border border-amber-100 rounded-[24px] text-center shadow-inner flex flex-col items-center justify-center">
+          <span className="text-xl md:text-2xl font-black text-amber-700 tracking-tight">R$ {(product.preco_box || 0).toFixed(2)}</span>
+          <p className="text-[9px] uppercase font-black text-amber-600 tracking-widest mt-1">
             {product.venda_somente_box ? 'SOMENTE NO BOX:' : 'A PARTIR DE:'} {product.qtd_box} UNIDADES
           </p>
         </div>
       )}
 
-      <div className="mt-auto flex flex-col items-center gap-2">
-        <div className="flex items-center bg-slate-50 rounded-[6px] p-1 w-full justify-between shadow-inner border border-slate-100">
-          <button onClick={handleSubQty} disabled={isEsgotado} className="p-1 text-slate-400 hover:bg-white hover:text-primary rounded-[4px] disabled:opacity-50 transition-all shadow-sm"><Minus size={12}/></button>
-          <span className="text-[11px] font-black text-slate-700">{qty}</span>
-          <button onClick={handleAddQty} disabled={isEsgotado} className="p-1 text-slate-400 hover:bg-white hover:text-primary rounded-[4px] disabled:opacity-50 transition-all shadow-sm"><Plus size={12}/></button>
+      <div className="mt-auto flex flex-col items-center gap-3">
+        <div className="flex items-center bg-slate-50 rounded-[20px] p-1.5 w-full justify-between shadow-inner border border-slate-100">
+          <button onClick={handleSubQty} disabled={isEsgotado} className="p-2 text-slate-400 hover:bg-white hover:text-primary rounded-xl disabled:opacity-50 transition-all shadow-sm"><Minus size={14}/></button>
+          <span className="text-xs font-black text-slate-700">{qty}</span>
+          <button onClick={handleAddQty} disabled={isEsgotado} className="p-2 text-slate-400 hover:bg-white hover:text-primary rounded-xl disabled:opacity-50 transition-all shadow-sm"><Plus size={14}/></button>
         </div>
         <button 
           onClick={() => onAdd(product, qty)} 
           disabled={isEsgotado}
-          className="w-full py-[5px] pink-gradient text-white rounded-[6px] font-black uppercase tracking-widest text-[9px] shadow-lg shadow-primary/20 hover:scale-[0.98] active:scale-95 disabled:opacity-50 transition-all"
+          className="w-full py-4 pink-gradient text-white rounded-[20px] font-black uppercase tracking-widest text-[10px] shadow-lg shadow-primary/20 hover:scale-[0.98] active:scale-95 disabled:opacity-50 transition-all"
         >
-          <ShoppingCart size={12} className="inline-block mr-1" />
+          <ShoppingCart size={14} className="inline-block mr-2" />
           Adicionar
         </button>
       </div>

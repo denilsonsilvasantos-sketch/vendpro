@@ -214,25 +214,25 @@ export default function Marcas({ companyId }: { companyId: string | null }) {
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="p-4 md:p-8 space-y-12"
+      className="p-4 md:p-6 space-y-8"
     >
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
-        <div className="space-y-2">
-          <div className="flex items-center gap-6">
-            <div className="w-16 h-16 bg-primary/10 rounded-[24px] flex items-center justify-center text-primary border border-primary/20 shadow-inner">
-              <Sparkles size={32} strokeWidth={2} />
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="space-y-1">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary border border-primary/20 shadow-inner">
+              <Sparkles size={24} strokeWidth={2} />
             </div>
             <div>
-              <h1 className="text-4xl font-black text-slate-900 tracking-tight uppercase">Marcas e Categorias</h1>
-              <p className="text-slate-500 font-medium text-lg">Estruture seu catálogo por marcas e segmentos</p>
+              <h1 className="text-2xl font-black text-slate-900 tracking-tight uppercase">Marcas e Categorias</h1>
+              <p className="text-slate-500 font-medium text-sm">Estruture seu catálogo por marcas e segmentos</p>
             </div>
           </div>
         </div>
         <button 
           onClick={() => { setEditingBrand(undefined); setIsModalOpen(true); }} 
-          className="bg-primary text-white px-10 py-6 rounded-[32px] font-black uppercase tracking-widest text-xs flex items-center gap-4 shadow-2xl shadow-primary/40 hover:-translate-y-1 active:translate-y-0 transition-all w-full md:w-auto justify-center group"
+          className="bg-primary text-white px-6 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center gap-3 shadow-xl shadow-primary/30 hover:-translate-y-1 active:translate-y-0 transition-all w-full md:w-auto justify-center group"
         >
-          <Plus size={24} strokeWidth={3} className="group-hover:rotate-90 transition-transform duration-500" /> Nova Marca
+          <Plus size={18} strokeWidth={3} className="group-hover:rotate-90 transition-transform duration-500" /> Nova Marca
         </button>
       </div>
       
@@ -241,18 +241,18 @@ export default function Marcas({ companyId }: { companyId: string | null }) {
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white p-40 rounded-[56px] border-2 border-dashed border-slate-100 text-center space-y-10 shadow-inner"
+            className="bg-white p-20 rounded-[40px] border-2 border-dashed border-slate-100 text-center space-y-6 shadow-inner"
           >
-            <div className="w-40 h-40 bg-slate-50 rounded-[48px] flex items-center justify-center mx-auto shadow-inner border border-slate-100">
-              <Tag className="text-slate-200" size={80} strokeWidth={1} />
+            <div className="w-24 h-24 bg-slate-50 rounded-[32px] flex items-center justify-center mx-auto shadow-inner border border-slate-100">
+              <Tag className="text-slate-200" size={48} strokeWidth={1} />
             </div>
-            <div className="space-y-4">
-              <h2 className="text-4xl font-black text-slate-900 tracking-tight uppercase">Nenhuma marca cadastrada</h2>
-              <p className="text-slate-400 max-w-sm mx-auto font-medium text-lg">Comece cadastrando as marcas que você representa para organizar seu catálogo.</p>
+            <div className="space-y-2">
+              <h2 className="text-2xl font-black text-slate-900 tracking-tight uppercase">Nenhuma marca cadastrada</h2>
+              <p className="text-slate-400 max-w-xs mx-auto font-medium text-sm">Comece cadastrando as marcas que você representa para organizar seu catálogo.</p>
             </div>
             <button 
               onClick={() => setIsModalOpen(true)}
-              className="text-primary font-black uppercase tracking-[0.3em] text-[11px] hover:underline underline-offset-8 transition-all"
+              className="text-primary font-black uppercase tracking-[0.3em] text-[10px] hover:underline underline-offset-8 transition-all"
             >
               Cadastrar minha primeira marca
             </button>

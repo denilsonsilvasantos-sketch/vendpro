@@ -128,22 +128,22 @@ export default function Pendencias({ companyId, onRefresh }: { companyId: string
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="p-4 md:p-8 space-y-12"
+      className="p-4 md:p-6 space-y-8"
     >
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
-        <div className="space-y-2">
-          <div className="flex items-center gap-6">
-            <div className="w-16 h-16 bg-amber-50 rounded-[24px] flex items-center justify-center text-amber-500 border border-amber-100 shadow-inner">
-              <AlertTriangle size={32} strokeWidth={2} />
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="space-y-1">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center text-amber-500 border border-amber-100 shadow-inner">
+              <AlertTriangle size={24} strokeWidth={2} />
             </div>
             <div>
-              <h1 className="text-4xl font-black text-slate-900 tracking-tight uppercase">Pendências de Revisão</h1>
-              <p className="text-slate-500 font-medium text-lg">Produtos que precisam de atenção antes de irem ao catálogo</p>
+              <h1 className="text-2xl font-black text-slate-900 tracking-tight uppercase">Pendências de Revisão</h1>
+              <p className="text-slate-500 font-medium text-sm">Produtos que precisam de atenção antes de irem ao catálogo</p>
             </div>
           </div>
         </div>
-        <div className="bg-amber-50 text-amber-600 px-10 py-6 rounded-[32px] text-xs font-black uppercase tracking-[0.2em] border border-amber-100 shadow-xl shadow-amber-500/5 flex items-center gap-4 self-start md:self-center">
-          <span className="w-3 h-3 bg-amber-500 rounded-full animate-pulse shadow-[0_0_12px_rgba(245,158,11,0.5)]" />
+        <div className="bg-amber-50 text-amber-600 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] border border-amber-100 shadow-lg shadow-amber-500/5 flex items-center gap-3 self-start md:self-center">
+          <span className="w-2 h-2 bg-amber-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
           {products.length} itens aguardando
         </div>
       </div>

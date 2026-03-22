@@ -102,25 +102,25 @@ export default function Vendedores({ companyId }: { companyId: string | null }) 
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="p-4 md:p-8 space-y-12"
+      className="p-4 md:p-6 space-y-8"
     >
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
-        <div className="space-y-2">
-          <div className="flex items-center gap-6">
-            <div className="w-16 h-16 bg-primary/10 rounded-[24px] flex items-center justify-center text-primary border border-primary/20 shadow-inner">
-              <Users size={32} strokeWidth={2} />
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="space-y-1">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary border border-primary/20 shadow-inner">
+              <Users size={24} strokeWidth={2} />
             </div>
             <div>
-              <h1 className="text-4xl font-black text-slate-900 tracking-tight uppercase">Equipe de Vendas</h1>
-              <p className="text-slate-500 font-medium text-lg">Gerencie os vendedores e representantes da sua empresa</p>
+              <h1 className="text-2xl font-black text-slate-900 tracking-tight uppercase">Equipe de Vendas</h1>
+              <p className="text-slate-500 font-medium text-sm">Gerencie os vendedores e representantes da sua empresa</p>
             </div>
           </div>
         </div>
         <button 
           onClick={() => { setEditingSeller(undefined); setIsModalOpen(true); }} 
-          className="bg-primary text-white px-10 py-6 rounded-[32px] font-black uppercase tracking-widest text-xs flex items-center gap-4 shadow-2xl shadow-primary/40 hover:-translate-y-1 active:translate-y-0 transition-all w-full md:w-auto justify-center group"
+          className="bg-primary text-white px-6 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center gap-3 shadow-xl shadow-primary/40 hover:-translate-y-1 active:translate-y-0 transition-all w-full md:w-auto justify-center group"
         >
-          <Plus size={24} strokeWidth={3} className="group-hover:rotate-90 transition-transform duration-500" /> Novo Vendedor
+          <Plus size={18} strokeWidth={3} className="group-hover:rotate-90 transition-transform duration-500" /> Novo Vendedor
         </button>
       </div>
 
@@ -129,34 +129,34 @@ export default function Vendedores({ companyId }: { companyId: string | null }) 
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white p-40 rounded-[56px] border-2 border-dashed border-slate-100 text-center space-y-10 shadow-inner"
+            className="bg-white p-20 rounded-[40px] border-2 border-dashed border-slate-100 text-center space-y-6 shadow-inner"
           >
-            <div className="w-40 h-40 bg-slate-50 rounded-[48px] flex items-center justify-center mx-auto shadow-inner border border-slate-100">
-              <Users className="text-slate-200" size={80} strokeWidth={1} />
+            <div className="w-24 h-24 bg-slate-50 rounded-[32px] flex items-center justify-center mx-auto shadow-inner border border-slate-100">
+              <Users className="text-slate-200" size={48} strokeWidth={1} />
             </div>
-            <div className="space-y-4">
-              <h2 className="text-4xl font-black text-slate-900 tracking-tight uppercase">Nenhum vendedor cadastrado</h2>
-              <p className="text-slate-400 max-w-sm mx-auto font-medium text-lg">Adicione vendedores para que eles possam atender clientes e gerar pedidos no catálogo.</p>
+            <div className="space-y-2">
+              <h2 className="text-2xl font-black text-slate-900 tracking-tight uppercase">Nenhum vendedor cadastrado</h2>
+              <p className="text-slate-400 max-w-xs mx-auto font-medium text-sm">Adicione vendedores para que eles possam atender clientes e gerar pedidos no catálogo.</p>
             </div>
             <button 
               onClick={() => setIsModalOpen(true)}
-              className="text-primary font-black uppercase tracking-[0.3em] text-[11px] hover:underline underline-offset-8 transition-all"
+              className="text-primary font-black uppercase tracking-[0.3em] text-[10px] hover:underline underline-offset-8 transition-all"
             >
               Cadastrar meu primeiro vendedor
             </button>
           </motion.div>
         ) : (
-          <div className="grid grid-cols-1 gap-8">
-            <div className="bg-white rounded-[48px] shadow-2xl shadow-slate-200/40 border border-slate-100 overflow-hidden">
+          <div className="grid grid-cols-1 gap-6">
+            <div className="bg-white rounded-[32px] shadow-xl shadow-slate-200/40 border border-slate-100 overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-slate-50/50">
-                      <th className="p-10 text-[11px] font-black text-slate-400 uppercase tracking-[0.3em] border-b border-slate-100">Vendedor</th>
-                      <th className="p-10 text-[11px] font-black text-slate-400 uppercase tracking-[0.3em] border-b border-slate-100">Código de Vínculo</th>
-                      <th className="p-10 text-[11px] font-black text-slate-400 uppercase tracking-[0.3em] border-b border-slate-100">WhatsApp</th>
-                      <th className="p-10 text-[11px] font-black text-slate-400 uppercase tracking-[0.3em] border-b border-slate-100">Status</th>
-                      <th className="p-10 text-[11px] font-black text-slate-400 uppercase tracking-[0.3em] border-b border-slate-100 text-right">Gerenciar</th>
+                      <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] border-b border-slate-100">Vendedor</th>
+                      <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] border-b border-slate-100">Código de Vínculo</th>
+                      <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] border-b border-slate-100">WhatsApp</th>
+                      <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] border-b border-slate-100">Status</th>
+                      <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] border-b border-slate-100 text-right">Gerenciar</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50">
@@ -168,50 +168,50 @@ export default function Vendedores({ companyId }: { companyId: string | null }) 
                         key={seller.id} 
                         className="hover:bg-slate-50/80 transition-all group"
                       >
-                        <td className="p-10">
-                          <div className="flex items-center gap-6">
-                            <div className="w-16 h-16 bg-slate-100 rounded-[20px] flex items-center justify-center text-slate-400 font-black text-xl group-hover:bg-primary group-hover:text-white transition-all duration-500 shadow-inner">
+                        <td className="p-6">
+                          <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center text-slate-400 font-black text-sm group-hover:bg-primary group-hover:text-white transition-all duration-500 shadow-inner">
                               {seller.nome.charAt(0)}
                             </div>
-                            <span className="font-black text-slate-900 group-hover:text-primary transition-colors uppercase tracking-tight text-lg">{seller.nome}</span>
+                            <span className="font-black text-slate-900 group-hover:text-primary transition-colors uppercase tracking-tight text-sm">{seller.nome}</span>
                           </div>
                         </td>
-                        <td className="p-10">
-                          <span className="font-mono text-[11px] font-black text-slate-400 bg-slate-50 px-4 py-2 rounded-xl border border-slate-100 uppercase tracking-widest shadow-sm">
+                        <td className="p-6">
+                          <span className="font-mono text-[10px] font-black text-slate-400 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100 uppercase tracking-widest shadow-sm">
                             {seller.codigo_vinculo}
                           </span>
                         </td>
-                        <td className="p-10">
-                          <div className="flex items-center gap-4 text-slate-500 font-bold text-base">
-                            <Phone size={18} className="text-slate-300" />
+                        <td className="p-6">
+                          <div className="flex items-center gap-3 text-slate-500 font-bold text-sm">
+                            <Phone size={14} className="text-slate-300" />
                             {seller.whatsapp || <span className="text-slate-200 italic font-medium">Não informado</span>}
                           </div>
                         </td>
-                        <td className="p-10">
-                          <span className={`inline-flex items-center gap-3 px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] shadow-sm ${
+                        <td className="p-6">
+                          <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-[0.2em] shadow-sm ${
                             seller.ativo 
                               ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' 
                               : 'bg-slate-50 text-slate-400 border border-slate-100'
                           }`}>
-                            {seller.ativo ? <ShieldCheck size={14} strokeWidth={3} /> : <ShieldAlert size={14} strokeWidth={3} />}
+                            {seller.ativo ? <ShieldCheck size={12} strokeWidth={3} /> : <ShieldAlert size={12} strokeWidth={3} />}
                             {seller.ativo ? 'Ativo' : 'Inativo'}
                           </span>
                         </td>
-                        <td className="p-10 text-right">
-                          <div className="flex items-center justify-end gap-4 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-4 group-hover:translate-x-0">
+                        <td className="p-6 text-right">
+                          <div className="flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-4 group-hover:translate-x-0">
                             <button 
                               onClick={() => { setEditingSeller(seller); setIsModalOpen(true); }}
-                              className="w-14 h-14 flex items-center justify-center text-slate-400 hover:text-primary hover:bg-primary/5 rounded-[18px] transition-all border border-transparent hover:border-primary/10 shadow-sm hover:shadow-xl"
+                              className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-primary hover:bg-primary/5 rounded-xl transition-all border border-transparent hover:border-primary/10 shadow-sm hover:shadow-lg"
                               title="Editar Vendedor"
                             >
-                              <Edit size={24} strokeWidth={2.5} />
+                              <Edit size={18} strokeWidth={2.5} />
                             </button>
                             <button 
                               onClick={() => confirmDelete(seller)}
-                              className="w-14 h-14 flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-[18px] transition-all border border-transparent hover:border-rose-100 shadow-sm hover:shadow-xl"
+                              className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all border border-transparent hover:border-rose-100 shadow-sm hover:shadow-lg"
                               title="Excluir Vendedor"
                             >
-                              <Trash2 size={24} strokeWidth={2.5} />
+                              <Trash2 size={18} strokeWidth={2.5} />
                             </button>
                           </div>
                         </td>

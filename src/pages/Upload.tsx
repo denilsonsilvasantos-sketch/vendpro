@@ -553,58 +553,58 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="p-4 md:p-8 space-y-12 pb-32"
+      className="p-4 md:p-6 space-y-8 pb-32"
     >
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
-        <div className="space-y-2">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-primary/5 rounded-2xl flex items-center justify-center text-primary border border-primary/10 shadow-inner">
-              <Upload size={24} strokeWidth={2.5} />
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="space-y-1">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-primary/5 rounded-xl flex items-center justify-center text-primary border border-primary/10 shadow-inner">
+              <Upload size={20} strokeWidth={2.5} />
             </div>
             <div>
-              <h1 className="text-3xl font-black text-slate-900 tracking-tight uppercase">Upload de Catálogo</h1>
-              <p className="text-slate-500 font-medium">Atualize seu estoque ou adicione novos produtos com IA</p>
+              <h1 className="text-2xl font-black text-slate-900 tracking-tight uppercase">Upload de Catálogo</h1>
+              <p className="text-slate-500 text-xs font-medium">Atualize seu estoque ou adicione novos produtos com IA</p>
             </div>
           </div>
         </div>
         
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="bg-slate-100/50 backdrop-blur-sm p-1.5 rounded-[24px] flex gap-1 shadow-inner border border-slate-200/50">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="bg-slate-100/50 backdrop-blur-sm p-1 rounded-2xl flex gap-1 shadow-inner border border-slate-200/50">
             <button 
               onClick={() => { setUploadMode('catalog'); setUploadedFiles([]); setStatus(null); }}
-              className={`px-6 py-3 rounded-[18px] text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-2 ${uploadMode === 'catalog' ? 'bg-white text-primary shadow-xl shadow-slate-200/50' : 'text-slate-400 hover:text-slate-600'}`}
+              className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-2 ${uploadMode === 'catalog' ? 'bg-white text-primary shadow-lg shadow-slate-200/50' : 'text-slate-400 hover:text-slate-600'}`}
             >
-              <Sparkles size={14} strokeWidth={3} />
+              <Sparkles size={12} strokeWidth={3} />
               Catálogo (IA)
             </button>
             <button 
               onClick={() => { setUploadMode('stock'); setUploadedFiles([]); setStatus(null); }}
-              className={`px-6 py-3 rounded-[18px] text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-2 ${uploadMode === 'stock' ? 'bg-white text-primary shadow-xl shadow-slate-200/50' : 'text-slate-400 hover:text-slate-600'}`}
+              className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-2 ${uploadMode === 'stock' ? 'bg-white text-primary shadow-lg shadow-slate-200/50' : 'text-slate-400 hover:text-slate-600'}`}
             >
-              <Database size={14} strokeWidth={3} />
+              <Database size={12} strokeWidth={3} />
               Estoque (Excel)
             </button>
           </div>
 
           <button 
             onClick={() => setShowResetConfirm(true)}
-            className="px-6 py-4 rounded-[24px] text-[10px] font-black uppercase tracking-[0.2em] transition-all bg-rose-50 text-rose-600 hover:bg-rose-500 hover:text-white border border-rose-100 flex items-center gap-2 shadow-sm active:scale-95 group"
+            className="px-4 py-3 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all bg-rose-50 text-rose-600 hover:bg-rose-500 hover:text-white border border-rose-100 flex items-center gap-2 shadow-sm active:scale-95 group"
           >
-            <Trash2 size={16} strokeWidth={3} className="group-hover:scale-110 transition-transform" />
+            <Trash2 size={14} strokeWidth={3} className="group-hover:scale-110 transition-transform" />
             Resetar
           </button>
           
           {uploadMode === 'catalog' && (
-            <div className="bg-slate-100/50 backdrop-blur-sm p-1.5 rounded-[24px] flex gap-1 shadow-inner border border-slate-200/50">
+            <div className="bg-slate-100/50 backdrop-blur-sm p-1 rounded-2xl flex gap-1 shadow-inner border border-slate-200/50">
               <button 
                 onClick={() => setCatalogType('weekly')}
-                className={`px-6 py-3 rounded-[18px] text-[10px] font-black uppercase tracking-[0.2em] transition-all ${catalogType === 'weekly' ? 'bg-primary text-white shadow-xl shadow-primary/20' : 'text-slate-400 hover:text-slate-600'}`}
+                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all ${catalogType === 'weekly' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-400 hover:text-slate-600'}`}
               >
                 Semanal
               </button>
               <button 
                 onClick={() => setCatalogType('replenishment')}
-                className={`px-6 py-3 rounded-[18px] text-[10px] font-black uppercase tracking-[0.2em] transition-all ${catalogType === 'replenishment' ? 'bg-primary text-white shadow-xl shadow-primary/20' : 'text-slate-400 hover:text-slate-600'}`}
+                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all ${catalogType === 'replenishment' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-400 hover:text-slate-600'}`}
               >
                 Reposição
               </button>
@@ -690,8 +690,8 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
           <motion.div 
             whileHover={{ y: -5 }}
             onClick={() => !isUploading && fileInputRef.current?.click()}
-            className={`border-2 border-dashed rounded-[48px] p-16 flex flex-col items-center justify-center text-center transition-all duration-500 relative overflow-hidden ${
-              isUploading ? 'border-slate-100 bg-slate-50 cursor-not-allowed opacity-50' : 'border-slate-200 bg-white hover:border-primary hover:bg-primary/5 hover:shadow-2xl hover:shadow-primary/5 cursor-pointer group'
+            className={`border-2 border-dashed rounded-[32px] p-10 flex flex-col items-center justify-center text-center transition-all duration-500 relative overflow-hidden ${
+              isUploading ? 'border-slate-100 bg-slate-50 cursor-not-allowed opacity-50' : 'border-slate-200 bg-white hover:border-primary hover:bg-primary/5 hover:shadow-xl hover:shadow-primary/5 cursor-pointer group'
             }`}
           >
             <input 
@@ -702,11 +702,11 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
               multiple={uploadMode === 'catalog'}
               className="hidden" 
             />
-            <div className="w-24 h-24 bg-primary/5 rounded-[32px] flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-500 border border-primary/10 shadow-inner relative z-10">
-              <Upload size={48} className="text-primary" strokeWidth={2.5} />
+            <div className="w-16 h-16 bg-primary/5 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500 border border-primary/10 shadow-inner relative z-10">
+              <Upload size={32} className="text-primary" strokeWidth={2.5} />
             </div>
-            <h3 className="text-2xl font-black text-slate-900 tracking-tight mb-3 uppercase relative z-10">{uploadMode === 'stock' ? 'Selecionar Excel de Estoque' : 'Adicionar Arquivos'}</h3>
-            <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] relative z-10">{uploadMode === 'stock' ? 'Apenas arquivos .xlsx ou .xls' : 'PDF, PNG, JPG, CSV ou Excel'}</p>
+            <h3 className="text-xl font-black text-slate-900 tracking-tight mb-2 uppercase relative z-10">{uploadMode === 'stock' ? 'Selecionar Excel de Estoque' : 'Adicionar Arquivos'}</h3>
+            <p className="text-[9px] text-slate-400 font-black uppercase tracking-[0.2em] relative z-10">{uploadMode === 'stock' ? 'Apenas arquivos .xlsx ou .xls' : 'PDF, PNG, JPG, CSV ou Excel'}</p>
             
             <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
           </motion.div>

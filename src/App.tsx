@@ -134,6 +134,14 @@ const safeLocalStorage = {
 };
 
 export default function App() {
+  const path = window.location.pathname;
+  if (path === '/lgpd') {
+    return <iframe src="/lgpd.html" className="fixed inset-0 w-full h-full border-none z-[200] bg-white" />;
+  }
+  if (path === '/privacidade') {
+    return <iframe src="/politica-de-privacidade.html" className="fixed inset-0 w-full h-full border-none z-[200] bg-white" />;
+  }
+
   const [role, setRole] = useState<UserRole>(() => {
     const saved = localStorage.getItem('vendpro_role');
     const activeCompanyId = localStorage.getItem('vendpro_active_company_id');
@@ -1912,7 +1920,7 @@ function ProductCard({ product, onAdd, onEdit, role, onZoom, isInCart, ...props 
 
       {(product.has_box_discount || product.venda_somente_box) && !isEsgotado && (
         <div className="mb-3 p-2 bg-amber-50 border border-amber-200 rounded-xl text-center shadow-sm flex flex-col items-center justify-center">
-          <span className="text-base md:text-lg font-black text-amber-700">R$ {(product.preco_box || 0).toFixed(2)}</span>
+          <span className="text-lg md:text-xl font-black text-amber-700">R$ {(product.preco_box || 0).toFixed(2)}</span>
           <p className="text-[10px] uppercase font-black text-amber-600 tracking-tighter mt-0.5">
             {product.venda_somente_box ? 'SOMENTE NO BOX:' : 'A PARTIR DE:'} {product.qtd_box} UNIDADES
           </p>

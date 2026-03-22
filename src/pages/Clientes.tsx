@@ -98,25 +98,25 @@ export default function Clientes({
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="p-4 md:p-8 space-y-12"
+      className="p-4 md:p-6 space-y-8"
     >
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
-        <div className="space-y-2">
-          <div className="flex items-center gap-6">
-            <div className="w-16 h-16 bg-primary/10 rounded-[24px] flex items-center justify-center text-primary border border-primary/20 shadow-inner">
-              <UserCircle2 size={32} strokeWidth={2} />
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="space-y-1">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary border border-primary/20 shadow-inner">
+              <UserCircle2 size={24} strokeWidth={2} />
             </div>
             <div>
-              <h1 className="text-4xl font-black text-slate-900 tracking-tight">Meus Clientes</h1>
-              <p className="text-slate-500 font-medium">Gerencie sua base de contatos e novos vínculos</p>
+              <h1 className="text-2xl font-black text-slate-900 tracking-tight">Meus Clientes</h1>
+              <p className="text-slate-500 font-medium text-sm">Gerencie sua base de contatos e novos vínculos</p>
             </div>
           </div>
         </div>
         <button 
           onClick={() => { setEditingCustomer(undefined); setIsModalOpen(true); }} 
-          className="bg-primary text-white px-10 py-6 rounded-[32px] font-black uppercase tracking-widest text-xs flex items-center gap-4 shadow-2xl shadow-primary/40 hover:-translate-y-1 active:translate-y-0 transition-all w-full md:w-auto justify-center group"
+          className="bg-primary text-white px-6 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center gap-3 shadow-xl shadow-primary/40 hover:-translate-y-1 active:translate-y-0 transition-all w-full md:w-auto justify-center group"
         >
-          <Plus size={24} strokeWidth={3} className="group-hover:rotate-90 transition-transform duration-500" /> Novo Cliente
+          <Plus size={18} strokeWidth={3} className="group-hover:rotate-90 transition-transform duration-500" /> Novo Cliente
         </button>
       </div>
 

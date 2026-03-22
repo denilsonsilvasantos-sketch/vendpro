@@ -54,7 +54,6 @@ const Pedidos = lazy(() => import('./pages/Pedidos'));
 const Configuracoes = lazy(() => import('./pages/Configuracoes'));
 const Marcas = lazy(() => import('./pages/Marcas'));
 const Upload = lazy(() => import('./pages/Upload'));
-const Pendencias = lazy(() => import('./pages/Pendencias'));
 const Vendedores = lazy(() => import('./pages/Vendedores'));
 const BannerManager = lazy(() => import('./pages/BannerManager'));
 const ProductFormModal = lazy(() => import('./components/ProductFormModal'));
@@ -697,7 +696,6 @@ export default function App() {
                         <SidebarItem icon={<Layout size={16}/>} label="Banners" active={activeTab === 'banners'} onClick={() => { setActiveTab('banners'); setIsSidebarOpen(false); }} />
                         <SidebarItem icon={<Package size={16}/>} label="Produtos" active={activeTab === 'produtos'} onClick={() => { setActiveTab('produtos'); setIsSidebarOpen(false); }} />
                         <SidebarItem icon={<UploadIcon size={16}/>} label="Upload" active={activeTab === 'upload'} onClick={() => { setActiveTab('upload'); setIsSidebarOpen(false); }} />
-                        <SidebarItem icon={<AlertTriangle size={16}/>} label="Pendências" active={activeTab === 'pendencias'} onClick={() => { setActiveTab('pendencias'); setIsSidebarOpen(false); }} />
                         <SidebarItem icon={<Tag size={16}/>} label="Marcas" active={activeTab === 'marcas'} onClick={() => { setActiveTab('marcas'); setIsSidebarOpen(false); }} />
                         <SidebarItem icon={<Users size={16}/>} label="Vendedores" active={activeTab === 'vendedores'} onClick={() => { setActiveTab('vendedores'); setIsSidebarOpen(false); }} />
                       </>
@@ -807,7 +805,6 @@ export default function App() {
             {activeTab === 'banners' && role === 'company' && <BannerManager companyId={activeCompanyId!} />}
             {activeTab === 'produtos' && <Produtos companyId={activeCompanyId} onRefresh={loadData} />}
             {activeTab === 'upload' && <Upload companyId={activeCompanyId} onRefresh={loadData} />}
-            {activeTab === 'pendencias' && <Pendencias companyId={activeCompanyId} onRefresh={loadData} />}
             {activeTab === 'marcas' && <Marcas companyId={activeCompanyId} />}
             {activeTab === 'vendedores' && <Vendedores companyId={activeCompanyId} />}
             {activeTab === 'clientes' && <Clientes companyId={activeCompanyId} role={role} user={user} />}
@@ -836,9 +833,9 @@ export default function App() {
       {/* Footer LGPD */}
       <footer className="text-center py-2.5 border-t border-slate-100 bg-white/60">
         <div className="flex items-center justify-center gap-3">
-          <a href="/privacidade" className="text-[10px] text-slate-400 hover:text-primary transition-colors font-medium">Política de Privacidade</a>
+          <button onClick={() => window.open('/politica-de-privacidade.html', '_blank')} className="text-[10px] text-slate-400 hover:text-primary transition-colors font-medium">Política de Privacidade</button>
           <span className="text-slate-200 text-xs">·</span>
-          <a href="/lgpd" className="text-[10px] text-slate-400 hover:text-primary transition-colors font-medium">LGPD</a>
+          <button onClick={() => window.open('/lgpd.html', '_blank')} className="text-[10px] text-slate-400 hover:text-primary transition-colors font-medium">LGPD</button>
           <span className="text-slate-200 text-xs">·</span>
           <span className="text-[10px] text-slate-300">VendPro © {new Date().getFullYear()}</span>
         </div>
@@ -1153,11 +1150,25 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
         {/* Header — logo real em fundo branco */}
         <div className="bg-white rounded-t-2xl px-8 py-8 text-center border-b border-slate-100 shadow-sm">
           <img
-            src="/LOGO_VENDPRO.png"
+            src={`${window.location.origin}/LOGO_VENDPRO.png`}
             alt="VendPro"
             className="h-24 w-auto mx-auto object-contain"
-            onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
+            onError={e => {
+              const t = e.target as HTMLImageElement;
+              t.style.display = 'none';
+              const fallback = t.parentElement?.querySelector('.logo-fallback') as HTMLElement;
+              if (fallback) fallback.style.display = 'flex';
+            }}
           />
+          <div className="logo-fallback hidden flex-col items-center justify-center py-2">
+            <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center mb-2">
+              <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+                <path d="M4 6l10 16L24 6" stroke="#C21863" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            <span className="text-xl font-black text-slate-900 tracking-widest uppercase">Vend<span className="text-primary">Pro</span></span>
+            <span className="text-[9px] text-slate-400 tracking-[3px] uppercase">Catálogos Inteligentes</span>
+          </div>
         </div>
 
         {/* Body */}
@@ -1470,9 +1481,9 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
 
         {/* LGPD footer */}
         <div className="flex items-center justify-center gap-4 mt-4 pt-4 border-t border-slate-100">
-          <a href="/privacidade" className="text-xs text-slate-500 hover:text-primary transition-colors font-semibold underline underline-offset-2">Política de Privacidade</a>
+          <button onClick={() => window.open('/politica-de-privacidade.html', '_blank')} className="text-xs text-slate-500 hover:text-primary transition-colors font-semibold underline underline-offset-2">Política de Privacidade</button>
           <span className="text-slate-300">·</span>
-          <a href="/lgpd" className="text-xs text-slate-500 hover:text-primary transition-colors font-semibold underline underline-offset-2">LGPD</a>
+          <button onClick={() => window.open('/lgpd.html', '_blank')} className="text-xs text-slate-500 hover:text-primary transition-colors font-semibold underline underline-offset-2">LGPD</button>
         </div>
 
       </motion.div>

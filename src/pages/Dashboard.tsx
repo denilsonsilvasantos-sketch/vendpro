@@ -133,42 +133,61 @@ export default function Dashboard({ companyId, role, user, banners }: { companyI
     { name: 'Pedidos', value: stats.orders },
   ];
 
-  if (loading) return <div className="p-6">Carregando...</div>;
+  if (loading) return (
+    <div className="p-8 flex flex-col items-center justify-center min-h-[400px] gap-6 animate-pulse">
+      <div className="w-16 h-16 bg-primary/10 rounded-3xl flex items-center justify-center text-primary border border-primary/20">
+        <TrendingUp className="animate-spin" size={32} />
+      </div>
+      <p className="text-slate-500 font-black uppercase tracking-widest text-[10px]">Carregando dados...</p>
+    </div>
+  );
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 md:p-6 lg:p-8 max-w-6xl xl:max-w-7xl mx-auto space-y-12">
       {banners && banners.length > 0 && (
-        <div className="mb-8">
+        <div className="mb-12">
           <Banner banners={banners} />
         </div>
       )}
       {newOrder && (
-        <div className="fixed top-20 right-6 bg-green-500 text-white p-4 rounded-xl shadow-lg z-50">
+        <div className="fixed top-24 right-8 bg-primary text-white p-6 rounded-3xl shadow-2xl z-50 font-black uppercase tracking-widest text-[10px] animate-in fade-in slide-in-from-right-4 border border-white/20">
           Novo pedido recebido! #{newOrder.id}
         </div>
       )}
-      <h1 className="text-2xl font-bold">Dashboard</h1>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card title="Produtos" value={stats.products} icon={<Package className="text-blue-500" />} />
-        <Card title="Clientes" value={stats.customers} icon={<Users className="text-green-500" />} />
-        <Card title="Pedidos" value={stats.orders} icon={<ShoppingCart className="text-purple-500" />} />
-        <Card title="Receita Total" value={`R$ ${stats.revenue.toFixed(2)}`} icon={<TrendingUp className="text-orange-500" />} />
+      <div className="flex items-center gap-6 mb-12">
+        <div className="w-16 h-16 bg-primary/10 rounded-3xl flex items-center justify-center text-primary border border-primary/20 shadow-inner">
+          <TrendingUp size={32} strokeWidth={2.5} />
+        </div>
+        <div>
+          <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight uppercase">Dashboard</h1>
+          <p className="text-slate-500 font-black uppercase tracking-[0.2em] text-[10px] mt-1">Visão geral do seu negócio em tempo real</p>
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
+        <Card title="Produtos" value={stats.products} icon={<Package size={20} />} className="neumorphic-shadow" />
+        <Card title="Clientes" value={stats.customers} icon={<Users size={20} />} className="neumorphic-shadow" />
+        <Card title="Pedidos" value={stats.orders} icon={<ShoppingCart size={20} />} className="neumorphic-shadow" />
+        <Card title="Receita Total" value={`R$ ${stats.revenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} icon={<TrendingUp size={20} />} className="neumorphic-shadow" />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-xl shadow">
-          <h2 className="text-lg font-bold mb-4">Visão Geral</h2>
-          <div className="h-64">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12">
+        <div className="bg-white p-8 md:p-10 rounded-[40px] border border-slate-100 neumorphic-shadow hover:shadow-2xl transition-all duration-500">
+          <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-10">Visão Geral</h2>
+          <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={data}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="value">
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 9, fontWeight: 900, textAnchor: 'middle' }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 9, fontWeight: 900 }} />
+                <Tooltip 
+                  cursor={{ fill: '#f8fafc' }}
+                  contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', padding: '16px' }}
+                />
+                <Bar dataKey="value" radius={[12, 12, 0, 0]} barSize={48}>
                   {data.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={['#3b82f6', '#22c55e', '#a855f7'][index]} />
+                    <Cell key={`cell-${index}`} fill={['#ff3ea5', '#8b3ea9', '#e250c5'][index]} />
                   ))}
                 </Bar>
               </BarChart>
@@ -176,16 +195,20 @@ export default function Dashboard({ companyId, role, user, banners }: { companyI
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow">
-          <h2 className="text-lg font-bold mb-4">Faturamento por Marca</h2>
-          <div className="h-64">
+        <div className="bg-white p-8 md:p-10 rounded-[40px] border border-slate-100 neumorphic-shadow hover:shadow-2xl transition-all duration-500">
+          <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-10">Faturamento por Marca</h2>
+          <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={brandRevenue} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" />
-                <YAxis dataKey="name" type="category" width={100} />
-                <Tooltip formatter={(value: any) => `R$ ${Number(value).toFixed(2)}`} />
-                <Bar dataKey="value" fill="#f59e0b" radius={[0, 4, 4, 0]} />
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
+                <XAxis type="number" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 9, fontWeight: 900 }} />
+                <YAxis dataKey="name" type="category" width={100} axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 9, fontWeight: 900 }} />
+                <Tooltip 
+                  cursor={{ fill: '#f8fafc' }}
+                  formatter={(value: any) => `R$ ${Number(value).toFixed(2)}`}
+                  contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', padding: '16px' }}
+                />
+                <Bar dataKey="value" fill="#ff3ea5" radius={[0, 12, 12, 0]} barSize={28} />
               </BarChart>
             </ResponsiveContainer>
           </div>

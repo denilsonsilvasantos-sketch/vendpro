@@ -88,49 +88,49 @@ export default function Produtos({ companyId, onRefresh }: { companyId: string |
   }
 
   return (
-    <div className="p-4 md:p-8 space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
-        <div className="space-y-2">
+    <div className="p-4 md:p-6 lg:p-8 max-w-6xl xl:max-w-7xl mx-auto space-y-8">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="space-y-1">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary border border-primary/20 shadow-inner">
               <Package size={24} strokeWidth={2.5} />
             </div>
             <div>
-              <h1 className="text-3xl font-black text-slate-900 tracking-tight uppercase">Catálogo de Produtos</h1>
-              <p className="text-slate-500 font-medium">Gerencie o inventário e preços de forma centralizada</p>
+              <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight uppercase">Catálogo de Produtos</h1>
+              <p className="text-sm md:text-base text-slate-500 font-medium">Gerencie o inventário e preços de forma centralizada</p>
             </div>
           </div>
         </div>
         <button 
           onClick={() => { setEditingProduct(undefined); setIsModalOpen(true); }} 
-          className="bg-primary text-white px-8 py-4 rounded-[24px] font-black uppercase tracking-widest text-xs flex items-center gap-3 shadow-2xl shadow-primary/30 hover:-translate-y-1 active:translate-y-0 transition-all w-full md:w-auto justify-center"
+          className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-5 py-3 text-xs font-black uppercase tracking-[0.18em] text-white shadow-lg shadow-primary/30 hover:bg-primary/90 hover:-translate-y-0.5 active:translate-y-0 transition-all w-full md:w-auto"
         >
-          <Plus size={20} strokeWidth={3} /> Novo Produto
+          <Plus size={18} strokeWidth={3} /> Novo Produto
         </button>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-4 p-6 bg-white rounded-[40px] border border-slate-100 shadow-xl shadow-slate-200/50">
+      <div className="flex flex-col lg:flex-row gap-4 p-4 bg-white rounded-[32px] border border-slate-100 shadow-sm neumorphic-shadow">
         <div className="relative flex-1 group">
-          <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-primary transition-colors" size={20} />
+          <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-primary transition-colors" size={18} />
           <input 
             type="text" 
             placeholder="Buscar por nome ou SKU..."
-            className="w-full pl-16 pr-8 py-5 bg-slate-50/50 border border-slate-100 rounded-[24px] outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary/30 transition-all font-bold text-slate-700 placeholder:text-slate-300"
+            className="w-full pl-12 pr-6 py-3 bg-slate-50/50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary/30 transition-all font-bold text-slate-700 placeholder:text-slate-300 text-sm"
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
           />
         </div>
-        <div className="relative min-w-[280px] group">
-          <Filter className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-primary transition-colors" size={18} />
+        <div className="relative min-w-[240px] group">
+          <Filter className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-primary transition-colors" size={16} />
           <select 
-            className="w-full pl-16 pr-12 py-5 bg-slate-50/50 border border-slate-100 rounded-[24px] outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary/30 transition-all appearance-none font-black uppercase tracking-widest text-[10px] text-slate-600 cursor-pointer"
+            className="w-full pl-12 pr-10 py-3 bg-slate-50/50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary/30 transition-all appearance-none font-black uppercase tracking-widest text-[10px] text-slate-600 cursor-pointer"
             value={filterBrand || ''}
             onChange={e => setFilterBrand(e.target.value || null)}
           >
             <option value="">Todas as Marcas</option>
             {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
           </select>
-          <ChevronDown className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={18} />
+          <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={16} />
         </div>
       </div>
       
@@ -139,14 +139,14 @@ export default function Produtos({ companyId, onRefresh }: { companyId: string |
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white p-32 rounded-[40px] border-2 border-dashed border-slate-100 text-center space-y-8"
+            className="bg-white p-16 rounded-[40px] border-2 border-dashed border-slate-100 text-center space-y-6 neumorphic-shadow"
           >
-            <div className="w-32 h-32 bg-slate-50 rounded-[40px] flex items-center justify-center mx-auto shadow-inner border border-slate-100">
-              <Package className="text-slate-200" size={64} strokeWidth={1} />
+            <div className="w-20 h-20 bg-slate-50 rounded-3xl flex items-center justify-center mx-auto shadow-inner border border-slate-100">
+              <Package className="text-slate-200" size={40} strokeWidth={1} />
             </div>
-            <div className="space-y-3">
-              <h2 className="text-3xl font-black text-slate-900 tracking-tight uppercase">Nenhum produto encontrado</h2>
-              <p className="text-slate-400 max-w-sm mx-auto font-medium">Refine sua busca ou adicione novos itens para popular seu catálogo.</p>
+            <div className="space-y-2">
+              <h2 className="text-xl font-black text-slate-900 tracking-tight uppercase">Nenhum produto encontrado</h2>
+              <p className="text-slate-400 max-w-sm mx-auto font-medium text-sm">Refine sua busca ou adicione novos itens para popular seu catálogo.</p>
             </div>
           </motion.div>
         ) : (
@@ -162,7 +162,7 @@ export default function Produtos({ companyId, onRefresh }: { companyId: string |
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   key={product.id} 
-                  className={`bg-white rounded-2xl overflow-hidden border transition-all duration-500 hover:shadow-2xl hover:shadow-primary/5 hover:-translate-y-1 group border-slate-100 flex flex-col relative ${isEsgotado ? 'opacity-75' : ''}`}
+                  className={`bg-white rounded-[32px] overflow-hidden border transition-all duration-500 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1 group border-slate-100 flex flex-col relative neumorphic-shadow ${isEsgotado ? 'opacity-75' : ''}`}
                 >
                   <div 
                     className="aspect-square relative overflow-hidden bg-slate-50/30 cursor-zoom-in"
@@ -174,55 +174,55 @@ export default function Produtos({ companyId, onRefresh }: { companyId: string |
                       className="w-full h-full object-contain p-4 group-hover:scale-110 transition-transform duration-1000 ease-out"
                       referrerPolicy="no-referrer"
                     />
-                    <div className="absolute top-3 right-3 flex flex-col gap-2 items-end z-10">
-                      {isEsgotado && <span className="bg-slate-900 text-white text-[8px] font-black px-2 py-1 rounded-lg shadow-xl uppercase tracking-wider border border-white/10">Esgotado</span>}
-                      {!isEsgotado && product.is_last_units && <span className="bg-rose-500 text-white text-[8px] font-black px-2 py-1 rounded-lg shadow-xl uppercase tracking-wider border border-white/10">Últimas</span>}
-                      {product.venda_somente_box && <span className="bg-amber-500 text-white text-[8px] font-black px-2 py-1 rounded-lg shadow-xl uppercase tracking-wider border border-white/10">Somente Box</span>}
+                    <div className="absolute top-2 right-2 flex flex-col gap-1.5 items-end z-10">
+                      {isEsgotado && <span className="bg-slate-900 text-white text-[7px] font-black px-1.5 py-0.5 rounded shadow-xl uppercase tracking-wider border border-white/10">Esgotado</span>}
+                      {!isEsgotado && product.is_last_units && <span className="bg-rose-500 text-white text-[7px] font-black px-1.5 py-0.5 rounded shadow-xl uppercase tracking-wider border border-white/10">Últimas</span>}
+                      {product.venda_somente_box && <span className="bg-amber-500 text-white text-[7px] font-black px-1.5 py-0.5 rounded shadow-xl uppercase tracking-wider border border-white/10">Somente Box</span>}
                     </div>
                   </div>
                   
-                  <div className="p-4 flex-1 flex flex-col justify-between space-y-4">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[8px] font-black text-primary uppercase tracking-wider bg-primary/5 px-2 py-0.5 rounded-md border border-primary/10">{brand?.name}</span>
-                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider">{category?.nome}</span>
+                  <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[7px] font-black text-primary uppercase tracking-wider bg-primary/5 px-1.5 py-0.5 rounded border border-primary/10">{brand?.name}</span>
+                        <span className="text-[7px] font-black text-slate-400 uppercase tracking-wider">{category?.nome}</span>
                       </div>
-                      <h3 className="font-bold text-slate-900 text-xs leading-tight group-hover:text-primary transition-colors line-clamp-2 uppercase tracking-tight h-10 flex items-center">{product.nome}</h3>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest">SKU</span>
-                        <span className="text-[9px] font-mono font-black text-slate-400 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">{product.sku}</span>
+                      <h3 className="font-black text-slate-900 text-[11px] leading-tight group-hover:text-primary transition-colors line-clamp-2 uppercase tracking-tight h-8 flex items-center">{product.nome}</h3>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[7px] font-black text-slate-300 uppercase tracking-widest">SKU</span>
+                        <span className="text-[8px] font-mono font-black text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100">{product.sku}</span>
                       </div>
                     </div>
 
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                       <div className="flex items-end justify-between">
                         <div className="space-y-0.5">
-                          <p className="text-[8px] font-black text-slate-300 uppercase tracking-wider">Preço Unitário</p>
+                          <p className="text-[7px] font-black text-slate-300 uppercase tracking-wider">Preço Unitário</p>
                           {!isEsgotado ? (
-                            <p className="text-xl font-black text-slate-900 tracking-tighter">R$ {product.preco_unitario.toFixed(2)}</p>
+                            <p className="text-lg font-black text-slate-900 tracking-tighter">R$ {product.preco_unitario.toFixed(2)}</p>
                           ) : (
-                            <p className="text-xl font-black text-slate-200 tracking-tighter">--</p>
+                            <p className="text-lg font-black text-slate-200 tracking-tighter">--</p>
                           )}
                         </div>
                         <div className="flex gap-1">
                           <button 
                             onClick={() => { setEditingProduct(product); setIsModalOpen(true); }} 
-                            className="w-8 h-8 flex items-center justify-center text-slate-300 hover:text-primary hover:bg-primary/5 rounded-xl transition-all"
+                            className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-primary hover:bg-primary/5 rounded-full transition-all border border-slate-100"
                           >
-                            <Edit size={16} strokeWidth={2.5} />
+                            <Edit size={14} strokeWidth={2.5} />
                           </button>
                           <button 
                             onClick={() => handleDelete(product.id)} 
-                            className="w-8 h-8 flex items-center justify-center text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
+                            className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-full transition-all border border-slate-100"
                           >
-                            <Trash2 size={16} strokeWidth={2.5} />
+                            <Trash2 size={14} strokeWidth={2.5} />
                           </button>
                         </div>
                       </div>
 
                       {(product.has_box_discount || product.venda_somente_box) && !isEsgotado && (
-                        <div className="p-2 bg-emerald-50 rounded-xl border border-emerald-100 text-[9px] font-black text-emerald-600 text-center uppercase tracking-wider flex items-center justify-center gap-1.5">
-                          <Info size={12} />
+                        <div className="p-2 bg-emerald-50 rounded-xl border border-emerald-100 text-[8px] font-black text-emerald-600 text-center uppercase tracking-wider flex items-center justify-center gap-1">
+                          <Info size={10} />
                           <span className="line-clamp-1">
                             {!product.venda_somente_box ? (
                               `A partir de ${product.qtd_box} un: R$ ${product.preco_box.toFixed(2)}`

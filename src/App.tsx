@@ -83,21 +83,21 @@ function SidebarItem({ icon, label, active, onClick }: { icon: React.ReactNode, 
   return (
     <button 
       onClick={onClick}
-      className={`w-full flex items-center gap-4 px-4 py-4 rounded-2xl font-bold text-sm transition-all ${active ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-600 hover:bg-slate-50'}`}
+      className={`w-full flex items-center gap-4 px-6 py-4 rounded-full font-black text-sm transition-all ${active ? 'bg-primary text-white neumorphic-shadow' : 'text-slate-600 hover:bg-white/50'}`}
     >
       {icon}
-      {label}
+      <span className="uppercase tracking-[0.1em]">{label}</span>
     </button>
   );
 }
 
 function TabItem({ icon, label, active, onClick, badge }: { icon: React.ReactNode, label: string, active: boolean, onClick: () => void, badge?: number }) {
   return (
-    <button onClick={onClick} className={`flex flex-col items-center gap-1 p-2 relative ${active ? 'text-primary' : 'text-slate-400'}`}>
+    <button onClick={onClick} className={`flex flex-col items-center gap-1 p-2 relative transition-all ${active ? 'text-primary scale-110' : 'text-slate-400 hover:text-slate-600'}`}>
       {icon}
-      <span className="text-[10px] font-bold uppercase tracking-widest">{label}</span>
+      <span className="text-[10px] font-black uppercase tracking-widest">{label}</span>
       {badge !== undefined && (
-        <span className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full shadow-sm">
+        <span className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 text-white text-[10px] font-black flex items-center justify-center rounded-full shadow-sm border-2 border-white">
           {badge}
         </span>
       )}
@@ -611,28 +611,28 @@ export default function App() {
         </div>
 
         <div className="flex items-center gap-2 md:gap-6">
-          <div className="hidden lg:flex items-center bg-slate-100 rounded-full px-4 py-2 w-80">
-            <Search size={18} className="text-slate-400 mr-2" />
+          <div className="hidden lg:flex items-center bg-slate-100 rounded-full px-6 py-2.5 w-80 shadow-inner border border-slate-200/50 focus-within:ring-4 focus-within:ring-primary/5 transition-all">
+            <Search size={18} className="text-slate-400 mr-3" />
             <input 
               type="text" 
               placeholder="Buscar produtos..." 
-              className="bg-transparent border-none outline-none text-sm w-full font-medium"
+              className="bg-transparent border-none outline-none text-sm w-full font-black uppercase tracking-widest placeholder:text-slate-400"
               onFocus={() => setActiveTab('catalog')}
             />
           </div>
 
           <div className="flex items-center gap-2 md:gap-4">
-            <button onClick={() => setActiveTab('cart')} className="relative p-2.5 bg-slate-100 text-slate-600 hover:text-primary hover:bg-primary/10 rounded-full transition-all">
+            <button onClick={() => setActiveTab('cart')} className="relative p-3 bg-white text-slate-600 hover:text-primary hover:bg-primary/5 rounded-full transition-all shadow-sm border border-slate-100">
               <ShoppingCart size={22} />
               {cart.length > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 pink-gradient text-white text-[10px] font-bold flex items-center justify-center rounded-full shadow-md border-2 border-white">
+                <span className="absolute -top-1 -right-1 w-5 h-5 pink-gradient text-white text-[10px] font-black flex items-center justify-center rounded-full shadow-lg border-2 border-white">
                   {cart.length}
                 </span>
               )}
             </button>
             
             {effectiveRole !== 'customer' && (
-              <button onClick={() => setActiveTab('account')} className="p-2.5 bg-slate-100 text-slate-600 hover:text-primary hover:bg-primary/10 rounded-full transition-all">
+              <button onClick={() => setActiveTab('account')} className="p-3 bg-white text-slate-600 hover:text-primary hover:bg-primary/5 rounded-full transition-all shadow-sm border border-slate-100">
                 <User size={22} />
               </button>
             )}
@@ -655,16 +655,16 @@ export default function App() {
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
-              className="fixed inset-y-0 left-0 w-80 bg-white z-50 shadow-2xl p-8 flex flex-col"
+              className="fixed inset-y-0 left-0 w-80 bg-white z-50 shadow-2xl p-8 flex flex-col rounded-r-[48px]"
             >
-              <div className="flex items-center justify-between mb-12">
+              <div className="flex items-center justify-between mb-12 px-2">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 pink-gradient rounded-xl flex items-center justify-center text-white shadow-lg">
+                  <div className="w-12 h-12 pink-gradient rounded-[20px] flex items-center justify-center text-white shadow-lg shadow-primary/20">
                     <CheckCircle2 size={24} />
                   </div>
-                  <h2 className="text-2xl font-bold text-slate-900">VendPro</h2>
+                  <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">VendPro</h2>
                 </div>
-                <button onClick={() => setIsSidebarOpen(false)} className="p-2 text-slate-400 hover:text-primary transition-colors"><X size={24} /></button>
+                <button onClick={() => setIsSidebarOpen(false)} className="p-2 text-slate-400 hover:text-primary transition-colors hover:bg-primary/5 rounded-full"><X size={24} /></button>
               </div>
 
               <nav className="space-y-1.5 flex-1 overflow-y-auto pr-2 custom-scrollbar">
@@ -820,19 +820,19 @@ export default function App() {
 
 function CompanySelectionScreen({ companies, onSelect }: { companies: any[], onSelect: (c: any) => void }) {
   return (
-    <div className="min-h-screen bg-nude flex flex-col items-center justify-center p-8">
+    <div className="min-h-screen bg-fixed bg-gradient-to-br from-white via-soft-pink to-white flex flex-col items-center justify-center p-8">
       <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="w-full max-w-md text-center">
-        <h2 className="text-3xl font-bold text-slate-900 mb-2">Selecione a Marca</h2>
-        <p className="text-slate-500 mb-10">Com qual catálogo deseja trabalhar agora?</p>
+        <h2 className="text-3xl font-black text-slate-900 mb-2 uppercase tracking-tight">Selecione a Marca</h2>
+        <p className="text-slate-500 mb-10 font-medium">Com qual catálogo deseja trabalhar agora?</p>
         
-        <div className="grid grid-cols-1 gap-4">
+        <div className="grid grid-cols-1 gap-6">
           {companies.map(c => (
             <button 
               key={c.id} 
               onClick={() => onSelect(c)}
-              className="p-6 bg-white rounded-[32px] border border-slate-100 shadow-sm hover:border-primary/30 hover:shadow-md transition-all flex items-center gap-6 text-left group"
+              className="p-6 bg-white rounded-[40px] border border-slate-100 shadow-sm hover:neumorphic-shadow transition-all flex items-center gap-6 text-left group"
             >
-              <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center overflow-hidden">
+              <div className="w-16 h-16 bg-slate-50 rounded-[24px] flex items-center justify-center overflow-hidden shadow-inner">
                 {c.logo_url ? (
                   <img src={c.logo_url} alt={c.nome} className="w-full h-full object-cover" />
                 ) : (
@@ -840,8 +840,8 @@ function CompanySelectionScreen({ companies, onSelect }: { companies: any[], onS
                 )}
               </div>
               <div className="flex-1">
-                <p className="font-bold text-xl text-slate-800 group-hover:text-primary transition-colors">{c.nome}</p>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Mínimo: R$ {c.minimum_order_value?.toFixed(2)}</p>
+                <p className="font-black text-xl text-slate-800 group-hover:text-primary transition-colors uppercase tracking-tight">{c.nome}</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Mínimo: R$ {c.minimum_order_value?.toFixed(2)}</p>
               </div>
               <ChevronRight size={24} className="text-slate-300 group-hover:text-primary transition-colors" />
             </button>
@@ -862,7 +862,7 @@ function CompanyInfoModal({ company, onClose }: { company: any, onClose: () => v
         exit={{ scale: 0.9, opacity: 0, y: 20 }} 
         className="bg-white w-full max-w-sm rounded-[40px] shadow-2xl relative z-10 p-10 text-center space-y-8"
       >
-        <div className="w-24 h-24 bg-slate-50 rounded-[32px] mx-auto flex items-center justify-center overflow-hidden shadow-inner">
+        <div className="w-24 h-24 bg-slate-50 rounded-[28px] mx-auto flex items-center justify-center overflow-hidden shadow-inner">
           {company.logo_url ? (
             <img src={company.logo_url} alt={company.nome} className="w-full h-full object-cover" />
           ) : (
@@ -871,34 +871,34 @@ function CompanyInfoModal({ company, onClose }: { company: any, onClose: () => v
         </div>
         
         <div>
-          <h3 className="text-2xl font-bold text-slate-900 mb-2">{company.nome}</h3>
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">Políticas da Empresa</p>
+          <h3 className="text-2xl font-black text-slate-900 mb-2 uppercase tracking-tight">{company.nome}</h3>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Políticas da Empresa</p>
         </div>
 
         <div className="space-y-4 text-left">
-          <div className="p-5 bg-slate-50 rounded-3xl border border-slate-100">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Pedido Mínimo</p>
-            <p className="font-bold text-slate-700">R$ {company.minimum_order_value?.toFixed(2)}</p>
+          <div className="p-5 bg-slate-50 rounded-[24px] border border-slate-100 shadow-inner">
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Pedido Mínimo</p>
+            <p className="font-black text-slate-700">R$ {company.minimum_order_value?.toFixed(2)}</p>
           </div>
           
           {company.payment_policy && (
-            <div className="p-5 bg-slate-50 rounded-3xl border border-slate-100">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Pagamento</p>
-              <p className="text-sm text-slate-600 leading-relaxed">{company.payment_policy}</p>
+            <div className="p-5 bg-slate-50 rounded-[24px] border border-slate-100 shadow-inner">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Pagamento</p>
+              <p className="text-sm text-slate-600 font-medium leading-relaxed">{company.payment_policy}</p>
             </div>
           )}
 
           {company.shipping_policy && (
-            <div className="p-5 bg-slate-50 rounded-3xl border border-slate-100">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Envio / Frete</p>
-              <p className="text-sm text-slate-600 leading-relaxed">{company.shipping_policy}</p>
+            <div className="p-5 bg-slate-50 rounded-[24px] border border-slate-100 shadow-inner">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Envio / Frete</p>
+              <p className="text-sm text-slate-600 font-medium leading-relaxed">{company.shipping_policy}</p>
             </div>
           )}
         </div>
 
         <button 
           onClick={onClose}
-          className="w-full py-5 bg-primary text-white rounded-[24px] font-bold shadow-lg shadow-primary/20 active:scale-95 transition-all"
+          className="w-full py-5 bg-primary text-white rounded-full font-black uppercase tracking-widest text-xs shadow-lg shadow-primary/20 active:scale-95 transition-all"
         >
           Entendi, vamos lá!
         </button>
@@ -1113,43 +1113,43 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
   };
 
   return (
-    <div className="min-h-screen bg-nude flex flex-col items-center justify-center p-8">
+    <div className="min-h-screen bg-fixed bg-gradient-to-br from-white via-soft-pink to-white flex flex-col items-center justify-center p-8">
       <motion.div 
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         className="w-full max-w-sm text-center"
       >
-        <div className="w-24 h-24 blue-gradient rounded-[32px] mx-auto mb-8 flex items-center justify-center text-white shadow-lg shadow-primary/20 rotate-3">
+        <div className="w-24 h-24 blue-gradient rounded-4xl mx-auto mb-8 flex items-center justify-center text-white shadow-lg shadow-primary/20 rotate-3">
           <CheckCircle2 size={48} strokeWidth={1.5} />
         </div>
-        <h1 className="text-4xl font-bold tracking-tight mb-2 text-slate-900">VendPro</h1>
-        <p className="text-primary font-medium mb-12 tracking-wide uppercase text-[10px]">Catálogo Premium de Beleza</p>
+        <h1 className="text-4xl font-black tracking-tight mb-2 text-slate-900 uppercase">VendPro</h1>
+        <p className="text-primary font-black mb-12 tracking-[0.2em] uppercase text-[10px]">Catálogo Premium de Beleza</p>
 
         {view === 'role' && (
           <div className="space-y-4">
             <button 
               onClick={() => { setLoginType('seller'); setView('seller-code'); }}
-              className="w-full py-4 bg-primary text-white rounded-2xl font-semibold flex items-center justify-center gap-3 shadow-md shadow-primary/10 hover:bg-primary-dark transition-colors"
+              className="w-full py-5 bg-primary text-white rounded-full font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 shadow-lg shadow-primary/20 hover:bg-primary-dark transition-all"
             >
               Sou Vendedor
-              <ChevronRight size={20} />
+              <ChevronRight size={18} />
             </button>
             <button 
               onClick={() => { setLoginType('customer'); setView('seller-code'); }}
-              className="w-full py-4 bg-white text-primary border border-primary/10 rounded-2xl font-semibold flex items-center justify-center gap-3 hover:bg-primary-light/20 transition-colors"
+              className="w-full py-5 bg-white text-primary border border-primary/10 rounded-full font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 hover:bg-primary-light/20 transition-all"
             >
               Sou Cliente
-              <ChevronRight size={20} />
+              <ChevronRight size={18} />
             </button>
             <button 
               onClick={() => { setLoginType('company'); setView('company-login'); }}
-              className="w-full mt-6 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] hover:text-primary transition-colors"
+              className="w-full mt-6 py-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] hover:text-primary transition-colors"
             >
               Sou Empresa (Criar Catálogo)
             </button>
             <button 
               onClick={() => { setLoginType('admin'); setView('seller-code'); }}
-              className="w-full mt-2 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] hover:text-primary transition-colors"
+              className="w-full mt-2 py-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] hover:text-primary transition-colors"
             >
               Acesso Administrativo
             </button>
@@ -1158,13 +1158,13 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
 
         {view === 'company-login' && (
           <div className="space-y-4">
-            <p className="font-bold text-[10px] text-slate-400 uppercase tracking-[0.2em] mb-2">
+            <p className="font-black text-[10px] text-slate-400 uppercase tracking-[0.2em] mb-2">
               Acesso Empresa
             </p>
             <input 
               type="text" 
               placeholder="CNPJ" 
-              className="w-full p-4 bg-white rounded-2xl border border-slate-100 focus:ring-2 focus:ring-primary outline-none text-center font-bold uppercase text-slate-700 shadow-sm"
+              className="w-full p-5 bg-white rounded-3xl border border-slate-100 focus:ring-2 focus:ring-primary outline-none text-center font-black uppercase text-slate-700 shadow-inner"
               value={companyLoginCnpj}
               onChange={e => setCompanyLoginCnpj(e.target.value)}
             />
@@ -1172,63 +1172,63 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
               <input 
                 type={showPassword ? "text" : "password"} 
                 placeholder="Senha" 
-                className="w-full p-4 bg-white rounded-2xl border border-slate-100 focus:ring-2 focus:ring-primary outline-none text-center font-bold text-slate-700 shadow-sm"
+                className="w-full p-5 bg-white rounded-3xl border border-slate-100 focus:ring-2 focus:ring-primary outline-none text-center font-black text-slate-700 shadow-inner"
                 value={companyLoginSenha}
                 onChange={e => setCompanyLoginSenha(e.target.value)}
               />
               <button 
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary transition-colors"
+                className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary transition-colors"
               >
                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
             </div>
             <button 
               onClick={handleCompanyLogin}
-              className="w-full py-4 bg-primary text-white rounded-2xl font-semibold shadow-md shadow-primary/10 hover:bg-primary-dark transition-colors"
+              className="w-full py-5 bg-primary text-white rounded-full font-black uppercase tracking-widest text-xs shadow-lg shadow-primary/20 hover:bg-primary-dark transition-all"
             >
               Entrar
             </button>
             <div className="flex flex-col gap-2">
               <button 
                 onClick={() => setShowForgotPassword(true)}
-                className="text-[10px] font-bold text-primary uppercase tracking-widest hover:underline"
+                className="text-[10px] font-black text-primary uppercase tracking-widest hover:underline"
               >
                 Esqueci minha senha
               </button>
               <button 
                 onClick={() => setView('company-register')}
-                className="w-full py-4 bg-white text-primary border border-primary/10 rounded-2xl font-semibold hover:bg-primary-light/20 transition-colors"
+                className="w-full py-5 bg-white text-primary border border-primary/10 rounded-full font-black uppercase tracking-widest text-xs hover:bg-primary-light/20 transition-all"
               >
                 Cadastrar Nova Empresa
               </button>
             </div>
-            <button onClick={() => setView('role')} className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-4 hover:text-primary transition-colors">Voltar</button>
+            <button onClick={() => setView('role')} className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-4 hover:text-primary transition-colors">Voltar</button>
           </div>
         )}
 
         {view === 'company-register' && (
-          <div className="space-y-3 text-left">
-            <p className="font-bold text-sm mb-6 text-center text-slate-700">Cadastro de Empresa</p>
+          <div className="space-y-4 text-left">
+            <p className="font-black text-[10px] text-slate-400 uppercase tracking-[0.2em] mb-6 text-center">Cadastro de Empresa</p>
             <div className="space-y-3">
-              <input placeholder="Nome da Empresa" className="w-full p-4 bg-white rounded-xl border border-slate-100 font-medium focus:ring-2 focus:ring-primary outline-none shadow-sm" value={companyData.nome} onChange={e => setCompanyData({...companyData, nome: e.target.value})} />
-              <input placeholder="CNPJ" className="w-full p-4 bg-white rounded-xl border border-slate-100 font-medium focus:ring-2 focus:ring-primary outline-none shadow-sm" value={companyData.cnpj} onChange={e => setCompanyData({...companyData, cnpj: e.target.value})} />
-              <input placeholder="Responsável" className="w-full p-4 bg-white rounded-xl border border-slate-100 font-medium focus:ring-2 focus:ring-primary outline-none shadow-sm" value={companyData.responsavel} onChange={e => setCompanyData({...companyData, responsavel: e.target.value})} />
-              <input placeholder="E-mail (Para recuperação de senha)" type="email" className="w-full p-4 bg-white rounded-xl border border-slate-100 font-medium focus:ring-2 focus:ring-primary outline-none shadow-sm" value={companyData.email} onChange={e => setCompanyData({...companyData, email: e.target.value})} required />
-              <input placeholder="Telefone" className="w-full p-4 bg-white rounded-xl border border-slate-100 font-medium focus:ring-2 focus:ring-primary outline-none shadow-sm" value={companyData.telefone} onChange={e => setCompanyData({...companyData, telefone: e.target.value})} />
+              <input placeholder="Nome da Empresa" className="w-full p-5 bg-white rounded-3xl border border-slate-100 font-bold focus:ring-2 focus:ring-primary outline-none shadow-inner" value={companyData.nome} onChange={e => setCompanyData({...companyData, nome: e.target.value})} />
+              <input placeholder="CNPJ" className="w-full p-5 bg-white rounded-3xl border border-slate-100 font-bold focus:ring-2 focus:ring-primary outline-none shadow-inner" value={companyData.cnpj} onChange={e => setCompanyData({...companyData, cnpj: e.target.value})} />
+              <input placeholder="Responsável" className="w-full p-5 bg-white rounded-3xl border border-slate-100 font-bold focus:ring-2 focus:ring-primary outline-none shadow-inner" value={companyData.responsavel} onChange={e => setCompanyData({...companyData, responsavel: e.target.value})} />
+              <input placeholder="E-mail" type="email" className="w-full p-5 bg-white rounded-3xl border border-slate-100 font-bold focus:ring-2 focus:ring-primary outline-none shadow-inner" value={companyData.email} onChange={e => setCompanyData({...companyData, email: e.target.value})} required />
+              <input placeholder="Telefone" className="w-full p-5 bg-white rounded-3xl border border-slate-100 font-bold focus:ring-2 focus:ring-primary outline-none shadow-inner" value={companyData.telefone} onChange={e => setCompanyData({...companyData, telefone: e.target.value})} />
               <div className="relative">
                 <input 
                   type={showPassword ? "text" : "password"} 
                   placeholder="Senha de Acesso" 
-                  className="w-full p-4 bg-white rounded-xl border border-slate-100 font-medium focus:ring-2 focus:ring-primary outline-none shadow-sm" 
+                  className="w-full p-5 bg-white rounded-3xl border border-slate-100 font-bold focus:ring-2 focus:ring-primary outline-none shadow-inner" 
                   value={companyData.senha} 
                   onChange={e => setCompanyData({...companyData, senha: e.target.value})} 
                 />
                 <button 
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary transition-colors"
+                  className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary transition-colors"
                 >
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
@@ -1236,39 +1236,39 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
             </div>
             <button 
               onClick={handleCompanyRegister}
-              className="w-full py-4 bg-primary text-white rounded-2xl font-semibold mt-6 shadow-md shadow-primary/10 hover:bg-primary-dark transition-colors"
+              className="w-full py-5 bg-primary text-white rounded-full font-black uppercase tracking-widest text-xs mt-6 shadow-lg shadow-primary/20 hover:bg-primary-dark transition-all"
             >
               Finalizar Cadastro
             </button>
-            <button onClick={() => setView('company-login')} className="w-full text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-4 hover:text-primary transition-colors">Voltar</button>
+            <button onClick={() => setView('company-login')} className="w-full text-center text-[10px] font-black text-slate-400 uppercase tracking-widest mt-4 hover:text-primary transition-colors">Voltar</button>
           </div>
         )}
 
         {view === 'seller-code' && (
           <div className="space-y-4">
-            <p className="font-bold text-[10px] text-slate-400 uppercase tracking-[0.2em] mb-2">
+            <p className="font-black text-[10px] text-slate-400 uppercase tracking-[0.2em] mb-2">
               {loginType === 'seller' ? 'Acesso Vendedor' : loginType === 'customer' ? 'Acesso Cliente' : 'Acesso Admin'}
             </p>
             <input 
               type="text" 
               placeholder={loginType === 'admin' ? "Código de Acesso" : "Código do Vendedor"} 
-              className="w-full p-4 bg-white rounded-2xl border border-slate-100 focus:ring-2 focus:ring-primary outline-none text-center font-bold uppercase text-slate-700 shadow-sm"
+              className="w-full p-5 bg-white rounded-3xl border border-slate-100 focus:ring-2 focus:ring-primary outline-none text-center font-black uppercase text-slate-700 shadow-inner"
               value={sellerCode}
               onChange={e => setSellerCode(e.target.value)}
             />
             <button 
               onClick={handleSellerCodeSubmit}
-              className="w-full py-4 bg-primary text-white rounded-2xl font-semibold shadow-md shadow-primary/10 hover:bg-primary-dark transition-colors"
+              className="w-full py-5 bg-primary text-white rounded-full font-black uppercase tracking-widest text-xs shadow-lg shadow-primary/20 hover:bg-primary-dark transition-all"
             >
               Validar Código
             </button>
             <button 
               onClick={() => setShowForgotCode(true)}
-              className="text-[10px] font-bold text-primary uppercase tracking-widest hover:underline"
+              className="text-[10px] font-black text-primary uppercase tracking-widest hover:underline"
             >
               Esqueci meu código
             </button>
-            <button onClick={() => setView('role')} className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-4 hover:text-primary transition-colors">Voltar</button>
+            <button onClick={() => setView('role')} className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-4 hover:text-primary transition-colors">Voltar</button>
           </div>
         )}
 
@@ -1277,19 +1277,19 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
             <motion.div 
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              className="bg-white rounded-[32px] p-8 w-full max-w-sm shadow-2xl space-y-6"
+              className="bg-white rounded-4xl p-10 w-full max-w-sm shadow-2xl space-y-8"
             >
               <div className="text-center space-y-2">
-                <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mx-auto mb-4">
+                <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mx-auto mb-4 shadow-inner">
                   <Mail size={32} />
                 </div>
-                <h3 className="text-xl font-bold text-slate-900">Recuperar Senha</h3>
-                <p className="text-sm text-slate-500">Informe seu e-mail cadastrado para receber as instruções de recuperação.</p>
+                <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Recuperar Senha</h3>
+                <p className="text-sm text-slate-500 font-medium">Informe seu e-mail cadastrado para receber as instruções de recuperação.</p>
               </div>
               <input 
                 type="email" 
                 placeholder="Seu e-mail" 
-                className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-100 focus:ring-2 focus:ring-primary outline-none text-center font-medium text-slate-700"
+                className="w-full p-5 bg-slate-50 rounded-3xl border border-slate-100 focus:ring-2 focus:ring-primary outline-none text-center font-bold text-slate-700 shadow-inner"
                 value={forgotPasswordEmail}
                 onChange={e => setForgotPasswordEmail(e.target.value)}
               />
@@ -1329,13 +1329,13 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
                     alert('Se o e-mail estiver cadastrado em nosso sistema de autenticação, você receberá um link para redefinir sua senha em instantes. Verifique também sua caixa de spam.');
                     setShowForgotPassword(false);
                   }}
-                  className="w-full py-4 bg-primary text-white rounded-2xl font-bold shadow-lg shadow-primary/20"
+                  className="w-full py-5 bg-primary text-white rounded-full font-black uppercase tracking-widest text-xs shadow-lg shadow-primary/20"
                 >
                   Enviar Link
                 </button>
                 <button 
                   onClick={() => setShowForgotPassword(false)}
-                  className="w-full py-4 text-slate-400 font-bold uppercase text-[10px] tracking-widest"
+                  className="w-full py-4 text-slate-400 font-black uppercase text-[10px] tracking-widest"
                 >
                   Cancelar
                 </button>
@@ -1349,14 +1349,14 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
             <motion.div 
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              className="bg-white rounded-[32px] p-8 w-full max-w-sm shadow-2xl space-y-6"
+              className="bg-white rounded-4xl p-10 w-full max-w-sm shadow-2xl space-y-8"
             >
               <div className="text-center space-y-2">
-                <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mx-auto mb-4">
+                <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mx-auto mb-4 shadow-inner">
                   <Shield size={32} />
                 </div>
-                <h3 className="text-xl font-bold text-slate-900">Código de Acesso</h3>
-                <p className="text-sm text-slate-600 leading-relaxed">
+                <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Código de Acesso</h3>
+                <p className="text-sm text-slate-600 font-medium leading-relaxed">
                   {loginType === 'customer' 
                     ? 'Por favor, entre em contato com seu vendedor para que ele forneça seu código de acesso ao catálogo.' 
                     : loginType === 'seller'
@@ -1366,7 +1366,7 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
               </div>
               <button 
                 onClick={() => setShowForgotCode(false)}
-                className="w-full py-4 bg-primary text-white rounded-2xl font-bold shadow-lg shadow-primary/20"
+                className="w-full py-5 bg-primary text-white rounded-full font-black uppercase tracking-widest text-xs shadow-lg shadow-primary/20"
               >
                 Entendi
               </button>
@@ -1379,19 +1379,19 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
             <motion.div 
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              className="bg-white rounded-[32px] p-8 w-full max-w-sm shadow-2xl space-y-6"
+              className="bg-white rounded-4xl p-10 w-full max-w-sm shadow-2xl space-y-8"
             >
               <div className="text-center space-y-2">
-                <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mx-auto mb-4">
+                <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mx-auto mb-4 shadow-inner">
                   <Shield size={32} />
                 </div>
-                <h3 className="text-xl font-bold text-slate-900">Nova Senha</h3>
-                <p className="text-sm text-slate-500">Digite sua nova senha de acesso.</p>
+                <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Nova Senha</h3>
+                <p className="text-sm text-slate-500 font-medium">Digite sua nova senha de acesso.</p>
               </div>
               <input 
                 type="password" 
                 placeholder="Nova senha" 
-                className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-100 focus:ring-2 focus:ring-primary outline-none text-center font-medium text-slate-700"
+                className="w-full p-5 bg-slate-50 rounded-3xl border border-slate-100 focus:ring-2 focus:ring-primary outline-none text-center font-bold text-slate-700 shadow-inner"
                 value={newPassword}
                 onChange={e => setNewPassword(e.target.value)}
               />
@@ -1414,7 +1414,7 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
                     setView('company-login');
                   }
                 }}
-                className="w-full py-4 bg-primary text-white rounded-2xl font-bold shadow-lg shadow-primary/20"
+                className="w-full py-5 bg-primary text-white rounded-full font-black uppercase tracking-widest text-xs shadow-lg shadow-primary/20"
               >
                 Atualizar Senha
               </button>
@@ -1423,20 +1423,20 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
         )}
 
         {view === 'customer-form' && (
-          <div className="space-y-3 text-left">
-            <p className="font-bold text-sm mb-6 text-center text-slate-700">Identificação do Cliente</p>
+          <div className="space-y-4 text-left">
+            <p className="font-black text-[10px] text-slate-400 uppercase tracking-[0.2em] mb-6 text-center">Identificação do Cliente</p>
             <div className="space-y-3">
-              <input placeholder="Seu Nome ou Nome da Empresa" className="w-full p-4 bg-white rounded-xl border border-slate-100 font-medium focus:ring-2 focus:ring-primary outline-none shadow-sm" onChange={e => setCustomerData({...customerData, nome: e.target.value})} />
-              <input placeholder="CNPJ" className="w-full p-4 bg-white rounded-xl border border-slate-100 font-medium focus:ring-2 focus:ring-primary outline-none shadow-sm" onChange={e => setCustomerData({...customerData, cnpj: e.target.value})} />
-              <input placeholder="Telefone / WhatsApp" className="w-full p-4 bg-white rounded-xl border border-slate-100 font-medium focus:ring-2 focus:ring-primary outline-none shadow-sm" onChange={e => setCustomerData({...customerData, telefone: e.target.value})} />
+              <input placeholder="Seu Nome ou Nome da Empresa" className="w-full p-5 bg-white rounded-3xl border border-slate-100 font-bold focus:ring-2 focus:ring-primary outline-none shadow-inner" onChange={e => setCustomerData({...customerData, nome: e.target.value})} />
+              <input placeholder="CNPJ" className="w-full p-5 bg-white rounded-3xl border border-slate-100 font-bold focus:ring-2 focus:ring-primary outline-none shadow-inner" onChange={e => setCustomerData({...customerData, cnpj: e.target.value})} />
+              <input placeholder="Telefone / WhatsApp" className="w-full p-5 bg-white rounded-3xl border border-slate-100 font-bold focus:ring-2 focus:ring-primary outline-none shadow-inner" onChange={e => setCustomerData({...customerData, telefone: e.target.value})} />
             </div>
             <button 
               onClick={handleCustomerSubmit}
-              className="w-full py-4 bg-primary text-white rounded-2xl font-semibold mt-6 shadow-md shadow-primary/10 hover:bg-primary-dark transition-colors"
+              className="w-full py-5 bg-primary text-white rounded-full font-black uppercase tracking-widest text-xs mt-6 shadow-lg shadow-primary/20 hover:bg-primary-dark transition-all"
             >
               Acessar Catálogo
             </button>
-            <button onClick={() => setView('seller-code')} className="w-full text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-4 hover:text-primary transition-colors">Voltar</button>
+            <button onClick={() => setView('seller-code')} className="w-full text-center text-[10px] font-black text-slate-400 uppercase tracking-widest mt-4 hover:text-primary transition-colors">Voltar</button>
           </div>
         )}
       </motion.div>
@@ -1607,37 +1607,37 @@ function CatalogScreen({
         {showConditions && currentBrand && (
           <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" />
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-md rounded-[32px] shadow-2xl relative z-10 p-8 space-y-6">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-md rounded-[40px] shadow-2xl relative z-10 p-10 space-y-8">
               <div className="text-center space-y-2">
-                <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto text-primary">
+                <div className="w-20 h-20 bg-primary/10 rounded-[28px] flex items-center justify-center mx-auto text-primary shadow-inner">
                   <FileText size={40} />
                 </div>
-                <h3 className="text-2xl font-bold text-slate-900">Condições Comerciais</h3>
-                <p className="text-primary font-bold uppercase tracking-widest text-xs">{currentBrand.name}</p>
+                <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Condições Comerciais</h3>
+                <p className="text-primary font-black uppercase tracking-[0.2em] text-[10px]">{currentBrand.name}</p>
               </div>
 
               <div className="space-y-4 max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar">
-                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Pedido Mínimo</p>
-                  <p className="font-bold text-slate-700">R$ {currentBrand.minimum_order_value?.toFixed(2)}</p>
+                <div className="p-5 bg-slate-50 rounded-[28px] border border-slate-100 shadow-inner">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-1">Pedido Mínimo</p>
+                  <p className="font-black text-slate-700 text-lg">R$ {currentBrand.minimum_order_value?.toFixed(2)}</p>
                 </div>
                 {currentBrand.payment_policy && (
-                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Pagamento</p>
-                    <p className="text-sm text-slate-600 leading-relaxed">{currentBrand.payment_policy}</p>
+                  <div className="p-5 bg-slate-50 rounded-[28px] border border-slate-100 shadow-inner">
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-1">Pagamento</p>
+                    <p className="text-sm text-slate-600 font-medium leading-relaxed">{currentBrand.payment_policy}</p>
                   </div>
                 )}
                 {currentBrand.shipping_policy && (
-                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Envio / Frete</p>
-                    <p className="text-sm text-slate-600 leading-relaxed">{currentBrand.shipping_policy}</p>
+                  <div className="p-5 bg-slate-50 rounded-[28px] border border-slate-100 shadow-inner">
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-1">Envio / Frete</p>
+                    <p className="text-sm text-slate-600 font-medium leading-relaxed">{currentBrand.shipping_policy}</p>
                   </div>
                 )}
               </div>
 
               <button 
                 onClick={handleAcknowledgeConditions}
-                className="w-full py-4 bg-primary text-white rounded-2xl font-bold shadow-lg shadow-primary/20 active:scale-95 transition-all"
+                className="w-full py-5 bg-primary text-white rounded-full font-black uppercase tracking-widest text-xs shadow-lg shadow-primary/20 active:scale-95 transition-all"
               >
                 Ciente, continuar
               </button>
@@ -1648,32 +1648,32 @@ function CatalogScreen({
         {showSwitchWarning && (
           <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" />
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-sm rounded-[32px] shadow-2xl relative z-10 p-8 text-center space-y-6">
-              <div className="w-20 h-20 bg-amber-50 rounded-full flex items-center justify-center mx-auto text-amber-500">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-sm rounded-[40px] shadow-2xl relative z-10 p-10 text-center space-y-8">
+              <div className="w-20 h-20 bg-amber-50 rounded-[28px] flex items-center justify-center mx-auto text-amber-500 shadow-inner">
                 <AlertCircle size={40} />
               </div>
               <div className="space-y-2">
-                <h3 className="text-xl font-bold text-slate-900">Mudar de Marca?</h3>
-                <p className="text-slate-500 text-sm leading-relaxed">
+                <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Mudar de Marca?</h3>
+                <p className="text-slate-500 text-sm font-medium leading-relaxed">
                   Você tem itens no carrinho desta marca. Deseja finalizar este pedido agora ou salvar para depois?
                 </p>
               </div>
               <div className="flex flex-col gap-3">
                 <button 
                   onClick={onGoToCart}
-                  className="w-full py-4 bg-primary text-white rounded-2xl font-bold shadow-lg shadow-primary/20 active:scale-95 transition-all"
+                  className="w-full py-5 bg-primary text-white rounded-full font-black uppercase tracking-widest text-xs shadow-lg shadow-primary/20 active:scale-95 transition-all"
                 >
                   Finalizar Pedido Atual
                 </button>
                 <button 
                   onClick={() => confirmBrandSwitch(true)}
-                  className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-200 transition-all"
+                  className="w-full py-5 bg-slate-100 text-slate-600 rounded-full font-black uppercase tracking-widest text-xs hover:bg-slate-200 transition-all"
                 >
                   Salvar e Mudar de Marca
                 </button>
                 <button 
                   onClick={() => setShowSwitchWarning(false)}
-                  className="w-full py-2 text-slate-400 font-bold uppercase text-[10px] tracking-widest"
+                  className="w-full py-2 text-slate-400 font-black uppercase text-[10px] tracking-[0.2em]"
                 >
                   Cancelar
                 </button>
@@ -1685,13 +1685,13 @@ function CatalogScreen({
         {showLogisticsWarning && (
           <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" />
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-sm rounded-[32px] shadow-2xl relative z-10 p-8 text-center space-y-6">
-              <div className="w-20 h-20 bg-rose-50 rounded-full flex items-center justify-center mx-auto text-rose-500">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-sm rounded-[40px] shadow-2xl relative z-10 p-10 text-center space-y-8">
+              <div className="w-20 h-20 bg-rose-50 rounded-[28px] flex items-center justify-center mx-auto text-rose-500 shadow-inner">
                 <AlertTriangle size={40} />
               </div>
               <div className="space-y-2">
-                <h3 className="text-xl font-bold text-slate-900">Aviso de Logística</h3>
-                <p className="text-slate-500 text-sm leading-relaxed">
+                <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Aviso de Logística</h3>
+                <p className="text-slate-500 text-sm font-medium leading-relaxed">
                   Cada marca possui suas próprias **condições comerciais, estoque e envios**. 
                   <br/><br/>
                   Os pedidos não poderão ser somados entre as marcas.
@@ -1699,7 +1699,7 @@ function CatalogScreen({
               </div>
               <button 
                 onClick={handleAcknowledgeLogistics}
-                className="w-full py-4 bg-rose-500 text-white rounded-2xl font-bold shadow-lg shadow-rose-500/20 active:scale-95 transition-all"
+                className="w-full py-5 bg-rose-500 text-white rounded-full font-black uppercase tracking-widest text-xs shadow-lg shadow-rose-500/20 active:scale-95 transition-all"
               >
                 Estou ciente
               </button>
@@ -1712,14 +1712,14 @@ function CatalogScreen({
         <Banner banners={banners} />
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 md:px-8 py-12">
+      <div className="max-w-6xl xl:max-w-7xl mx-auto px-4 md:px-8 py-12">
         {/* Category Bar */}
         <div className="flex items-center gap-4 mb-12 overflow-x-auto pb-4 custom-scrollbar">
           {brands.map(brand => (
             <button 
               key={brand.id}
               onClick={() => handleBrandChange(brand.id)}
-              className={`px-6 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all ${selectedBrand === brand.id ? 'pink-gradient text-white shadow-lg shadow-primary/20' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
+              className={`px-8 py-3 rounded-full text-xs font-black uppercase tracking-widest whitespace-nowrap transition-all ${selectedBrand === brand.id ? 'pink-gradient text-white shadow-lg shadow-primary/20' : 'bg-white text-slate-500 hover:bg-slate-50 shadow-sm rounded-full'}`}
             >
               {brand.name}
             </button>
@@ -1728,21 +1728,21 @@ function CatalogScreen({
 
         <div className="flex flex-col lg:flex-row gap-12">
           {/* Sidebar Filters */}
-          <aside className="lg:w-64 shrink-0 space-y-10">
+          <aside className="lg:w-64 shrink-0 space-y-12">
             <div>
-              <h3 className="font-display text-xl font-bold mb-6 text-slate-900">Categorias</h3>
+              <h3 className="text-[10px] font-black uppercase tracking-[0.2em] mb-6 text-slate-400">Categorias</h3>
               <div className="space-y-2">
                 <button 
                   onClick={() => setSelectedCategory(null)}
-                  className={`w-full text-left px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${!selectedCategory ? 'bg-primary/10 text-primary' : 'text-slate-500 hover:bg-slate-50'}`}
+                  className={`w-full text-left px-5 py-3 rounded-[20px] text-xs font-black uppercase tracking-widest transition-all ${!selectedCategory ? 'bg-primary/10 text-primary' : 'text-slate-500 hover:bg-slate-50'}`}
                 >
-                  Todas as Categorias
+                  Todas
                 </button>
                 {[...visibleCategories].sort((a, b) => (a.order_index || 0) - (b.order_index || 0)).map(cat => (
                   <button 
                     key={cat.id}
                     onClick={() => setSelectedCategory(cat.id)}
-                    className={`w-full text-left px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${selectedCategory === cat.id ? 'bg-primary/10 text-primary' : 'text-slate-500 hover:bg-slate-50'}`}
+                    className={`w-full text-left px-5 py-3 rounded-[20px] text-xs font-black uppercase tracking-widest transition-all ${selectedCategory === cat.id ? 'bg-primary/10 text-primary' : 'text-slate-500 hover:bg-slate-50'}`}
                   >
                     {cat.nome}
                   </button>
@@ -1751,13 +1751,13 @@ function CatalogScreen({
             </div>
 
             {role === 'customer' && (
-              <div className="p-6 bg-slate-900 rounded-3xl text-white relative overflow-hidden group">
+              <div className="p-8 bg-slate-900 rounded-[40px] text-white relative overflow-hidden group shadow-2xl">
                 <div className="relative z-10">
-                  <h4 className="font-display text-lg font-bold mb-2">Suporte VIP</h4>
-                  <p className="text-xs text-white/60 mb-6 leading-relaxed">Dúvidas sobre produtos ou pedidos? Fale com seu consultor.</p>
+                  <h4 className="text-lg font-black uppercase tracking-tight mb-2">Suporte VIP</h4>
+                  <p className="text-[10px] font-bold text-white/50 mb-8 leading-relaxed uppercase tracking-widest">Dúvidas sobre produtos ou pedidos? Fale com seu consultor.</p>
                   <button 
                     onClick={handleWhatsAppSupport}
-                    className="w-full py-3 bg-white text-slate-900 rounded-xl text-xs font-bold hover:bg-primary hover:text-white transition-all"
+                    className="w-full py-4 bg-white text-slate-900 rounded-[20px] text-[10px] font-black uppercase tracking-widest hover:bg-primary hover:text-white transition-all shadow-lg"
                   >
                     WhatsApp Direto
                   </button>
@@ -1770,13 +1770,13 @@ function CatalogScreen({
           {/* Product Grid */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between mb-8">
-              <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
                 Mostrando <span className="text-slate-900">{filtered.length}</span> produtos
               </p>
               
               <div className="flex items-center gap-4">
                 <select 
-                  className="bg-white border-none text-xs font-bold text-slate-600 rounded-xl px-4 py-2 outline-none cursor-pointer"
+                  className="bg-white border-none text-[10px] font-black uppercase tracking-widest text-slate-500 rounded-xl px-4 py-2 outline-none cursor-pointer shadow-sm"
                   value={itemsPerPage}
                   onChange={(e) => setItemsPerPage(Number(e.target.value))}
                 >
@@ -1894,51 +1894,51 @@ function ProductCard({ product, onAdd, onEdit, role, onZoom, isInCart, ...props 
   };
 
   return (
-    <Card className={`p-2 md:p-3 flex flex-col group hover:border-primary/20 transition-all duration-500 card-shadow hover:shadow-2xl hover:shadow-primary/5 hover:-translate-y-1 rounded-2xl relative ${isEsgotado ? 'opacity-75 grayscale-[0.5]' : ''}`}>
+    <Card className={`p-3 md:p-4 flex flex-col group hover:border-primary/20 transition-all duration-500 neumorphic-shadow hover:shadow-2xl hover:shadow-primary/5 hover:-translate-y-1 rounded-[32px] relative ${isEsgotado ? 'opacity-75 grayscale-[0.5]' : ''}`}>
       {isInCart && (
-        <div className="absolute top-2 right-2 z-10 bg-emerald-500 text-white p-1.5 rounded-full shadow-lg shadow-emerald-500/20 animate-in zoom-in duration-300">
-          <CheckCircle2 size={14} />
+        <div className="absolute top-4 right-4 z-10 bg-emerald-500 text-white p-2 rounded-full shadow-lg shadow-emerald-500/20 animate-in zoom-in duration-300">
+          <CheckCircle2 size={16} />
         </div>
       )}
-      <div className="relative aspect-square mb-2 rounded-xl overflow-hidden bg-slate-50 cursor-zoom-in group-hover:scale-[1.02] transition-transform duration-500" onClick={() => onZoom(product.imagem || '')}>
-        <img src={product.imagem || `https://picsum.photos/seed/${product.sku}/400/400`} className="w-full h-full object-contain p-1" alt={product.nome} referrerPolicy="no-referrer" />
-        <div className="absolute top-2 w-full flex flex-col gap-1 items-center">
-          {isEsgotado && <span className="bg-slate-800 text-white text-[10px] font-black px-3 py-1 rounded shadow-lg uppercase tracking-wider">ESGOTADO</span>}
-          {!isEsgotado && product.is_last_units && <span className="bg-rose-500 text-white text-[10px] font-black px-3 py-1 rounded shadow-lg uppercase tracking-wider">ÚLTIMAS UNIDADES</span>}
-          {product.venda_somente_box && <span className="bg-amber-500 text-white text-[10px] font-black px-3 py-1 rounded shadow-lg uppercase tracking-wider">SOMENTE NO BOX</span>}
+      <div className="relative aspect-square mb-4 rounded-[24px] overflow-hidden bg-slate-50 cursor-zoom-in group-hover:scale-[1.02] transition-transform duration-500 shadow-inner" onClick={() => onZoom(product.imagem || '')}>
+        <img src={product.imagem || `https://picsum.photos/seed/${product.sku}/400/400`} className="w-full h-full object-contain p-2" alt={product.nome} referrerPolicy="no-referrer" />
+        <div className="absolute top-3 w-full flex flex-col gap-1 items-center">
+          {isEsgotado && <span className="bg-slate-900 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-widest">ESGOTADO</span>}
+          {!isEsgotado && product.is_last_units && <span className="bg-rose-500 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-widest">ÚLTIMAS UNIDADES</span>}
+          {product.venda_somente_box && <span className="bg-amber-500 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-widest">SOMENTE NO BOX</span>}
         </div>
       </div>
       
-      <div className="text-center mb-3">
-        <h3 className="font-bold text-slate-800 text-[11px] md:text-xs leading-tight mb-1 h-10 flex items-center justify-center overflow-hidden line-clamp-2">{product.nome}</h3>
-        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1.5">SKU: {product.sku}</p>
+      <div className="text-center mb-4">
+        <h3 className="font-black text-slate-800 text-[11px] md:text-xs leading-tight mb-2 h-10 flex items-center justify-center overflow-hidden line-clamp-2 uppercase tracking-tight">{product.nome}</h3>
+        <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mb-3">SKU: {product.sku}</p>
         
         {!isEsgotado && (
-          <p className="text-base md:text-lg font-black text-primary">R$ {(product.preco_unitario || 0).toFixed(2)}</p>
+          <p className="text-lg md:text-xl font-black text-primary tracking-tight">R$ {(product.preco_unitario || 0).toFixed(2)}</p>
         )}
       </div>
 
       {(product.has_box_discount || product.venda_somente_box) && !isEsgotado && (
-        <div className="mb-3 p-2 bg-amber-50 border border-amber-200 rounded-xl text-center shadow-sm flex flex-col items-center justify-center">
-          <span className="text-lg md:text-xl font-black text-amber-700">R$ {(product.preco_box || 0).toFixed(2)}</span>
-          <p className="text-[10px] uppercase font-black text-amber-600 tracking-tighter mt-0.5">
+        <div className="mb-4 p-3 bg-amber-50 border border-amber-100 rounded-[24px] text-center shadow-inner flex flex-col items-center justify-center">
+          <span className="text-xl md:text-2xl font-black text-amber-700 tracking-tight">R$ {(product.preco_box || 0).toFixed(2)}</span>
+          <p className="text-[9px] uppercase font-black text-amber-600 tracking-widest mt-1">
             {product.venda_somente_box ? 'SOMENTE NO BOX:' : 'A PARTIR DE:'} {product.qtd_box} UNIDADES
           </p>
         </div>
       )}
 
-      <div className="mt-auto flex flex-col items-center gap-2">
-        <div className="flex items-center bg-slate-100 rounded-xl p-1 w-full justify-between">
-          <button onClick={handleSubQty} disabled={isEsgotado} className="p-1 text-slate-600 hover:bg-white hover:text-primary rounded-lg disabled:opacity-50 transition-all"><Minus size={14}/></button>
-          <span className="text-xs font-bold text-slate-700">{qty}</span>
-          <button onClick={handleAddQty} disabled={isEsgotado} className="p-1 text-slate-600 hover:bg-white hover:text-primary rounded-lg disabled:opacity-50 transition-all"><Plus size={14}/></button>
+      <div className="mt-auto flex flex-col items-center gap-3">
+        <div className="flex items-center bg-slate-50 rounded-[20px] p-1.5 w-full justify-between shadow-inner border border-slate-100">
+          <button onClick={handleSubQty} disabled={isEsgotado} className="p-2 text-slate-400 hover:bg-white hover:text-primary rounded-xl disabled:opacity-50 transition-all shadow-sm"><Minus size={14}/></button>
+          <span className="text-xs font-black text-slate-700">{qty}</span>
+          <button onClick={handleAddQty} disabled={isEsgotado} className="p-2 text-slate-400 hover:bg-white hover:text-primary rounded-xl disabled:opacity-50 transition-all shadow-sm"><Plus size={14}/></button>
         </div>
         <button 
           onClick={() => onAdd(product, qty)} 
           disabled={isEsgotado}
-          className="w-full py-2.5 pink-gradient text-white rounded-xl font-bold text-[10px] md:text-xs shadow-lg shadow-primary/20 hover:scale-[0.98] active:scale-95 disabled:opacity-50 transition-all"
+          className="w-full py-4 pink-gradient text-white rounded-[20px] font-black uppercase tracking-widest text-[10px] shadow-lg shadow-primary/20 hover:scale-[0.98] active:scale-95 disabled:opacity-50 transition-all"
         >
-          <ShoppingCart size={14} className="inline-block mr-1" />
+          <ShoppingCart size={14} className="inline-block mr-2" />
           Adicionar
         </button>
       </div>

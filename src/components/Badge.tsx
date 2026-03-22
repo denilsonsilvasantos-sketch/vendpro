@@ -9,7 +9,7 @@ export const Badge = ({ children, color = 'primary' }: { children: React.ReactNo
     gray: 'bg-slate-100 text-slate-600',
   };
   return (
-    <span className={`px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider ${colors[color] || colors.primary}`}>
+    <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.2em] ${colors[color] || colors.primary}`}>
       {children}
     </span>
   );

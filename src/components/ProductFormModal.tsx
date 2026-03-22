@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../integrations/supabaseClient';
 import { Product, Brand, Category } from '../types';
-import { X, Upload, Loader2, Image as ImageIcon, Link as LinkIcon, Check, Wand2 } from 'lucide-react';
+import { X, Upload, Loader2, Image as ImageIcon, Link as LinkIcon, Check, Wand2, Package, ChevronDown, Trash2, AlertCircle } from 'lucide-react';
 import { removeImageBackground } from '../services/aiService';
 
 export default function ProductFormModal({ onClose, onSave, product, companyId }: { onClose: () => void, onSave: () => void, product?: Product, companyId: string | null }) {
@@ -209,34 +209,39 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-      <div className="bg-white p-8 rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h2 className="text-2xl font-bold text-slate-900">{product ? 'Editar Produto' : 'Novo Produto'}</h2>
-            <p className="text-slate-500 text-sm">Preencha os detalhes do item no catálogo.</p>
+    <div className="fixed inset-0 bg-slate-900/40 flex items-center justify-center z-50 p-4 backdrop-blur-md">
+      <div className="bg-white p-6 md:p-10 rounded-[40px] w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl neumorphic-shadow border border-white/20">
+        <div className="flex justify-between items-center mb-10">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary border border-primary/20 shadow-inner">
+              <Package size={24} strokeWidth={2.5} />
+            </div>
+            <div>
+              <h2 className="text-2xl font-black text-slate-900 tracking-tight uppercase">{product ? 'Editar Produto' : 'Novo Produto'}</h2>
+              <p className="text-slate-500 text-sm font-medium">Preencha os detalhes do item no catálogo.</p>
+            </div>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors"><X /></button>
+          <button onClick={onClose} className="w-10 h-10 flex items-center justify-center hover:bg-slate-100 rounded-full transition-all text-slate-400 hover:text-slate-600"><X size={24} strokeWidth={2.5} /></button>
         </div>
         
-        <form onSubmit={handleSubmit} className="space-y-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <form onSubmit={handleSubmit} className="space-y-10">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
             {/* Image Column */}
-            <div className="space-y-4">
+            <div className="space-y-6">
               <div className="relative group">
                 <div 
-                  className="aspect-square bg-slate-50 rounded-3xl flex items-center justify-center overflow-hidden border border-slate-200 shadow-inner cursor-zoom-in"
+                  className="aspect-square bg-slate-50 rounded-[32px] flex items-center justify-center overflow-hidden border border-slate-100 shadow-inner cursor-zoom-in group-hover:border-primary/20 transition-colors"
                   onClick={() => formData.imagem && setZoomImage(formData.imagem)}
                 >
                   {formData.imagem ? (
-                    <img src={formData.imagem} alt="Produto" className="w-full h-full object-contain p-2 bg-white" />
+                    <img src={formData.imagem} alt="Produto" className="w-full h-full object-contain p-4 bg-white transition-transform duration-500 group-hover:scale-110" />
                   ) : (
-                    <ImageIcon className="text-slate-300" size={48} />
+                    <ImageIcon className="text-slate-200" size={64} strokeWidth={1} />
                   )}
                   {(isUploading || isRemovingBackground) && (
-                    <div className="absolute inset-0 bg-white/80 flex items-center justify-center flex-col gap-2">
-                      <Loader2 className="animate-spin text-primary" />
-                      {isRemovingBackground && <span className="text-[10px] font-bold text-primary uppercase">Removendo Fundo...</span>}
+                    <div className="absolute inset-0 bg-white/90 backdrop-blur-sm flex items-center justify-center flex-col gap-3">
+                      <Loader2 className="animate-spin text-primary" size={32} strokeWidth={3} />
+                      {isRemovingBackground && <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Processando...</span>}
                     </div>
                   )}
                 </div>
@@ -244,33 +249,33 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
                   <button 
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="bg-primary text-white p-3 rounded-2xl shadow-xl hover:scale-110 transition-transform flex items-center gap-2"
+                    className="bg-primary text-white p-4 rounded-2xl shadow-2xl shadow-primary/40 hover:scale-110 transition-transform flex items-center justify-center border-4 border-white active:scale-95"
                     title="Upload de Imagem"
                   >
-                    <Upload size={18} />
+                    <Upload size={20} strokeWidth={3} />
                   </button>
                   {formData.imagem && (
                     <button 
                       type="button"
                       onClick={handleRemoveBackground}
                       disabled={isRemovingBackground}
-                      className="bg-amber-500 text-white p-3 rounded-2xl shadow-xl hover:scale-110 transition-transform flex items-center gap-2 disabled:opacity-50 disabled:hover:scale-100"
+                      className="bg-amber-500 text-white p-4 rounded-2xl shadow-2xl shadow-amber-500/40 hover:scale-110 transition-transform flex items-center justify-center border-4 border-white active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
                       title="Remover Fundo com IA"
                     >
-                      <Wand2 size={18} />
+                      <Wand2 size={20} strokeWidth={3} />
                     </button>
                   )}
                 </div>
               </div>
               <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
               
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">URL da Imagem</label>
-                <div className="relative">
-                  <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] ml-2">URL da Imagem</label>
+                <div className="relative group">
+                  <LinkIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-primary transition-colors" size={16} strokeWidth={2.5} />
                   <input 
                     type="text" 
-                    className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-primary/20"
+                    className="w-full pl-12 pr-4 py-3 bg-slate-50/50 border border-slate-100 rounded-2xl text-xs outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary/30 transition-all font-bold text-slate-700 placeholder:text-slate-300 shadow-inner"
                     placeholder="https://..."
                     value={formData.imagem || ''}
                     onChange={e => setFormData({...formData, imagem: e.target.value})}
@@ -280,64 +285,76 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
             </div>
 
             {/* Form Column */}
-            <div className="md:col-span-2 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Nome do Produto</label>
-                  <input className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none" placeholder="Ex: Camiseta Básica" value={formData.nome} onChange={e => setFormData({...formData, nome: e.target.value})} required />
+            <div className="md:col-span-2 space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] ml-2">Nome do Produto</label>
+                  <input className="w-full p-4 bg-slate-50/50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary/5 focus:border-primary/30 outline-none transition-all font-bold text-slate-700 placeholder:text-slate-300 shadow-inner" placeholder="Ex: Batom Matte" value={formData.nome} onChange={e => setFormData({...formData, nome: e.target.value})} required />
                 </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">SKU / Código</label>
-                  <input className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none" placeholder="Ex: PROD-001" value={formData.sku} onChange={e => setFormData({...formData, sku: e.target.value})} required />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Marca</label>
-                  <select 
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none appearance-none"
-                    value={formData.brand_id || ''}
-                    onChange={e => setFormData({...formData, brand_id: e.target.value, category_id: undefined})}
-                    required
-                  >
-                    <option value="">Selecionar Marca</option>
-                    {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                  </select>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Categoria</label>
-                  <select 
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none appearance-none"
-                    value={formData.category_id || ''}
-                    onChange={e => setFormData({...formData, category_id: e.target.value})}
-                    disabled={!formData.brand_id}
-                  >
-                    <option value="">Selecionar Categoria</option>
-                    {categories.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
-                  </select>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] ml-2">SKU / Código</label>
+                  <input className="w-full p-4 bg-slate-50/50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary/5 focus:border-primary/30 outline-none transition-all font-black uppercase tracking-widest text-slate-700 placeholder:text-slate-300 shadow-inner" placeholder="Ex: JB-001" value={formData.sku} onChange={e => setFormData({...formData, sku: e.target.value})} required />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Preço Unitário</label>
-                  <input type="number" step="0.01" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none font-bold text-primary" value={formData.preco_unitario || 0} onChange={e => setFormData({...formData, preco_unitario: parseFloat(e.target.value)})} required />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] ml-2">Marca</label>
+                  <div className="relative group">
+                    <select 
+                      className="w-full p-4 bg-slate-50/50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary/5 focus:border-primary/30 outline-none appearance-none transition-all font-black uppercase tracking-widest text-[11px] text-slate-600 cursor-pointer shadow-inner"
+                      value={formData.brand_id || ''}
+                      onChange={e => setFormData({...formData, brand_id: e.target.value, category_id: undefined})}
+                      required
+                    >
+                      <option value="">Selecionar Marca</option>
+                      {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                    </select>
+                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={18} />
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Preço Box</label>
-                  <input type="number" step="0.01" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none" value={formData.preco_box || 0} onChange={e => setFormData({...formData, preco_box: parseFloat(e.target.value)})} />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Qtd por Box</label>
-                  <input type="number" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none" value={formData.qtd_box || 0} onChange={e => setFormData({...formData, qtd_box: parseInt(e.target.value)})} />
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] ml-2">Categoria</label>
+                  <div className="relative group">
+                    <select 
+                      className="w-full p-4 bg-slate-50/50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary/5 focus:border-primary/30 outline-none appearance-none transition-all font-black uppercase tracking-widest text-[11px] text-slate-600 cursor-pointer shadow-inner disabled:opacity-50"
+                      value={formData.category_id || ''}
+                      onChange={e => setFormData({...formData, category_id: e.target.value})}
+                      disabled={!formData.brand_id}
+                    >
+                      <option value="">Selecionar Categoria</option>
+                      {categories.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                    </select>
+                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={18} />
+                  </div>
                 </div>
               </div>
 
-              <div className="flex flex-wrap gap-6 pt-2">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] ml-2">Preço Unitário</label>
+                  <div className="relative group">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 font-black text-[10px]">R$</span>
+                    <input type="number" step="0.01" className="w-full pl-10 pr-4 py-4 bg-slate-50/50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary/5 focus:border-primary/30 outline-none transition-all font-black text-slate-900 shadow-inner" value={formData.preco_unitario || 0} onChange={e => setFormData({...formData, preco_unitario: parseFloat(e.target.value)})} required />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] ml-2">Preço Box</label>
+                  <div className="relative group">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 font-black text-[10px]">R$</span>
+                    <input type="number" step="0.01" className="w-full pl-10 pr-4 py-4 bg-slate-50/50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary/5 focus:border-primary/30 outline-none transition-all font-black text-slate-900 shadow-inner" value={formData.preco_box || 0} onChange={e => setFormData({...formData, preco_box: parseFloat(e.target.value)})} />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] ml-2">Qtd por Box</label>
+                  <input type="number" className="w-full p-4 bg-slate-50/50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary/5 focus:border-primary/30 outline-none transition-all font-black text-slate-900 shadow-inner text-center" value={formData.qtd_box || 0} onChange={e => setFormData({...formData, qtd_box: parseInt(e.target.value)})} />
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-8 pt-2">
                 <label className="flex items-center gap-3 cursor-pointer group">
-                  <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${formData.multiplo_venda && formData.multiplo_venda > 1 ? 'bg-primary border-primary' : 'border-slate-200 group-hover:border-primary/50'}`}>
-                    {formData.multiplo_venda && formData.multiplo_venda > 1 && <Check size={14} className="text-white" />}
+                  <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${formData.multiplo_venda && formData.multiplo_venda > 1 ? 'bg-primary border-primary shadow-lg shadow-primary/20' : 'border-slate-200 group-hover:border-primary/50'}`}>
+                    {formData.multiplo_venda && formData.multiplo_venda > 1 && <Check size={14} strokeWidth={4} className="text-white" />}
                   </div>
                   <input 
                     type="checkbox" 
@@ -345,15 +362,15 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
                     checked={!!(formData.multiplo_venda && formData.multiplo_venda > 1)} 
                     onChange={e => setFormData({...formData, multiplo_venda: e.target.checked ? 2 : 1})} 
                   />
-                  <span className="text-sm font-bold text-slate-700">Vender em Múltiplos</span>
+                  <span className="text-[11px] font-black text-slate-600 uppercase tracking-widest">Vender em Múltiplos</span>
                 </label>
 
                 {formData.multiplo_venda && formData.multiplo_venda > 1 && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold text-slate-500">Múltiplo de:</span>
+                  <div className="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-2xl border border-slate-100 shadow-inner">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Múltiplo de:</span>
                     <input 
                       type="number" 
-                      className="w-20 p-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none text-center font-bold" 
+                      className="w-16 bg-transparent outline-none text-center font-black text-primary" 
                       value={formData.multiplo_venda} 
                       onChange={e => setFormData({...formData, multiplo_venda: parseInt(e.target.value) || 2})} 
                       min="2"
@@ -362,47 +379,53 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
                 )}
               </div>
 
-              <div className="flex flex-wrap gap-6 pt-2">
-                <label className="flex items-center gap-3 cursor-pointer group">
-                  <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${formData.venda_somente_box ? 'bg-primary border-primary' : 'border-slate-200 group-hover:border-primary/50'}`}>
-                    {formData.venda_somente_box && <Check size={14} className="text-white" />}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2">
+                <label className="flex items-center gap-3 cursor-pointer group bg-slate-50/50 p-3 rounded-2xl border border-slate-100 hover:border-primary/20 transition-all">
+                  <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all shrink-0 ${formData.venda_somente_box ? 'bg-primary border-primary shadow-lg shadow-primary/20' : 'border-slate-200 group-hover:border-primary/50'}`}>
+                    {formData.venda_somente_box && <Check size={12} strokeWidth={4} className="text-white" />}
                   </div>
                   <input type="checkbox" className="hidden" checked={formData.venda_somente_box} onChange={e => setFormData({...formData, venda_somente_box: e.target.checked})} />
-                  <span className="text-sm font-bold text-slate-700">Somente no Box</span>
+                  <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Somente Box</span>
                 </label>
 
-                <label className="flex items-center gap-3 cursor-pointer group">
-                  <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${formData.has_box_discount ? 'bg-primary border-primary' : 'border-slate-200 group-hover:border-primary/50'}`}>
-                    {formData.has_box_discount && <Check size={14} className="text-white" />}
+                <label className="flex items-center gap-3 cursor-pointer group bg-slate-50/50 p-3 rounded-2xl border border-slate-100 hover:border-primary/20 transition-all">
+                  <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all shrink-0 ${formData.has_box_discount ? 'bg-primary border-primary shadow-lg shadow-primary/20' : 'border-slate-200 group-hover:border-primary/50'}`}>
+                    {formData.has_box_discount && <Check size={12} strokeWidth={4} className="text-white" />}
                   </div>
                   <input type="checkbox" className="hidden" checked={formData.has_box_discount} onChange={e => setFormData({...formData, has_box_discount: e.target.checked})} />
-                  <span className="text-sm font-bold text-slate-700">Desconto no Box</span>
+                  <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Desc. Box</span>
                 </label>
 
-                <label className="flex items-center gap-3 cursor-pointer group">
-                  <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${formData.is_last_units ? 'bg-rose-500 border-rose-500' : 'border-slate-200 group-hover:border-rose-500/50'}`}>
-                    {formData.is_last_units && <Check size={14} className="text-white" />}
+                <label className="flex items-center gap-3 cursor-pointer group bg-slate-50/50 p-3 rounded-2xl border border-slate-100 hover:border-rose-500/20 transition-all">
+                  <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all shrink-0 ${formData.is_last_units ? 'bg-rose-500 border-rose-500 shadow-lg shadow-rose-500/20' : 'border-slate-200 group-hover:border-rose-500/50'}`}>
+                    {formData.is_last_units && <Check size={12} strokeWidth={4} className="text-white" />}
                   </div>
                   <input type="checkbox" className="hidden" checked={formData.is_last_units} onChange={e => setFormData({...formData, is_last_units: e.target.checked})} />
-                  <span className="text-sm font-bold text-slate-700">Últimas Unidades</span>
+                  <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Últimas</span>
                 </label>
-                <label className="flex items-center gap-3 cursor-pointer group">
-                  <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${formData.status_estoque === 'esgotado' ? 'bg-slate-800 border-slate-800' : 'border-slate-200 group-hover:border-slate-800/50'}`}>
-                    {formData.status_estoque === 'esgotado' && <Check size={14} className="text-white" />}
+
+                <label className="flex items-center gap-3 cursor-pointer group bg-slate-50/50 p-3 rounded-2xl border border-slate-100 hover:border-slate-800/20 transition-all">
+                  <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all shrink-0 ${formData.status_estoque === 'esgotado' ? 'bg-slate-800 border-slate-800 shadow-lg shadow-slate-800/20' : 'border-slate-200 group-hover:border-slate-800/50'}`}>
+                    {formData.status_estoque === 'esgotado' && <Check size={12} strokeWidth={4} className="text-white" />}
                   </div>
                   <input type="checkbox" className="hidden" checked={formData.status_estoque === 'esgotado'} onChange={e => setFormData({...formData, status_estoque: e.target.checked ? 'esgotado' : 'normal'})} />
-                  <span className="text-sm font-bold text-slate-700">Esgotado</span>
+                  <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Esgotado</span>
                 </label>
               </div>
             </div>
           </div>
 
-          <div className="flex gap-4 pt-4">
-            <button type="button" onClick={onClose} className="flex-1 py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-200 transition-all active:scale-95">
+          <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t border-slate-50">
+            <button type="button" onClick={onClose} className="flex-1 py-5 bg-slate-100 text-slate-600 rounded-full font-black text-[11px] uppercase tracking-[0.3em] hover:bg-slate-200 transition-all active:scale-95 shadow-sm">
               Cancelar
             </button>
-            <button type="submit" className="flex-[2] bg-primary text-white py-4 rounded-2xl font-bold shadow-lg shadow-primary/20 hover:-translate-y-0.5 transition-all active:scale-95 disabled:opacity-50" disabled={loading || isUploading}>
-              {loading ? <Loader2 className="animate-spin mx-auto" /> : (product ? 'Salvar Alterações' : 'Cadastrar Produto')}
+            <button type="submit" className="flex-[2] bg-primary text-white py-5 rounded-full font-black text-[11px] uppercase tracking-[0.3em] shadow-2xl shadow-primary/40 hover:-translate-y-0.5 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3" disabled={loading || isUploading}>
+              {loading ? <Loader2 className="animate-spin" size={20} strokeWidth={3} /> : (
+                <>
+                  <Check size={20} strokeWidth={3} />
+                  {product ? 'Salvar Alterações' : 'Cadastrar Produto'}
+                </>
+              )}
             </button>
           </div>
         </form>

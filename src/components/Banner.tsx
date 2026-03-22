@@ -29,26 +29,27 @@ export default function Banner({ banners }: { banners?: BannerData[] }) {
   const currentSlide = slides[current];
 
   return (
-    <div 
-      className="relative w-full h-[250px] sm:h-[300px] md:h-[400px] overflow-hidden group"
-      onMouseEnter={() => setIsPaused(true)}
-      onMouseLeave={() => setIsPaused(false)}
-    >
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={current}
-          initial={{ opacity: 0, x: 100 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -100 }}
-          transition={{ duration: 0.6, ease: [0.77, 0, 0.18, 1] }}
-          className={`absolute inset-0 flex items-center ${currentSlide.className || ''}`}
-          style={currentSlide.imageUrl ? {
-            backgroundImage: `url(${currentSlide.imageUrl})`,
-            backgroundSize: 'contain',
-            backgroundRepeat: 'no-repeat',
-            backgroundPosition: 'center'
-          } : {}}
-        >
+    <div className="w-full max-w-6xl mx-auto rounded-3xl overflow-hidden shadow-lg bg-slate-100">
+      <div 
+        className="relative w-full h-[250px] sm:h-[300px] md:h-[400px] overflow-hidden group"
+        onMouseEnter={() => setIsPaused(true)}
+        onMouseLeave={() => setIsPaused(false)}
+      >
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={current}
+            initial={{ opacity: 0, x: 100 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -100 }}
+            transition={{ duration: 0.6, ease: [0.77, 0, 0.18, 1] }}
+            className={`absolute inset-0 flex items-center ${currentSlide.className || ''}`}
+            style={currentSlide.imageUrl ? {
+              backgroundImage: `url(${currentSlide.imageUrl})`,
+              backgroundSize: 'cover',
+              backgroundRepeat: 'no-repeat',
+              backgroundPosition: 'center'
+            } : {}}
+          >
           {/* Overlay for readability if there's an image and text */}
           {currentSlide.imageUrl && (currentSlide.title || currentSlide.sub || currentSlide.tag) && (
             <div className="absolute inset-0 bg-black/30" />
@@ -180,5 +181,6 @@ export default function Banner({ banners }: { banners?: BannerData[] }) {
         </>
       )}
     </div>
+  </div>
   );
 }

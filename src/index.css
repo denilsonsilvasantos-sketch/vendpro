@@ -9,6 +9,7 @@
   --color-primary-dark: var(--vendpro-primary-dark, #C21863);
   --color-primary-light: var(--vendpro-primary-light, #FF4D9D);
   --color-nude: #FDF9F8;
+  --color-soft-pink: #FFF5F7;
   --color-slate-50: #F8FAFC;
   --color-slate-100: #F1F5F9;
   --color-slate-200: #E2E8F0;
@@ -22,17 +23,18 @@
   --radius-xl: 16px;
   --radius-2xl: 24px;
   --radius-3xl: 32px;
+  --radius-4xl: 40px;
 }
 
 @layer base {
   body {
-    @apply bg-nude font-sans text-slate-800 antialiased;
+    @apply bg-fixed bg-gradient-to-br from-white via-soft-pink to-white font-sans text-slate-800 antialiased min-h-screen;
   }
 }
 
 @layer components {
   .glass-effect {
-    @apply bg-white/80 backdrop-blur-md border-b border-white/20;
+    @apply bg-white/70 backdrop-blur-xl border-b border-white/40;
   }
   
   .pink-gradient {
@@ -48,7 +50,11 @@
   }
 
   .card-shadow {
-    @apply shadow-[0_8px_30px_rgb(0,0,0,0.04)];
+    @apply shadow-[0_10px_40px_rgba(0,0,0,0.03),0_2px_10px_rgba(0,0,0,0.02)];
+  }
+
+  .neumorphic-shadow {
+    @apply shadow-[8px_8px_16px_rgba(0,0,0,0.02),-8px_-8px_16px_rgba(255,255,255,0.8)];
   }
 
   .custom-scrollbar::-webkit-scrollbar {

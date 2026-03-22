@@ -76,7 +76,7 @@ export default function Dashboard({ companyId, role, user, banners }: { companyI
           <TrendingUp size={16} strokeWidth={2} />
         </div>
         <div>
-          <h1 className="text-base font-black text-slate-900 uppercase tracking-tight">Dashboard</h1>
+          <h1 className="text-sm font-black text-slate-900 uppercase tracking-tight">Dashboard</h1>
           <p className="text-xs text-slate-400">Visão geral do seu negócio</p>
         </div>
       </div>

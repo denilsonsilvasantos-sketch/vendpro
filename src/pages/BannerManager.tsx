@@ -47,7 +47,7 @@ export default function BannerManager({ companyId }: { companyId: string }) {
             <Layout size={16} strokeWidth={2} />
           </div>
           <div>
-            <h1 className="text-base font-black text-slate-900 uppercase tracking-tight">Personalização</h1>
+            <h1 className="text-sm font-black text-slate-900 uppercase tracking-tight">Personalização</h1>
             <p className="text-xs text-slate-400">Banners e mensagens do catálogo</p>
           </div>
         </div>
@@ -78,7 +78,7 @@ export default function BannerManager({ companyId }: { companyId: string }) {
                 <input
                   type="text" value={msg.text}
                   onChange={e => handleUpdateTopBar(msg.id, e.target.value)}
-                  className="flex-1 bg-transparent border-none outline-none text-xs font-medium text-slate-700 placeholder:text-slate-300"
+                  className="flex-1 bg-transparent border-none outline-none text-sm font-medium text-slate-700 placeholder:text-slate-300"
                   placeholder="Digite a mensagem..."
                 />
                 <button onClick={() => handleRemoveTopBar(msg.id)} className="w-6 h-6 flex items-center justify-center text-slate-200 hover:text-rose-500 rounded-md transition-all">
@@ -121,22 +121,22 @@ export default function BannerManager({ companyId }: { companyId: string }) {
 
                 <div>
                   <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Tag</label>
-                  <input type="text" value={banner.tag || ''} onChange={e => handleUpdateBanner(banner.id, { tag: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs outline-none focus:border-primary/40" placeholder="Ex: Novidades" />
+                  <input type="text" value={banner.tag || ''} onChange={e => handleUpdateBanner(banner.id, { tag: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary/40" placeholder="Ex: Novidades" />
                 </div>
 
                 <div>
                   <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Botão CTA</label>
-                  <input type="text" value={banner.cta || ''} onChange={e => handleUpdateBanner(banner.id, { cta: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs outline-none focus:border-primary/40" placeholder="Ex: Ver Mais" />
+                  <input type="text" value={banner.cta || ''} onChange={e => handleUpdateBanner(banner.id, { cta: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary/40" placeholder="Ex: Ver Mais" />
                 </div>
 
                 <div>
                   <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Título</label>
-                  <input type="text" value={banner.title || ''} onChange={e => handleUpdateBanner(banner.id, { title: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs outline-none focus:border-primary/40" placeholder="Ex: Beleza que Transforma" />
+                  <input type="text" value={banner.title || ''} onChange={e => handleUpdateBanner(banner.id, { title: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary/40" placeholder="Ex: Beleza que Transforma" />
                 </div>
 
                 <div>
                   <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Subtítulo</label>
-                  <input type="text" value={banner.sub || ''} onChange={e => handleUpdateBanner(banner.id, { sub: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs outline-none focus:border-primary/40" placeholder="Ex: Descubra os melhores..." />
+                  <input type="text" value={banner.sub || ''} onChange={e => handleUpdateBanner(banner.id, { sub: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary/40" placeholder="Ex: Descubra os melhores..." />
                 </div>
 
                 <div>

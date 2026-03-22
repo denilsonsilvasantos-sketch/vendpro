@@ -353,7 +353,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
             </div>
 
             <div>
-              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Marca</label>
+              <label className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1 block">Marca</label>
               <div className="relative">
                 <select className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 outline-none focus:border-primary/40 appearance-none"
                   value={selectedBrandId || ''} onChange={e => setSelectedBrandId(e.target.value)}>
@@ -376,7 +376,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
               </label>
             )}
 
-            <div className={`p-2.5 rounded-lg border text-[10px] leading-relaxed ${uploadMode === 'stock' ? 'bg-blue-50 border-blue-100 text-blue-700' : catalogType === 'weekly' ? 'bg-amber-50 border-amber-100 text-amber-700' : 'bg-slate-50 border-slate-100 text-slate-500'}`}>
+            <div className={`p-2.5 rounded-lg border text-xs leading-relaxed ${uploadMode === 'stock' ? 'bg-blue-50 border-blue-100 text-blue-700' : catalogType === 'weekly' ? 'bg-amber-50 border-amber-100 text-amber-700' : 'bg-slate-50 border-slate-100 text-slate-500'}`}>
               {uploadMode === 'stock' ? 'Atualiza status de disponibilidade via Excel (Normal, Últimas, Esgotado).'
                 : catalogType === 'weekly' ? 'Catálogo semanal: atualiza preços e identifica produtos fora de linha.'
                   : 'Reposição: adiciona/atualiza produtos específicos sem afetar os demais.'}
@@ -419,7 +419,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
                     {item.file.type.includes('image') ? <ImageIcon size={14} className="text-blue-500" strokeWidth={2} /> : <FileText size={14} className="text-rose-500" strokeWidth={2} />}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-bold text-slate-700 truncate">{item.file.name}</p>
+                    <p className="text-sm font-bold text-slate-700 truncate">{item.file.name}</p>
                     <p className="text-[9px] text-slate-400">{(item.file.size / 1024 / 1024).toFixed(2)} MB{item.pages.length > 1 ? ` · ${item.pages.length} partes` : ''}</p>
                   </div>
                   <button onClick={() => removeFile(idx)} className="w-6 h-6 flex items-center justify-center text-slate-200 hover:text-rose-500 rounded-md transition-all">

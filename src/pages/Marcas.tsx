@@ -146,7 +146,7 @@ export default function Marcas({ companyId }: { companyId: string | null }) {
             <Tag size={16} strokeWidth={2} />
           </div>
           <div>
-            <h1 className="text-base font-black text-slate-900 uppercase tracking-tight">Marcas e Categorias</h1>
+            <h1 className="text-sm font-black text-slate-900 uppercase tracking-tight">Marcas e Categorias</h1>
             <p className="text-xs text-slate-400">Estruture seu catálogo por marcas e segmentos</p>
           </div>
         </div>
@@ -192,7 +192,7 @@ export default function Marcas({ companyId }: { companyId: string | null }) {
 
                   {/* Name + meta */}
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-black text-slate-900 text-sm uppercase tracking-tight group-hover:text-primary transition-colors truncate">{brand.name}</h3>
+                    <h3 className="font-black text-slate-900 text-base uppercase tracking-tight group-hover:text-primary transition-colors truncate">{brand.name}</h3>
                     <div className="flex items-center gap-3 mt-0.5">
                       <span className="text-[10px] font-bold text-slate-400 flex items-center gap-1">
                         <LayoutGrid size={10} /> {categories.filter(c => c.brand_id === brand.id).length} categorias
@@ -262,7 +262,7 @@ export default function Marcas({ companyId }: { companyId: string | null }) {
                             ].map(p => (
                               <div key={p.label} className="bg-slate-50 rounded-lg p-2 border border-slate-100">
                                 <p className="text-[9px] font-black text-slate-400 uppercase mb-0.5">{p.label}</p>
-                                <p className="text-xs text-slate-600 font-medium">{p.value || 'Não definida'}</p>
+                                <p className="text-sm text-slate-600 font-medium">{p.value || 'Não definida'}</p>
                               </div>
                             ))}
                           </div>
@@ -276,7 +276,7 @@ export default function Marcas({ companyId }: { companyId: string | null }) {
                             <div className="space-y-1 max-h-48 overflow-y-auto">
                               {categories.filter(c => c.brand_id === brand.id).map((cat, catIndex, arr) => (
                                 <motion.div layout key={cat.id} className="flex items-center justify-between px-3 py-2 bg-slate-50 border border-slate-100 rounded-lg group/cat hover:border-primary/30 transition-all">
-                                  <span className="text-xs font-bold text-slate-700 group-hover/cat:text-primary transition-colors uppercase">{cat.nome}</span>
+                                  <span className="text-sm font-bold text-slate-700 group-hover/cat:text-primary transition-colors uppercase">{cat.nome}</span>
                                   <div className="flex items-center gap-1">
                                     <button onClick={() => moveCategory(brand.id, catIndex, 'up')} disabled={catIndex === 0} className="p-1 text-slate-300 hover:text-primary disabled:opacity-20 transition-all">
                                       <ArrowUp size={10} strokeWidth={3} />

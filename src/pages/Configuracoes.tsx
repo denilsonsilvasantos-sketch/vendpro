@@ -80,7 +80,7 @@ export default function Configuracoes({ companyId, user, role, onLogout }: { com
           <Settings size={16} strokeWidth={2} />
         </div>
         <div>
-          <h1 className="text-base font-black text-slate-900 uppercase tracking-tight">Minha Conta</h1>
+          <h1 className="text-sm font-black text-slate-900 uppercase tracking-tight">Minha Conta</h1>
           <p className="text-xs text-slate-400">Configurações e dados de acesso</p>
         </div>
       </div>
@@ -157,7 +157,7 @@ export default function Configuracoes({ companyId, user, role, onLogout }: { com
               </label>
               <div className="relative">
                 <User size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" />
-                <input className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-700 outline-none focus:border-primary/40" value={formData.nome} onChange={e => setFormData({ ...formData, nome: e.target.value })} required />
+                <input className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 outline-none focus:border-primary/40" value={formData.nome} onChange={e => setFormData({ ...formData, nome: e.target.value })} required />
               </div>
             </div>
 
@@ -166,7 +166,7 @@ export default function Configuracoes({ companyId, user, role, onLogout }: { com
                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 block">CNPJ</label>
                 <div className="relative">
                   <FileText size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" />
-                  <input className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-700 outline-none focus:border-primary/40" value={formData.cnpj} onChange={e => setFormData({ ...formData, cnpj: e.target.value })} />
+                  <input className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 outline-none focus:border-primary/40" value={formData.cnpj} onChange={e => setFormData({ ...formData, cnpj: e.target.value })} />
                 </div>
               </div>
             )}
@@ -176,7 +176,7 @@ export default function Configuracoes({ companyId, user, role, onLogout }: { com
                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 block">E-mail</label>
                 <div className="relative">
                   <Mail size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" />
-                  <input type="email" className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-700 outline-none focus:border-primary/40" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} required />
+                  <input type="email" className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 outline-none focus:border-primary/40" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} required />
                 </div>
               </div>
             )}
@@ -187,7 +187,7 @@ export default function Configuracoes({ companyId, user, role, onLogout }: { com
                   <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 block">WhatsApp</label>
                   <div className="relative">
                     <Phone size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" />
-                    <input className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-700 outline-none focus:border-primary/40" value={formData.whatsapp} onChange={e => setFormData({ ...formData, whatsapp: e.target.value })} placeholder="(00) 00000-0000" />
+                    <input className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 outline-none focus:border-primary/40" value={formData.whatsapp} onChange={e => setFormData({ ...formData, whatsapp: e.target.value })} placeholder="(00) 00000-0000" />
                   </div>
                 </div>
                 <div>
@@ -213,7 +213,7 @@ export default function Configuracoes({ companyId, user, role, onLogout }: { com
               <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Nova Senha</label>
               <div className="relative">
                 <Shield size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" />
-                <input type={showPassword ? 'text' : 'password'} className="w-full pl-8 pr-9 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-700 outline-none focus:border-primary/40" value={formData.senha} onChange={e => setFormData({ ...formData, senha: e.target.value })} placeholder="Deixe em branco para manter" />
+                <input type={showPassword ? 'text' : 'password'} className="w-full pl-8 pr-9 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 outline-none focus:border-primary/40" value={formData.senha} onChange={e => setFormData({ ...formData, senha: e.target.value })} placeholder="Deixe em branco para manter" />
                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 hover:text-primary transition-colors">
                   {showPassword ? <EyeOff size={13} /> : <Eye size={13} />}
                 </button>

@@ -59,8 +59,8 @@ export default function Vendedores({ companyId }: { companyId: string | null }) 
             <Users size={16} strokeWidth={2} />
           </div>
           <div>
-            <h1 className="text-base font-black text-slate-900 uppercase tracking-tight">Equipe de Vendas</h1>
-            <p className="text-xs text-slate-400">{sellers.length} vendedores cadastrados</p>
+            <h1 className="text-sm font-black text-slate-900 uppercase tracking-tight">Equipe de Vendas</h1>
+            <p className="text-[10px] text-slate-400">{sellers.length} vendedores cadastrados</p>
           </div>
         </div>
         <button onClick={() => { setEditingSeller(undefined); setIsModalOpen(true); }} className="bg-primary text-white px-4 py-2 rounded-lg font-bold text-xs flex items-center gap-2 shadow-md shadow-primary/20 hover:-translate-y-0.5 transition-all">
@@ -95,7 +95,7 @@ export default function Vendedores({ companyId }: { companyId: string | null }) 
                       <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center text-slate-500 font-black text-xs group-hover:bg-primary group-hover:text-white transition-all shrink-0">
                         {seller.nome.charAt(0)}
                       </div>
-                      <span className="text-xs font-black text-slate-900 uppercase group-hover:text-primary transition-colors">{seller.nome}</span>
+                      <span className="text-sm font-black text-slate-900 uppercase group-hover:text-primary transition-colors">{seller.nome}</span>
                     </div>
                   </td>
                   <td className="p-3 hidden md:table-cell">

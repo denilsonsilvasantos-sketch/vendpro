@@ -833,7 +833,16 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* Bottom Tabs removed */}
+      {/* Footer LGPD */}
+      <footer className="text-center py-2.5 border-t border-slate-100 bg-white/60">
+        <div className="flex items-center justify-center gap-3">
+          <a href="/privacidade" className="text-[10px] text-slate-400 hover:text-primary transition-colors font-medium">Política de Privacidade</a>
+          <span className="text-slate-200 text-xs">·</span>
+          <a href="/lgpd" className="text-[10px] text-slate-400 hover:text-primary transition-colors font-medium">LGPD</a>
+          <span className="text-slate-200 text-xs">·</span>
+          <span className="text-[10px] text-slate-300">VendPro © {new Date().getFullYear()}</span>
+        </div>
+      </footer>
     </div>
   );
 }
@@ -1924,3 +1933,4 @@ function ProductCard({ product, onAdd, onEdit, role, onZoom, isInCart, ...props 
     </Card>
   );
 }
+

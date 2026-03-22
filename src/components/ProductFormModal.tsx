@@ -415,11 +415,33 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t border-slate-50">
-            <button type="button" onClick={onClose} className="flex-1 py-5 bg-slate-100 text-slate-600 rounded-[6px] font-black text-[11px] uppercase tracking-[2px] hover:bg-slate-200 transition-all active:scale-95 shadow-sm">
+          {/* Price preview — igual ao catálogo */}
+          {(formData.preco_unitario || 0) > 0 && (
+            <div className="pt-4 border-t border-slate-50 space-y-2">
+              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Pré-visualização no catálogo</p>
+              <div className="flex items-end justify-between">
+                <div className="space-y-0.5">
+                  <p className="text-[7px] font-black text-slate-300 uppercase tracking-wider">Preço Unitário</p>
+                  <p className="text-lg font-black text-slate-900 tracking-tighter">R$ {(formData.preco_unitario || 0).toFixed(2)}</p>
+                </div>
+              </div>
+              {((formData.has_box_discount || formData.venda_somente_box) && (formData.preco_box || 0) > 0 && (formData.qtd_box || 0) > 0) && (
+                <div className="p-2 bg-emerald-50 rounded-xl border border-emerald-100 text-[8px] font-black text-emerald-600 text-center uppercase tracking-wider flex items-center justify-center gap-1">
+                  <span>
+                    {!formData.venda_somente_box
+                      ? `A partir de ${formData.qtd_box} un: R$ ${(formData.preco_box || 0).toFixed(2)}`
+                      : `Box com ${formData.qtd_box} un: R$ ${(formData.preco_box || 0).toFixed(2)}`}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="flex flex-col sm:flex-row gap-4 pt-4 border-t border-slate-50">
+            <button type="button" onClick={onClose} className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-lg font-black text-[11px] uppercase tracking-[2px] hover:bg-slate-200 transition-all active:scale-95 shadow-sm">
               Cancelar
             </button>
-            <button type="submit" className="flex-[2] bg-primary text-white py-5 rounded-[6px] font-black text-[11px] uppercase tracking-[2px] shadow-2xl shadow-primary/40 hover:-translate-y-0.5 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3" disabled={loading || isUploading}>
+            <button type="submit" className="flex-[2] bg-primary text-white py-3 rounded-lg font-black text-[11px] uppercase tracking-[2px] shadow-xl shadow-primary/30 hover:-translate-y-0.5 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3" disabled={loading || isUploading}>
               {loading ? <Loader2 className="animate-spin" size={20} strokeWidth={3} /> : (
                 <>
                   <Check size={20} strokeWidth={3} />

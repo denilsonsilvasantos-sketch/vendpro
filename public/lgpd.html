@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LGPD — Proteção de Dados | VendPro</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,300&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --navy: #1B2A4A;
+    --gold: #B8952A;
+    --gold-light: #D4AF5A;
+    --text: #2C2C2C;
+    --muted: #6B6B6B;
+    --border: #E8E2D9;
+    --bg: #FAFAF7;
+    --white: #FFFFFF;
+    --green: #1A5C3A;
+    --green-light: #EAF4EE;
+  }
+
+  body {
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-weight: 300;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.8;
+    font-size: 16px;
+  }
+
+  header {
+    background: var(--navy);
+    padding: 48px 0 40px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  header::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 60px,
+      rgba(184,149,42,0.04) 60px,
+      rgba(184,149,42,0.04) 61px
+    );
+  }
+
+  .header-inner { position: relative; z-index: 1; }
+
+  .logo-text {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 32px;
+    font-weight: 600;
+    color: var(--white);
+    letter-spacing: 2px;
+  }
+
+  .logo-text span { color: var(--gold-light); }
+
+  .header-sub {
+    font-size: 11px;
+    letter-spacing: 5px;
+    color: rgba(255,255,255,0.45);
+    text-transform: uppercase;
+    margin-top: 6px;
+  }
+
+  .divider-gold {
+    width: 48px;
+    height: 2px;
+    background: var(--gold);
+    margin: 20px auto 0;
+  }
+
+  .page-title {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 28px;
+    font-weight: 400;
+    color: var(--white);
+    margin-top: 32px;
+    letter-spacing: 0.5px;
+  }
+
+  .page-subtitle {
+    font-size: 13px;
+    color: rgba(255,255,255,0.5);
+    margin-top: 6px;
+    letter-spacing: 1px;
+  }
+
+  .page-date {
+    font-size: 12px;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-top: 8px;
+  }
+
+  .lei-badge {
+    display: inline-block;
+    background: rgba(184,149,42,0.2);
+    border: 1px solid rgba(184,149,42,0.4);
+    color: var(--gold-light);
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    padding: 5px 14px;
+    border-radius: 20px;
+    margin-top: 16px;
+  }
+
+  .container {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 60px 32px 80px;
+  }
+
+  .notice-box {
+    background: var(--white);
+    border-left: 3px solid var(--gold);
+    padding: 20px 24px;
+    margin-bottom: 48px;
+    border-radius: 0 6px 6px 0;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+  }
+
+  .notice-box p {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.7;
+    font-style: italic;
+  }
+
+  .notice-box strong {
+    color: var(--navy);
+    font-style: normal;
+    font-weight: 600;
+  }
+
+  .rights-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    margin: 20px 0;
+  }
+
+  .right-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px 20px;
+    transition: box-shadow 0.2s;
+  }
+
+  .right-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
+
+  .right-card .icon {
+    font-size: 22px;
+    margin-bottom: 8px;
+    display: block;
+  }
+
+  .right-card h3 {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--navy);
+    margin-bottom: 6px;
+  }
+
+  .right-card p {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.5;
+    margin: 0;
+  }
+
+  section { margin-bottom: 44px; }
+
+  h2 {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--navy);
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  h2::before {
+    content: '';
+    display: inline-block;
+    width: 4px;
+    height: 20px;
+    background: var(--gold);
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  p { margin-bottom: 12px; color: var(--text); }
+
+  ul {
+    padding-left: 0;
+    list-style: none;
+    margin-bottom: 12px;
+  }
+
+  ul li {
+    padding: 8px 0 8px 20px;
+    position: relative;
+    color: var(--text);
+    border-bottom: 1px solid var(--border);
+    font-size: 15px;
+  }
+
+  ul li:last-child { border-bottom: none; }
+
+  ul li::before {
+    content: '—';
+    position: absolute;
+    left: 0;
+    color: var(--gold);
+    font-weight: 600;
+  }
+
+  .base-legal {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 16px 0;
+  }
+
+  .base-legal-item {
+    display: flex;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    align-items: flex-start;
+  }
+
+  .base-legal-item:last-child { border-bottom: none; }
+
+  .base-legal-item .art {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    color: var(--gold);
+    text-transform: uppercase;
+    min-width: 60px;
+    padding-top: 2px;
+  }
+
+  .base-legal-item .desc {
+    font-size: 14px;
+    color: var(--text);
+    line-height: 1.6;
+  }
+
+  .highlight-green {
+    background: var(--green-light);
+    border: 1px solid #A8D5B8;
+    border-radius: 6px;
+    padding: 16px 20px;
+    margin: 16px 0;
+    font-size: 14px;
+    color: var(--green);
+  }
+
+  .highlight-green strong { color: #0F3D25; }
+
+  .highlight {
+    background: #FFF9EE;
+    border: 1px solid #E8D5A0;
+    border-radius: 6px;
+    padding: 16px 20px;
+    margin: 16px 0;
+    font-size: 14px;
+    color: #5A4A1A;
+  }
+
+  .highlight strong { color: #3A2E0A; }
+
+  .encarregado-box {
+    background: var(--navy);
+    border-radius: 10px;
+    padding: 28px 32px;
+    color: var(--white);
+    margin-top: 16px;
+  }
+
+  .encarregado-box h3 {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 18px;
+    font-weight: 400;
+    color: var(--gold-light);
+    margin-bottom: 16px;
+  }
+
+  .encarregado-box p {
+    color: rgba(255,255,255,0.75);
+    font-size: 14px;
+    margin-bottom: 8px;
+  }
+
+  .encarregado-box strong { color: var(--white); }
+
+  footer {
+    background: var(--navy);
+    text-align: center;
+    padding: 32px;
+    color: rgba(255,255,255,0.4);
+    font-size: 12px;
+    letter-spacing: 1px;
+  }
+
+  footer strong { color: var(--gold-light); }
+
+  @media (max-width: 600px) {
+    .container { padding: 40px 20px 60px; }
+    .page-title { font-size: 22px; }
+    h2 { font-size: 17px; }
+    .rights-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo-text">Vend<span>Pro</span></div>
+    <div class="header-sub">Catálogos Inteligentes</div>
+    <div class="divider-gold"></div>
+    <div class="page-title">Proteção de Dados Pessoais</div>
+    <div class="page-subtitle">Conformidade com a Lei Geral de Proteção de Dados</div>
+    <div class="lei-badge">Lei nº 13.709/2018 — LGPD</div>
+    <div class="page-date" style="margin-top:12px;">Última atualização: Janeiro de 2025</div>
+  </div>
+</header>
+
+<div class="container">
+
+  <div class="notice-box">
+    <p><strong>Sobre o VendPro:</strong> Esta plataforma é um sistema exclusivo de visualização de catálogos e geração de orçamentos. <strong>Não realizamos vendas diretas.</strong> O orçamento gerado é uma intenção de compra que somente se torna um pedido formal após análise pelo vendedor responsável e confirmação pela empresa distribuidora. Os catálogos são atualizados periodicamente e não refletem estoque em tempo real — itens podem estar indisponíveis no momento da formalização.</p>
+  </div>
+
+  <section>
+    <h2>1. Comprometimento com a LGPD</h2>
+    <p>O VendPro está comprometido com o cumprimento integral da <strong>Lei Geral de Proteção de Dados Pessoais (Lei nº 13.709/2018)</strong>, garantindo que o tratamento de dados pessoais de seus usuários seja realizado com transparência, segurança e respeito aos direitos dos titulares.</p>
+    <p>Este documento descreve como tratamos os dados pessoais coletados durante o uso da plataforma, as bases legais que fundamentam esse tratamento e como os titulares podem exercer seus direitos.</p>
+  </section>
+
+  <section>
+    <h2>2. Dados Tratados e Finalidades</h2>
+    <div class="base-legal">
+      <div class="base-legal-item">
+        <span class="art">Dado</span>
+        <span class="desc"><strong>Nome completo e e-mail</strong> — Utilizado para identificação, autenticação na plataforma e comunicação sobre orçamentos.</span>
+      </div>
+      <div class="base-legal-item">
+        <span class="art">Dado</span>
+        <span class="desc"><strong>Dados da empresa</strong> — Razão social e CNPJ (quando aplicável), para vincular o lojista ao seu vendedor responsável.</span>
+      </div>
+      <div class="base-legal-item">
+        <span class="art">Dado</span>
+        <span class="desc"><strong>Histórico de orçamentos</strong> — Registro dos itens selecionados e orçamentos gerados, para acompanhamento e encaminhamento ao vendedor.</span>
+      </div>
+      <div class="base-legal-item">
+        <span class="art">Dado</span>
+        <span class="desc"><strong>Dados de acesso</strong> — Data, horário e tipo de dispositivo, para fins de segurança e melhoria da plataforma.</span>
+      </div>
+    </div>
+    <div class="highlight">
+      <strong>Não coletamos:</strong> dados de pagamento, cartão de crédito, dados bancários, documentos de identidade, dados biométricos ou quaisquer dados sensíveis conforme definido pelo art. 5º, II da LGPD.
+    </div>
+  </section>
+
+  <section>
+    <h2>3. Bases Legais para o Tratamento</h2>
+    <p>O tratamento de dados no VendPro é fundamentado nas seguintes bases legais previstas no art. 7º da LGPD:</p>
+    <div class="base-legal">
+      <div class="base-legal-item">
+        <span class="art">Art. 7º, I</span>
+        <span class="desc"><strong>Consentimento</strong> — O usuário consente com o tratamento de seus dados ao realizar o cadastro na plataforma.</span>
+      </div>
+      <div class="base-legal-item">
+        <span class="art">Art. 7º, V</span>
+        <span class="desc"><strong>Execução de contrato</strong> — O tratamento é necessário para a prestação do serviço de catálogo e geração de orçamentos.</span>
+      </div>
+      <div class="base-legal-item">
+        <span class="art">Art. 7º, IX</span>
+        <span class="desc"><strong>Legítimo interesse</strong> — Para fins de segurança da plataforma, prevenção de fraudes e melhoria contínua do serviço.</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>4. Seus Direitos como Titular</h2>
+    <p>Em conformidade com o art. 18 da LGPD, você tem os seguintes direitos:</p>
+    <div class="rights-grid">
+      <div class="right-card">
+        <span class="icon">👁</span>
+        <h3>Acesso</h3>
+        <p>Solicitar confirmação e acesso aos seus dados pessoais tratados pela plataforma.</p>
+      </div>
+      <div class="right-card">
+        <span class="icon">✏️</span>
+        <h3>Correção</h3>
+        <p>Solicitar a atualização ou correção de dados incompletos, inexatos ou desatualizados.</p>
+      </div>
+      <div class="right-card">
+        <span class="icon">🗑</span>
+        <h3>Exclusão</h3>
+        <p>Solicitar a eliminação dos dados pessoais tratados com base no seu consentimento.</p>
+      </div>
+      <div class="right-card">
+        <span class="icon">📋</span>
+        <h3>Portabilidade</h3>
+        <p>Solicitar a portabilidade dos dados a outro fornecedor de serviço.</p>
+      </div>
+      <div class="right-card">
+        <span class="icon">🚫</span>
+        <h3>Revogação</h3>
+        <p>Revogar o consentimento dado para o tratamento dos seus dados a qualquer momento.</p>
+      </div>
+      <div class="right-card">
+        <span class="icon">ℹ️</span>
+        <h3>Informação</h3>
+        <p>Ser informado sobre as entidades com as quais os dados foram compartilhados.</p>
+      </div>
+    </div>
+    <p style="margin-top:8px; font-size:14px; color:var(--muted);">Para exercer qualquer um desses direitos, entre em contato com nosso encarregado pelo canal indicado ao final desta página. Responderemos em até <strong>15 dias úteis</strong>.</p>
+  </section>
+
+  <section>
+    <h2>5. Compartilhamento de Dados</h2>
+    <p>Os dados dos usuários podem ser compartilhados exclusivamente com:</p>
+    <ul>
+      <li><strong>Vendedores vinculados</strong> — para encaminhamento dos orçamentos gerados pelo lojista</li>
+      <li><strong>Empresas representadas</strong> — somente os dados do orçamento, para formalização do pedido</li>
+      <li><strong>Autoridades competentes</strong> — quando exigido por obrigação legal ou ordem judicial</li>
+    </ul>
+    <div class="highlight-green">
+      <strong>Não vendemos dados.</strong> O VendPro não comercializa, aluga ou cede dados pessoais de usuários a terceiros para fins publicitários ou comerciais de qualquer natureza.
+    </div>
+  </section>
+
+  <section>
+    <h2>6. Retenção e Exclusão de Dados</h2>
+    <p>Os dados pessoais são mantidos enquanto a conta do usuário estiver ativa na plataforma. Após a solicitação de exclusão ou encerramento da conta:</p>
+    <ul>
+      <li>Dados de cadastro são eliminados em até <strong>30 dias</strong></li>
+      <li>Histórico de orçamentos é anonimizado em até <strong>60 dias</strong></li>
+      <li>Logs de segurança são mantidos por até <strong>6 meses</strong> por obrigação legal</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>7. Segurança dos Dados</h2>
+    <p>Adotamos medidas técnicas e organizacionais para proteger os dados pessoais, incluindo:</p>
+    <ul>
+      <li>Comunicação via protocolo HTTPS com criptografia TLS</li>
+      <li>Acesso restrito aos dados por autenticação segura</li>
+      <li>Armazenamento em infraestrutura com controles de segurança</li>
+      <li>Revisão periódica das práticas de segurança</li>
+    </ul>
+    <p>Em caso de incidente de segurança que possa acarretar risco ou dano relevante aos titulares, comunicaremos a Autoridade Nacional de Proteção de Dados (ANPD) e os usuários afetados no prazo previsto pela LGPD.</p>
+  </section>
+
+  <section>
+    <h2>8. Encarregado pelo Tratamento de Dados (DPO)</h2>
+    <div class="encarregado-box">
+      <h3>Canal de contato — Proteção de Dados</h3>
+      <p>Para exercer seus direitos, tirar dúvidas ou fazer solicitações relacionadas ao tratamento de seus dados pessoais, entre em contato com o responsável pela proteção de dados do VendPro:</p>
+      <p style="margin-top:16px;"><strong>Plataforma:</strong> vendpro.com.br</p>
+      <p><strong>Prazo de resposta:</strong> até 15 dias úteis</p>
+      <p style="margin-top:16px; font-size:13px; color:rgba(255,255,255,0.45);">Você também pode apresentar reclamação diretamente à Autoridade Nacional de Proteção de Dados (ANPD) em <strong style="color:rgba(255,255,255,0.6)">gov.br/anpd</strong></p>
+    </div>
+  </section>
+
+  <section>
+    <h2>9. Atualizações desta Política</h2>
+    <p>Esta política será revisada periodicamente para refletir alterações na legislação, nas práticas da plataforma ou nas orientações da ANPD. A data da última atualização está indicada no topo desta página. O uso contínuo da plataforma após a publicação de alterações implica na aceitação dos novos termos.</p>
+  </section>
+
+</div>
+
+<footer>
+  <p>&copy; 2025 <strong>VendPro</strong> — Catálogos Inteligentes. Todos os direitos reservados.</p>
+  <p style="margin-top:8px;">Em conformidade com a Lei nº 13.709/2018 — LGPD</p>
+  <p style="margin-top:4px;">vendpro.com.br</p>
+</footer>
+
+</body>
+</html>

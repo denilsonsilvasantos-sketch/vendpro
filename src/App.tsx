@@ -54,6 +54,7 @@ const Pedidos = lazy(() => import('./pages/Pedidos'));
 const Configuracoes = lazy(() => import('./pages/Configuracoes'));
 const Marcas = lazy(() => import('./pages/Marcas'));
 const Upload = lazy(() => import('./pages/Upload'));
+const Pendencias = lazy(() => import('./pages/Pendencias'));
 const Vendedores = lazy(() => import('./pages/Vendedores'));
 const BannerManager = lazy(() => import('./pages/BannerManager'));
 const ProductFormModal = lazy(() => import('./components/ProductFormModal'));
@@ -696,6 +697,7 @@ export default function App() {
                         <SidebarItem icon={<Layout size={16}/>} label="Banners" active={activeTab === 'banners'} onClick={() => { setActiveTab('banners'); setIsSidebarOpen(false); }} />
                         <SidebarItem icon={<Package size={16}/>} label="Produtos" active={activeTab === 'produtos'} onClick={() => { setActiveTab('produtos'); setIsSidebarOpen(false); }} />
                         <SidebarItem icon={<UploadIcon size={16}/>} label="Upload" active={activeTab === 'upload'} onClick={() => { setActiveTab('upload'); setIsSidebarOpen(false); }} />
+                        <SidebarItem icon={<AlertTriangle size={16}/>} label="Pendências" active={activeTab === 'pendencias'} onClick={() => { setActiveTab('pendencias'); setIsSidebarOpen(false); }} />
                         <SidebarItem icon={<Tag size={16}/>} label="Marcas" active={activeTab === 'marcas'} onClick={() => { setActiveTab('marcas'); setIsSidebarOpen(false); }} />
                         <SidebarItem icon={<Users size={16}/>} label="Vendedores" active={activeTab === 'vendedores'} onClick={() => { setActiveTab('vendedores'); setIsSidebarOpen(false); }} />
                       </>
@@ -805,6 +807,7 @@ export default function App() {
             {activeTab === 'banners' && role === 'company' && <BannerManager companyId={activeCompanyId!} />}
             {activeTab === 'produtos' && <Produtos companyId={activeCompanyId} onRefresh={loadData} />}
             {activeTab === 'upload' && <Upload companyId={activeCompanyId} onRefresh={loadData} />}
+            {activeTab === 'pendencias' && <Pendencias companyId={activeCompanyId} onRefresh={loadData} />}
             {activeTab === 'marcas' && <Marcas companyId={activeCompanyId} />}
             {activeTab === 'vendedores' && <Vendedores companyId={activeCompanyId} />}
             {activeTab === 'clientes' && <Clientes companyId={activeCompanyId} role={role} user={user} />}
@@ -1150,15 +1153,9 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
         {/* Header — logo real em fundo branco */}
         <div className="bg-white rounded-t-2xl px-8 py-8 text-center border-b border-slate-100 shadow-sm">
           <img
-            src={`${window.location.origin}/LOGO_VENDPRO.png`}
+            src="https://res.cloudinary.com/dgzu0ppsf/image/upload/v1774141089/pbf3bo9tdvbcpxfkhxvq.jpg"
             alt="VendPro"
             className="h-24 w-auto mx-auto object-contain"
-            onError={e => {
-              const t = e.target as HTMLImageElement;
-              t.style.display = 'none';
-              const fallback = t.parentElement?.querySelector('.logo-fallback') as HTMLElement;
-              if (fallback) fallback.style.display = 'flex';
-            }}
           />
           <div className="logo-fallback hidden flex-col items-center justify-center py-2">
             <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center mb-2">

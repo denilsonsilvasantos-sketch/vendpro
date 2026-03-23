@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
+import * as XLSX from 'xlsx';
 import { supabase } from '../integrations/supabaseClient';
 import { Customer, UserRole } from '../types';
-import { Edit, Trash2, Plus, Share2, Copy, MessageCircle, Check, QrCode, Users, Search, Phone, Building2, UserCircle2 } from 'lucide-react';
+import { Edit, Trash2, Plus, Share2, Copy, MessageCircle, Check, QrCode, Users, Search, Phone, Building2, UserCircle2, FileSpreadsheet, Upload, AlertCircle, CheckCircle2 } from 'lucide-react';
 import CustomerFormModal from '../components/CustomerFormModal';
 import { motion, AnimatePresence } from 'motion/react';
 import { QRCodeSVG } from 'qrcode.react';
@@ -14,6 +15,73 @@ export default function Clientes({ companyId, role, user }: { companyId: string 
   const [copied, setCopied] = useState(false);
   const [showQR, setShowQR] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [importStatus, setImportStatus] = useState<{ type: 'success' | 'error' | 'loading' | null; msg: string }>({ type: null, msg: '' });
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  function normalizeKey(key: string) {
+    return key.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '_');
+  }
+
+  function mapRow(row: Record<string, any>): Partial<Customer> | null {
+    const normalized: Record<string, any> = {};
+    for (const k of Object.keys(row)) {
+      normalized[normalizeKey(k)] = row[k];
+    }
+    const nome = normalized['nome'] || normalized['empresa'] || normalized['razao_social'] || normalized['name'];
+    if (!nome) return null;
+    return {
+      nome: String(nome).trim(),
+      cnpj: String(normalized['cnpj'] || normalized['cpf'] || normalized['documento'] || '').trim() || undefined,
+      telefone: String(normalized['telefone'] || normalized['tel'] || normalized['whatsapp'] || normalized['phone'] || '').trim() || undefined,
+      responsavel: String(normalized['responsavel'] || normalized['contato'] || normalized['contact'] || '').trim() || undefined,
+    };
+  }
+
+  async function handleExcelImport(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !supabase || !user?.id) return;
+    e.target.value = '';
+
+    setImportStatus({ type: 'loading', msg: 'Lendo arquivo...' });
+
+    try {
+      const buffer = await file.arrayBuffer();
+      const wb = XLSX.read(buffer, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows: Record<string, any>[] = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+      if (rows.length === 0) {
+        setImportStatus({ type: 'error', msg: 'Planilha vazia ou sem dados reconhecíveis.' });
+        return;
+      }
+
+      const toInsert = rows
+        .map(mapRow)
+        .filter(Boolean)
+        .map(c => ({
+          ...c,
+          seller_id: user.id,
+          company_id: companyId,
+        }));
+
+      if (toInsert.length === 0) {
+        setImportStatus({ type: 'error', msg: 'Nenhuma linha válida encontrada. Verifique se há uma coluna "Nome" na planilha.' });
+        return;
+      }
+
+      setImportStatus({ type: 'loading', msg: `Importando ${toInsert.length} clientes...` });
+
+      const { error } = await supabase.from('customers').insert(toInsert);
+
+      if (error) throw error;
+
+      setImportStatus({ type: 'success', msg: `${toInsert.length} clientes importados com sucesso!` });
+      fetchCustomers();
+      setTimeout(() => setImportStatus({ type: null, msg: '' }), 4000);
+    } catch (err: any) {
+      setImportStatus({ type: 'error', msg: `Erro na importação: ${err.message}` });
+    }
+  }
 
   async function fetchCustomers() {
     if (!supabase || companyId === null) return;
@@ -78,7 +146,41 @@ export default function Clientes({ companyId, role, user }: { companyId: string 
         <button onClick={() => { setEditingCustomer(undefined); setIsModalOpen(true); }} className="bg-primary text-white px-4 py-2 rounded-lg font-bold text-xs flex items-center gap-2 shadow-md shadow-primary/20 hover:-translate-y-0.5 transition-all">
           <Plus size={14} strokeWidth={3} /> Novo Cliente
         </button>
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          className="bg-emerald-500 text-white px-4 py-2 rounded-lg font-bold text-xs flex items-center gap-2 shadow-md shadow-emerald-200 hover:-translate-y-0.5 transition-all"
+          title="Importar clientes por planilha Excel"
+        >
+          <FileSpreadsheet size={14} strokeWidth={2.5} /> Excel
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".xlsx,.xls,.csv"
+          className="hidden"
+          onChange={handleExcelImport}
+        />
       </div>
+
+      <AnimatePresence>
+        {importStatus.type && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            className={`flex items-center gap-2.5 px-4 py-3 rounded-xl text-xs font-bold ${
+              importStatus.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+              importStatus.type === 'error' ? 'bg-rose-50 text-rose-700 border border-rose-200' :
+              'bg-blue-50 text-blue-700 border border-blue-200'
+            }`}
+          >
+            {importStatus.type === 'loading' && <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-current" />}
+            {importStatus.type === 'success' && <CheckCircle2 size={14} />}
+            {importStatus.type === 'error' && <AlertCircle size={14} />}
+            {importStatus.msg}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Share link (seller only) */}
       {role === 'seller' && (user?.codigo_vinculo || user?.codigo_cliente) && (

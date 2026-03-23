@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { CartItem, Product } from '../types';
 
 export function useCart(brandId?: string | null) {
@@ -36,7 +36,7 @@ export function useCart(brandId?: string | null) {
     return {};
   });
 
-  const cart = brandId ? (carts[brandId] || []) : [];
+  const cart = useMemo(() => brandId ? (carts[brandId] || []) : [], [carts, brandId]);
 
   useEffect(() => {
     localStorage.setItem('vendpro_carts', JSON.stringify(carts));
@@ -46,7 +46,6 @@ export function useCart(brandId?: string | null) {
   const addToCart = (product: Product, quantity: number) => {
     const bId = product.brand_id || 'default';
     
-    // Validate multiples
     if (product.multiplo_venda && quantity % product.multiplo_venda !== 0) {
       alert(`Este produto só pode ser vendido em múltiplos de ${product.multiplo_venda}`);
       return;
@@ -105,7 +104,7 @@ export function useCart(brandId?: string | null) {
     }
   };
 
-  const total = cart.reduce((acc, item) => {
+  const total = useMemo(() => cart.reduce((acc, item) => {
     let price = item.preco_unitario;
     
     if (item.venda_somente_box) {
@@ -115,7 +114,7 @@ export function useCart(brandId?: string | null) {
     }
     
     return acc + (item.quantity * price);
-  }, 0);
+  }, 0), [cart]);
 
   return { cart, carts, addToCart, removeFromCart, updateQuantity, clearCart, total };
 }

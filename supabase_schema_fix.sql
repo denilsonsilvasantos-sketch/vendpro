@@ -202,3 +202,67 @@ CREATE POLICY "Public access for top_bar_messages" ON top_bar_messages FOR SELEC
 
 DROP POLICY IF EXISTS "Public access for banners" ON banners;
 CREATE POLICY "Public access for banners" ON banners FOR SELECT USING (true);
+
+-- =============================================
+-- ETAPA 1 MIGRATIONS (2026-03)
+-- =============================================
+
+-- Adicionar forma de pagamento aos pedidos
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_method TEXT;
+
+-- =============================================
+-- ETAPA 2 MIGRATIONS (2026-03)
+-- =============================================
+
+-- Tabela de itens removidos dos pedidos
+CREATE TABLE IF NOT EXISTS order_removed_items (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  product_id UUID,
+  nome TEXT NOT NULL,
+  sku TEXT,
+  quantidade INTEGER NOT NULL DEFAULT 1,
+  preco_unitario NUMERIC(10,2) NOT NULL DEFAULT 0,
+  subtotal NUMERIC(10,2) NOT NULL DEFAULT 0,
+  removed_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE order_removed_items ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public access for order_removed_items" ON order_removed_items;
+CREATE POLICY "Public access for order_removed_items" ON order_removed_items FOR ALL USING (true);
+
+-- =============================================
+-- ETAPA 3 MIGRATIONS (2026-03)
+-- =============================================
+
+-- Campo de comissão nos vendedores
+ALTER TABLE sellers ADD COLUMN IF NOT EXISTS comissao NUMERIC(5,2) DEFAULT 0;
+
+-- Marcas bloqueadas por vendedor (array de UUIDs)
+ALTER TABLE sellers ADD COLUMN IF NOT EXISTS marcas_bloqueadas TEXT[] DEFAULT '{}';
+
+-- =============================================
+-- ETAPA 5 MIGRATIONS (2026-03)
+-- =============================================
+
+-- Tabela de assinaturas de push notification
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  seller_id UUID NOT NULL UNIQUE,
+  company_id UUID NOT NULL,
+  subscription TEXT NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE push_subscriptions ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Push subscriptions access" ON push_subscriptions;
+CREATE POLICY "Push subscriptions access" ON push_subscriptions FOR ALL USING (true);
+
+-- Database webhook para disparar notificações push
+-- (Configurar no Supabase Dashboard > Database > Webhooks)
+-- Tabela: orders | Evento: INSERT | URL: <SUPABASE_URL>/functions/v1/notify-new-order
+
+
+
+

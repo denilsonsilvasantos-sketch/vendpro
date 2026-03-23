@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../integrations/supabaseClient';
 import { Seller } from '../types';
-import { Plus, Edit, Trash2, Users, Loader2, Phone, ShieldCheck, ShieldAlert, X, ChevronRight } from 'lucide-react';
+import { Plus, Edit, Trash2, Users, Loader2, Phone, ShieldCheck, ShieldAlert, X, ChevronRight, Percent, Ban } from 'lucide-react';
 import SellerFormModal from '../components/SellerFormModal';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -83,6 +83,8 @@ export default function Vendedores({ companyId }: { companyId: string | null }) 
                 <th className="p-3 text-left text-[9px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Vendedor</th>
                 <th className="p-3 text-left text-[9px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 hidden md:table-cell">Código</th>
                 <th className="p-3 text-left text-[9px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 hidden sm:table-cell">WhatsApp</th>
+                <th className="p-3 text-left text-[9px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 hidden lg:table-cell">Comissão</th>
+                <th className="p-3 text-left text-[9px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 hidden lg:table-cell">Restrições</th>
                 <th className="p-3 text-left text-[9px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Status</th>
                 <th className="p-3 text-right text-[9px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Ações</th>
               </tr>
@@ -106,6 +108,24 @@ export default function Vendedores({ companyId }: { companyId: string | null }) 
                       <Phone size={11} className="text-slate-300" />
                       {seller.whatsapp || <span className="text-slate-300 italic text-[10px]">Não informado</span>}
                     </div>
+                  </td>
+                  <td className="p-3 hidden lg:table-cell">
+                    {seller.comissao && seller.comissao > 0 ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[9px] font-black bg-emerald-50 text-emerald-600 border border-emerald-100">
+                        <Percent size={9} strokeWidth={3} /> {seller.comissao}%
+                      </span>
+                    ) : (
+                      <span className="text-slate-300 text-[10px]">—</span>
+                    )}
+                  </td>
+                  <td className="p-3 hidden lg:table-cell">
+                    {seller.marcas_bloqueadas && seller.marcas_bloqueadas.length > 0 ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[9px] font-black bg-rose-50 text-rose-500 border border-rose-100">
+                        <Ban size={9} strokeWidth={3} /> {seller.marcas_bloqueadas.length} marca{seller.marcas_bloqueadas.length > 1 ? 's' : ''}
+                      </span>
+                    ) : (
+                      <span className="text-slate-300 text-[10px]">Todas</span>
+                    )}
                   </td>
                   <td className="p-3">
                     <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-[9px] font-black uppercase ${seller.ativo ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-slate-50 text-slate-400 border border-slate-100'}`}>

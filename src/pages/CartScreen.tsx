@@ -1,6 +1,6 @@
 import React from 'react';
 import { CartItem, Brand, UserRole } from '../types';
-import { Plus, Minus, Trash2, ShoppingBag, User as UserIcon, ReceiptText } from 'lucide-react';
+import { Plus, Minus, Trash2, ShoppingBag, User as UserIcon, ReceiptText, CreditCard } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function CartScreen({ 
@@ -18,13 +18,14 @@ export default function CartScreen({
   total: number, 
   onUpdateQuantity: (id: string, q: number) => void, 
   onRemove: (id: string) => void, 
-  onSendOrder: (clientName?: string) => void,
+  onSendOrder: (clientName?: string, paymentMethod?: string) => void,
   selectedBrand: string | null,
   brands: Brand[],
   role: UserRole,
   isDrawer?: boolean
 }) {
   const [clientName, setClientName] = React.useState('');
+  const [paymentMethod, setPaymentMethod] = React.useState('');
   const currentBrand = brands.find(b => b.id === selectedBrand);
 
   if (isDrawer) {
@@ -40,7 +41,6 @@ export default function CartScreen({
           </div>
         ) : (
           <div className="flex flex-col h-full">
-            {/* Items list */}
             <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
               {currentBrand && (
                 <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-3">{currentBrand.name}</p>
@@ -63,7 +63,6 @@ export default function CartScreen({
                       key={item.id}
                       className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100"
                     >
-                      {/* Image */}
                       <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center border border-slate-100 shrink-0 overflow-hidden">
                         {item.imagem ? (
                           <img src={item.imagem} alt={item.nome} className="w-full h-full object-contain p-1" referrerPolicy="no-referrer" />
@@ -71,13 +70,11 @@ export default function CartScreen({
                           <ShoppingBag size={16} className="text-slate-200" />
                         )}
                       </div>
-                      {/* Info */}
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-black text-slate-800 uppercase leading-tight truncate">{item.nome}</p>
                         <p className="text-[10px] text-slate-400 font-mono">{item.sku}</p>
                         <p className="text-xs font-black text-primary">R$ {subtotal.toFixed(2)}</p>
                       </div>
-                      {/* Qty controls */}
                       <div className="flex items-center gap-1 shrink-0">
                         <button onClick={() => onUpdateQuantity(item.id, item.quantity > step ? item.quantity - step : step)}
                           className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 rounded-lg text-slate-500 hover:text-primary transition-all">
@@ -99,8 +96,7 @@ export default function CartScreen({
               </AnimatePresence>
             </div>
 
-            {/* Footer fixo */}
-            <div className="border-t border-slate-100 px-4 py-4 bg-white space-y-3">
+            <div className="border-t border-slate-100 px-4 py-4 bg-white space-y-2">
               {role === 'seller' && (
                 <input
                   type="text"
@@ -110,13 +106,20 @@ export default function CartScreen({
                   className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-primary/40"
                 />
               )}
-              <div className="flex items-center justify-between">
+              <input
+                type="text"
+                value={paymentMethod}
+                onChange={e => setPaymentMethod(e.target.value)}
+                placeholder="Forma de pagamento (ex: PIX, Boleto...)"
+                className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-primary/40"
+              />
+              <div className="flex items-center justify-between pt-1">
                 <div>
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total</p>
                   <p className="text-xl font-black text-slate-900">R$ {total.toFixed(2)}</p>
                 </div>
                 <button
-                  onClick={() => onSendOrder(clientName)}
+                  onClick={() => onSendOrder(clientName, paymentMethod)}
                   className="px-6 py-3 text-white font-black text-xs uppercase tracking-wide rounded-xl shadow-lg hover:-translate-y-0.5 transition-all active:scale-95 flex items-center gap-2"
                   style={{ background: 'linear-gradient(135deg, #C21863, #E8257A)' }}
                 >
@@ -131,7 +134,6 @@ export default function CartScreen({
     );
   }
 
-  // Modo página completa (mantido para compatibilidade)
   return (
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
@@ -235,7 +237,7 @@ export default function CartScreen({
           <div className="p-10 bg-slate-900 rounded-[14px] text-white relative overflow-hidden shadow-2xl shadow-slate-900/40">
             <div className="relative z-10 space-y-10">
               <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8">
-                <div className="space-y-8 flex-1 w-full">
+                <div className="space-y-6 flex-1 w-full">
                   {role === 'seller' && (
                     <div className="space-y-3">
                       <label className="flex items-center gap-3 text-[10px] font-black uppercase tracking-[2px] text-white/40">
@@ -251,6 +253,19 @@ export default function CartScreen({
                       />
                     </div>
                   )}
+                  <div className="space-y-3">
+                    <label className="flex items-center gap-3 text-[10px] font-black uppercase tracking-[2px] text-white/40">
+                      <CreditCard size={16} className="text-primary" />
+                      Forma de Pagamento
+                    </label>
+                    <input 
+                      type="text" 
+                      value={paymentMethod}
+                      onChange={(e) => setPaymentMethod(e.target.value)}
+                      placeholder="Ex: PIX, Boleto 30 dias, Cartão..."
+                      className="w-full p-6 bg-white/5 border border-white/10 rounded-[10px] font-black text-lg text-white placeholder:text-white/10 focus:ring-2 focus:ring-primary outline-none transition-all shadow-inner"
+                    />
+                  </div>
                   
                   <div className="flex items-center gap-6 p-8 bg-white/5 rounded-[14px] border border-white/10 backdrop-blur-md shadow-inner">
                     <div className="w-16 h-16 bg-primary/20 rounded-[10px] flex items-center justify-center text-primary shadow-lg">
@@ -265,7 +280,7 @@ export default function CartScreen({
 
                 <div className="w-full lg:w-auto">
                   <button 
-                    onClick={() => onSendOrder(clientName)} 
+                    onClick={() => onSendOrder(clientName, paymentMethod)} 
                     className="w-full lg:w-auto px-16 py-6 bg-primary text-white rounded-[10px] font-black uppercase tracking-widest text-xs shadow-2xl shadow-primary/40 hover:-translate-y-2 transition-all active:translate-y-0 flex items-center justify-center gap-4 group"
                   >
                     Finalizar Pedido
@@ -275,7 +290,6 @@ export default function CartScreen({
               </div>
             </div>
             
-            {/* Decorative elements */}
             <div className="absolute -right-20 -bottom-20 w-96 h-96 bg-primary/20 rounded-full blur-3xl" />
             <div className="absolute -left-20 -top-20 w-96 h-96 bg-primary/10 rounded-full blur-3xl" />
           </div>

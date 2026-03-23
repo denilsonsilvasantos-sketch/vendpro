@@ -138,6 +138,40 @@ export async function extractProductsFromMedia(base64Data: string, mimeType: str
   }
 }
 
+export async function querySalesInsights(
+  question: string,
+  salesData: { nome: string; sku: string; total_qtd: number; total_valor: number }[]
+): Promise<string> {
+  if (salesData.length === 0) {
+    return 'Ainda não há dados de vendas suficientes para responder esta pergunta.';
+  }
+
+  const context = salesData
+    .map((d, i) => `${i + 1}. ${d.nome} (SKU: ${d.sku}) — Qtd vendida: ${d.total_qtd} | Total: R$ ${d.total_valor.toFixed(2)}`)
+    .join('\n');
+
+  const prompt = `Você é um assistente de análise de vendas para um sistema de pedidos B2B de cosméticos e beleza.
+Os dados abaixo estão ordenados do produto mais vendido para o menos vendido (por valor total).
+
+DADOS DE VENDAS:
+${context}
+
+PERGUNTA DO USUÁRIO: ${question}
+
+Responda de forma clara, objetiva e em português brasileiro. Se a pergunta pedir uma lista, use numeração. Seja direto.`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.0-flash',
+      contents: prompt,
+    });
+    return response.text?.trim() || 'Não foi possível gerar uma resposta.';
+  } catch (error: any) {
+    console.error('Erro na consulta de insights:', error);
+    throw new Error(error.message || 'Erro ao consultar a IA.');
+  }
+}
+
 export async function removeImageBackground(base64Data: string, mimeType: string) {
   const prompt = "Remove the background of this product image and place it on a pure white background. Keep the product exactly as it is, maintaining all its details, colors, and textures. The output should be only the product on a clean, solid white background.";
 

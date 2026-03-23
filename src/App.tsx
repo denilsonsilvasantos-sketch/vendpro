@@ -33,9 +33,15 @@ import {
   Mail,
   Shield,
   Layout,
-  Loader2
+  Loader2,
+  DollarSign,
+  Bell,
+  BellRing
 } from 'lucide-react';
 import { useCart } from './hooks/useCart';
+import { useNotifications } from './hooks/useNotifications';
+import { subscribeToPush, isPushSupported } from './services/pushService';
+import SalesAIChat from './components/SalesAIChat';
 import { Product, Category, Seller, Customer, UserRole, CartItem, Company, Brand, BannerData } from './types';
 import { Card } from './components/Card';
 import { Badge } from './components/Badge';
@@ -49,6 +55,7 @@ const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Produtos = lazy(() => import('./pages/Produtos'));
 const Clientes = lazy(() => import('./pages/Clientes'));
 const Pedidos = lazy(() => import('./pages/Pedidos'));
+const Comissao = lazy(() => import('./pages/Comissao'));
 const Configuracoes = lazy(() => import('./pages/Configuracoes'));
 const Marcas = lazy(() => import('./pages/Marcas'));
 const Upload = lazy(() => import('./pages/Upload'));
@@ -244,6 +251,19 @@ export default function App() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const { cart, carts, addToCart, removeFromCart, updateQuantity, clearCart, total } = useCart(selectedBrand);
 
+  const { notifications, unreadCount, markAllRead, requestBrowserPermission } = useNotifications(
+    activeCompanyId, role, role === 'seller' ? user?.id : null
+  );
+  const [showNotifPanel, setShowNotifPanel] = useState(false);
+  const [pushPromptDismissed, setPushPromptDismissed] = useState(() => localStorage.getItem('vendpro_push_dismissed') === '1');
+  const [pushSubscribed, setPushSubscribed] = useState(false);
+
+  async function handleEnablePush() {
+    if (!user?.id || !activeCompanyId) return;
+    const ok = await subscribeToPush(user.id, activeCompanyId);
+    if (ok) { setPushSubscribed(true); setPushPromptDismissed(true); localStorage.setItem('vendpro_push_dismissed', '1'); }
+  }
+
   const effectiveRole = viewMode === 'customer' ? 'customer' : role;
 
   const handleAddToCart = (product: Product, quantity: number) => {
@@ -253,7 +273,7 @@ export default function App() {
     addToCart(product, quantity);
   };
 
-  const handleSendOrder = async (manualClientName?: string) => {
+  const handleSendOrder = async (manualClientName?: string, paymentMethod?: string) => {
     let whatsappNumber = '';
     
     if (role === 'customer' && user) {
@@ -272,7 +292,6 @@ export default function App() {
 
       const clientName = manualClientName || (role === 'customer' ? user?.nome : (role === 'seller' ? `Vendedor: ${user?.nome}` : ''));
       
-      // Save order to database if supabase is available
       if (supabase && activeCompanyId && selectedBrand) {
         try {
           const orderData = {
@@ -283,7 +302,8 @@ export default function App() {
             total: total,
             status: 'pending',
             whatsapp_sent: true,
-            client_name: clientName
+            client_name: clientName,
+            payment_method: paymentMethod || null
           };
 
           const { data: order, error: orderError } = await supabase
@@ -382,21 +402,35 @@ export default function App() {
           const { data: catData } = await supabase.from('categories').select('*').eq('company_id', activeCompanyId).order('nome');
 
           let releasedBrandIds: string[] = [];
+          let blockedBrandIds: string[] = [];
           
           if (role === 'seller' && user?.id) {
             releasedBrandIds = user.marcas_liberadas || [];
+            blockedBrandIds = user.marcas_bloqueadas || [];
             
-            // Filter products
-            finalProducts = fetchedProducts.filter(p => p.brand_id && releasedBrandIds.includes(p.brand_id));
+            if (releasedBrandIds.length > 0) {
+              finalProducts = fetchedProducts.filter(p => p.brand_id && releasedBrandIds.includes(p.brand_id));
+            } else if (blockedBrandIds.length > 0) {
+              finalProducts = fetchedProducts.filter(p => !p.brand_id || !blockedBrandIds.includes(p.brand_id));
+            }
+          } else if (role === 'customer' && user?.vendedor_marcas_bloqueadas?.length > 0) {
+            blockedBrandIds = user.vendedor_marcas_bloqueadas;
+            finalProducts = fetchedProducts.filter(p => !p.brand_id || !blockedBrandIds.includes(p.brand_id));
           }
 
           let filteredCats = catData || [];
           
           let brandQuery = supabase.from('brands').select('*').eq('company_id', activeCompanyId).order('name');
           
-          if (role === 'seller' && releasedBrandIds.length > 0) {
-            brandQuery = brandQuery.in('id', releasedBrandIds);
-            filteredCats = filteredCats.filter(c => c.brand_id && releasedBrandIds.includes(c.brand_id));
+          if (role === 'seller') {
+            if (releasedBrandIds.length > 0) {
+              brandQuery = brandQuery.in('id', releasedBrandIds);
+              filteredCats = filteredCats.filter((c: any) => c.brand_id && releasedBrandIds.includes(c.brand_id));
+            } else if (blockedBrandIds.length > 0) {
+              filteredCats = filteredCats.filter((c: any) => !c.brand_id || !blockedBrandIds.includes(c.brand_id));
+            }
+          } else if (role === 'customer' && blockedBrandIds.length > 0) {
+            filteredCats = filteredCats.filter((c: any) => !c.brand_id || !blockedBrandIds.includes(c.brand_id));
           }
 
           const { data: brandData } = await brandQuery;
@@ -639,6 +673,19 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-2 md:gap-4">
+            {(role === 'seller' || role === 'company') && (
+              <button
+                onClick={() => { setShowNotifPanel(p => !p); if (unreadCount > 0) markAllRead(); requestBrowserPermission(); }}
+                className="relative p-2.5 bg-white text-slate-600 hover:text-primary hover:bg-primary/5 rounded-full transition-all shadow-sm border border-slate-100"
+              >
+                {unreadCount > 0 ? <BellRing size={20} className="text-primary animate-[wiggle_0.5s_ease-in-out]" /> : <Bell size={20} />}
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 text-white text-[9px] font-black flex items-center justify-center rounded-full shadow border-2 border-white">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </button>
+            )}
             <button onClick={() => setIsCartOpen(true)} className="relative flex items-center gap-2 px-3 py-2.5 bg-white text-slate-600 hover:text-primary hover:bg-primary/5 rounded-full transition-all shadow-sm border border-slate-100">
               <ShoppingCart size={20} />
               {cart.length > 0 && (
@@ -661,6 +708,52 @@ export default function App() {
           </div>
         </div>
       </header>
+
+      {showNotifPanel && (role === 'seller' || role === 'company') && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setShowNotifPanel(false)} />
+          <div className="fixed top-16 right-4 z-50 w-80 max-w-[calc(100vw-2rem)] bg-white rounded-2xl shadow-2xl shadow-slate-900/20 border border-slate-100 overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50">
+              <div className="flex items-center gap-2">
+                <Bell size={15} className="text-primary" />
+                <p className="text-sm font-black text-slate-800">Notificações</p>
+              </div>
+              {notifications.some(n => !n.read) && (
+                <button onClick={markAllRead} className="text-[10px] font-bold text-primary hover:underline">Marcar todas lidas</button>
+              )}
+            </div>
+            <div className="max-h-80 overflow-y-auto divide-y divide-slate-50">
+              {notifications.length === 0 ? (
+                <div className="p-8 text-center">
+                  <Bell size={28} className="mx-auto mb-2 text-slate-200" />
+                  <p className="text-sm text-slate-400 font-medium">Nenhuma notificação</p>
+                </div>
+              ) : notifications.map(n => (
+                <button
+                  key={n.id}
+                  onClick={() => { setActiveTab('pedidos'); setShowNotifPanel(false); }}
+                  className={`w-full text-left px-4 py-3 hover:bg-slate-50 transition-colors flex items-start gap-3 ${!n.read ? 'bg-primary/5' : ''}`}
+                >
+                  <div className={`w-2 h-2 rounded-full mt-2 shrink-0 ${!n.read ? 'bg-primary' : 'bg-slate-200'}`} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold text-slate-800 truncate">Novo pedido — {n.client_name}</p>
+                    <p className="text-xs text-primary font-black">R$ {n.total.toFixed(2)}</p>
+                    <p className="text-[10px] text-slate-400 font-medium mt-0.5">
+                      {new Date(n.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
+                </button>
+              ))}
+            </div>
+            <div className="px-4 py-3 border-t border-slate-100">
+              <button onClick={() => { setActiveTab('pedidos'); setShowNotifPanel(false); }}
+                className="w-full text-center text-xs font-bold text-primary hover:underline">
+                Ver todos os pedidos
+              </button>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Sidebar */}
       <AnimatePresence>
@@ -709,6 +802,7 @@ export default function App() {
                     
                     <SidebarItem icon={<Users size={16}/>} label="Clientes" active={activeTab === 'clientes'} onClick={() => { setActiveTab('clientes'); setIsSidebarOpen(false); }} />
                     <SidebarItem icon={<FileText size={16}/>} label="Pedidos" active={activeTab === 'pedidos'} onClick={() => { setActiveTab('pedidos'); setIsSidebarOpen(false); }} />
+                    <SidebarItem icon={<DollarSign size={16}/>} label="Comissões" active={activeTab === 'comissoes'} onClick={() => { setActiveTab('comissoes'); setIsSidebarOpen(false); }} />
                   </>
                 )}
 
@@ -762,6 +856,14 @@ export default function App() {
 
       {/* Main Content */}
       <main className="flex-1 w-full relative min-w-0 overflow-x-hidden">
+        {role === 'seller' && !pushPromptDismissed && isPushSupported() && (
+          <div className="mx-4 mt-3 flex items-center gap-3 px-4 py-3 bg-primary/5 border border-primary/20 rounded-2xl text-xs">
+            <BellRing size={16} className="text-primary shrink-0" />
+            <p className="flex-1 text-slate-700 font-medium"><span className="font-black text-primary">Ative as notificações</span> para receber avisos de novos pedidos no celular.</p>
+            <button onClick={handleEnablePush} className="shrink-0 px-3 py-1.5 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 transition-all">Ativar</button>
+            <button onClick={() => { setPushPromptDismissed(true); localStorage.setItem('vendpro_push_dismissed', '1'); }} className="text-slate-400 hover:text-slate-600 transition-colors text-lg leading-none">×</button>
+          </div>
+        )}
         {viewMode === 'customer' && role !== 'customer' && (
           <button
             onClick={() => setViewMode('admin')}
@@ -804,6 +906,7 @@ export default function App() {
             {activeTab === 'vendedores' && <Vendedores companyId={activeCompanyId} />}
             {activeTab === 'clientes' && <Clientes companyId={activeCompanyId} role={role} user={user} />}
             {activeTab === 'pedidos' && <Pedidos companyId={activeCompanyId} role={role} user={user} />}
+            {activeTab === 'comissoes' && (role === 'seller' || role === 'company') && <Comissao companyId={activeCompanyId} role={role} user={user} />}
             {activeTab === 'account' && <Configuracoes companyId={activeCompanyId} user={user} role={role} onLogout={handleLogout} />}
           </Suspense>
         </div>
@@ -867,8 +970,8 @@ export default function App() {
                   total={total}
                   onUpdateQuantity={updateQuantity}
                   onRemove={removeFromCart}
-                  onSendOrder={(clientName) => {
-                    handleSendOrder(clientName);
+                  onSendOrder={(clientName, paymentMethod) => {
+                    handleSendOrder(clientName, paymentMethod);
                     setIsCartOpen(false);
                   }}
                   selectedBrand={selectedBrand}
@@ -892,6 +995,8 @@ export default function App() {
           <span className="text-[10px] text-slate-300">VendPro © {new Date().getFullYear()}</span>
         </div>
       </footer>
+
+      <SalesAIChat companyId={activeCompanyId} role={role} />
     </div>
   );
 }
@@ -1130,7 +1235,8 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
           sellerCode,
           vendedor_nome: sellerInfo.nome,
           vendedor_whatsapp: sellerInfo.whatsapp,
-          vendedor_telefone: sellerInfo.telefone
+          vendedor_telefone: sellerInfo.telefone,
+          vendedor_marcas_bloqueadas: sellerInfo.marcas_bloqueadas || [],
         }, availableCompanies);
 
       } catch (error: any) {

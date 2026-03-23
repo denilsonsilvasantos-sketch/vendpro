@@ -35,6 +35,8 @@ export interface Seller {
   codigo_cliente?: string;
   ativo: boolean;
   marcas_liberadas?: string[];
+  marcas_bloqueadas?: string[];
+  comissao?: number;
 }
 
 export interface Customer {

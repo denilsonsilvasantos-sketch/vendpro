@@ -11,8 +11,11 @@ export default defineConfig(({mode}) => {
       react(), 
       tailwindcss(),
       VitePWA({
+        strategies: 'injectManifest',
+        srcDir: 'src',
+        filename: 'sw.ts',
         registerType: 'autoUpdate',
-        workbox: {
+        injectManifest: {
           maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         },
         includeAssets: ['favicon.ico', 'pwa-192x192.png', 'pwa-512x512.png', 'LOGO_VENDPRO.png'],

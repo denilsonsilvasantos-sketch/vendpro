@@ -602,7 +602,7 @@ export default function App() {
           </button>
           <div className="flex items-center gap-3">
             {company?.logo_url ? (
-              <img src={company.logo_url} alt={company.nome} className="w-10 h-10 rounded-xl object-cover shadow-sm" />
+              <img src={company.logo_url} alt={company.nome} className="w-14 h-14 rounded-xl object-contain shadow-sm bg-white p-0.5" />
             ) : (
               <div className="w-10 h-10 pink-gradient rounded-xl flex items-center justify-center text-white shadow-sm shrink-0">
                 <CheckCircle2 size={24} />

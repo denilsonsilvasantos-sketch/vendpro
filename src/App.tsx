@@ -57,6 +57,7 @@ const Upload = lazy(() => import('./pages/Upload'));
 const Vendedores = lazy(() => import('./pages/Vendedores'));
 const BannerManager = lazy(() => import('./pages/BannerManager'));
 const ProductFormModal = lazy(() => import('./components/ProductFormModal'));
+const Pendencias = lazy(() => import('./pages/Pendencias'));
 
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-[300px]">
@@ -696,6 +697,7 @@ export default function App() {
                         <SidebarItem icon={<Layout size={16}/>} label="Banners" active={activeTab === 'banners'} onClick={() => { setActiveTab('banners'); setIsSidebarOpen(false); }} />
                         <SidebarItem icon={<Package size={16}/>} label="Produtos" active={activeTab === 'produtos'} onClick={() => { setActiveTab('produtos'); setIsSidebarOpen(false); }} />
                         <SidebarItem icon={<UploadIcon size={16}/>} label="Upload" active={activeTab === 'upload'} onClick={() => { setActiveTab('upload'); setIsSidebarOpen(false); }} />
+                        <SidebarItem icon={<AlertTriangle size={16}/>} label="Pendências" active={activeTab === 'pendencias'} onClick={() => { setActiveTab('pendencias'); setIsSidebarOpen(false); }} />
                         <SidebarItem icon={<Tag size={16}/>} label="Marcas" active={activeTab === 'marcas'} onClick={() => { setActiveTab('marcas'); setIsSidebarOpen(false); }} />
                         <SidebarItem icon={<Users size={16}/>} label="Vendedores" active={activeTab === 'vendedores'} onClick={() => { setActiveTab('vendedores'); setIsSidebarOpen(false); }} />
                       </>
@@ -805,6 +807,7 @@ export default function App() {
             {activeTab === 'banners' && role === 'company' && <BannerManager companyId={activeCompanyId!} />}
             {activeTab === 'produtos' && <Produtos companyId={activeCompanyId} onRefresh={loadData} />}
             {activeTab === 'upload' && <Upload companyId={activeCompanyId} onRefresh={loadData} />}
+            {activeTab === 'pendencias' && <Pendencias companyId={activeCompanyId} onRefresh={loadData} />}
             {activeTab === 'marcas' && <Marcas companyId={activeCompanyId} />}
             {activeTab === 'vendedores' && <Vendedores companyId={activeCompanyId} />}
             {activeTab === 'clientes' && <Clientes companyId={activeCompanyId} role={role} user={user} />}

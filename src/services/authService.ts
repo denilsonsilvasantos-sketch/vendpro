@@ -34,7 +34,7 @@ export async function signUpWithCompany(email: string, password: string, company
   // 2. Create Company
   const { data: company, error: companyError } = await supabase
     .from("companies")
-    .insert([{ name: companyName }])
+    .insert([{ nome: companyName }])
     .select()
     .single();
   if (companyError) throw companyError;

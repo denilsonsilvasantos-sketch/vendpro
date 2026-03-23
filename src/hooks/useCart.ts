@@ -106,12 +106,12 @@ export function useCart(brandId?: string | null) {
   };
 
   const total = cart.reduce((acc, item) => {
-    let price = item.preco_unitario * (1 + (item.margin_percentage || 0) / 100);
+    let price = item.preco_unitario;
     
     if (item.venda_somente_box) {
-      price = (item.preco_box || 0) * (1 + (item.margin_percentage || 0) / 100);
+      price = item.preco_box || 0;
     } else if (item.has_box_discount && item.quantity >= (item.qtd_box || 0) && (item.qtd_box || 0) > 0) {
-      price = (item.preco_box || 0) * (1 + (item.margin_percentage || 0) / 100);
+      price = item.preco_box || 0;
     }
     
     return acc + (item.quantity * price);

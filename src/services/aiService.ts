@@ -10,7 +10,7 @@ export async function classifyCategory(productName: string, categories: { id: nu
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3.1-pro-preview",
+      model: "gemini-2.0-flash",
       contents: prompt,
     });
 
@@ -70,7 +70,7 @@ export async function extractProductsFromMedia(base64Data: string, mimeType: str
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3.1-pro-preview",
+      model: "gemini-2.0-flash",
       contents: {
         parts: [
           {

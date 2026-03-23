@@ -521,7 +521,6 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
         )}
       </AnimatePresence>
 
-      <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept={uploadMode === 'stock' ? '.xlsx,.xls' : '.pdf,image/*,.csv,.xlsx,.xls'} multiple={uploadMode === 'catalog'} className="hidden" />
     </motion.div>
   );
 }

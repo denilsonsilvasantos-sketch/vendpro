@@ -2,7 +2,6 @@ import { useState, useEffect, lazy, Suspense } from 'react';
 import { getProducts } from "./services/productService";
 import { validateSellerCode } from './services/sellerService';
 import { registerCompany, loginCompany, getCompanyById } from './services/companyService';
-import { createOrder } from './services/orderService';
 import { supabase } from './integrations/supabaseClient';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -38,7 +37,6 @@ import {
 } from 'lucide-react';
 import { useCart } from './hooks/useCart';
 import { Product, Category, Seller, Customer, UserRole, CartItem, Company, Brand, BannerData } from './types';
-import { mockProducts, mockCategories, mockCompany } from './lib/mockData';
 import { Card } from './components/Card';
 import { Badge } from './components/Badge';
 import CartScreen from './pages/CartScreen';
@@ -152,14 +150,6 @@ const safeLocalStorage = {
 };
 
 export default function App() {
-  const path = window.location.pathname;
-  if (path === '/lgpd') {
-    return <iframe src="/lgpd.html" className="fixed inset-0 w-full h-full border-none z-[200] bg-white" />;
-  }
-  if (path === '/privacidade') {
-    return <iframe src="/politica-de-privacidade.html" className="fixed inset-0 w-full h-full border-none z-[200] bg-white" />;
-  }
-
   const [role, setRole] = useState<UserRole>(() => {
     const saved = localStorage.getItem('vendpro_role');
     const activeCompanyId = localStorage.getItem('vendpro_active_company_id');
@@ -502,6 +492,14 @@ export default function App() {
         }} 
       />
     );
+  }
+
+  const path = window.location.pathname;
+  if (path === '/lgpd') {
+    return <iframe src="/lgpd.html" className="fixed inset-0 w-full h-full border-none z-[200] bg-white" />;
+  }
+  if (path === '/privacidade') {
+    return <iframe src="/politica-de-privacidade.html" className="fixed inset-0 w-full h-full border-none z-[200] bg-white" />;
   }
 
   return (
@@ -1297,7 +1295,7 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
             </p>
             <div>
               <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Código de Acesso</label>
-              <input type="text" placeholder={loginType === 'admin' ? "Código de Acesso" : "Código do Vendedor"} className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:border-primary/40 outline-none text-sm font-black uppercase text-slate-700 text-center" value={sellerCode} onChange={e => setSellerCode(e.target.value)} onKeyPress={e => e.key === 'Enter' && handleSellerCodeSubmit()} />
+              <input type="text" placeholder={loginType === 'admin' ? "Código de Acesso" : "Código do Vendedor"} className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:border-primary/40 outline-none text-sm font-black uppercase text-slate-700 text-center" value={sellerCode} onChange={e => setSellerCode(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSellerCodeSubmit()} />
             </div>
             <button onClick={handleSellerCodeSubmit} className="w-full py-2.5 bg-gradient-to-r from-[#e91e8c] to-[#7c3aed] text-white rounded-lg font-black text-xs uppercase tracking-wide shadow-lg hover:-translate-y-0.5 transition-all">Validar Código</button>
             <div className="flex items-center justify-between pt-1">

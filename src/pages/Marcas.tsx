@@ -299,7 +299,7 @@ export default function Marcas({ companyId }: { companyId: string | null }) {
                                 className="flex-1 px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-primary/40 font-medium"
                                 value={newCategoryName[brand.id] || ''}
                                 onChange={e => setNewCategoryName(prev => ({ ...prev, [brand.id]: e.target.value }))}
-                                onKeyPress={e => e.key === 'Enter' && handleAddCategory(brand.id)}
+                                onKeyDown={e => e.key === 'Enter' && handleAddCategory(brand.id)}
                               />
                               <button
                                 onClick={() => handleAddCategory(brand.id)}

@@ -11,7 +11,8 @@ export default function CartScreen({
   onSendOrder,
   selectedBrand,
   brands,
-  role
+  role,
+  isDrawer = false
 }: { 
   cart: CartItem[], 
   total: number, 
@@ -20,11 +21,117 @@ export default function CartScreen({
   onSendOrder: (clientName?: string) => void,
   selectedBrand: string | null,
   brands: Brand[],
-  role: UserRole
+  role: UserRole,
+  isDrawer?: boolean
 }) {
   const [clientName, setClientName] = React.useState('');
   const currentBrand = brands.find(b => b.id === selectedBrand);
 
+  if (isDrawer) {
+    return (
+      <div className="flex flex-col h-full">
+        {cart.length === 0 ? (
+          <div className="flex flex-col items-center justify-center flex-1 py-16 px-6 text-center space-y-4">
+            <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-200 border border-slate-100">
+              <ShoppingBag size={32} strokeWidth={1.5} />
+            </div>
+            <p className="font-black text-slate-700 uppercase tracking-tight text-sm">Carrinho vazio</p>
+            <p className="text-xs text-slate-400 font-medium">Adicione produtos do catálogo</p>
+          </div>
+        ) : (
+          <div className="flex flex-col h-full">
+            {/* Items list */}
+            <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
+              {currentBrand && (
+                <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-3">{currentBrand.name}</p>
+              )}
+              <AnimatePresence mode="popLayout">
+                {cart.map(item => {
+                  const step = item.venda_somente_box ? 1 : (item.multiplo_venda || 1);
+                  const isBoxDiscount = item.has_box_discount && !item.venda_somente_box && item.quantity >= (item.qtd_box || 0);
+                  const unitPrice = item.venda_somente_box
+                    ? (item.preco_box || 0)
+                    : (isBoxDiscount ? (item.preco_box || 0) : (item.preco_unitario || 0));
+                  const subtotal = unitPrice * item.quantity;
+
+                  return (
+                    <motion.div
+                      layout
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      key={item.id}
+                      className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100"
+                    >
+                      {/* Image */}
+                      <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center border border-slate-100 shrink-0 overflow-hidden">
+                        {item.imagem ? (
+                          <img src={item.imagem} alt={item.nome} className="w-full h-full object-contain p-1" referrerPolicy="no-referrer" />
+                        ) : (
+                          <ShoppingBag size={16} className="text-slate-200" />
+                        )}
+                      </div>
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-black text-slate-800 uppercase leading-tight truncate">{item.nome}</p>
+                        <p className="text-[10px] text-slate-400 font-mono">{item.sku}</p>
+                        <p className="text-xs font-black text-primary">R$ {subtotal.toFixed(2)}</p>
+                      </div>
+                      {/* Qty controls */}
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button onClick={() => onUpdateQuantity(item.id, item.quantity > step ? item.quantity - step : step)}
+                          className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 rounded-lg text-slate-500 hover:text-primary transition-all">
+                          <Minus size={12} strokeWidth={2.5} />
+                        </button>
+                        <span className="text-xs font-black text-slate-700 w-6 text-center">{item.quantity}</span>
+                        <button onClick={() => onUpdateQuantity(item.id, item.quantity + step)}
+                          className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 rounded-lg text-slate-500 hover:text-primary transition-all">
+                          <Plus size={12} strokeWidth={2.5} />
+                        </button>
+                        <button onClick={() => onRemove(item.id)}
+                          className="w-7 h-7 flex items-center justify-center text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all ml-1">
+                          <Trash2 size={12} strokeWidth={2} />
+                        </button>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </AnimatePresence>
+            </div>
+
+            {/* Footer fixo */}
+            <div className="border-t border-slate-100 px-4 py-4 bg-white space-y-3">
+              {role === 'seller' && (
+                <input
+                  type="text"
+                  value={clientName}
+                  onChange={e => setClientName(e.target.value)}
+                  placeholder="Nome do cliente..."
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-primary/40"
+                />
+              )}
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total</p>
+                  <p className="text-xl font-black text-slate-900">R$ {total.toFixed(2)}</p>
+                </div>
+                <button
+                  onClick={() => onSendOrder(clientName)}
+                  className="px-6 py-3 text-white font-black text-xs uppercase tracking-wide rounded-xl shadow-lg hover:-translate-y-0.5 transition-all active:scale-95 flex items-center gap-2"
+                  style={{ background: 'linear-gradient(135deg, #C21863, #E8257A)' }}
+                >
+                  <ShoppingBag size={16} />
+                  Finalizar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Modo página completa (mantido para compatibilidade)
   return (
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
@@ -177,4 +284,3 @@ export default function CartScreen({
     </motion.div>
   );
 }
-

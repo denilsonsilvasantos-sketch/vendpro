@@ -24,7 +24,7 @@ export default function Banner({ banners }: { banners?: BannerData[] }) {
     <div className="w-full mb-4">
       <div className="relative rounded-2xl overflow-hidden shadow-lg bg-slate-100 group">
         <div
-          className="relative w-full h-[160px] sm:h-[190px] md:h-[210px] overflow-hidden"
+          className="relative w-full h-[180px] sm:h-[190px] md:h-[210px] overflow-hidden"
           onMouseEnter={() => setIsPaused(true)}
           onMouseLeave={() => setIsPaused(false)}
         >

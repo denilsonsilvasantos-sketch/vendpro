@@ -230,6 +230,7 @@ export default function App() {
     return saved ? saved : null;
   });
   const [showCompanyInfo, setShowCompanyInfo] = useState(false);
+  const [isCartOpen, setIsCartOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [zoomImage, setZoomImage] = useState<string | null>(null);
@@ -638,11 +639,11 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-2 md:gap-4">
-            <button onClick={() => setActiveTab('cart')} className="relative flex items-center gap-2 px-3 py-2.5 bg-white text-slate-600 hover:text-primary hover:bg-primary/5 rounded-full transition-all shadow-sm border border-slate-100">
+            <button onClick={() => setIsCartOpen(true)} className="relative flex items-center gap-2 px-3 py-2.5 bg-white text-slate-600 hover:text-primary hover:bg-primary/5 rounded-full transition-all shadow-sm border border-slate-100">
               <ShoppingCart size={20} />
               {cart.length > 0 && (
                 <>
-                  <span className="text-xs font-black text-primary hidden sm:inline">
+                  <span className="text-xs font-black text-primary">
                     R$ {total.toFixed(2)}
                   </span>
                   <span className="absolute -top-1 -right-1 w-5 h-5 pink-gradient text-white text-[10px] font-black flex items-center justify-center rounded-full shadow-lg border-2 border-white">
@@ -788,23 +789,11 @@ export default function App() {
               selectedCategory={selectedCategory}
               setSelectedCategory={setSelectedCategory}
               carts={carts}
-              onGoToCart={() => setActiveTab('cart')}
+              onGoToCart={() => setIsCartOpen(true)}
             />
           )}
         
         <div className="max-w-7xl mx-auto px-4 md:px-8 py-8">
-          {activeTab === 'cart' && (
-            <CartScreen 
-              cart={cart} 
-              total={total} 
-              onUpdateQuantity={updateQuantity} 
-              onRemove={removeFromCart} 
-              onSendOrder={handleSendOrder} 
-              selectedBrand={selectedBrand}
-              brands={brands}
-              role={role}
-            />
-          )}
           <Suspense fallback={<PageLoader />}>
             {activeTab === 'dashboard' && <Dashboard companyId={activeCompanyId} role={role} user={user} banners={banners} />}
             {activeTab === 'banners' && role === 'company' && <BannerManager companyId={activeCompanyId!} />}
@@ -833,6 +822,63 @@ export default function App() {
               }} 
             />
           </Suspense>
+        )}
+      </AnimatePresence>
+
+      {/* Cart Drawer */}
+      <AnimatePresence>
+        {isCartOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsCartOpen(false)}
+              className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[60]"
+            />
+            <motion.div
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 280 }}
+              className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-white z-[70] shadow-2xl flex flex-col"
+            >
+              {/* Drawer Header */}
+              <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+                <div className="flex items-center gap-3">
+                  <ShoppingCart size={20} className="text-primary" />
+                  <span className="font-black text-slate-900 uppercase tracking-tight text-sm">Meu Carrinho</span>
+                  {cart.length > 0 && (
+                    <span className="text-xs font-black text-white bg-primary px-2 py-0.5 rounded-full">{cart.length}</span>
+                  )}
+                </div>
+                <button
+                  onClick={() => setIsCartOpen(false)}
+                  className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-all"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Drawer Body — scrollable */}
+              <div className="flex-1 overflow-y-auto">
+                <CartScreen
+                  cart={cart}
+                  total={total}
+                  onUpdateQuantity={updateQuantity}
+                  onRemove={removeFromCart}
+                  onSendOrder={(clientName) => {
+                    handleSendOrder(clientName);
+                    setIsCartOpen(false);
+                  }}
+                  selectedBrand={selectedBrand}
+                  brands={brands}
+                  role={role}
+                  isDrawer={true}
+                />
+              </div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
 
@@ -1764,7 +1810,7 @@ function CatalogScreen({
         )}
       </AnimatePresence>
 
-      <div className="max-w-7xl mx-auto px-0 sm:px-4 md:px-8 pt-4 sm:pt-8">
+      <div className="w-full px-2 sm:px-4 md:px-8 pt-4 sm:pt-6 max-w-7xl mx-auto">
         <Banner banners={banners} />
       </div>
 

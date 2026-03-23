@@ -19,6 +19,7 @@ export default function SellerFormModal({ onClose, onSave, seller, companyId }: 
   });
   const [brands, setBrands] = useState<Brand[]>([]);
   const [blockedBrands, setBlockedBrands] = useState<string[]>([]);
+  const [comissaoPorMarca, setComissaoPorMarca] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(false);
   const [loadingBrands, setLoadingBrands] = useState(true);
 
@@ -32,6 +33,7 @@ export default function SellerFormModal({ onClose, onSave, seller, companyId }: 
         setBrands(data || []);
         if (seller?.id) {
           setBlockedBrands(seller.marcas_bloqueadas || []);
+          setComissaoPorMarca(seller.comissao_por_marca || {});
         }
       } catch (error: any) {
         console.error('Erro ao buscar marcas:', error);
@@ -63,6 +65,7 @@ export default function SellerFormModal({ onClose, onSave, seller, companyId }: 
         marcas_liberadas: seller?.marcas_liberadas || [],
         marcas_bloqueadas: blockedBrands,
         comissao: formData.comissao || 0,
+        comissao_por_marca: comissaoPorMarca,
       };
 
       if (seller?.id) {
@@ -181,23 +184,48 @@ export default function SellerFormModal({ onClose, onSave, seller, companyId }: 
                 <div className="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
                   {brands.map(brand => {
                     const isBlocked = blockedBrands.includes(brand.id);
+                    const comissaoValor = comissaoPorMarca[brand.id] ?? '';
                     return (
-                      <label key={brand.id}
-                        className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${isBlocked ? 'bg-rose-50 border-rose-200' : 'bg-slate-50 border-slate-100 hover:bg-slate-100'}`}>
+                      <div key={brand.id}
+                        className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${isBlocked ? 'bg-rose-50 border-rose-200' : 'bg-slate-50 border-slate-100'}`}>
                         <input
                           type="checkbox"
-                          className="w-4 h-4 rounded border-slate-300 accent-rose-500"
+                          className="w-4 h-4 rounded border-slate-300 accent-rose-500 shrink-0"
                           checked={isBlocked}
                           onChange={() => toggleBrand(brand.id)}
                         />
-                        <div className="flex items-center gap-2 flex-1">
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
                           {brand.logo_url && (
-                            <img src={brand.logo_url} alt={brand.name} className="w-6 h-6 rounded object-contain bg-white p-0.5 border border-slate-100" />
+                            <img src={brand.logo_url} alt={brand.name} className="w-6 h-6 rounded object-contain bg-white p-0.5 border border-slate-100 shrink-0" />
                           )}
-                          <span className={`text-sm font-medium ${isBlocked ? 'text-rose-600 line-through' : 'text-slate-700'}`}>{brand.name}</span>
+                          <span className={`text-sm font-medium truncate ${isBlocked ? 'text-rose-600 line-through' : 'text-slate-700'}`}>{brand.name}</span>
                         </div>
-                        {isBlocked && <span className="text-[9px] font-black text-rose-400 uppercase tracking-wide">Bloqueada</span>}
-                      </label>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            step="0.01"
+                            placeholder={String(formData.comissao ?? 0)}
+                            value={comissaoValor}
+                            onClick={e => e.stopPropagation()}
+                            onChange={e => {
+                              const val = parseFloat(e.target.value);
+                              setComissaoPorMarca(prev => {
+                                const next = { ...prev };
+                                if (isNaN(val)) {
+                                  delete next[brand.id];
+                                } else {
+                                  next[brand.id] = val;
+                                }
+                                return next;
+                              });
+                            }}
+                            className="w-16 p-1.5 text-xs text-center bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-primary/20 font-bold text-slate-700"
+                          />
+                          <span className="text-xs text-slate-400 font-bold">%</span>
+                        </div>
+                      </div>
                     );
                   })}
                 </div>

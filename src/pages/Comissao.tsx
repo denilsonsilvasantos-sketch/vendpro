@@ -86,7 +86,7 @@ export default function Comissao({ companyId, role, user }: { companyId: string 
     try {
       let ordersQuery = supabase
         .from('orders')
-        .select('seller_id, total, status, created_at')
+        .select('seller_id, brand_id, total, status, created_at')
         .eq('company_id', companyId)
         .neq('status', 'cancelled');
 
@@ -95,15 +95,16 @@ export default function Comissao({ companyId, role, user }: { companyId: string 
 
       const [{ data: orders }, { data: sellersList }] = await Promise.all([
         ordersQuery,
-        supabase.from('sellers').select('id, nome, comissao').eq('company_id', companyId).eq('ativo', true),
+        supabase.from('sellers').select('id, nome, comissao, comissao_por_marca').eq('company_id', companyId).eq('ativo', true),
       ]);
 
-      const statsMap: Record<string, SellerStats> = {};
+      const statsMap: Record<string, SellerStats & { comissao_por_marca: Record<string, number> }> = {};
       (sellersList || []).forEach((s: any) => {
         statsMap[s.id] = {
           id: s.id,
           nome: s.nome,
           comissao: Number(s.comissao || 0),
+          comissao_por_marca: s.comissao_por_marca || {},
           total_pedidos: 0,
           pedidos_finalizados: 0,
           valor_total: 0,
@@ -116,17 +117,19 @@ export default function Comissao({ companyId, role, user }: { companyId: string 
       (orders || []).forEach((o: any) => {
         if (!o.seller_id || !statsMap[o.seller_id]) return;
         const s = statsMap[o.seller_id];
+        const taxa = s.comissao_por_marca[o.brand_id] !== undefined
+          ? s.comissao_por_marca[o.brand_id]
+          : s.comissao;
         s.total_pedidos += 1;
         s.valor_total += Number(o.total || 0);
         if (o.status === 'finished') {
           s.pedidos_finalizados += 1;
           s.valor_finalizado += Number(o.total || 0);
         }
-      });
-
-      Object.values(statsMap).forEach(s => {
-        s.comissao_prevista = (s.valor_total * s.comissao) / 100;
-        s.comissao_real = (s.valor_finalizado * s.comissao) / 100;
+        s.comissao_prevista += (Number(o.total || 0) * taxa) / 100;
+        if (o.status === 'finished') {
+          s.comissao_real += (Number(o.total || 0) * taxa) / 100;
+        }
       });
 
       const sorted = Object.values(statsMap).sort((a, b) => b.valor_finalizado - a.valor_finalizado);
@@ -140,7 +143,11 @@ export default function Comissao({ companyId, role, user }: { companyId: string 
         byMonth[m].pedidos += 1;
         byMonth[m].valor += Number(o.total || 0);
         if (o.seller_id && statsMap[o.seller_id] && o.status === 'finished') {
-          byMonth[m].comissao_total += (Number(o.total || 0) * statsMap[o.seller_id].comissao) / 100;
+          const s = statsMap[o.seller_id];
+          const taxa = s.comissao_por_marca[o.brand_id] !== undefined
+            ? s.comissao_por_marca[o.brand_id]
+            : s.comissao;
+          byMonth[m].comissao_total += (Number(o.total || 0) * taxa) / 100;
         }
       });
 
@@ -160,25 +167,32 @@ export default function Comissao({ companyId, role, user }: { companyId: string 
     setLoading(true);
     try {
       const [{ data: sellerInfo }, { data: orders }] = await Promise.all([
-        supabase.from('sellers').select('id, nome, comissao').eq('id', user.id).single(),
+        supabase.from('sellers').select('id, nome, comissao, comissao_por_marca').eq('id', user.id).single(),
         supabase.from('orders')
-          .select('total, status, created_at')
+          .select('brand_id, total, status, created_at')
           .eq('company_id', companyId)
           .eq('seller_id', user.id)
           .neq('status', 'cancelled'),
       ]);
 
-      const comissaoPct = Number(sellerInfo?.comissao || 0);
+      const comissaoGlobal = Number(sellerInfo?.comissao || 0);
+      const comissaoPorMarca: Record<string, number> = sellerInfo?.comissao_por_marca || {};
       let total_pedidos = 0, pedidos_finalizados = 0, valor_total = 0, valor_finalizado = 0;
+      let comissao_prevista = 0, comissao_real = 0;
 
       const byMonth: Record<string, { pedidos: number; valor: number; comissao: number }> = {};
 
       (orders || []).forEach((o: any) => {
+        const taxa = comissaoPorMarca[o.brand_id] !== undefined
+          ? comissaoPorMarca[o.brand_id]
+          : comissaoGlobal;
         total_pedidos += 1;
         valor_total += Number(o.total || 0);
+        comissao_prevista += (Number(o.total || 0) * taxa) / 100;
         if (o.status === 'finished') {
           pedidos_finalizados += 1;
           valor_finalizado += Number(o.total || 0);
+          comissao_real += (Number(o.total || 0) * taxa) / 100;
         }
         const m = o.created_at?.slice(0, 7);
         if (m) {
@@ -186,7 +200,7 @@ export default function Comissao({ companyId, role, user }: { companyId: string 
           byMonth[m].pedidos += 1;
           byMonth[m].valor += Number(o.total || 0);
           if (o.status === 'finished') {
-            byMonth[m].comissao += (Number(o.total || 0) * comissaoPct) / 100;
+            byMonth[m].comissao += (Number(o.total || 0) * taxa) / 100;
           }
         }
       });
@@ -194,13 +208,13 @@ export default function Comissao({ companyId, role, user }: { companyId: string 
       setMyStats({
         id: user.id,
         nome: sellerInfo?.nome || '',
-        comissao: comissaoPct,
+        comissao: comissaoGlobal,
         total_pedidos,
         pedidos_finalizados,
         valor_total,
         valor_finalizado,
-        comissao_prevista: (valor_total * comissaoPct) / 100,
-        comissao_real: (valor_finalizado * comissaoPct) / 100,
+        comissao_prevista,
+        comissao_real,
       });
 
       const monthly = Object.entries(byMonth)

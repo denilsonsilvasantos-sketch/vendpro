@@ -37,6 +37,7 @@ export interface Seller {
   marcas_liberadas?: string[];
   marcas_bloqueadas?: string[];
   comissao?: number;
+  comissao_por_marca?: Record<string, number>;
 }
 
 export interface Customer {

@@ -1,8 +1,8 @@
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI } from "@google/genai";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
 
-export async function classifyCategory(productName: string, categories: { id: number, nome: string }[]) {
+export async function classifyCategory(productName: string, categories: { id: string, nome: string }[]) {
   if (categories.length === 0) return null;
 
   const prompt = `Classifique o produto "${productName}" em uma das seguintes categorias: ${categories.map(c => c.nome).join(', ')}. 

@@ -1,10 +1,10 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { supabase } from '../integrations/supabaseClient';
 import {
-  BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
+  BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
 import {
-  ShoppingBag, CheckCircle2, TrendingUp, DollarSign, Trophy, Filter, Calendar, Star, Percent, ChevronUp
+  ShoppingBag, CheckCircle2, TrendingUp, DollarSign, Trophy, Filter, Star, Percent
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 

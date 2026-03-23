@@ -87,12 +87,8 @@ export function useNotifications(companyId: string | null, role?: string | null,
   useEffect(() => {
     if (!supabase || !companyId || !enabled) return;
 
-    const filter = role === 'seller' && sellerId
-      ? `company_id=eq.${companyId},seller_id=eq.${sellerId}`
-      : `company_id=eq.${companyId}`;
-
     channelRef.current = supabase
-      .channel(`notifications-${companyId}`)
+      .channel(`notifications-${companyId}-${sellerId || 'all'}`)
       .on('postgres_changes', {
         event: 'INSERT',
         schema: 'public',

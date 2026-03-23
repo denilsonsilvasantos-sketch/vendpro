@@ -1,7 +1,8 @@
 /// <reference lib="webworker" />
+/// <reference types="vite-plugin-pwa/vanillajs" />
 import { cleanupOutdatedCaches, precacheAndRoute } from 'workbox-precaching';
 
-declare const self: ServiceWorkerGlobalScope;
+declare const self: ServiceWorkerGlobalScope & { __WB_MANIFEST: any[] };
 
 cleanupOutdatedCaches();
 precacheAndRoute(self.__WB_MANIFEST);

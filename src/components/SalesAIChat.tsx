@@ -45,24 +45,34 @@ export default function SalesAIChat({ companyId, role }: { companyId: string | n
     try {
       const { data, error } = await supabase
         .from('order_items')
-        .select('product_id, nome, sku, quantidade, subtotal, orders!inner(company_id, status)')
-        .eq('orders.company_id', companyId)
-        .neq('orders.status', 'cancelled');
+        .select('product_id, nome, sku, quantidade, subtotal, order_id')
+        .not('order_id', 'is', null);
 
-      if (error) throw error;
+      if (data) {
+        const orderIds = [...new Set(data.map((d: any) => d.order_id))];
+        const { data: orders } = await supabase
+          .from('orders')
+          .select('id')
+          .eq('company_id', companyId)
+          .neq('status', 'cancelled')
+          .in('id', orderIds);
 
-      const grouped = (data || []).reduce((acc: Record<string, SalesData>, item: any) => {
-        const key = item.product_id;
-        if (!acc[key]) {
-          acc[key] = { nome: item.nome, sku: item.sku, total_qtd: 0, total_valor: 0 };
-        }
-        acc[key].total_qtd += item.quantidade;
-        acc[key].total_valor += Number(item.subtotal);
-        return acc;
-      }, {});
+        const validOrderIds = new Set((orders || []).map((o: any) => o.id));
+        const filtered = data.filter((d: any) => validOrderIds.has(d.order_id));
 
-      const sorted = Object.values(grouped).sort((a, b) => b.total_valor - a.total_valor);
-      setSalesData(sorted);
+        const grouped = filtered.reduce((acc: Record<string, SalesData>, item: any) => {
+          const key = item.product_id;
+          if (!acc[key]) {
+            acc[key] = { nome: item.nome, sku: item.sku, total_qtd: 0, total_valor: 0 };
+          }
+          acc[key].total_qtd += item.quantidade;
+          acc[key].total_valor += Number(item.subtotal);
+          return acc;
+        }, {});
+
+        const sorted = Object.values(grouped).sort((a, b) => b.total_valor - a.total_valor);
+        setSalesData(sorted);
+      }
     } catch (err) {
       console.error('Erro ao carregar dados de vendas:', err);
       setSalesData([]);

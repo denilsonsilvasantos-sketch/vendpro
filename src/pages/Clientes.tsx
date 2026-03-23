@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import { supabase } from '../integrations/supabaseClient';
 import { Customer, UserRole } from '../types';
-import { Edit, Trash2, Plus, Share2, Copy, MessageCircle, Check, QrCode, Users, Search, Phone, Building2, UserCircle2, FileSpreadsheet, Upload, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Edit, Trash2, Plus, Share2, Copy, MessageCircle, Check, QrCode, Users, Search, Phone, Building2, UserCircle2, FileSpreadsheet, AlertCircle, CheckCircle2 } from 'lucide-react';
 import CustomerFormModal from '../components/CustomerFormModal';
 import { motion, AnimatePresence } from 'motion/react';
 import { QRCodeSVG } from 'qrcode.react';

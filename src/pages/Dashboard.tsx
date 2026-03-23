@@ -62,7 +62,7 @@ export default function Dashboard({ companyId, role, user, banners }: { companyI
 
   return (
     <div className="p-4 md:p-6 space-y-6">
-      {banners && banners.length > 0 && <Banner banners={banners} />}
+      {/* Banner removido do Dashboard — aparece apenas no Catálogo */}
 
       {newOrder && (
         <div className="fixed top-16 right-4 bg-primary text-white px-4 py-3 rounded-xl shadow-xl z-50 text-xs font-bold animate-in fade-in slide-in-from-right-4">

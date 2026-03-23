@@ -638,12 +638,17 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-2 md:gap-4">
-            <button onClick={() => setActiveTab('cart')} className="relative p-3 bg-white text-slate-600 hover:text-primary hover:bg-primary/5 rounded-full transition-all shadow-sm border border-slate-100">
-              <ShoppingCart size={22} />
+            <button onClick={() => setActiveTab('cart')} className="relative flex items-center gap-2 px-3 py-2.5 bg-white text-slate-600 hover:text-primary hover:bg-primary/5 rounded-full transition-all shadow-sm border border-slate-100">
+              <ShoppingCart size={20} />
               {cart.length > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 pink-gradient text-white text-[10px] font-black flex items-center justify-center rounded-full shadow-lg border-2 border-white">
-                  {cart.length}
-                </span>
+                <>
+                  <span className="text-xs font-black text-primary hidden sm:inline">
+                    R$ {total.toFixed(2)}
+                  </span>
+                  <span className="absolute -top-1 -right-1 w-5 h-5 pink-gradient text-white text-[10px] font-black flex items-center justify-center rounded-full shadow-lg border-2 border-white">
+                    {cart.length}
+                  </span>
+                </>
               )}
             </button>
             
@@ -1528,7 +1533,12 @@ function CatalogScreen({
   const [showSwitchWarning, setShowSwitchWarning] = useState(false);
   const [showLogisticsWarning, setShowLogisticsWarning] = useState(false);
   const [pendingBrandId, setPendingBrandId] = useState<string | null>(null);
-  const [acknowledgedBrands, setAcknowledgedBrands] = useState<Set<string>>(new Set());
+  const [acknowledgedBrands, setAcknowledgedBrands] = useState<Set<string>>(() => {
+    try {
+      const saved = localStorage.getItem('vendpro_acknowledged_brands');
+      return saved ? new Set(JSON.parse(saved)) : new Set();
+    } catch { return new Set(); }
+  });
 
   const currentBrand = brands.find(b => b.id === selectedBrand);
 
@@ -1567,7 +1577,11 @@ function CatalogScreen({
 
   const handleAcknowledgeConditions = () => {
     if (selectedBrand) {
-      setAcknowledgedBrands(prev => new Set([...prev, selectedBrand]));
+      setAcknowledgedBrands(prev => {
+        const next = new Set([...prev, selectedBrand]);
+        try { localStorage.setItem('vendpro_acknowledged_brands', JSON.stringify([...next])); } catch {}
+        return next;
+      });
     }
     setShowConditions(false);
   };
@@ -1812,9 +1826,20 @@ function CatalogScreen({
           {/* Product Grid */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between mb-8">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                Mostrando <span className="text-slate-900">{filtered.length}</span> produtos
-              </p>
+              <div className="flex items-center gap-3">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                  Mostrando <span className="text-slate-900">{filtered.length}</span> produtos
+                </p>
+                {currentBrand && (
+                  <button
+                    onClick={() => setShowConditions(true)}
+                    className="text-[10px] font-black text-primary/70 hover:text-primary uppercase tracking-[0.15em] flex items-center gap-1 transition-colors border-b border-primary/30 hover:border-primary pb-px"
+                  >
+                    <FileText size={10} strokeWidth={2.5} />
+                    Ver Condições
+                  </button>
+                )}
+              </div>
               
               <div className="flex items-center gap-4">
                 <select 

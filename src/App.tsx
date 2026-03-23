@@ -1152,7 +1152,7 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
           <img
             src="https://res.cloudinary.com/dgzu0ppsf/image/upload/v1774141089/pbf3bo9tdvbcpxfkhxvq.jpg"
             alt="VendPro"
-            className="h-40 w-auto mx-auto object-contain"
+            className="h-60 w-auto mx-auto object-contain"
           />
           <div className="logo-fallback hidden flex-col items-center justify-center py-2">
             <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center mb-2">

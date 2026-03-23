@@ -39,17 +39,8 @@ export default defineConfig(({mode}) => {
         '@': path.resolve(__dirname, '.'),
       },
     },
-    // Serve arquivos HTML da /public como rotas diretas
     server: {
       hmr: process.env.DISABLE_HMR !== 'true',
-    },
-    // Configuração para o build servir HTMLs estáticos
-    build: {
-      rollupOptions: {
-        input: {
-          main: path.resolve(__dirname, 'index.html'),
-        },
-      },
     },
   };
 });

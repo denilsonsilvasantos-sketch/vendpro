@@ -10,7 +10,7 @@ export async function classifyCategory(productName: string, categories: { id: st
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash",
+      model: "gemini-3-flash-preview",
       contents: prompt,
     });
 
@@ -70,7 +70,7 @@ export async function extractProductsFromMedia(base64Data: string, mimeType: str
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash",
+      model: "gemini-3-flash-preview",
       contents: {
         parts: [
           {
@@ -162,7 +162,7 @@ Responda de forma clara, objetiva e em português brasileiro. Se a pergunta pedi
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.0-flash',
+      model: 'gemini-3-flash-preview',
       contents: prompt,
     });
     return response.text?.trim() || 'Não foi possível gerar uma resposta.';

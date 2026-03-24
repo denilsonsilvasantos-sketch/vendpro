@@ -8,20 +8,37 @@ export async function classifyCategory(productName: string, categories: { id: st
   const prompt = `Classifique o produto "${productName}" em uma das seguintes categorias: ${categories.map(c => c.nome).join(', ')}. 
   Retorne apenas o nome da categoria ou "pendente" se não tiver certeza.`;
 
-  try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: prompt,
-    });
+  const maxRetries = 2;
+  let lastError: any = null;
 
-    const categoryName = response.text?.trim();
-    const category = categories.find(c => c.nome === categoryName);
-    
-    return category ? category.id : null;
-  } catch (error) {
-    console.error("Erro na classificação de categoria:", error);
-    return null;
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: prompt,
+      });
+
+      const categoryName = response.text?.trim();
+      const category = categories.find(c => c.nome === categoryName);
+      
+      return category ? category.id : null;
+    } catch (error: any) {
+      lastError = error;
+      const isRetryable = error.message?.includes('503') || 
+                        error.message?.includes('Deadline expired') || 
+                        error.message?.includes('UNAVAILABLE');
+      
+      if (isRetryable && attempt < maxRetries - 1) {
+        await new Promise(resolve => setTimeout(resolve, (2 ** attempt) * 1000));
+        continue;
+      }
+      
+      console.error("Erro na classificação de categoria:", error);
+      return null;
+    }
   }
+
+  return null;
 }
 
 export async function extractProductsFromMedia(base64Data: string, mimeType: string, categories?: { id: string, nome: string }[]) {
@@ -68,74 +85,92 @@ export async function extractProductsFromMedia(base64Data: string, mimeType: str
     ]
   }`;
 
-  try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: {
-        parts: [
-          {
-            inlineData: {
-              data: base64Data,
-              mimeType: mimeType
-            }
-          },
-          { text: prompt }
-        ]
-      },
-      config: {
-        responseMimeType: "application/json",
-        maxOutputTokens: 8192
-      }
-    });
+  const maxRetries = 3;
+  let lastError: any = null;
 
-    let jsonText = response.text || "{}";
-    // Remove markdown code blocks if present
-    jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
-      const parsed = JSON.parse(jsonText);
-      if (Array.isArray(parsed)) {
-        return parsed;
-      }
-      
-      if (parsed.products) return parsed.products;
-      if (parsed.produtos) return parsed.produtos;
-      if (parsed.items) return parsed.items;
-      if (parsed.itens) return parsed.itens;
-      
-      const keys = Object.keys(parsed);
-      if (keys.length === 1 && Array.isArray(parsed[keys[0]])) {
-        return parsed[keys[0]];
-      }
-      
-      return [];
-    } catch (parseError) {
-      console.error("Erro ao parsear JSON da IA:", jsonText);
-      
-      // Tentar recuperar JSON truncado se possível
-      if (jsonText.includes('"products": [')) {
-        try {
-          let partialJson = jsonText.split('"products": [')[1];
-          // Tentar fechar o array e o objeto
-          // Encontrar o último objeto completo
-          const lastObjectEnd = partialJson.lastIndexOf('}');
-          if (lastObjectEnd !== -1) {
-            partialJson = '[' + partialJson.substring(0, lastObjectEnd + 1) + ']';
-            const recovered = JSON.parse(partialJson);
-            console.log(`Recuperados ${recovered.length} produtos de JSON truncado.`);
-            return recovered;
-          }
-        } catch (e) {
-          console.error("Falha ao recuperar JSON truncado");
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: {
+          parts: [
+            {
+              inlineData: {
+                data: base64Data,
+                mimeType: mimeType
+              }
+            },
+            { text: prompt }
+          ]
+        },
+        config: {
+          responseMimeType: "application/json",
+          maxOutputTokens: 8192
         }
+      });
+
+      let jsonText = response.text || "{}";
+      // Remove markdown code blocks if present
+      jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      
+      try {
+        const parsed = JSON.parse(jsonText);
+        if (Array.isArray(parsed)) {
+          return parsed;
+        }
+        
+        if (parsed.products) return parsed.products;
+        if (parsed.produtos) return parsed.produtos;
+        if (parsed.items) return parsed.items;
+        if (parsed.itens) return parsed.itens;
+        
+        const keys = Object.keys(parsed);
+        if (keys.length === 1 && Array.isArray(parsed[keys[0]])) {
+          return parsed[keys[0]];
+        }
+        
+        return [];
+      } catch (parseError) {
+        console.error("Erro ao parsear JSON da IA:", jsonText);
+        
+        // Tentar recuperar JSON truncado se possível
+        if (jsonText.includes('"products": [')) {
+          try {
+            let partialJson = jsonText.split('"products": [')[1];
+            // Tentar fechar o array e o objeto
+            // Encontrar o último objeto completo
+            const lastObjectEnd = partialJson.lastIndexOf('}');
+            if (lastObjectEnd !== -1) {
+              partialJson = '[' + partialJson.substring(0, lastObjectEnd + 1) + ']';
+              const recovered = JSON.parse(partialJson);
+              console.log(`Recuperados ${recovered.length} produtos de JSON truncado.`);
+              return recovered;
+            }
+          } catch (e) {
+            console.error("Falha ao recuperar JSON truncado");
+          }
+        }
+        
+        return [];
+      }
+    } catch (error: any) {
+      lastError = error;
+      const isRetryable = error.message?.includes('503') || 
+                        error.message?.includes('Deadline expired') || 
+                        error.message?.includes('UNAVAILABLE');
+      
+      if (isRetryable && attempt < maxRetries - 1) {
+        console.warn(`Tentativa ${attempt + 1} falhou com erro de timeout/indisponibilidade. Tentando novamente em ${2 ** attempt}s...`);
+        await new Promise(resolve => setTimeout(resolve, (2 ** attempt) * 1000));
+        continue;
       }
       
-      return [];
+      console.error("Erro ao extrair produtos da mídia:", error);
+      throw new Error(error.message || "Erro desconhecido ao processar o arquivo com a IA.");
     }
-  } catch (error: any) {
-    console.error("Erro ao extrair produtos da mídia:", error);
-    throw new Error(error.message || "Erro desconhecido ao processar o arquivo com a IA.");
   }
+
+  throw lastError;
 }
 
 export async function querySalesInsights(
@@ -160,16 +195,33 @@ PERGUNTA DO USUÁRIO: ${question}
 
 Responda de forma clara, objetiva e em português brasileiro. Se a pergunta pedir uma lista, use numeração. Seja direto.`;
 
-  try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: prompt,
-    });
-    return response.text?.trim() || 'Não foi possível gerar uma resposta.';
-  } catch (error: any) {
-    console.error('Erro na consulta de insights:', error);
-    throw new Error(error.message || 'Erro ao consultar a IA.');
+  const maxRetries = 3;
+  let lastError: any = null;
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const response = await ai.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: prompt,
+      });
+      return response.text?.trim() || 'Não foi possível gerar uma resposta.';
+    } catch (error: any) {
+      lastError = error;
+      const isRetryable = error.message?.includes('503') || 
+                        error.message?.includes('Deadline expired') || 
+                        error.message?.includes('UNAVAILABLE');
+      
+      if (isRetryable && attempt < maxRetries - 1) {
+        await new Promise(resolve => setTimeout(resolve, (2 ** attempt) * 1000));
+        continue;
+      }
+      
+      console.error('Erro na consulta de insights:', error);
+      throw new Error(error.message || 'Erro ao consultar a IA.');
+    }
   }
+
+  throw lastError;
 }
 
 export async function removeImageBackground(base64Data: string, mimeType: string) {

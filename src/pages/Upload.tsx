@@ -223,6 +223,12 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
           const { base64, mimeType } = pages[j];
           setStatus({ type: 'info', message: `Analisando ${i + 1}/${uploadedFiles.length}: ${file.name}${pages.length > 1 ? ` (Parte ${j + 1}/${pages.length})` : ''}` });
           let extractedProducts = await extractProductsFromMedia(base64, mimeType, useCatalogNameAsCategory ? undefined : categories);
+          
+          // Small delay between chunks to avoid overwhelming the API
+          if (j < pages.length - 1 || i < uploadedFiles.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+          }
+          
           if (!Array.isArray(extractedProducts)) extractedProducts = [];
           totalProducts += extractedProducts.length;
           for (const extracted of extractedProducts) {

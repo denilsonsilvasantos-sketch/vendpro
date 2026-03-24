@@ -187,14 +187,6 @@ export default function Pendencias({ companyId, onRefresh }: { companyId: string
                       <ImageIcon className="text-slate-200" size={24} strokeWidth={1} />
                     )}
                   </div>
-                  {editingId === product.id && (
-                    <button 
-                      onClick={() => fileInputRef.current?.click()}
-                      className="absolute -bottom-1 -right-1 bg-primary text-white p-1 rounded-[6px] shadow-lg hover:scale-110 transition-transform border-2 border-white"
-                    >
-                      <Upload size={10} strokeWidth={3} />
-                    </button>
-                  )}
                 </div>
                 
                 <div className="flex-1 flex items-center justify-between gap-4 min-w-0">
@@ -223,7 +215,7 @@ export default function Pendencias({ companyId, onRefresh }: { companyId: string
                     </div>
 
                     {editingId === product.id ? (
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap justify-end">
                         <select 
                           className="px-2 py-1 bg-slate-50 border border-slate-100 rounded-[6px] outline-none font-black uppercase tracking-widest text-[8px] text-slate-600 cursor-pointer"
                           value={editData.category_id || ''}
@@ -234,6 +226,25 @@ export default function Pendencias({ companyId, onRefresh }: { companyId: string
                             <option key={cat.id} value={cat.id}>{cat.nome}</option>
                           ))}
                         </select>
+                        <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-[6px] px-2 h-[26px] focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/10">
+                          <LinkIcon size={9} strokeWidth={2.5} className="text-slate-400 shrink-0" />
+                          <input
+                            type="url"
+                            placeholder="Link da imagem"
+                            value={editData.imagem || ''}
+                            onChange={e => setEditData({ ...editData, imagem: e.target.value })}
+                            className="bg-transparent outline-none text-[9px] font-medium text-slate-700 placeholder:text-slate-300 w-36"
+                          />
+                          {isUploading && <Loader2 size={9} className="animate-spin text-primary shrink-0" />}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          title="Fazer upload de arquivo"
+                          className="h-[26px] px-2 bg-slate-100 text-slate-500 hover:bg-primary/10 hover:text-primary rounded-[6px] transition-all flex items-center gap-1 text-[9px] font-black uppercase tracking-widest"
+                        >
+                          <Upload size={9} strokeWidth={3} /> Upload
+                        </button>
                         <button 
                           onClick={() => handleSave(product.id)}
                           className="px-[10px] py-[5px] bg-emerald-500 text-white rounded-[6px] shadow-lg hover:bg-emerald-600 transition-all active:scale-95 flex items-center justify-center"

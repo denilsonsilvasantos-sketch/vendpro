@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { supabase } from '../integrations/supabaseClient';
-import { X, Eye, ShoppingBag, TrendingUp, AlertTriangle, PackageSearch, Calendar, CreditCard, Filter, Trash2, AlertCircle, Search } from 'lucide-react';
+import { X, Eye, ShoppingBag, TrendingUp, AlertTriangle, PackageSearch, Calendar, CreditCard, Filter, Trash2, AlertCircle, Search, Send } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 function formatDate(dateStr: string) {
@@ -39,7 +39,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
 
     let query = supabase
       .from('orders')
-      .select('*, customers(nome), brands(name)')
+      .select('*, customers(nome, telefone), brands(name)')
       .eq('company_id', companyId)
       .order('created_at', { ascending: false });
 
@@ -128,6 +128,27 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
     if (error) { alert('Erro ao atualizar status.'); return; }
     setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
     if (selectedOrder?.id === orderId) setSelectedOrder((prev: any) => ({ ...prev, status: newStatus }));
+  };
+
+  const handleNotifyCustomer = (order: any) => {
+    const phone = order.customers?.telefone;
+    if (!phone) {
+      alert('Cliente não possui telefone cadastrado.');
+      return;
+    }
+
+    const statusMsg = {
+      pending: 'está Pendente',
+      typed: 'foi Digitado',
+      finished: 'foi Finalizado',
+      cancelled: 'foi Cancelado'
+    }[order.status as string] || 'teve o status atualizado';
+
+    const brandName = order.brands?.name || 'nossa loja';
+    const message = `Olá! Passando para avisar que seu pedido #${order.id.slice(-4)} da marca ${brandName} ${statusMsg}. Você pode acompanhar os detalhes no nosso aplicativo!`;
+    
+    const whatsappUrl = `https://wa.me/${phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
   };
 
   const openOrderDetails = async (order: any) => {
@@ -548,9 +569,20 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                   <div className={`w-3 h-3 rounded-full ${selectedOrder.status === 'pending' ? 'bg-amber-500' : selectedOrder.status === 'typed' ? 'bg-blue-500' : selectedOrder.status === 'finished' ? 'bg-emerald-500' : 'bg-slate-400'}`} />
                   <span className="text-sm font-bold text-slate-600 uppercase tracking-widest">Status: {statusLabel(selectedOrder.status)}</span>
                 </div>
-                <button onClick={() => setSelectedOrder(null)} className="px-8 py-3 bg-white text-slate-600 rounded-xl font-bold shadow-sm border border-slate-200 hover:bg-slate-50 transition-all">
-                  Fechar
-                </button>
+                <div className="flex items-center gap-2">
+                  {canEditOrder && selectedOrder.customers?.telefone && (
+                    <button 
+                      onClick={() => handleNotifyCustomer(selectedOrder)}
+                      className="px-6 py-3 bg-emerald-500 text-white rounded-xl font-bold shadow-lg shadow-emerald-500/20 hover:bg-emerald-600 transition-all flex items-center gap-2"
+                    >
+                      <Send size={16} />
+                      Notificar Cliente
+                    </button>
+                  )}
+                  <button onClick={() => setSelectedOrder(null)} className="px-8 py-3 bg-white text-slate-600 rounded-xl font-bold shadow-sm border border-slate-200 hover:bg-slate-50 transition-all">
+                    Fechar
+                  </button>
+                </div>
               </div>
             </motion.div>
           </div>

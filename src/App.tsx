@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from 'react';
+import { useState, useEffect, lazy, Suspense, useRef } from 'react';
 import { getProducts } from "./services/productService";
 import { validateSellerCode } from './services/sellerService';
 import { registerCompany, loginCompany, getCompanyById } from './services/companyService';
@@ -36,13 +36,16 @@ import {
   Loader2,
   DollarSign,
   Bell,
-  BellRing
+  BellRing,
+  Mic,
+  Camera
 } from 'lucide-react';
 import { useCart } from './hooks/useCart';
 import { useNotifications } from './hooks/useNotifications';
 import { subscribeToPush, isPushSupported } from './services/pushService';
 import SalesAIChat from './components/SalesAIChat';
 import { Product, Category, Seller, Customer, UserRole, CartItem, Company, Brand, BannerData } from './types';
+import { searchProductByImage } from './services/aiService';
 import { Card } from './components/Card';
 import { Badge } from './components/Badge';
 import CartScreen from './pages/CartScreen';
@@ -665,16 +668,6 @@ export default function App() {
         </div>
 
         <div className="flex items-center gap-2 md:gap-6">
-          <div className="hidden lg:flex items-center bg-slate-100 rounded-full px-6 py-2.5 w-80 shadow-inner border border-slate-200/50 focus-within:ring-4 focus-within:ring-primary/5 transition-all">
-            <Search size={18} className="text-slate-400 mr-3" />
-            <input 
-              type="text" 
-              placeholder="Buscar produtos..." 
-              className="bg-transparent border-none outline-none text-sm w-full font-black uppercase tracking-widest placeholder:text-slate-400"
-              onFocus={() => setActiveTab('catalog')}
-            />
-          </div>
-
           <div className="flex items-center gap-2 md:gap-4">
             {(role === 'seller' || role === 'company') && (
               <button
@@ -1687,6 +1680,48 @@ function CatalogScreen({
   const [showConditions, setShowConditions] = useState(false);
   const [showSwitchWarning, setShowSwitchWarning] = useState(false);
   const [showLogisticsWarning, setShowLogisticsWarning] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [isAnalyzingPhoto, setIsAnalyzingPhoto] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const startVoiceSearch = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert('Seu navegador não suporta busca por voz.');
+      return;
+    }
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'pt-BR';
+    recognition.onstart = () => setIsListening(true);
+    recognition.onend = () => setIsListening(false);
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      setSearch(transcript);
+    };
+    recognition.start();
+  };
+
+  const handlePhotoSearch = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsAnalyzingPhoto(true);
+    try {
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64 = (reader.result as string).split(',')[1];
+        const keywords = await searchProductByImage(base64, file.type);
+        if (keywords) {
+          setSearch(keywords);
+        }
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsAnalyzingPhoto(false);
+    }
+  };
   const [pendingBrandId, setPendingBrandId] = useState<string | null>(null);
   const [acknowledgedBrands, setAcknowledgedBrands] = useState<Set<string>>(() => {
     try {
@@ -1767,9 +1802,13 @@ function CatalogScreen({
 
   const filtered = products.filter(p => {
     const searchLower = search.trim().toLowerCase();
-    const nome = p.nome || '';
-    const sku = p.sku || '';
-    const matchesSearch = nome.toLowerCase().includes(searchLower) || sku.toLowerCase().includes(searchLower);
+    if (!searchLower) return (selectedCategory ? p.category_id === selectedCategory : true) && (selectedBrand ? p.brand_id === selectedBrand : true);
+    
+    const searchTerms = searchLower.split(/\s+/);
+    const nome = (p.nome || '').toLowerCase();
+    const sku = (p.sku || '').toLowerCase();
+    
+    const matchesSearch = searchTerms.every(term => nome.includes(term) || sku.includes(term));
     const matchesCategory = selectedCategory ? p.category_id === selectedCategory : true;
     const matchesBrand = selectedBrand ? p.brand_id === selectedBrand : true;
     return matchesSearch && matchesCategory && matchesBrand;
@@ -1933,6 +1972,45 @@ function CatalogScreen({
       </div>
 
       <div className="max-w-6xl xl:max-w-7xl mx-auto px-4 md:px-8 py-12">
+        {/* Search Bar */}
+        <div className="mb-8 max-w-2xl">
+          <div className="relative group">
+            <div className="absolute inset-y-0 left-0 pl-6 flex items-center pointer-events-none">
+              <Search className="h-5 w-5 text-slate-400 group-focus-within:text-primary transition-colors" />
+            </div>
+            <input
+              type="text"
+              placeholder="Buscar produtos (Nome ou SKU)..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="block w-full pl-14 pr-32 py-4 bg-white border border-slate-100 rounded-[24px] text-sm font-black uppercase tracking-widest text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-8 focus:ring-primary/5 focus:border-primary/40 transition-all shadow-xl shadow-slate-200/50"
+            />
+            <div className="absolute inset-y-0 right-2 flex items-center gap-1">
+              <button
+                onClick={startVoiceSearch}
+                className={`p-3 rounded-full transition-all ${isListening ? 'bg-rose-500 text-white animate-pulse' : 'text-slate-400 hover:bg-slate-50 hover:text-primary'}`}
+                title="Busca por voz"
+              >
+                <Mic size={20} />
+              </button>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className={`p-3 rounded-full transition-all ${isAnalyzingPhoto ? 'bg-primary text-white animate-spin' : 'text-slate-400 hover:bg-slate-50 hover:text-primary'}`}
+                title="Busca por foto"
+              >
+                {isAnalyzingPhoto ? <Loader2 size={20} /> : <Camera size={20} />}
+              </button>
+            </div>
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              className="hidden" 
+              accept="image/*" 
+              onChange={handlePhotoSearch} 
+            />
+          </div>
+        </div>
+
         {/* Category Bar */}
         <div className="flex items-center gap-4 mb-12 overflow-x-auto pb-4 custom-scrollbar">
           {brands.map(brand => (

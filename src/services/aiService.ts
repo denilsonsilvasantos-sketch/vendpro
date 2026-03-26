@@ -224,6 +224,32 @@ Responda de forma clara, objetiva e em português brasileiro. Se a pergunta pedi
   throw lastError;
 }
 
+export async function searchProductByImage(base64Data: string, mimeType: string) {
+  const prompt = `Identifique o produto nesta imagem. Retorne apenas de 3 a 5 palavras-chave principais que descrevam o produto para serem usadas em uma busca no catálogo. Exemplo: "Batom Matte Vermelho", "Esmalte Impala Cremoso".`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: {
+        parts: [
+          {
+            inlineData: {
+              data: base64Data,
+              mimeType: mimeType
+            }
+          },
+          { text: prompt }
+        ]
+      }
+    });
+
+    return response.text?.trim() || "";
+  } catch (error) {
+    console.error("Erro na busca por imagem:", error);
+    return "";
+  }
+}
+
 export async function removeImageBackground(base64Data: string, mimeType: string) {
   const prompt = "Remove the background of this product image and place it on a pure white background. Keep the product exactly as it is, maintaining all its details, colors, and textures. The output should be only the product on a clean, solid white background.";
 

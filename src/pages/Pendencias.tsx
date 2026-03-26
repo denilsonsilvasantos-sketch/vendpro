@@ -1,17 +1,61 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { supabase } from '../integrations/supabaseClient';
 import { Product, Category } from '../types';
-import { AlertTriangle, Edit, Check, X, Image as ImageIcon, Tag, Upload, Loader2, Link as LinkIcon, ChevronDown, Sparkles, Search, Filter } from 'lucide-react';
+import { searchProductByImage } from '../services/aiService';
+import { AlertTriangle, Edit, Check, X, Image as ImageIcon, Tag, Upload, Loader2, Link as LinkIcon, ChevronDown, Sparkles, Search, Filter, Mic, Camera } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function Pendencias({ companyId, onRefresh }: { companyId: string | null, onRefresh?: () => void }) {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editData, setEditData] = useState<Partial<Product>>({});
   const [isUploading, setIsUploading] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [isAnalyzingPhoto, setIsAnalyzingPhoto] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const startVoiceSearch = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert('Seu navegador não suporta busca por voz.');
+      return;
+    }
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'pt-BR';
+    recognition.onstart = () => setIsListening(true);
+    recognition.onend = () => setIsListening(false);
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      setSearchTerm(transcript);
+    };
+    recognition.start();
+  };
+
+  const handlePhotoSearch = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsAnalyzingPhoto(true);
+    try {
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64 = (reader.result as string).split(',')[1];
+        const keywords = await searchProductByImage(base64, file.type);
+        if (keywords) {
+          setSearchTerm(keywords);
+        }
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsAnalyzingPhoto(false);
+    }
+  };
 
   async function fetchPendencies() {
     if (!supabase || companyId === null) return;
@@ -113,6 +157,17 @@ export default function Pendencias({ companyId, onRefresh }: { companyId: string
     }
   };
 
+  const filteredProducts = products.filter(p => {
+    const searchLower = searchTerm.trim().toLowerCase();
+    if (!searchLower) return true;
+    
+    const searchTerms = searchLower.split(/\s+/);
+    const nome = (p.nome || '').toLowerCase();
+    const sku = (p.sku || '').toLowerCase();
+    
+    return searchTerms.every(term => nome.includes(term) || sku.includes(term));
+  });
+
   if (loading && products.length === 0) {
     return (
       <div className="p-8 flex flex-col items-center justify-center min-h-[400px] gap-6 animate-pulse">
@@ -147,6 +202,42 @@ export default function Pendencias({ companyId, onRefresh }: { companyId: string
           {products.length} itens aguardando
         </div>
       </div>
+
+      <div className="relative group max-w-md">
+        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+          <Search className="h-4 w-4 text-slate-400 group-focus-within:text-primary transition-colors" />
+        </div>
+        <input
+          type="text"
+          placeholder="Buscar nas pendências (Nome ou SKU)..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="block w-full pl-11 pr-24 py-3 bg-white border border-slate-100 rounded-2xl text-xs font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary/40 transition-all shadow-sm"
+        />
+        <div className="absolute inset-y-0 right-2 flex items-center gap-1">
+          <button
+            onClick={startVoiceSearch}
+            className={`p-1.5 rounded-full transition-all ${isListening ? 'bg-rose-500 text-white animate-pulse' : 'text-slate-400 hover:bg-slate-50 hover:text-primary'}`}
+            title="Busca por voz"
+          >
+            <Mic size={14} />
+          </button>
+          <button
+            onClick={() => photoInputRef.current?.click()}
+            className={`p-1.5 rounded-full transition-all ${isAnalyzingPhoto ? 'bg-primary text-white animate-spin' : 'text-slate-400 hover:bg-slate-50 hover:text-primary'}`}
+            title="Busca por foto"
+          >
+            {isAnalyzingPhoto ? <Loader2 size={14} /> : <Camera size={14} />}
+          </button>
+        </div>
+        <input 
+          type="file" 
+          ref={photoInputRef} 
+          className="hidden" 
+          accept="image/*" 
+          onChange={handlePhotoSearch} 
+        />
+      </div>
       
       <AnimatePresence mode="popLayout">
         {products.length === 0 ? (
@@ -165,7 +256,7 @@ export default function Pendencias({ companyId, onRefresh }: { companyId: string
           </motion.div>
         ) : (
           <div className="flex flex-col gap-2">
-            {products.map((product, index) => (
+            {filteredProducts.map((product, index) => (
               <motion.div 
                 layout
                 initial={{ opacity: 0, y: 10 }}

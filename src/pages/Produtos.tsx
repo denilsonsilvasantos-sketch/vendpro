@@ -49,6 +49,15 @@ export default function Produtos({ companyId, onRefresh }: { companyId: string |
     const matchesBrand = filterBrand ? p.brand_id === filterBrand : true;
     return matchesSearch && matchesBrand;
   }).sort((a, b) => {
+    const isEsgotadoA = a.status_estoque === 'esgotado';
+    const isEsgotadoB = b.status_estoque === 'esgotado';
+
+    // Se não houver filtro de marca (ou seja, "Todas"), esgotados vão para o final absoluto
+    if (!filterBrand) {
+      if (isEsgotadoA && !isEsgotadoB) return 1;
+      if (!isEsgotadoA && isEsgotadoB) return -1;
+    }
+
     const brandA = brands.find(br => br.id === a.brand_id);
     const brandB = brands.find(br => br.id === b.brand_id);
     const brandOrderA = brandA?.order_index ?? 999999;
@@ -67,11 +76,11 @@ export default function Produtos({ companyId, onRefresh }: { companyId: string |
       return orderA - orderB;
     }
 
-    const isEsgotadoA = a.status_estoque === 'esgotado';
-    const isEsgotadoB = b.status_estoque === 'esgotado';
-    
-    if (isEsgotadoA && !isEsgotadoB) return 1;
-    if (!isEsgotadoA && isEsgotadoB) return -1;
+    // Se houver filtro de marca, esgotados ficam no final da sua categoria
+    if (filterBrand) {
+      if (isEsgotadoA && !isEsgotadoB) return 1;
+      if (!isEsgotadoA && isEsgotadoB) return -1;
+    }
 
     return a.nome.localeCompare(b.nome);
   });

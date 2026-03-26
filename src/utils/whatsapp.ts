@@ -1,6 +1,6 @@
 import { CartItem } from '../types';
 
-export function formatWhatsAppMessage(items: CartItem[], clientName?: string): string {
+export function formatWhatsAppMessage(items: CartItem[], clientName?: string, brandName?: string): string {
   const lines = items.map(item => {
     const isBoxDiscount = item.has_box_discount && !item.venda_somente_box && item.quantity >= (item.qtd_box || 0);
     const unitPrice = item.venda_somente_box 
@@ -19,6 +19,9 @@ export function formatWhatsAppMessage(items: CartItem[], clientName?: string): s
   }, 0);
   
   let message = `Pedido realizado\n`;
+  if (brandName) {
+    message += `Marca: ${brandName}\n`;
+  }
   if (clientName) {
     message += `${clientName}\n`;
   }

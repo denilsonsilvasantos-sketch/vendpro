@@ -23,8 +23,10 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
   const [loadingItems, setLoadingItems] = useState(false);
   const [itemsError, setItemsError] = useState<string | null>(null);
   const [abcCurve, setAbcCurve] = useState<any[]>([]);
+  const [brands, setBrands] = useState<any[]>([]);
 
   const [filterStatus, setFilterStatus] = useState('');
+  const [filterBrand, setFilterBrand] = useState('');
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
   const [filterSearch, setFilterSearch] = useState('');
@@ -37,7 +39,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
 
     let query = supabase
       .from('orders')
-      .select('*, customers(nome)')
+      .select('*, customers(nome), brands(name)')
       .eq('company_id', companyId)
       .order('created_at', { ascending: false });
 
@@ -55,6 +57,11 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
         fetchAbcCurve(data.map((o: any) => o.id));
       }
     }
+
+    // Fetch brands for filtering
+    const { data: brandsData } = await supabase.from('brands').select('*').eq('company_id', companyId).order('name');
+    setBrands(brandsData || []);
+    
     setLoading(false);
   }
 
@@ -87,6 +94,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
   const filteredOrders = useMemo(() => {
     return orders.filter(o => {
       if (filterStatus && o.status !== filterStatus) return false;
+      if (filterBrand && o.brand_id !== filterBrand) return false;
       if (filterDateFrom) {
         const from = new Date(filterDateFrom + 'T00:00:00');
         if (new Date(o.created_at) < from) return false;
@@ -104,10 +112,11 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
     });
   }, [orders, filterStatus, filterDateFrom, filterDateTo, filterSearch]);
 
-  const hasActiveFilters = filterStatus || filterDateFrom || filterDateTo || filterSearch;
+  const hasActiveFilters = filterStatus || filterBrand || filterDateFrom || filterDateTo || filterSearch;
 
   function clearFilters() {
     setFilterStatus('');
+    setFilterBrand('');
     setFilterDateFrom('');
     setFilterDateTo('');
     setFilterSearch('');
@@ -203,16 +212,14 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
           {role === 'customer' ? 'Meus Pedidos' : 'Pedidos'}
         </h1>
         <div className="flex items-center gap-2">
-          {(role === 'seller' || role === 'company') && (
-            <button
-              onClick={() => setShowFilters(p => !p)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold border transition-all ${showFilters || hasActiveFilters ? 'bg-primary text-white border-primary shadow-md shadow-primary/30' : 'bg-white text-slate-500 border-slate-200 hover:border-primary/40'}`}
-            >
-              <Filter size={13} />
-              Filtros
-              {hasActiveFilters && <span className="w-4 h-4 bg-white text-primary rounded-full text-[9px] font-black flex items-center justify-center">{[filterStatus, filterDateFrom, filterDateTo, filterSearch].filter(Boolean).length}</span>}
-            </button>
-          )}
+          <button
+            onClick={() => setShowFilters(p => !p)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold border transition-all ${showFilters || hasActiveFilters ? 'bg-primary text-white border-primary shadow-md shadow-primary/30' : 'bg-white text-slate-500 border-slate-200 hover:border-primary/40'}`}
+          >
+            <Filter size={13} />
+            Filtros
+            {hasActiveFilters && <span className="w-4 h-4 bg-white text-primary rounded-full text-[9px] font-black flex items-center justify-center">{[filterStatus, filterBrand, filterDateFrom, filterDateTo, filterSearch].filter(Boolean).length}</span>}
+          </button>
           <div className="bg-white px-4 py-2 rounded-full shadow-sm border border-slate-100 text-xs font-bold text-slate-500">
             {filteredOrders.length} pedidos
           </div>
@@ -220,7 +227,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
       </div>
 
       <AnimatePresence>
-        {showFilters && (role === 'seller' || role === 'company') && (
+        {showFilters && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
@@ -234,19 +241,32 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                   <button onClick={clearFilters} className="text-[10px] font-bold text-rose-500 hover:underline">Limpar filtros</button>
                 )}
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Buscar cliente</label>
-                  <div className="relative">
-                    <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" />
-                    <input
-                      type="text"
-                      value={filterSearch}
-                      onChange={e => setFilterSearch(e.target.value)}
-                      placeholder="Nome do cliente..."
-                      className="w-full pl-8 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-primary/40 font-medium"
-                    />
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                {role !== 'customer' && (
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Buscar cliente</label>
+                    <div className="relative">
+                      <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" />
+                      <input
+                        type="text"
+                        value={filterSearch}
+                        onChange={e => setFilterSearch(e.target.value)}
+                        placeholder="Nome do cliente..."
+                        className="w-full pl-8 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-primary/40 font-medium"
+                      />
+                    </div>
                   </div>
+                )}
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Marca</label>
+                  <select
+                    value={filterBrand}
+                    onChange={e => setFilterBrand(e.target.value)}
+                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-primary/40 font-medium"
+                  >
+                    <option value="">Todas</option>
+                    {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                  </select>
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Status</label>
@@ -317,7 +337,8 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
             <thead>
               <tr className="bg-slate-50/50 border-b border-slate-100">
                 <th className="p-6 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400">ID</th>
-                <th className="p-6 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400">Cliente</th>
+                {role !== 'customer' && <th className="p-6 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400">Cliente</th>}
+                <th className="p-6 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400">Marca</th>
                 <th className="p-6 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400 hidden sm:table-cell">Data</th>
                 <th className="p-6 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400">Total</th>
                 {canEditOrder && <th className="p-6 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400 hidden md:table-cell">Pagamento</th>}
@@ -331,10 +352,17 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                   <td className="p-6">
                     <span className="font-mono text-xs font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-lg">#{filteredOrders.length - index}</span>
                   </td>
+                  {role !== 'customer' && (
+                    <td className="p-6">
+                      <button onClick={() => openOrderDetails(order)} className="font-bold text-slate-800 hover:text-primary transition-colors text-left">
+                        {order.customers?.nome || order.client_name || 'N/A'}
+                      </button>
+                    </td>
+                  )}
                   <td className="p-6">
-                    <button onClick={() => openOrderDetails(order)} className="font-bold text-slate-800 hover:text-primary transition-colors text-left">
-                      {order.customers?.nome || order.client_name || 'N/A'}
-                    </button>
+                    <span className="text-xs font-bold text-slate-600 uppercase tracking-tight">
+                      {order.brands?.name || 'N/A'}
+                    </span>
                   </td>
                   <td className="p-6 hidden sm:table-cell">
                     <span className="text-xs text-slate-500 flex items-center gap-1.5">

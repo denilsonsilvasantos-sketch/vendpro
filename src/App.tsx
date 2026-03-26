@@ -345,7 +345,8 @@ export default function App() {
         }
       }
 
-      const message = formatWhatsAppMessage(cart, clientName);
+      const currentBrand = brands.find(b => b.id === selectedBrand);
+      const message = formatWhatsAppMessage(cart, clientName, currentBrand?.name);
       const whatsappUrl = `https://wa.me/${whatsappNumber.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
       window.open(whatsappUrl, '_blank');
       clearCart();
@@ -427,9 +428,11 @@ export default function App() {
               brandQuery = brandQuery.in('id', releasedBrandIds);
               filteredCats = filteredCats.filter((c: any) => c.brand_id && releasedBrandIds.includes(c.brand_id));
             } else if (blockedBrandIds.length > 0) {
+              brandQuery = brandQuery.not('id', 'in', `(${blockedBrandIds.join(',')})`);
               filteredCats = filteredCats.filter((c: any) => !c.brand_id || !blockedBrandIds.includes(c.brand_id));
             }
           } else if (role === 'customer' && blockedBrandIds.length > 0) {
+            brandQuery = brandQuery.not('id', 'in', `(${blockedBrandIds.join(',')})`);
             filteredCats = filteredCats.filter((c: any) => !c.brand_id || !blockedBrandIds.includes(c.brand_id));
           }
 
@@ -1771,6 +1774,15 @@ function CatalogScreen({
     const matchesBrand = selectedBrand ? p.brand_id === selectedBrand : true;
     return matchesSearch && matchesCategory && matchesBrand;
   }).sort((a, b) => {
+    const isEsgotadoA = a.status_estoque === 'esgotado';
+    const isEsgotadoB = b.status_estoque === 'esgotado';
+
+    // Se estiver em "Todas as Categorias", esgotados vão para o final absoluto
+    if (!selectedCategory) {
+      if (isEsgotadoA && !isEsgotadoB) return 1;
+      if (!isEsgotadoA && isEsgotadoB) return -1;
+    }
+
     const brandA = brands.find(br => br.id === a.brand_id);
     const brandB = brands.find(br => br.id === b.brand_id);
     const brandOrderA = brandA?.order_index ?? 999999;
@@ -1788,11 +1800,11 @@ function CatalogScreen({
       return orderA - orderB;
     }
 
-    const isEsgotadoA = a.status_estoque === 'esgotado';
-    const isEsgotadoB = b.status_estoque === 'esgotado';
-    
-    if (isEsgotadoA && !isEsgotadoB) return 1;
-    if (!isEsgotadoA && isEsgotadoB) return -1;
+    // Se NÃO estiver em "Todas", esgotados ficam no final da sua categoria
+    if (selectedCategory) {
+      if (isEsgotadoA && !isEsgotadoB) return 1;
+      if (!isEsgotadoA && isEsgotadoB) return -1;
+    }
 
     const nomeA = a.nome || '';
     const nomeB = b.nome || '';

@@ -20,7 +20,13 @@ export async function getBanners(companyId: string): Promise<BannerData[]> {
     return localBanners;
   }
   
-  return data && data.length > 0 ? data : localBanners;
+  const mappedData = (data || []).map((b: any) => ({
+    ...b,
+    imageUrl: b.imageUrl || b.image_url,
+    sub: b.sub || b.subtitle
+  }));
+
+  return mappedData.length > 0 ? mappedData : localBanners;
 }
 
 export async function saveBanners(companyId: string, banners: BannerData[]): Promise<void> {
@@ -35,7 +41,13 @@ export async function saveBanners(companyId: string, banners: BannerData[]): Pro
     await supabase.from('banners').delete().eq('company_id', companyId);
     // Insert new
     if (banners.length > 0) {
-      await supabase.from('banners').insert(banners.map(({ id, ...rest }) => ({ ...rest, company_id: companyId })));
+      const toInsert = banners.map(({ id, ...rest }) => ({
+        ...rest,
+        company_id: companyId,
+        image_url: rest.imageUrl,
+        subtitle: rest.sub
+      }));
+      await supabase.from('banners').insert(toInsert);
     }
   } catch (err) {
     console.error('Error saving banners to Supabase:', err);

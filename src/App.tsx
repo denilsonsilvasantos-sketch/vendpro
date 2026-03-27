@@ -1289,7 +1289,7 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
           setCustomerLoginCnpj(customerData.cnpj);
         } else {
           // Create new customer using the service to generate credentials
-          const newCustomer = await createCustomer(sellerInfo.company_id, {
+          const result = await createCustomer(sellerInfo.company_id, {
             nome: customerData.nome,
             nome_empresa: customerData.nome_empresa,
             cnpj: customerData.cnpj,
@@ -1301,9 +1301,9 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
             ativo: true
           });
 
-          if (newCustomer) {
+          if (result && result.data) {
             onLogin('customer', { 
-              ...newCustomer, 
+              ...result.data, 
               sellerCode,
               vendedor_nome: sellerInfo.nome,
               vendedor_whatsapp: sellerInfo.whatsapp,
@@ -1311,7 +1311,7 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
               vendedor_marcas_bloqueadas: sellerInfo.marcas_bloqueadas || [],
             }, availableCompanies);
           } else {
-            alert('Erro ao criar cadastro. Tente novamente.');
+            alert(`Erro ao criar cadastro: ${result?.error || 'Erro desconhecido'}`);
           }
         }
       } catch (err) {

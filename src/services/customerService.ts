@@ -176,8 +176,8 @@ export async function createCustomer(companyId: string, customerData: any) {
     .single();
 
   if (error) {
-    console.error("Erro ao criar cliente:", error);
-    return null;
+    console.error("Erro detalhado do Supabase ao criar cliente:", error);
+    return { data: null, error: error.message };
   }
-  return data;
+  return { data, error: null };
 }

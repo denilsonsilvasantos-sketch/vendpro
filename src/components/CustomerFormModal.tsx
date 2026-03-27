@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../integrations/supabaseClient';
 import { Customer, Seller } from '../types';
-import { X, Save, Loader2, Phone, User, FileText, Lock } from 'lucide-react';
+import { X, Save, Loader2, Phone, User, FileText, Lock, Building2 } from 'lucide-react';
 
 export default function CustomerFormModal({ onClose, onSave, customer, companyId }: { onClose: () => void, onSave: () => void, customer?: Customer, companyId: string | null }) {
   const [formData, setFormData] = useState<any>(customer || { 
-    nome: '', 
+    nome: '',
+    nome_empresa: '',
     whatsapp: '', 
     cnpj: '', 
-    responsavel: '',
     senha: '',
     ativo: true, 
     seller_id: '' 
@@ -32,16 +32,18 @@ export default function CustomerFormModal({ onClose, onSave, customer, companyId
     setLoading(true);
     try {
       const dataToSave = { 
-        ...formData, 
-        company_id: companyId,
+        nome: formData.nome || '',
+        nome_empresa: formData.nome_empresa || '',
         whatsapp: formData.whatsapp || '',
-        responsavel: formData.responsavel || '',
-        cnpj: formData.cnpj ? formData.cnpj.replace(/\D/g, '') : ''
+        cnpj: formData.cnpj ? formData.cnpj.replace(/\D/g, '') : '',
+        senha: formData.senha || '',
+        ativo: formData.ativo ?? true,
+        seller_id: formData.seller_id || null,
+        company_id: companyId,
       };
 
       if (customer) {
-        const { id, created_at, seller_nome, ...updateData } = dataToSave;
-        const { error } = await supabase.from('customers').update(updateData).eq('id', customer.id);
+        const { error } = await supabase.from('customers').update(dataToSave).eq('id', customer.id);
         if (error) throw error;
       } else {
         const { error } = await supabase.from('customers').insert([dataToSave]);
@@ -73,12 +75,12 @@ export default function CustomerFormModal({ onClose, onSave, customer, companyId
           <div className="space-y-1">
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nome da Empresa / Razão Social</label>
             <div className="relative">
-              <FileText size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" />
+              <Building2 size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" />
               <input 
                 className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:border-primary/50 transition-all" 
                 placeholder="Ex: Soda com Limão LTDA" 
-                value={formData.nome} 
-                onChange={e => setFormData({...formData, nome: e.target.value})} 
+                value={formData.nome_empresa || ''} 
+                onChange={e => setFormData({...formData, nome_empresa: e.target.value})} 
                 required 
               />
             </div>
@@ -87,13 +89,16 @@ export default function CustomerFormModal({ onClose, onSave, customer, companyId
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">CNPJ</label>
-              <input 
-                className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:border-primary/50 transition-all" 
-                placeholder="00.000.000/0000-00" 
-                value={formData.cnpj} 
-                onChange={e => setFormData({...formData, cnpj: e.target.value})} 
-                required 
-              />
+              <div className="relative">
+                <FileText size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" />
+                <input 
+                  className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:border-primary/50 transition-all" 
+                  placeholder="00.000.000/0000-00" 
+                  value={formData.cnpj} 
+                  onChange={e => setFormData({...formData, cnpj: e.target.value})} 
+                  required 
+                />
+              </div>
             </div>
             <div className="space-y-1">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">WhatsApp</label>
@@ -102,7 +107,7 @@ export default function CustomerFormModal({ onClose, onSave, customer, companyId
                 <input 
                   className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:border-primary/50 transition-all" 
                   placeholder="(00) 00000-0000" 
-                  value={formData.whatsapp} 
+                  value={formData.whatsapp || ''} 
                   onChange={e => setFormData({...formData, whatsapp: e.target.value})} 
                 />
               </div>
@@ -116,8 +121,9 @@ export default function CustomerFormModal({ onClose, onSave, customer, companyId
               <input 
                 className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:border-primary/50 transition-all" 
                 placeholder="Nome de quem faz os pedidos" 
-                value={formData.responsavel} 
-                onChange={e => setFormData({...formData, responsavel: e.target.value})} 
+                value={formData.nome || ''} 
+                onChange={e => setFormData({...formData, nome: e.target.value})} 
+                required
               />
             </div>
           </div>
@@ -145,7 +151,7 @@ export default function CustomerFormModal({ onClose, onSave, customer, companyId
                   type="password"
                   className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:border-primary/50 transition-all" 
                   placeholder="Mín. 4 dígitos" 
-                  value={formData.senha} 
+                  value={formData.senha || ''} 
                   onChange={e => setFormData({...formData, senha: e.target.value})} 
                   required={!customer}
                 />

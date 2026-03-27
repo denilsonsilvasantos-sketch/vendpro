@@ -41,8 +41,8 @@ export default function CartScreen({
 
   const filteredCustomers = customers.filter(c => 
     c.nome.toLowerCase().includes(customerSearch.toLowerCase()) ||
-    c.cnpj.includes(customerSearch) ||
-    c.responsavel.toLowerCase().includes(customerSearch.toLowerCase())
+    (c.cnpj || '').includes(customerSearch) ||
+    (c.nome_empresa || '').toLowerCase().includes(customerSearch.toLowerCase())
   );
 
   const filteredSellers = sellers.filter(s => 
@@ -391,8 +391,8 @@ export default function CartScreen({
                                 onClick={() => handleSelectCustomer(c)}
                                 className="w-full p-6 text-left hover:bg-white/5 border-b border-white/5 last:border-0 transition-colors"
                               >
-                                <p className="text-sm font-black text-white uppercase">{c.nome}</p>
-                                <p className="text-xs text-white/40">{c.cnpj} - {c.responsavel}</p>
+                                <p className="text-sm font-black text-white uppercase">{c.nome_empresa || c.nome}</p>
+                                <p className="text-xs text-white/40">{c.cnpj}{c.nome ? ` - ${c.nome}` : ''}</p>
                               </button>
                             ))}
                           </motion.div>

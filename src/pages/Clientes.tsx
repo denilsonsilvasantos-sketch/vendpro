@@ -27,13 +27,14 @@ export default function Clientes({ companyId, role, user }: { companyId: string 
     for (const k of Object.keys(row)) {
       normalized[normalizeKey(k)] = row[k];
     }
-    const nome = normalized['nome'] || normalized['empresa'] || normalized['razao_social'] || normalized['name'];
-    if (!nome) return null;
+    const nome = normalized['responsavel'] || normalized['contato'] || normalized['contact'] || normalized['nome'] || normalized['name'];
+    const nomeEmpresa = normalized['nome_empresa'] || normalized['empresa'] || normalized['razao_social'] || normalized['company'];
+    if (!nome && !nomeEmpresa) return null;
     return {
-      nome: String(nome).trim(),
+      nome: String(nome || nomeEmpresa).trim(),
+      nome_empresa: nomeEmpresa ? String(nomeEmpresa).trim() : undefined,
       cnpj: String(normalized['cnpj'] || normalized['cpf'] || normalized['documento'] || '').trim() || undefined,
       whatsapp: String(normalized['whatsapp'] || normalized['telefone'] || normalized['tel'] || normalized['phone'] || '').trim() || undefined,
-      responsavel: String(normalized['responsavel'] || normalized['contato'] || normalized['contact'] || '').trim() || undefined,
     };
   }
 
@@ -266,7 +267,7 @@ export default function Clientes({ companyId, role, user }: { companyId: string 
                     </td>
                     <td className="p-3 hidden sm:table-cell">
                       <div className="flex items-center gap-1.5 text-sm text-slate-500 font-medium">
-                        <UserIcon size={11} className="text-slate-300" /> {customer.responsavel || '—'}
+                        <UserIcon size={11} className="text-slate-300" /> {customer.nome || '—'}
                       </div>
                     </td>
                     <td className="p-3 hidden sm:table-cell">

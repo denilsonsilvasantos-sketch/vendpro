@@ -25,30 +25,33 @@ export async function validateCustomerCode(code: string, password?: string) {
 
   const { data, error } = await supabase
     .from('customers')
-    .select('*, sellers!seller_id(*), companies!company_id(*)')
+    .select('*')
     .eq('codigo_acesso', code.toUpperCase())
     .maybeSingle();
 
   if (error) return { success: false, error: error.message };
   if (!data) return { success: false, error: 'Código de acesso inválido' };
 
-  // If password is provided, validate it
   if (password && data.senha !== password) {
     return { success: false, error: 'Senha incorreta' };
   }
+
+  // Fetch seller and company separately to avoid FK ambiguity
+  const [sellerRes, companyRes] = await Promise.all([
+    data.seller_id ? supabase.from('sellers').select('*').eq('id', data.seller_id).maybeSingle() : Promise.resolve({ data: null }),
+    data.company_id ? supabase.from('companies').select('*').eq('id', data.company_id).maybeSingle() : Promise.resolve({ data: null }),
+  ]);
 
   // Supabase Auth Integration for RLS
   const email = `${data.codigo_acesso.toLowerCase()}@vendpro.com`;
   const authPassword = data.senha;
 
-  // Try to sign in
   const { error: signInError } = await supabase.auth.signInWithPassword({
     email,
     password: authPassword,
   });
 
   if (signInError) {
-    // If sign in fails, try to sign up (first time login)
     await supabase.auth.signUp({
       email,
       password: authPassword,
@@ -66,8 +69,8 @@ export async function validateCustomerCode(code: string, password?: string) {
   return { 
     success: true, 
     customer: data,
-    seller: data.sellers,
-    company: data.companies
+    seller: sellerRes.data,
+    company: companyRes.data
   };
 }
 
@@ -108,30 +111,33 @@ export async function validateCustomerLogin(cnpj: string, password?: string) {
 
   const { data, error } = await supabase
     .from('customers')
-    .select('*, sellers!seller_id(*), companies!company_id(*)')
+    .select('*')
     .eq('cnpj', cleanCnpj)
     .maybeSingle();
 
   if (error) return { success: false, error: error.message };
   if (!data) return { success: false, error: 'CNPJ não cadastrado' };
 
-  // If password is provided, validate it
   if (password && data.senha !== password) {
     return { success: false, error: 'Senha incorreta' };
   }
+
+  // Fetch seller and company separately to avoid FK ambiguity
+  const [sellerRes, companyRes] = await Promise.all([
+    data.seller_id ? supabase.from('sellers').select('*').eq('id', data.seller_id).maybeSingle() : Promise.resolve({ data: null }),
+    data.company_id ? supabase.from('companies').select('*').eq('id', data.company_id).maybeSingle() : Promise.resolve({ data: null }),
+  ]);
 
   // Supabase Auth Integration for RLS
   const email = `${(data.codigo_acesso || data.id).toLowerCase()}@vendpro.com`;
   const authPassword = data.senha || 'vendpro123';
 
-  // Try to sign in
   const { error: signInError } = await supabase.auth.signInWithPassword({
     email,
     password: authPassword,
   });
 
   if (signInError) {
-    // If sign in fails, try to sign up (first time login)
     await supabase.auth.signUp({
       email,
       password: authPassword,
@@ -149,8 +155,8 @@ export async function validateCustomerLogin(cnpj: string, password?: string) {
   return { 
     success: true, 
     customer: data,
-    seller: data.sellers,
-    company: data.companies
+    seller: sellerRes.data,
+    company: companyRes.data
   };
 }
 

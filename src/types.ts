@@ -42,13 +42,12 @@ export interface Seller {
 
 export interface Customer {
   id: string;
-  seller_id: string;
-  company_id: string;
+  seller_id?: string;
+  company_id?: string;
   nome: string;
   nome_empresa?: string;
   cnpj?: string;
   whatsapp?: string;
-  responsavel?: string;
   cidade?: string;
   codigo_acesso?: string;
   senha?: string;

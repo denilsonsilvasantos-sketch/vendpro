@@ -216,15 +216,18 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
         return;
       }
 
-      // 2. Get company margin
-      const { data: company, error: companyError } = await supabase
-        .from('companies')
-        .select('margem')
-        .eq('id', companyId)
+      // 2. Get brand margin (from the brand of the order)
+      const { data: brand, error: brandError } = await supabase
+        .from('brands')
+        .select('margin_percentage')
+        .eq('id', selectedOrder.brand_id)
         .single();
 
-      const margin = company?.margem || 0;
-      const precoUnitario = product.preco * (1 + margin / 100);
+      const margin = brand?.margin_percentage || 0;
+      
+      // Use preco_box if it's box-only sale, otherwise use preco_unitario
+      const basePrice = product.venda_somente_box ? (product.preco_box || 0) : (product.preco_unitario || 0);
+      const precoUnitario = basePrice * (1 + margin / 100);
       const subtotalItem = precoUnitario * newQuantity;
 
       // 3. Insert into order_items
@@ -245,7 +248,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
 
       if (insertError) {
         console.error('Erro ao inserir item:', insertError);
-        alert('Erro ao adicionar item ao pedido.');
+        alert(`Erro ao adicionar item: ${insertError.message}`);
         setAddingItemLoading(false);
         return;
       }

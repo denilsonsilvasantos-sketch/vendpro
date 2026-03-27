@@ -356,6 +356,10 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
     setItemsError(null);
     setOrderItems([]);
     setRemovedItems([]);
+    setEditingDiscount(false);
+    setEditingPayment(false);
+    setTempDiscountValue(order.discount_value || 0);
+    setTempDiscountType(order.discount_type || 'fixed');
     if (!supabase) { setItemsError('Conexão indisponível.'); setLoadingItems(false); return; }
     try {
       const [{ data: items, error: e1 }, { data: removed, error: e2 }] = await Promise.all([

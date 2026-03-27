@@ -23,8 +23,14 @@ export async function validateSellerCode(code: string, senha?: string, type: 'se
 
   let query = supabase
     .from("sellers")
-    .select("*, companies(*)")
-    .eq("codigo_vinculo", code.trim().toUpperCase());
+    .select("*, companies(*)");
+
+  if (type === 'customer') {
+    // Para clientes, aceitamos tanto o código de vínculo quanto o código de cliente
+    query = query.or(`codigo_vinculo.eq.${code.trim().toUpperCase()},codigo_cliente.eq.${code.trim().toUpperCase()}`);
+  } else {
+    query = query.eq("codigo_vinculo", code.trim().toUpperCase());
+  }
 
   if (type === 'seller' && senha) {
     query = query.eq("senha", senha.trim());

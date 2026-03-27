@@ -215,7 +215,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
           const existingCat = categories.find(c => c.nome.toLowerCase() === categoryName.toLowerCase());
           if (existingCat) { categoriaIdParaArquivo = existingCat.id; }
           else {
-            const { data: newCat } = await supabase.from('categories').insert([{ company_id: companyId, brand_id: selectedBrandId, nome: categoryName, ativo: true }]).select().single();
+            const { data: newCat } = await supabase.from('categories').insert([{ company_id: companyId, brand_id: selectedBrandId, nome: categoryName, ativo: true }]).select('id, nome').single();
             if (newCat) { categoriaIdParaArquivo = String(newCat.id); categories.push({ id: categoriaIdParaArquivo, nome: newCat.nome }); }
           }
         }

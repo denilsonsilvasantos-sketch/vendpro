@@ -97,7 +97,7 @@ export async function createSeller(sellerData: any) {
       codigo_vinculo,
       senha
     }])
-    .select()
+    .select('id, company_id, nome, telefone, whatsapp, codigo_vinculo, senha, codigo_cliente, ativo, marcas_liberadas, marcas_bloqueadas, comissao, comissao_por_marca')
     .single();
 
   if (error) {

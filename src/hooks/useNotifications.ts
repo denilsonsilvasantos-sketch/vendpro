@@ -28,7 +28,7 @@ export function useNotifications(companyId: string | null, role?: string | null,
 
     let query = supabase
       .from('orders')
-      .select('id, client_name, customers!customer_id(nome), total, created_at, seller_id')
+      .select('id, client_name, total, created_at, seller_id, customer:customers!customer_id(nome)')
       .eq('company_id', companyId)
       .order('created_at', { ascending: false })
       .limit(20);
@@ -44,7 +44,7 @@ export function useNotifications(companyId: string | null, role?: string | null,
     const mapped: AppNotification[] = data.map((o: any) => ({
       id: o.id,
       order_id: o.id,
-      client_name: o.customers?.nome || o.client_name || 'Cliente',
+      client_name: o.customer?.nome || o.client_name || 'Cliente',
       total: Number(o.total || 0),
       created_at: o.created_at,
       read: o.created_at <= seenAt,

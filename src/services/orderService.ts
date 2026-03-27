@@ -4,7 +4,7 @@ export async function getOrders(companyId: string) {
   if (!supabase) return [];
   const { data, error } = await supabase
     .from("orders")
-    .select("*, customers!customer_id(nome)")
+    .select("id, company_id, customer_id, seller_id, brand_id, total, status, whatsapp_sent, created_at, client_name, payment_method, customers!customer_id(nome)")
     .eq("company_id", companyId);
 
   if (error) {
@@ -21,7 +21,7 @@ export async function createOrder(companyId: string, orderData: any, items: any[
   const { data: order, error: orderError } = await supabase
     .from("orders")
     .insert([{ ...orderData, company_id: companyId }])
-    .select()
+    .select('id')
     .single();
 
   if (orderError) {

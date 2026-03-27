@@ -315,7 +315,7 @@ export default function App() {
           const { data: order, error: orderError } = await supabase
             .from('orders')
             .insert([orderData])
-            .select()
+            .select('id')
             .single();
 
           if (orderError) throw orderError;

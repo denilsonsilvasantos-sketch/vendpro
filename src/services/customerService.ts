@@ -172,7 +172,7 @@ export async function createCustomer(companyId: string, customerData: any) {
   const { data, error } = await supabase
     .from("customers")
     .insert([dataToSave])
-    .select()
+    .select('id, nome')
     .single();
 
   if (error) {

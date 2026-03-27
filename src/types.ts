@@ -46,10 +46,10 @@ export interface Customer {
   seller_id: string;
   company_id: string;
   nome: string;
-  cnpj?: string;
-  telefone?: string;
-  responsavel?: string;
-  codigo_acesso?: string;
+  cnpj: string;
+  whatsapp: string;
+  responsavel: string;
+  codigo_acesso: string;
   senha?: string;
   ativo: boolean;
   seller_nome?: string;
@@ -139,9 +139,9 @@ export interface BannerData {
   sub?: string;
   cta?: string;
   className?: string;
-  imageUrl?: string;
+  image_url?: string;
   visuals?: { emoji: string; name: string; price: string }[];
-  link?: string;
+  link_url?: string;
   order_index: number;
 }
 

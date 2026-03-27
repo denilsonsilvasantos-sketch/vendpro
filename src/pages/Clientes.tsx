@@ -32,7 +32,7 @@ export default function Clientes({ companyId, role, user }: { companyId: string 
     return {
       nome: String(nome).trim(),
       cnpj: String(normalized['cnpj'] || normalized['cpf'] || normalized['documento'] || '').trim() || undefined,
-      telefone: String(normalized['telefone'] || normalized['tel'] || normalized['whatsapp'] || normalized['phone'] || '').trim() || undefined,
+      whatsapp: String(normalized['whatsapp'] || normalized['telefone'] || normalized['tel'] || normalized['phone'] || '').trim() || undefined,
       responsavel: String(normalized['responsavel'] || normalized['contato'] || normalized['contact'] || '').trim() || undefined,
     };
   }
@@ -243,7 +243,8 @@ export default function Clientes({ companyId, role, user }: { companyId: string 
             <thead>
               <tr className="bg-slate-50">
                 <th className="p-3 text-left text-[9px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Cliente</th>
-                <th className="p-3 text-left text-[9px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 hidden sm:table-cell">Contato</th>
+                <th className="p-3 text-left text-[9px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 hidden sm:table-cell">Responsável</th>
+                <th className="p-3 text-left text-[9px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 hidden sm:table-cell">WhatsApp</th>
                 <th className="p-3 text-right text-[9px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Ações</th>
               </tr>
             </thead>
@@ -264,7 +265,12 @@ export default function Clientes({ companyId, role, user }: { companyId: string 
                     </td>
                     <td className="p-3 hidden sm:table-cell">
                       <div className="flex items-center gap-1.5 text-sm text-slate-500 font-medium">
-                        <Phone size={11} className="text-slate-300" /> {customer.telefone || '—'}
+                        <User size={11} className="text-slate-300" /> {customer.responsavel || '—'}
+                      </div>
+                    </td>
+                    <td className="p-3 hidden sm:table-cell">
+                      <div className="flex items-center gap-1.5 text-sm text-slate-500 font-medium">
+                        <Phone size={11} className="text-slate-300" /> {customer.whatsapp || '—'}
                       </div>
                     </td>
                     <td className="p-3">

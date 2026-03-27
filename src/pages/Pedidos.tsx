@@ -43,6 +43,34 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
   const [newQuantity, setNewQuantity] = useState(1);
   const [isAddingItem, setIsAddingItem] = useState(false);
   const [addingItemLoading, setAddingItemLoading] = useState(false);
+  const [foundProductName, setFoundProductName] = useState<string | null>(null);
+  const [searchingSku, setSearchingSku] = useState(false);
+
+  useEffect(() => {
+    const searchProduct = async () => {
+      if (!newSku || !supabase || !companyId) {
+        setFoundProductName(null);
+        return;
+      }
+      setSearchingSku(true);
+      const { data } = await supabase
+        .from('products')
+        .select('nome')
+        .eq('company_id', companyId)
+        .eq('sku', newSku)
+        .maybeSingle();
+      
+      if (data) {
+        setFoundProductName(data.nome);
+      } else {
+        setFoundProductName('SKU não encontrado');
+      }
+      setSearchingSku(false);
+    };
+
+    const timer = setTimeout(searchProduct, 600);
+    return () => clearTimeout(timer);
+  }, [newSku, companyId]);
 
   async function fetchOrders() {
     if (!supabase || companyId === null) return;
@@ -291,6 +319,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
       setNewSku('');
       setNewQuantity(1);
       setIsAddingItem(false);
+      setFoundProductName(null);
       
     } catch (err) {
       console.error('Erro inesperado:', err);
@@ -810,6 +839,11 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                                 placeholder="Ex: SKU001"
                                 className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20"
                               />
+                              {newSku && (
+                                <p className={`text-[10px] font-bold mt-1 ${foundProductName === 'SKU não encontrado' ? 'text-rose-500' : 'text-primary'}`}>
+                                  {searchingSku ? 'Buscando...' : foundProductName}
+                                </p>
+                              )}
                             </div>
                             <div className="space-y-1">
                               <label className="text-[10px] font-bold text-slate-400 uppercase">Qtd</label>

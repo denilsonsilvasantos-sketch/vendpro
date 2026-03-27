@@ -165,7 +165,23 @@ BEGIN
     END IF;
 END $$;
 
-ALTER PUBLICATION supabase_realtime ADD TABLE orders, order_items, top_bar_messages, banners, products, categories, brands;
+-- Add tables to publication safely
+DO $$
+DECLARE
+    tables_to_add TEXT[] := ARRAY['orders', 'order_items', 'top_bar_messages', 'banners', 'products', 'categories', 'brands'];
+    t TEXT;
+BEGIN
+    FOREACH t IN ARRAY tables_to_add LOOP
+        IF EXISTS (SELECT 1 FROM pg_class WHERE relname = t AND relkind = 'r') THEN
+            IF NOT EXISTS (
+                SELECT 1 FROM pg_publication_tables 
+                WHERE pubname = 'supabase_realtime' AND tablename = t
+            ) THEN
+                EXECUTE format('ALTER PUBLICATION supabase_realtime ADD TABLE %I', t);
+            END IF;
+        END IF;
+    END LOOP;
+END $$;
 
 -- Configure Row Level Security (RLS)
 -- Note: These are permissive policies for the app to function. 

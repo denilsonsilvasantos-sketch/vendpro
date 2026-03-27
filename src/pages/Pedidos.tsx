@@ -41,7 +41,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
 
     let query = supabase
       .from('orders')
-      .select('*')
+      .select('*, customers!customer_id(nome, whatsapp), brands!brand_id(name)')
       .eq('company_id', companyId)
       .order('created_at', { ascending: false });
 
@@ -132,6 +132,14 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
     if (error) { alert('Erro ao atualizar status.'); return; }
     setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
     if (selectedOrder?.id === orderId) setSelectedOrder((prev: any) => ({ ...prev, status: newStatus }));
+  };
+
+  const handlePaymentMethodChange = async (orderId: string, newMethod: string) => {
+    if (!supabase) return;
+    const { error } = await supabase.from('orders').update({ payment_method: newMethod }).eq('id', orderId);
+    if (error) { alert('Erro ao atualizar pagamento.'); return; }
+    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, payment_method: newMethod } : o));
+    if (selectedOrder?.id === orderId) setSelectedOrder((prev: any) => ({ ...prev, payment_method: newMethod }));
   };
 
   const handleNotifyCustomer = (order: any) => {
@@ -492,6 +500,18 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                         <p className="text-xl font-black text-slate-800">{orderItems.reduce((a, i) => a + i.quantidade, 0)}</p>
                       </div>
                       {canEditOrder && (
+                        <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1 flex items-center gap-1.5"><CreditCard size={10} /> Pagamento</p>
+                          <input 
+                            type="text"
+                            value={selectedOrder.payment_method || ''}
+                            onChange={(e) => handlePaymentMethodChange(selectedOrder.id, e.target.value)}
+                            placeholder="Definir pagamento..."
+                            className="w-full bg-transparent border-none outline-none text-sm font-bold text-slate-700 p-0 focus:ring-0"
+                          />
+                        </div>
+                      )}
+                      {!canEditOrder && (
                         <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
                           <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1 flex items-center gap-1.5"><CreditCard size={10} /> Pagamento</p>
                           <p className="text-sm font-bold text-slate-700">{selectedOrder.payment_method || '—'}</p>

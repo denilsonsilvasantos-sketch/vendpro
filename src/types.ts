@@ -32,6 +32,7 @@ export interface Seller {
   telefone?: string;
   whatsapp?: string;
   codigo_vinculo: string;
+  senha?: string;
   codigo_cliente?: string;
   ativo: boolean;
   marcas_liberadas?: string[];
@@ -43,10 +44,13 @@ export interface Seller {
 export interface Customer {
   id: string;
   seller_id: string;
+  company_id: string;
   nome: string;
   cnpj?: string;
   telefone?: string;
   responsavel?: string;
+  codigo_acesso?: string;
+  senha?: string;
   ativo: boolean;
   seller_nome?: string;
 }

@@ -26,6 +26,8 @@ import {
   X,
   Search,
   CheckCircle2,
+  Check,
+  Copy,
   Send,
   Share2,
   Eye,
@@ -1091,6 +1093,8 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
   const [view, setView] = useState<'role' | 'seller-code' | 'customer-form' | 'company-login' | 'company-register'>('role');
   const [loginType, setLoginType] = useState<'seller' | 'customer' | 'admin' | 'company' | null>(null);
   const [sellerCode, setSellerCode] = useState('');
+  const [sellerPassword, setSellerPassword] = useState('');
+  const [showSellerPassword, setShowSellerPassword] = useState(false);
   const [customerData, setCustomerData] = useState({ nome: '', cnpj: '', telefone: '', responsavel: '' });
   const [companyData, setCompanyData] = useState({ nome: '', cnpj: '', telefone: '', responsavel: '', email: '', senha: '' });
   const [companyLoginCnpj, setCompanyLoginCnpj] = useState('');
@@ -1103,6 +1107,8 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
   const [newPassword, setNewPassword] = useState('');
   const [sellerInfo, setSellerInfo] = useState<any>(null);
   const [availableCompanies, setAvailableCompanies] = useState<any[]>([]);
+  const [createdCustomer, setCreatedCustomer] = useState<any>(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (supabase) {
@@ -1147,6 +1153,8 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
 
   const handleSellerCodeSubmit = async () => {
     const code = sellerCode.trim().toUpperCase();
+    const password = sellerPassword.trim();
+
     if (code === 'ADMIN') {
       if (supabase) {
         const { data } = await supabase.from('companies').select('*').limit(1);
@@ -1163,25 +1171,55 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
       }
       return;
     }
+
+    if (!code) return alert('Por favor, digite o código');
+    
+    // For sellers, password is required
+    if (loginType === 'seller' && !password) return alert('Por favor, digite a senha');
     
     // Use the correct validation type based on loginType
     const validationType = loginType === 'seller' ? 'seller' : 'customer';
-    const result = await validateSellerCode(code, validationType);
     
-    if (result.success && result.sellers && result.sellers.length > 0) {
-      const mainSeller = result.sellers[0];
-      setSellerInfo(mainSeller);
-      setAvailableCompanies(result.companies || []);
+    try {
       if (loginType === 'seller') {
-        onLogin('seller', mainSeller, result.companies, result.sellers);
+        const { validateSellerCode } = await import('./services/sellerService');
+        const result = await validateSellerCode(code, password, 'seller');
+        
+        if (result.success && result.sellers && result.sellers.length > 0) {
+          const mainSeller = result.sellers[0];
+          setSellerInfo(mainSeller);
+          setAvailableCompanies(result.companies || []);
+          onLogin('seller', mainSeller, result.companies, result.sellers);
+        } else {
+          alert('Código ou senha de vendedor inválidos.');
+        }
       } else {
-        setView('customer-form');
+        // Customer login or link
+        const { validateCustomerCode } = await import('./services/customerService');
+        const { validateSellerCode } = await import('./services/sellerService');
+        
+        // First, try to see if it's a customer login
+        const customerResult = await validateCustomerCode(code, password);
+        if (customerResult.success && customerResult.customer) {
+          // Customer login success
+          onLogin('customer', customerResult.customer, [customerResult.company], [customerResult.seller]);
+          return;
+        }
+
+        // If not a customer login, check if it's a seller's link code
+        const sellerResult = await validateSellerCode(code, undefined, 'customer');
+        if (sellerResult.success && sellerResult.sellers && sellerResult.sellers.length > 0) {
+          const mainSeller = sellerResult.sellers[0];
+          setSellerInfo(mainSeller);
+          setAvailableCompanies(sellerResult.companies || []);
+          setView('customer-form');
+        } else {
+          alert('Código inválido. Verifique se digitou corretamente.');
+        }
       }
-    } else {
-      const msg = loginType === 'seller' 
-        ? 'Código de vendedor inválido.' 
-        : 'Código de vínculo inválido. Peça o código correto ao seu vendedor.';
-      alert(msg);
+    } catch (error) {
+      console.error('Erro ao validar código:', error);
+      alert('Erro ao validar código');
     }
   };
 
@@ -1193,51 +1231,45 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
 
     if (supabase && sellerInfo) {
       try {
-        // Try to find existing customer by phone, name or CNPJ under this seller
+        const { createCustomer } = await import('./services/customerService');
+        
+        // Try to find existing customer by CNPJ under this seller
         const { data: existingCustomers, error: searchError } = await supabase
           .from('customers')
           .select('*')
           .eq('seller_id', sellerInfo.id)
-          .or(`telefone.eq.${customerData.telefone},nome.ilike.%${customerData.nome}%,cnpj.eq.${customerData.cnpj}`);
+          .eq('cnpj', customerData.cnpj)
+          .maybeSingle();
 
         if (searchError) throw searchError;
 
-        let finalCustomer;
-
-        if (existingCustomers && existingCustomers.length > 0) {
+        if (existingCustomers) {
           // Found existing customer
-          finalCustomer = existingCustomers[0];
+          onLogin('customer', { 
+            ...existingCustomers, 
+            sellerCode,
+            vendedor_nome: sellerInfo.nome,
+            vendedor_whatsapp: sellerInfo.whatsapp,
+            vendedor_telefone: sellerInfo.telefone,
+            vendedor_marcas_bloqueadas: sellerInfo.marcas_bloqueadas || [],
+          }, availableCompanies);
         } else {
-          // Create new customer
-          const { data: newCustomer, error: insertError } = await supabase
-            .from('customers')
-            .insert([{
-              company_id: sellerInfo.company_id,
-              seller_id: sellerInfo.id,
-              nome: customerData.nome,
-              telefone: customerData.telefone,
-              cnpj: customerData.cnpj,
-              ativo: true
-            }])
-            .select()
-            .single();
+          // Create new customer using the service to generate credentials
+          const newCustomer = await createCustomer(sellerInfo.company_id, {
+            ...customerData,
+            seller_id: sellerInfo.id,
+            ativo: true
+          });
 
-          if (insertError) throw insertError;
-          finalCustomer = newCustomer;
+          if (newCustomer) {
+            setCreatedCustomer(newCustomer);
+          } else {
+            alert('Erro ao criar cadastro. Tente novamente.');
+          }
         }
-
-        onLogin('customer', { 
-          ...finalCustomer, 
-          sellerCode,
-          vendedor_nome: sellerInfo.nome,
-          vendedor_whatsapp: sellerInfo.whatsapp,
-          vendedor_telefone: sellerInfo.telefone,
-          vendedor_marcas_bloqueadas: sellerInfo.marcas_bloqueadas || [],
-        }, availableCompanies);
-
-      } catch (error: any) {
-        console.error("Erro ao processar cliente:", error);
-        alert("Erro ao processar login do cliente: " + error.message);
+      } catch (err) {
+        console.error("Erro no cadastro:", err);
+        alert("Erro ao realizar cadastro.");
       }
     } else {
       // Fallback if no supabase (shouldn't happen)
@@ -1249,6 +1281,14 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
         vendedor_telefone: sellerInfo?.telefone
       }, availableCompanies);
     }
+  };
+
+  const copyCustomerToClipboard = () => {
+    if (!createdCustomer) return;
+    const text = `*Acesso VendPro*\n\nCódigo de Acesso: ${createdCustomer.codigo_acesso}\nSenha: ${createdCustomer.senha}\n\nEntre no app com esses dados para fazer seus pedidos!`;
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const handleCompanyRegister = async () => {
@@ -1322,7 +1362,41 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
         {/* Body */}
         <div className="bg-white rounded-b-2xl px-6 py-6 shadow-2xl shadow-slate-200/60">
 
-        {view === 'role' && (
+        {createdCustomer && (
+          <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-center space-y-6">
+            <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto">
+              <Check size={32} strokeWidth={3} />
+            </div>
+            <div>
+              <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight">Cadastro Realizado!</h2>
+              <p className="text-sm text-slate-500 mt-1">Anote seus dados de acesso para entrar no app futuramente.</p>
+            </div>
+
+            <div className="bg-slate-50 rounded-2xl p-6 space-y-4 border border-slate-100">
+              <div>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Código de Acesso</p>
+                <p className="text-2xl font-black text-primary tracking-wider uppercase">{createdCustomer.codigo_acesso}</p>
+              </div>
+              <div className="h-px bg-slate-200 w-12 mx-auto" />
+              <div>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Sua Senha</p>
+                <p className="text-2xl font-black text-slate-700 tracking-widest">{createdCustomer.senha}</p>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              <button onClick={copyCustomerToClipboard} className="w-full py-3.5 bg-slate-900 text-white rounded-xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-slate-800 transition-all">
+                {copied ? <Check size={16} /> : <Copy size={16} />}
+                {copied ? 'Copiado!' : 'Copiar Dados de Acesso'}
+              </button>
+              <button onClick={() => onLogin('customer', { ...createdCustomer, sellerCode, vendedor_nome: sellerInfo.nome, vendedor_whatsapp: sellerInfo.whatsapp, vendedor_marcas_bloqueadas: sellerInfo.marcas_bloqueadas || [] }, availableCompanies)} className="w-full py-3.5 bg-primary text-white rounded-xl font-black text-xs uppercase tracking-widest hover:bg-primary/90 transition-all">
+                Entrar no App
+              </button>
+            </div>
+          </motion.div>
+        )}
+
+        {!createdCustomer && view === 'role' && (
           <div className="space-y-4">
             <p className="text-xs font-black text-slate-400 uppercase tracking-widest text-center">Como deseja entrar?</p>
             <div className="grid grid-cols-3 gap-3">
@@ -1447,10 +1521,21 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
               {loginType === 'seller' ? 'Acesso Vendedor' : loginType === 'customer' ? 'Acesso Cliente' : 'Acesso Admin'}
             </p>
             <div>
-              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Código de Acesso</label>
-              <input type="text" placeholder={loginType === 'admin' ? "Código de Acesso" : "Código do Vendedor"} className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:border-primary/40 outline-none text-sm font-black uppercase text-slate-700 text-center" value={sellerCode} onChange={e => setSellerCode(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSellerCodeSubmit()} />
+              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Código de Vínculo</label>
+              <input type="text" placeholder="Ex: VEND-1234" className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:border-primary/40 outline-none text-sm font-black uppercase text-slate-700 text-center" value={sellerCode} onChange={e => setSellerCode(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSellerCodeSubmit()} />
             </div>
-            <button onClick={handleSellerCodeSubmit} className="w-full py-2.5 bg-gradient-to-r from-[#e91e8c] to-[#7c3aed] text-white rounded-lg font-black text-xs uppercase tracking-wide shadow-lg hover:-translate-y-0.5 transition-all">Validar Código</button>
+            {loginType === 'seller' && (
+              <div>
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Senha</label>
+                <div className="relative">
+                  <input type={showSellerPassword ? "text" : "password"} placeholder="••••" className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:border-primary/40 outline-none text-sm font-black text-slate-700 text-center pr-10" value={sellerPassword} onChange={e => setSellerPassword(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSellerCodeSubmit()} />
+                  <button type="button" onClick={() => setShowSellerPassword(!showSellerPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 hover:text-primary transition-colors">
+                    {showSellerPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                  </button>
+                </div>
+              </div>
+            )}
+            <button onClick={handleSellerCodeSubmit} className="w-full py-2.5 bg-gradient-to-r from-[#e91e8c] to-[#7c3aed] text-white rounded-lg font-black text-xs uppercase tracking-wide shadow-lg hover:-translate-y-0.5 transition-all">Entrar</button>
             <div className="flex items-center justify-between pt-1">
               <button onClick={() => setShowForgotCode(true)} className="text-[10px] font-bold text-primary hover:underline">Esqueci meu código</button>
               <button onClick={() => setView('role')} className="text-[10px] font-bold text-slate-300 hover:text-primary transition-colors">← Voltar</button>

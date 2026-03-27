@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../integrations/supabaseClient';
 import { Seller, Brand } from '../types';
-import { X, Save, Loader2, Percent, Ban } from 'lucide-react';
-import { motion } from 'motion/react';
+import { X, Save, Loader2, Percent, Ban, Copy, Check, Eye, EyeOff, Key } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { createSeller } from '../services/sellerService';
 
 export default function SellerFormModal({ onClose, onSave, seller, companyId }: {
   onClose: () => void;
@@ -22,6 +23,9 @@ export default function SellerFormModal({ onClose, onSave, seller, companyId }: 
   const [comissaoPorMarca, setComissaoPorMarca] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(false);
   const [loadingBrands, setLoadingBrands] = useState(true);
+  const [showPassword, setShowPassword] = useState(false);
+  const [createdSeller, setCreatedSeller] = useState<Seller | null>(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     async function fetchBrands() {
@@ -59,6 +63,7 @@ export default function SellerFormModal({ onClose, onSave, seller, companyId }: 
         nome: formData.nome,
         codigo_vinculo: formData.codigo_vinculo,
         codigo_cliente: formData.codigo_cliente,
+        senha: formData.senha,
         whatsapp: formData.whatsapp,
         ativo: formData.ativo,
         company_id: companyId,
@@ -71,12 +76,16 @@ export default function SellerFormModal({ onClose, onSave, seller, companyId }: 
       if (seller?.id) {
         const { error } = await supabase.from('sellers').update(dataToSave).eq('id', seller.id);
         if (error) throw error;
+        onSave();
       } else {
-        const { error } = await supabase.from('sellers').insert([dataToSave]);
-        if (error) throw error;
+        const result = await createSeller(dataToSave);
+        if (result.success && result.seller) {
+          setCreatedSeller(result.seller);
+          // Don't call onSave() yet, let the user see the credentials
+        } else {
+          throw new Error(result.message || 'Erro ao criar vendedor');
+        }
       }
-
-      onSave();
     } catch (error: any) {
       console.error('Erro ao salvar vendedor:', error);
       alert('Erro ao salvar vendedor: ' + error.message);
@@ -84,6 +93,53 @@ export default function SellerFormModal({ onClose, onSave, seller, companyId }: 
       setLoading(false);
     }
   };
+
+  const copyToClipboard = () => {
+    if (!createdSeller) return;
+    const text = `*Acesso VendPro*\n\nCódigo de Vínculo: ${createdSeller.codigo_vinculo}\nSenha: ${createdSeller.senha}\n\nBaixe o app e entre com esses dados!`;
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  if (createdSeller) {
+    return (
+      <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 bg-slate-900/80 backdrop-blur-md" />
+        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white w-full max-w-sm rounded-3xl shadow-2xl relative z-10 p-8 text-center space-y-6">
+          <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto">
+            <Check size={32} strokeWidth={3} />
+          </div>
+          <div>
+            <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight">Vendedor Criado!</h2>
+            <p className="text-sm text-slate-500 mt-1">Compartilhe as credenciais de acesso abaixo com o vendedor.</p>
+          </div>
+
+          <div className="bg-slate-50 rounded-2xl p-6 space-y-4 border border-slate-100">
+            <div>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Código de Vínculo</p>
+              <p className="text-2xl font-black text-primary tracking-wider uppercase">{createdSeller.codigo_vinculo}</p>
+            </div>
+            <div className="h-px bg-slate-200 w-12 mx-auto" />
+            <div>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Senha de Acesso</p>
+              <p className="text-2xl font-black text-slate-700 tracking-widest">{createdSeller.senha}</p>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            <button onClick={copyToClipboard} className="w-full py-3.5 bg-slate-900 text-white rounded-xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-slate-800 transition-all">
+              {copied ? <Check size={16} /> : <Copy size={16} />}
+              {copied ? 'Copiado!' : 'Copiar para WhatsApp'}
+            </button>
+            <button onClick={() => { onSave(); onClose(); }} className="w-full py-3.5 bg-slate-100 text-slate-600 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-slate-200 transition-all">
+              Fechar
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -114,11 +170,24 @@ export default function SellerFormModal({ onClose, onSave, seller, companyId }: 
             <div className="space-y-1">
               <label className="text-xs font-bold text-slate-500 uppercase">Código de Acesso</label>
               <input className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none font-mono uppercase"
-                placeholder="Ex: JOAO123"
+                placeholder="Deixe vazio para gerar automático"
                 value={formData.codigo_vinculo || ''}
-                onChange={e => setFormData({ ...formData, codigo_vinculo: e.target.value.toUpperCase() })}
-                required />
+                onChange={e => setFormData({ ...formData, codigo_vinculo: e.target.value.toUpperCase() })} />
               <p className="text-[10px] text-slate-400">Código de acesso do vendedor ao sistema.</p>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-500 uppercase">Senha de Acesso</label>
+              <div className="relative">
+                <input type={showPassword ? "text" : "password"} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none font-mono"
+                  placeholder="Deixe vazio para gerar automático"
+                  value={formData.senha || ''}
+                  onChange={e => setFormData({ ...formData, senha: e.target.value })} />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 hover:text-primary">
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+              <p className="text-[10px] text-slate-400">Senha para o vendedor entrar no app.</p>
             </div>
 
             <div className="space-y-1">

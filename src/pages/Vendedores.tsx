@@ -82,6 +82,7 @@ export default function Vendedores({ companyId }: { companyId: string | null }) 
               <tr className="bg-slate-50">
                 <th className="p-3 text-left text-[9px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Vendedor</th>
                 <th className="p-3 text-left text-[9px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 hidden md:table-cell">Código</th>
+                <th className="p-3 text-left text-[9px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 hidden md:table-cell">Senha</th>
                 <th className="p-3 text-left text-[9px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 hidden sm:table-cell">WhatsApp</th>
                 <th className="p-3 text-left text-[9px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 hidden lg:table-cell">Comissão</th>
                 <th className="p-3 text-left text-[9px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 hidden lg:table-cell">Restrições</th>
@@ -102,6 +103,9 @@ export default function Vendedores({ companyId }: { companyId: string | null }) 
                   </td>
                   <td className="p-3 hidden md:table-cell">
                     <span className="font-mono text-[9px] font-black text-slate-400 bg-slate-50 px-2 py-1 rounded-md border border-slate-100 uppercase">{seller.codigo_vinculo}</span>
+                  </td>
+                  <td className="p-3 hidden md:table-cell">
+                    <span className="font-mono text-[9px] font-black text-slate-400 bg-slate-50 px-2 py-1 rounded-md border border-slate-100">{seller.senha || '—'}</span>
                   </td>
                   <td className="p-3 hidden sm:table-cell">
                     <div className="flex items-center gap-1.5 text-xs text-slate-500">

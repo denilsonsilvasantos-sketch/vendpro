@@ -25,7 +25,7 @@ export async function validateCustomerCode(code: string, password?: string) {
 
   const { data, error } = await supabase
     .from('customers')
-    .select('*, sellers(*), companies(*)')
+    .select('*, sellers!seller_id(*), companies!company_id(*)')
     .eq('codigo_acesso', code.toUpperCase())
     .maybeSingle();
 
@@ -108,7 +108,7 @@ export async function validateCustomerLogin(cnpj: string, password?: string) {
 
   const { data, error } = await supabase
     .from('customers')
-    .select('*, sellers(*), companies(*)')
+    .select('*, sellers!seller_id(*), companies!company_id(*)')
     .eq('cnpj', cleanCnpj)
     .maybeSingle();
 

@@ -57,6 +57,15 @@ export default function SellerFormModal({ onClose, onSave, seller, companyId }: 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!supabase || !companyId) return;
+    
+    // Validar se o companyId é um UUID válido (formato básico)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(companyId)) {
+      console.error("ID da empresa inválido:", companyId);
+      alert("Erro de sessão: ID da empresa inválido. Por favor, saia e entre novamente.");
+      return;
+    }
+
     setLoading(true);
     try {
       const dataToSave: any = {
@@ -74,15 +83,30 @@ export default function SellerFormModal({ onClose, onSave, seller, companyId }: 
       };
 
       if (seller?.id) {
+        // Validar se o seller.id é um UUID válido
+        if (!uuidRegex.test(seller.id)) {
+          console.error("ID do vendedor inválido:", seller.id);
+          alert("Erro de sistema: ID do vendedor inválido. Por favor, recarregue a página.");
+          return;
+        }
         const { error } = await supabase.from('sellers').update(dataToSave).eq('id', seller.id);
-        if (error) throw error;
+        if (error) {
+          if (error.message.includes('invalid input syntax for type uuid')) {
+            throw new Error("O campo 'Código para Clientes' deve ser texto, mas o banco espera um ID (UUID). Por favor, use apenas letras e números ou execute o script de correção.");
+          }
+          throw error;
+        }
         onSave();
+        onClose();
       } else {
         const result = await createSeller(dataToSave);
         if (result.success && result.seller) {
           setCreatedSeller(result.seller);
           // Don't call onSave() yet, let the user see the credentials
         } else {
+          if (result.message?.includes('invalid input syntax for type uuid')) {
+            throw new Error("O campo 'Código para Clientes' deve ser texto, mas o banco espera um ID (UUID). Por favor, use apenas letras e números ou execute o script de correção.");
+          }
           throw new Error(result.message || 'Erro ao criar vendedor');
         }
       }

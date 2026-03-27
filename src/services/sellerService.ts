@@ -96,6 +96,15 @@ export async function createSeller(sellerData: any) {
 
   if (error) {
     console.error("Erro ao criar vendedor:", error);
+    
+    // Tratamento específico para erro de UUID
+    if (error.message.includes('invalid input syntax for type uuid')) {
+      return { 
+        success: false, 
+        message: "Erro de sistema: Um dos identificadores (ID) está em formato inválido. Por favor, recarregue a página e tente novamente." 
+      };
+    }
+    
     return { success: false, message: error.message };
   }
 

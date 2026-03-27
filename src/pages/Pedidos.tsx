@@ -41,21 +41,38 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
 
     let query = supabase
       .from('orders')
-      .select('*, customers!customer_id(nome, whatsapp), brands!brand_id(name)')
+      .select('*, customers:customer_id(nome), brands:brand_id(name)')
       .eq('company_id', companyId)
       .order('created_at', { ascending: false });
 
+    console.log('fetchOrders - Iniciando busca para empresa:', companyId);
+
     if (role === 'seller' && user?.id) {
+      console.log('fetchOrders - Filtrando por vendedor:', user.id);
       query = query.eq('seller_id', user.id);
     } else if (role === 'customer' && user?.id) {
+      console.log('fetchOrders - Filtrando por cliente:', user.id);
       query = query.eq('customer_id', user.id);
-    } else if (role === 'company' && companyId) {
-      query = query.eq('company_id', companyId);
     }
 
     const { data, error } = await query;
-    if (error) console.error(error);
-    else {
+    
+    if (error) {
+      console.error('Erro na consulta de pedidos:', error);
+      // Tenta uma consulta ultra-simples se a primeira falhar
+      const { data: simpleData, error: simpleError } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('company_id', companyId)
+        .order('created_at', { ascending: false });
+      
+      if (simpleError) {
+        console.error('Erro na consulta simples:', simpleError);
+      } else {
+        setOrders(simpleData || []);
+      }
+    } else {
+      console.log('Pedidos encontrados:', data?.length || 0);
       setOrders(data || []);
       if (role === 'customer' && data && data.length > 0) {
         fetchAbcCurve(data.map((o: any) => o.id));

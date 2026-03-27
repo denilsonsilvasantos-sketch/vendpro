@@ -46,7 +46,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
 
     let query = supabase
       .from('orders')
-      .select('*, customers(nome), brands(name)')
+      .select('*, customer:customer_id(nome), brand:brand_id(name)')
       .eq('company_id', companyId)
       .order('created_at', { ascending: false });
 
@@ -191,7 +191,9 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
     setSelectedOrder((prev: any) => ({ ...prev, discount_value: value, discount_type: type, total: newTotal }));
     setEditingDiscount(false);
   };
-    const phone = order.customers?.telefone;
+
+  const handleNotifyCustomer = (order: any) => {
+    const phone = order.customer?.telefone || order.customers?.telefone;
     if (!phone) {
       alert('Cliente não possui telefone cadastrado.');
       return;
@@ -204,7 +206,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
       cancelled: 'foi Cancelado'
     }[order.status as string] || 'teve o status atualizado';
 
-    const brandName = order.brands?.name || 'nossa loja';
+    const brandName = order.brand?.name || order.brands?.name || 'nossa loja';
     const message = `Olá! Passando para avisar que seu pedido #${order.id.slice(-4)} da marca ${brandName} ${statusMsg}. Você pode acompanhar os detalhes no nosso aplicativo!`;
     
     const whatsappUrl = `https://wa.me/${phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
@@ -436,13 +438,13 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                   {role !== 'customer' && (
                     <td className="p-6">
                       <button onClick={() => openOrderDetails(order)} className="font-bold text-slate-800 hover:text-primary transition-colors text-left">
-                        {order.customers?.nome || order.client_name || 'N/A'}
+                        {order.customer?.nome || order.client_name || 'N/A'}
                       </button>
                     </td>
                   )}
                   <td className="p-6">
                     <span className="text-xs font-bold text-slate-600 uppercase tracking-tight">
-                      {order.brands?.name || (Array.isArray(order.brands) ? order.brands[0]?.name : null) || (order.brand_id ? `ID: ${order.brand_id.slice(0, 8)}` : 'N/A')}
+                      {order.brand?.name || (order.brand_id ? `ID: ${order.brand_id.slice(0, 8)}` : 'N/A')}
                     </span>
                   </td>
                   <td className="p-6 hidden sm:table-cell">
@@ -508,7 +510,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                 <div>
                   <h3 className="text-2xl font-black text-slate-900 tracking-tight">Detalhes do Pedido</h3>
                   <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">
-                    {selectedOrder.customers?.nome || selectedOrder.client_name}
+                    {selectedOrder.customer?.nome || selectedOrder.client_name}
                   </p>
                 </div>
                 <button onClick={() => { setSelectedOrder(null); setEditingPayment(false); }} className="p-3 bg-white text-slate-400 hover:text-rose-500 rounded-2xl shadow-sm border border-slate-100 transition-all">
@@ -537,7 +539,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                     <div className="grid grid-cols-2 gap-3">
                       <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
                         <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1 flex items-center gap-1.5"><PackageSearch size={10} /> Marca</p>
-                        <p className="text-sm font-bold text-slate-700">{selectedOrder.brands?.name || (Array.isArray(selectedOrder.brands) ? selectedOrder.brands[0]?.name : null) || (selectedOrder.brand_id ? `ID: ${selectedOrder.brand_id.slice(0, 8)}` : 'N/A')}</p>
+                        <p className="text-sm font-bold text-slate-700">{selectedOrder.brand?.name || (selectedOrder.brand_id ? `ID: ${selectedOrder.brand_id.slice(0, 8)}` : 'N/A')}</p>
                       </div>
                       <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
                         <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1 flex items-center gap-1.5"><Calendar size={10} /> Data</p>

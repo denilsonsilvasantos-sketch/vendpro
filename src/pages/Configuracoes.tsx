@@ -21,7 +21,8 @@ export default function Configuracoes({ companyId, user, role, onLogout }: { com
     whatsapp: '', 
     codigo_cliente: '',
     vendedor_nome: '',
-    vendedor_whatsapp: ''
+    vendedor_whatsapp: '',
+    confirmarSenha: ''
   });
 
   const safeLS = {
@@ -40,6 +41,7 @@ export default function Configuracoes({ companyId, user, role, onLogout }: { com
           cnpj: data.cnpj || '', 
           email: data.email || '', 
           senha: data.senha || '', 
+          confirmarSenha: '',
           logo_url: data.logo_url || safeLS.get(`vendpro_company_logo_${companyId}`) || '', 
           primary_color: data.primary_color || safeLS.get(`vendpro_company_color_${companyId}`) || '#0072FF', 
           whatsapp: '', 
@@ -55,6 +57,7 @@ export default function Configuracoes({ companyId, user, role, onLogout }: { com
           cnpj: '', 
           email: '', 
           senha: '', 
+          confirmarSenha: '',
           logo_url: '', 
           primary_color: '', 
           whatsapp: data.whatsapp || '', 
@@ -70,6 +73,7 @@ export default function Configuracoes({ companyId, user, role, onLogout }: { com
           cnpj: data.cnpj || '', 
           email: '', 
           senha: data.senha || '', 
+          confirmarSenha: '',
           logo_url: '', 
           primary_color: '', 
           whatsapp: data.whatsapp || data.telefone || '', 
@@ -93,14 +97,41 @@ export default function Configuracoes({ companyId, user, role, onLogout }: { com
         setSaving(false);
         return;
       }
+      if (formData.senha && formData.senha !== formData.confirmarSenha) {
+        alert('As senhas não coincidem.');
+        setSaving(false);
+        return;
+      }
       if (formData.logo_url) safeLS.set(`vendpro_company_logo_${companyId}`, formData.logo_url);
       if (formData.primary_color) { safeLS.set(`vendpro_company_color_${companyId}`, formData.primary_color); document.documentElement.style.setProperty('--vendpro-primary', formData.primary_color); }
-      const { error } = await supabase.from('companies').update({ nome: formData.nome, cnpj: formData.cnpj, email: formData.email, senha: formData.senha, logo_url: formData.logo_url, primary_color: formData.primary_color }).eq('id', companyId);
-      if (error) alert('Erro: ' + error.message); else alert('Configurações salvas!');
+      
+      const { error } = await supabase.from('companies').update({ 
+        nome: formData.nome, 
+        cnpj: formData.cnpj.replace(/\D/g, ''), 
+        email: formData.email, 
+        senha: formData.senha, 
+        logo_url: formData.logo_url, 
+        primary_color: formData.primary_color 
+      }).eq('id', companyId);
+      
+      if (error) {
+        alert('Erro: ' + error.message);
+      } else {
+        if (formData.senha) {
+          const { error: authError } = await supabase.auth.updateUser({ password: formData.senha });
+          if (authError) console.warn('Erro ao atualizar senha no Auth:', authError.message);
+        }
+        alert('Configurações salvas!');
+      }
     } else if (role === 'seller' && user?.id) {
       const { error } = await supabase.from('sellers').update({ nome: formData.nome, whatsapp: formData.whatsapp, codigo_cliente: formData.codigo_cliente }).eq('id', user.id);
       if (error) alert('Erro: ' + error.message); else alert('Dados atualizados!');
     } else if (role === 'customer' && user?.id) {
+      if (formData.senha && formData.senha !== formData.confirmarSenha) {
+        alert('As senhas não coincidem.');
+        setSaving(false);
+        return;
+      }
       const { error } = await supabase.from('customers').update({ 
         nome: formData.nome, 
         nome_empresa: formData.nome_empresa,
@@ -108,7 +139,16 @@ export default function Configuracoes({ companyId, user, role, onLogout }: { com
         telefone: formData.whatsapp,
         senha: formData.senha 
       }).eq('id', user.id);
-      if (error) alert('Erro: ' + error.message); else alert('Dados atualizados!');
+      
+      if (error) {
+        alert('Erro: ' + error.message);
+      } else {
+        if (formData.senha) {
+          const { error: authError } = await supabase.auth.updateUser({ password: formData.senha });
+          if (authError) console.warn('Erro ao atualizar senha no Auth:', authError.message);
+        }
+        alert('Dados atualizados!');
+      }
     }
     setSaving(false);
   };
@@ -312,14 +352,23 @@ export default function Configuracoes({ companyId, user, role, onLogout }: { com
               <Lock size={12} className="text-amber-500" />
               <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Segurança</span>
             </div>
-            <div className="p-4">
-              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Nova Senha</label>
-              <div className="relative">
-                <Shield size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" />
-                <input type={showPassword ? 'text' : 'password'} className="w-full pl-8 pr-9 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 outline-none focus:border-primary/40" value={formData.senha} onChange={e => setFormData({ ...formData, senha: e.target.value })} placeholder="Deixe em branco para manter" />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 hover:text-primary transition-colors">
-                  {showPassword ? <EyeOff size={13} /> : <Eye size={13} />}
-                </button>
+            <div className="p-4 space-y-3">
+              <div>
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Nova Senha</label>
+                <div className="relative">
+                  <Shield size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" />
+                  <input type={showPassword ? 'text' : 'password'} className="w-full pl-8 pr-9 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 outline-none focus:border-primary/40" value={formData.senha} onChange={e => setFormData({ ...formData, senha: e.target.value })} placeholder="Deixe em branco para manter" />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 hover:text-primary transition-colors">
+                    {showPassword ? <EyeOff size={13} /> : <Eye size={13} />}
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Confirmar Nova Senha</label>
+                <div className="relative">
+                  <Shield size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" />
+                  <input type={showPassword ? 'text' : 'password'} className="w-full pl-8 pr-9 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 outline-none focus:border-primary/40" value={formData.confirmarSenha} onChange={e => setFormData({ ...formData, confirmarSenha: e.target.value })} placeholder="Confirme a nova senha" />
+                </div>
               </div>
             </div>
           </div>

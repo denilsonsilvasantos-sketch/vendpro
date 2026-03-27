@@ -23,7 +23,7 @@ export async function validateSellerCode(code: string, senha?: string, type: 'se
 
   let query = supabase
     .from("sellers")
-    .select("*, companies(*)");
+    .select("*, companies!company_id(*)");
 
   if (type === 'customer') {
     // Para clientes, aceitamos tanto o código de vínculo quanto o código de cliente

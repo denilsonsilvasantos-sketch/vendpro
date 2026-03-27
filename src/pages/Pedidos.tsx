@@ -39,7 +39,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
 
     let query = supabase
       .from('orders')
-      .select('*, customers(nome, telefone), brands(name)')
+      .select('*, customers!customer_id(nome, telefone), brands!brand_id(name)')
       .eq('company_id', companyId)
       .order('created_at', { ascending: false });
 

@@ -35,7 +35,7 @@ export default function Dashboard({ companyId, role, user, banners }: { companyI
       const { data: orders } = await revenueQuery;
       const totalRevenue = orders?.reduce((acc, order) => acc + (order.total || 0), 0) || 0;
       const orderIds = orders?.map(o => o.id) || [];
-      let orderItemsQuery = supabase.from('order_items').select('subtotal, product:product_id (brand:brand_id (name))');
+      let orderItemsQuery = supabase.from('order_items').select('subtotal, product:products!product_id (brand:brands!brand_id (name))');
       if (orderIds.length > 0) orderItemsQuery = orderItemsQuery.in('order_id', orderIds);
       else orderItemsQuery = orderItemsQuery.eq('order_id', 'none');
       const { data: orderItems } = await orderItemsQuery;

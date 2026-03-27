@@ -28,7 +28,7 @@ export function useNotifications(companyId: string | null, role?: string | null,
 
     let query = supabase
       .from('orders')
-      .select('id, client_name, customers(nome), total, created_at, seller_id')
+      .select('id, client_name, customers!customer_id(nome), total, created_at, seller_id')
       .eq('company_id', companyId)
       .order('created_at', { ascending: false })
       .limit(20);

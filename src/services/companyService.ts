@@ -6,15 +6,18 @@ export async function registerCompany(companyData: any) {
     return { success: false };
   }
 
+  const cleanCnpj = companyData.cnpj.replace(/\D/g, '');
+  const authEmail = companyData.email || `${cleanCnpj}@vendpro.com.br`;
+
   // 1. Insert into companies table first to get the ID
   const { data: company, error: companyError } = await supabase
     .from("companies")
     .insert([{ 
       nome: companyData.nome,
-      cnpj: companyData.cnpj,
+      cnpj: cleanCnpj,
       responsavel: companyData.responsavel,
       telefone: companyData.telefone,
-      email: companyData.email,
+      email: authEmail,
       senha: companyData.senha
     }])
     .select()
@@ -26,10 +29,10 @@ export async function registerCompany(companyData: any) {
   }
 
   // 2. Create user in Supabase Auth with metadata for the profile trigger
-  if (companyData.email && companyData.senha) {
+  if (authEmail && companyData.senha) {
     try {
       const { error: authError } = await supabase.auth.signUp({
-        email: companyData.email,
+        email: authEmail,
         password: companyData.senha,
         options: {
           data: {
@@ -56,11 +59,13 @@ export async function loginCompany(identifier: string, senha?: string) {
     return { success: false };
   }
 
+  const cleanIdentifier = identifier.replace(/\D/g, '');
+
   // 1. Find the company in the database
   const { data: company, error } = await supabase
     .from("companies")
     .select("*")
-    .or(`cnpj.eq.${identifier},email.eq.${identifier}`)
+    .or(`cnpj.eq.${cleanIdentifier},email.eq.${identifier}`)
     .eq("senha", senha)
     .maybeSingle();
 

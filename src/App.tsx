@@ -1099,7 +1099,7 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
   const [customerData, setCustomerData] = useState({ nome: '', nome_empresa: '', cnpj: '', telefone: '', responsavel: '', senha: '', confirmarSenha: '' });
   const [customerLoginCnpj, setCustomerLoginCnpj] = useState('');
   const [customerLoginSenha, setCustomerLoginSenha] = useState('');
-  const [companyData, setCompanyData] = useState({ nome: '', cnpj: '', telefone: '', responsavel: '', email: '', senha: '' });
+  const [companyData, setCompanyData] = useState({ nome: '', cnpj: '', telefone: '', responsavel: '', senha: '', confirmarSenha: '' });
   const [companyLoginCnpj, setCompanyLoginCnpj] = useState('');
   const [companyLoginSenha, setCompanyLoginSenha] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -1339,7 +1339,15 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
   };
 
   const handleCompanyRegister = async () => {
-    if (!companyData.cnpj || !validateCNPJ(companyData.cnpj)) {
+    if (!companyData.nome || !companyData.cnpj || !companyData.responsavel || !companyData.telefone || !companyData.senha) {
+      alert("Por favor, preencha todos os campos obrigatórios.");
+      return;
+    }
+    if (companyData.senha !== companyData.confirmarSenha) {
+      alert("As senhas não coincidem.");
+      return;
+    }
+    if (!validateCNPJ(companyData.cnpj)) {
       alert("Por favor, informe um CNPJ válido.");
       return;
     }
@@ -1554,16 +1562,19 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
           <div className="space-y-2">
             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3 text-center">Cadastro de Empresa</p>
             {[
+              { ph: 'Seu Nome (Responsável)', key: 'responsavel', type: 'text' },
               { ph: 'Nome da Empresa', key: 'nome', type: 'text' },
               { ph: 'CNPJ', key: 'cnpj', type: 'text' },
-              { ph: 'Responsável', key: 'responsavel', type: 'text' },
-              { ph: 'E-mail', key: 'email', type: 'email' },
-              { ph: 'Telefone', key: 'telefone', type: 'text' },
+              { ph: 'WhatsApp', key: 'telefone', type: 'text' },
             ].map(f => (
-              <input key={f.key} type={f.type} placeholder={f.ph} className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:border-primary/40 outline-none text-sm font-bold text-slate-700" value={(companyData as any)[f.key]} onChange={e => setCompanyData({...companyData, [f.key]: f.key === 'cnpj' ? formatCNPJ(e.target.value) : e.target.value})} required={f.key === 'email'} />
+              <input key={f.key} type={f.type} placeholder={f.ph} className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:border-primary/40 outline-none text-sm font-bold text-slate-700" value={(companyData as any)[f.key]} onChange={e => setCompanyData({...companyData, [f.key]: f.key === 'cnpj' ? formatCNPJ(e.target.value) : e.target.value})} />
             ))}
             <div className="relative">
               <input type={showPassword ? "text" : "password"} placeholder="Senha de Acesso" className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:border-primary/40 outline-none text-sm font-bold text-slate-700 pr-9" value={companyData.senha} onChange={e => setCompanyData({...companyData, senha: e.target.value})} />
+              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 hover:text-primary"><EyeOff size={14} /></button>
+            </div>
+            <div className="relative">
+              <input type={showPassword ? "text" : "password"} placeholder="Confirmar Senha" className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:border-primary/40 outline-none text-sm font-bold text-slate-700 pr-9" value={companyData.confirmarSenha} onChange={e => setCompanyData({...companyData, confirmarSenha: e.target.value})} />
               <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 hover:text-primary"><EyeOff size={14} /></button>
             </div>
             <button onClick={handleCompanyRegister} className="w-full py-2.5 bg-gradient-to-r from-[#e91e8c] to-[#7c3aed] text-white rounded-lg font-black text-xs uppercase tracking-wide shadow-lg hover:-translate-y-0.5 transition-all mt-2">Finalizar Cadastro</button>

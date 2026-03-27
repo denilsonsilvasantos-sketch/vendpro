@@ -1091,12 +1091,14 @@ function CompanyInfoModal({ company, onClose }: { company: any, onClose: () => v
   );
 }
 function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, companies?: any[], sellers?: any[]) => void }) {
-  const [view, setView] = useState<'role' | 'seller-code' | 'customer-form' | 'company-login' | 'company-register'>('role');
+  const [view, setView] = useState<'role' | 'seller-code' | 'customer-form' | 'customer-login' | 'company-login' | 'company-register'>('role');
   const [loginType, setLoginType] = useState<'seller' | 'customer' | 'admin' | 'company' | null>(null);
   const [sellerCode, setSellerCode] = useState('');
   const [sellerPassword, setSellerPassword] = useState('');
   const [showSellerPassword, setShowSellerPassword] = useState(false);
-  const [customerData, setCustomerData] = useState({ nome: '', cnpj: '', telefone: '', responsavel: '' });
+  const [customerData, setCustomerData] = useState({ nome: '', nome_empresa: '', cnpj: '', telefone: '', responsavel: '', senha: '', confirmarSenha: '' });
+  const [customerLoginCnpj, setCustomerLoginCnpj] = useState('');
+  const [customerLoginSenha, setCustomerLoginSenha] = useState('');
   const [companyData, setCompanyData] = useState({ nome: '', cnpj: '', telefone: '', responsavel: '', email: '', senha: '' });
   const [companyLoginCnpj, setCompanyLoginCnpj] = useState('');
   const [companyLoginSenha, setCompanyLoginSenha] = useState('');
@@ -1224,14 +1226,46 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
     }
   };
 
+  const handleCustomerLogin = async () => {
+    if (!customerLoginCnpj || !customerLoginSenha) {
+      alert('Por favor, informe o CNPJ e a senha');
+      return;
+    }
+
+    try {
+      const { validateCustomerLogin } = await import('./services/customerService');
+      const result = await validateCustomerLogin(customerLoginCnpj, customerLoginSenha);
+
+      if (result.success && result.customer) {
+        onLogin('customer', { 
+          ...result.customer, 
+          vendedor_nome: result.seller?.nome,
+          vendedor_whatsapp: result.seller?.whatsapp,
+          vendedor_telefone: result.seller?.telefone,
+          vendedor_marcas_bloqueadas: result.seller?.marcas_bloqueadas || [],
+        }, [result.company]);
+      } else {
+        alert(result.error || 'Erro ao realizar login');
+      }
+    } catch (error) {
+      console.error('Erro no login do cliente:', error);
+      alert('Erro ao realizar login');
+    }
+  };
+
   const handleCustomerSubmit = async () => {
-    if (!customerData.nome || !customerData.telefone || !customerData.cnpj) {
-      alert("Por favor, preencha o nome, o CNPJ/CPF e o telefone.");
+    if (!customerData.nome || !customerData.nome_empresa || !customerData.cnpj || !customerData.telefone || !customerData.senha) {
+      alert("Por favor, preencha todos os campos obrigatórios.");
+      return;
+    }
+
+    if (customerData.senha !== customerData.confirmarSenha) {
+      alert("As senhas não coincidem.");
       return;
     }
 
     if (!validateCPFOrCNPJ(customerData.cnpj)) {
-      alert("Por favor, informe um CPF ou CNPJ válido.");
+      alert("Por favor, informe um CNPJ válido.");
       return;
     }
 
@@ -1244,31 +1278,38 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
           .from('customers')
           .select('*')
           .eq('seller_id', sellerInfo.id)
-          .eq('cnpj', customerData.cnpj)
+          .eq('cnpj', customerData.cnpj.replace(/\D/g, ''))
           .maybeSingle();
 
         if (searchError) throw searchError;
 
         if (existingCustomers) {
-          // Found existing customer
-          onLogin('customer', { 
-            ...existingCustomers, 
-            sellerCode,
-            vendedor_nome: sellerInfo.nome,
-            vendedor_whatsapp: sellerInfo.whatsapp,
-            vendedor_telefone: sellerInfo.telefone,
-            vendedor_marcas_bloqueadas: sellerInfo.marcas_bloqueadas || [],
-          }, availableCompanies);
+          alert('Este CNPJ já está cadastrado para este vendedor. Por favor, faça login.');
+          setView('customer-login');
+          setCustomerLoginCnpj(customerData.cnpj);
         } else {
           // Create new customer using the service to generate credentials
           const newCustomer = await createCustomer(sellerInfo.company_id, {
-            ...customerData,
+            nome: customerData.nome,
+            nome_empresa: customerData.nome_empresa,
+            cnpj: customerData.cnpj,
+            telefone: customerData.telefone,
+            whatsapp: customerData.telefone,
+            responsavel: customerData.responsavel || customerData.nome,
+            senha: customerData.senha,
             seller_id: sellerInfo.id,
             ativo: true
           });
 
           if (newCustomer) {
-            setCreatedCustomer(newCustomer);
+            onLogin('customer', { 
+              ...newCustomer, 
+              sellerCode,
+              vendedor_nome: sellerInfo.nome,
+              vendedor_whatsapp: sellerInfo.whatsapp,
+              vendedor_telefone: sellerInfo.telefone,
+              vendedor_marcas_bloqueadas: sellerInfo.marcas_bloqueadas || [],
+            }, availableCompanies);
           } else {
             alert('Erro ao criar cadastro. Tente novamente.');
           }
@@ -1537,7 +1578,7 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
             </p>
             <div>
               <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Código de Vínculo</label>
-              <input type="text" placeholder="Ex: VEND-1234" className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:border-primary/40 outline-none text-sm font-black uppercase text-slate-700 text-center" value={sellerCode} onChange={e => setSellerCode(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSellerCodeSubmit()} />
+              <input type="text" placeholder="Ex: VEND-1234" className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:border-primary/40 outline-none text-sm font-black uppercase text-slate-700 text-center" value={sellerCode} onChange={e => setSellerCode(e.target.value.toUpperCase())} onKeyDown={e => e.key === 'Enter' && handleSellerCodeSubmit()} />
             </div>
             {loginType === 'seller' && (
               <div>
@@ -1550,9 +1591,40 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
                 </div>
               </div>
             )}
-            <button onClick={handleSellerCodeSubmit} className="w-full py-2.5 bg-gradient-to-r from-[#e91e8c] to-[#7c3aed] text-white rounded-lg font-black text-xs uppercase tracking-wide shadow-lg hover:-translate-y-0.5 transition-all">Entrar</button>
+            <button onClick={handleSellerCodeSubmit} className="w-full py-2.5 bg-gradient-to-r from-[#e91e8c] to-[#7c3aed] text-white rounded-lg font-black text-xs uppercase tracking-wide shadow-lg hover:-translate-y-0.5 transition-all">
+              {loginType === 'seller' ? 'Entrar' : 'Próximo'}
+            </button>
+            <div className="flex flex-col items-center gap-2 pt-1">
+              {loginType === 'customer' && (
+                <button onClick={() => setView('customer-login')} className="text-[10px] font-bold text-primary hover:underline">Já sou cadastrado</button>
+              )}
+              <div className="flex items-center justify-between w-full">
+                <button onClick={() => setShowForgotCode(true)} className="text-[10px] font-bold text-slate-400 hover:underline">Esqueci meu código</button>
+                <button onClick={() => setView('role')} className="text-[10px] font-bold text-slate-300 hover:text-primary transition-colors">← Voltar</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {view === 'customer-login' && (
+          <div className="space-y-3">
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3 text-center">Acesso Cliente</p>
+            <div>
+              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 block">CNPJ</label>
+              <input type="text" placeholder="Digite seu CNPJ" className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:border-primary/40 outline-none text-sm font-bold text-slate-700" value={customerLoginCnpj} onChange={e => setCustomerLoginCnpj(formatCNPJ(e.target.value))} />
+            </div>
+            <div>
+              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Senha</label>
+              <div className="relative">
+                <input type={showPassword ? "text" : "password"} placeholder="••••••••" className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:border-primary/40 outline-none text-sm font-bold text-slate-700 pr-9" value={customerLoginSenha} onChange={e => setCustomerLoginSenha(e.target.value)} />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 hover:text-primary transition-colors">
+                  {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                </button>
+              </div>
+            </div>
+            <button onClick={handleCustomerLogin} className="w-full py-2.5 bg-gradient-to-r from-[#e91e8c] to-[#7c3aed] text-white rounded-lg font-black text-xs uppercase tracking-wide shadow-lg hover:-translate-y-0.5 transition-all mt-1">Entrar</button>
             <div className="flex items-center justify-between pt-1">
-              <button onClick={() => setShowForgotCode(true)} className="text-[10px] font-bold text-primary hover:underline">Esqueci meu código</button>
+              <button onClick={() => setView('seller-code')} className="text-[10px] font-bold text-slate-400 hover:text-primary transition-colors">Novo cadastro</button>
               <button onClick={() => setView('role')} className="text-[10px] font-bold text-slate-300 hover:text-primary transition-colors">← Voltar</button>
             </div>
           </div>
@@ -1712,15 +1784,38 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
           <div className="space-y-4 text-left">
             <p className="font-black text-[10px] text-slate-400 uppercase tracking-[0.2em] mb-6 text-center">Identificação do Cliente</p>
             <div className="space-y-3">
-              <input placeholder="Seu Nome ou Nome da Empresa" className="w-full p-5 bg-white rounded-3xl border border-slate-100 font-bold focus:ring-2 focus:ring-primary outline-none shadow-inner" value={customerData.nome} onChange={e => setCustomerData({...customerData, nome: e.target.value})} />
-              <input placeholder="CNPJ ou CPF" className="w-full p-5 bg-white rounded-3xl border border-slate-100 font-bold focus:ring-2 focus:ring-primary outline-none shadow-inner" value={customerData.cnpj} onChange={e => setCustomerData({...customerData, cnpj: formatCPFOrCNPJ(e.target.value)})} />
-              <input placeholder="Telefone / WhatsApp" className="w-full p-5 bg-white rounded-3xl border border-slate-100 font-bold focus:ring-2 focus:ring-primary outline-none shadow-inner" value={customerData.telefone} onChange={e => setCustomerData({...customerData, telefone: e.target.value})} />
+              <div>
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-4 block">Seu Nome</label>
+                <input placeholder="Seu Nome" className="w-full p-4 bg-white rounded-3xl border border-slate-100 font-bold focus:ring-2 focus:ring-primary outline-none shadow-inner" value={customerData.nome} onChange={e => setCustomerData({...customerData, nome: e.target.value})} />
+              </div>
+              <div>
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-4 block">Nome da Empresa</label>
+                <input placeholder="Nome da Empresa" className="w-full p-4 bg-white rounded-3xl border border-slate-100 font-bold focus:ring-2 focus:ring-primary outline-none shadow-inner" value={customerData.nome_empresa} onChange={e => setCustomerData({...customerData, nome_empresa: e.target.value})} />
+              </div>
+              <div>
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-4 block">CNPJ</label>
+                <input placeholder="CNPJ" className="w-full p-4 bg-white rounded-3xl border border-slate-100 font-bold focus:ring-2 focus:ring-primary outline-none shadow-inner" value={customerData.cnpj} onChange={e => setCustomerData({...customerData, cnpj: formatCNPJ(e.target.value)})} />
+              </div>
+              <div>
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-4 block">WhatsApp</label>
+                <input placeholder="WhatsApp" className="w-full p-4 bg-white rounded-3xl border border-slate-100 font-bold focus:ring-2 focus:ring-primary outline-none shadow-inner" value={customerData.telefone} onChange={e => setCustomerData({...customerData, telefone: e.target.value})} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-4 block">Senha</label>
+                  <input type="password" placeholder="Senha" className="w-full p-4 bg-white rounded-3xl border border-slate-100 font-bold focus:ring-2 focus:ring-primary outline-none shadow-inner" value={customerData.senha} onChange={e => setCustomerData({...customerData, senha: e.target.value})} />
+                </div>
+                <div>
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-4 block">Confirmar</label>
+                  <input type="password" placeholder="Confirmar" className="w-full p-4 bg-white rounded-3xl border border-slate-100 font-bold focus:ring-2 focus:ring-primary outline-none shadow-inner" value={customerData.confirmarSenha} onChange={e => setCustomerData({...customerData, confirmarSenha: e.target.value})} />
+                </div>
+              </div>
             </div>
             <button 
               onClick={handleCustomerSubmit}
               className="w-full py-5 bg-primary text-white rounded-full font-black uppercase tracking-widest text-xs mt-6 shadow-lg shadow-primary/20 hover:bg-primary-dark transition-all"
             >
-              Acessar Catálogo
+              Cadastrar e Acessar
             </button>
             <button onClick={() => setView('seller-code')} className="w-full text-center text-[10px] font-black text-slate-400 uppercase tracking-widest mt-4 hover:text-primary transition-colors">Voltar</button>
           </div>

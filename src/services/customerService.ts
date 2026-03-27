@@ -101,12 +101,69 @@ export async function getCustomerByCnpj(cnpj: string, sellerId: string) {
   return data;
 }
 
+export async function validateCustomerLogin(cnpj: string, password?: string) {
+  if (!supabase) return { success: false, error: 'Supabase não inicializado' };
+
+  const cleanCnpj = cnpj.replace(/\D/g, '');
+
+  const { data, error } = await supabase
+    .from('customers')
+    .select('*, sellers(*), companies(*)')
+    .eq('cnpj', cleanCnpj)
+    .maybeSingle();
+
+  if (error) return { success: false, error: error.message };
+  if (!data) return { success: false, error: 'CNPJ não cadastrado' };
+
+  // If password is provided, validate it
+  if (password && data.senha !== password) {
+    return { success: false, error: 'Senha incorreta' };
+  }
+
+  // Supabase Auth Integration for RLS
+  const email = `${(data.codigo_acesso || data.id).toLowerCase()}@vendpro.com`;
+  const authPassword = data.senha || 'vendpro123';
+
+  // Try to sign in
+  const { error: signInError } = await supabase.auth.signInWithPassword({
+    email,
+    password: authPassword,
+  });
+
+  if (signInError) {
+    // If sign in fails, try to sign up (first time login)
+    await supabase.auth.signUp({
+      email,
+      password: authPassword,
+      options: {
+        data: {
+          role: 'customer',
+          company_id: data.company_id,
+          seller_id: data.seller_id,
+          customer_id: data.id
+        }
+      }
+    });
+  }
+
+  return { 
+    success: true, 
+    customer: data,
+    seller: data.sellers,
+    company: data.companies
+  };
+}
+
 export async function createCustomer(companyId: string, customerData: any) {
   if (!supabase) return null;
   
-  // Auto-generate access code and password if not provided
+  // Clean CNPJ
+  const cleanCnpj = customerData.cnpj ? customerData.cnpj.replace(/\D/g, '') : '';
+
+  // Auto-generate access code if not provided
   const dataToSave = {
     ...customerData,
+    cnpj: cleanCnpj,
     company_id: companyId,
     codigo_acesso: customerData.codigo_acesso || generateCustomerAccessCode(),
     senha: customerData.senha || generateShortPassword()

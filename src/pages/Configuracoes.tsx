@@ -10,7 +10,19 @@ export default function Configuracoes({ companyId, user, role, onLogout }: { com
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [formData, setFormData] = useState({ nome: '', cnpj: '', email: '', senha: '', logo_url: '', primary_color: '#0072FF', whatsapp: '', codigo_cliente: '' });
+  const [formData, setFormData] = useState({ 
+    nome: '', 
+    nome_empresa: '',
+    cnpj: '', 
+    email: '', 
+    senha: '', 
+    logo_url: '', 
+    primary_color: '#0072FF', 
+    whatsapp: '', 
+    codigo_cliente: '',
+    vendedor_nome: '',
+    vendedor_whatsapp: ''
+  });
 
   const safeLS = {
     get: (k: string) => { try { return localStorage.getItem(k); } catch { return null; } },
@@ -22,10 +34,49 @@ export default function Configuracoes({ companyId, user, role, onLogout }: { com
       if (!supabase) return;
       if (role === 'company' && companyId) {
         const { data } = await supabase.from('companies').select('*').eq('id', companyId).single();
-        if (data) setFormData({ nome: data.nome || '', cnpj: data.cnpj || '', email: data.email || '', senha: data.senha || '', logo_url: data.logo_url || safeLS.get(`vendpro_company_logo_${companyId}`) || '', primary_color: data.primary_color || safeLS.get(`vendpro_company_color_${companyId}`) || '#0072FF', whatsapp: '', codigo_cliente: '' });
+        if (data) setFormData({ 
+          nome: data.nome || '', 
+          nome_empresa: '',
+          cnpj: data.cnpj || '', 
+          email: data.email || '', 
+          senha: data.senha || '', 
+          logo_url: data.logo_url || safeLS.get(`vendpro_company_logo_${companyId}`) || '', 
+          primary_color: data.primary_color || safeLS.get(`vendpro_company_color_${companyId}`) || '#0072FF', 
+          whatsapp: '', 
+          codigo_cliente: '',
+          vendedor_nome: '',
+          vendedor_whatsapp: ''
+        });
       } else if (role === 'seller' && user?.id) {
         const { data } = await supabase.from('sellers').select('*').eq('id', user.id).single();
-        if (data) setFormData({ nome: data.nome || '', cnpj: '', email: '', senha: '', logo_url: '', primary_color: '', whatsapp: data.whatsapp || '', codigo_cliente: data.codigo_cliente || '' });
+        if (data) setFormData({ 
+          nome: data.nome || '', 
+          nome_empresa: '',
+          cnpj: '', 
+          email: '', 
+          senha: '', 
+          logo_url: '', 
+          primary_color: '', 
+          whatsapp: data.whatsapp || '', 
+          codigo_cliente: data.codigo_cliente || '',
+          vendedor_nome: '',
+          vendedor_whatsapp: ''
+        });
+      } else if (role === 'customer' && user?.id) {
+        const { data } = await supabase.from('customers').select('*, sellers(*)').eq('id', user.id).single();
+        if (data) setFormData({ 
+          nome: data.nome || '', 
+          nome_empresa: data.nome_empresa || '',
+          cnpj: data.cnpj || '', 
+          email: '', 
+          senha: data.senha || '', 
+          logo_url: '', 
+          primary_color: '', 
+          whatsapp: data.whatsapp || data.telefone || '', 
+          codigo_cliente: '',
+          vendedor_nome: data.sellers?.nome || '',
+          vendedor_whatsapp: data.sellers?.whatsapp || data.sellers?.telefone || ''
+        });
       }
       setLoading(false);
     }
@@ -48,6 +99,15 @@ export default function Configuracoes({ companyId, user, role, onLogout }: { com
       if (error) alert('Erro: ' + error.message); else alert('Configurações salvas!');
     } else if (role === 'seller' && user?.id) {
       const { error } = await supabase.from('sellers').update({ nome: formData.nome, whatsapp: formData.whatsapp, codigo_cliente: formData.codigo_cliente }).eq('id', user.id);
+      if (error) alert('Erro: ' + error.message); else alert('Dados atualizados!');
+    } else if (role === 'customer' && user?.id) {
+      const { error } = await supabase.from('customers').update({ 
+        nome: formData.nome, 
+        nome_empresa: formData.nome_empresa,
+        whatsapp: formData.whatsapp,
+        telefone: formData.whatsapp,
+        senha: formData.senha 
+      }).eq('id', user.id);
       if (error) alert('Erro: ' + error.message); else alert('Dados atualizados!');
     }
     setSaving(false);
@@ -159,7 +219,7 @@ export default function Configuracoes({ companyId, user, role, onLogout }: { com
           <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 block">
-                {role === 'company' ? 'Nome Fantasia' : 'Nome Completo'}
+                {role === 'company' ? 'Nome Fantasia' : 'Seu Nome'}
               </label>
               <div className="relative">
                 <User size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" />
@@ -167,12 +227,22 @@ export default function Configuracoes({ companyId, user, role, onLogout }: { com
               </div>
             </div>
 
-            {role === 'company' && (
+            {role === 'customer' && (
+              <div>
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Nome da Empresa</label>
+                <div className="relative">
+                  <Building2 size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" />
+                  <input className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 outline-none focus:border-primary/40" value={formData.nome_empresa} onChange={e => setFormData({ ...formData, nome_empresa: e.target.value })} required />
+                </div>
+              </div>
+            )}
+
+            {(role === 'company' || role === 'customer') && (
               <div>
                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 block">CNPJ</label>
                 <div className="relative">
                   <FileText size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" />
-                  <input className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 outline-none focus:border-primary/40" value={formData.cnpj} onChange={e => setFormData({ ...formData, cnpj: formatCNPJ(e.target.value) })} />
+                  <input className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 outline-none focus:border-primary/40" value={formData.cnpj} onChange={e => setFormData({ ...formData, cnpj: formatCNPJ(e.target.value) })} disabled={role === 'customer'} />
                 </div>
               </div>
             )}
@@ -187,29 +257,56 @@ export default function Configuracoes({ companyId, user, role, onLogout }: { com
               </div>
             )}
 
+            {(role === 'seller' || role === 'customer') && (
+              <div>
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 block">WhatsApp</label>
+                <div className="relative">
+                  <Phone size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" />
+                  <input className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 outline-none focus:border-primary/40" value={formData.whatsapp} onChange={e => setFormData({ ...formData, whatsapp: e.target.value })} placeholder="(00) 00000-0000" />
+                </div>
+              </div>
+            )}
+
             {role === 'seller' && (
-              <>
-                <div>
-                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 block">WhatsApp</label>
-                  <div className="relative">
-                    <Phone size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" />
-                    <input className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 outline-none focus:border-primary/40" value={formData.whatsapp} onChange={e => setFormData({ ...formData, whatsapp: e.target.value })} placeholder="(00) 00000-0000" />
-                  </div>
+              <div>
+                <label className="text-[9px] font-black text-primary uppercase tracking-widest mb-1 block">Código para Clientes</label>
+                <div className="relative">
+                  <Shield size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-primary/40" />
+                  <input className="w-full pl-8 pr-3 py-2 bg-primary/5 border border-primary/20 rounded-lg text-xs font-black text-primary uppercase outline-none focus:border-primary/40" value={formData.codigo_cliente} onChange={e => setFormData({ ...formData, codigo_cliente: e.target.value.toUpperCase() })} placeholder="EX: MEULINK01" required />
                 </div>
-                <div>
-                  <label className="text-[9px] font-black text-primary uppercase tracking-widest mb-1 block">Código para Clientes</label>
-                  <div className="relative">
-                    <Shield size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-primary/40" />
-                    <input className="w-full pl-8 pr-3 py-2 bg-primary/5 border border-primary/20 rounded-lg text-xs font-black text-primary uppercase outline-none focus:border-primary/40" value={formData.codigo_cliente} onChange={e => setFormData({ ...formData, codigo_cliente: e.target.value.toUpperCase() })} placeholder="EX: MEULINK01" required />
-                  </div>
-                </div>
-              </>
+              </div>
             )}
           </div>
         </div>
 
-        {/* Password (company only) */}
-        {role === 'company' && (
+        {/* Linked Seller Info (customer only) */}
+        {role === 'customer' && formData.vendedor_nome && (
+          <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
+            <div className="px-4 py-3 border-b border-slate-100 bg-slate-50 flex items-center gap-2">
+              <User size={12} className="text-indigo-500" />
+              <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Seu Vendedor</span>
+            </div>
+            <div className="p-4 flex items-center justify-between">
+              <div>
+                <p className="text-sm font-black text-slate-900 uppercase">{formData.vendedor_nome}</p>
+                <p className="text-xs text-slate-400">{formData.vendedor_whatsapp}</p>
+              </div>
+              {formData.vendedor_whatsapp && (
+                <a 
+                  href={`https://wa.me/55${formData.vendedor_whatsapp.replace(/\D/g, '')}`} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="px-4 py-2 bg-green-500 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-green-600 transition-all flex items-center gap-2"
+                >
+                  <Phone size={12} /> Contato
+                </a>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Password */}
+        {(role === 'company' || role === 'customer') && (
           <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
             <div className="px-4 py-3 border-b border-slate-100 bg-slate-50 flex items-center gap-2">
               <Lock size={12} className="text-amber-500" />

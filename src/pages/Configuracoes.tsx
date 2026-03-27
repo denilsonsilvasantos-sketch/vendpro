@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import { supabase } from '../integrations/supabaseClient';
 import { Settings, Building2, Phone, Mail, FileText, Save, Loader2, User, Shield, LogOut, Upload, Image as ImageIcon, Eye, EyeOff, Lock, AlertCircle } from 'lucide-react';
+import { validateCNPJ, formatCNPJ } from '../lib/validators';
 
 export default function Configuracoes({ companyId, user, role, onLogout }: { companyId: string | null, user: any, role: string | null, onLogout: () => void }) {
   const [loading, setLoading] = useState(true);
@@ -36,6 +37,11 @@ export default function Configuracoes({ companyId, user, role, onLogout }: { com
     if (!supabase) return;
     setSaving(true);
     if (role === 'company' && companyId) {
+      if (!formData.cnpj || !validateCNPJ(formData.cnpj)) {
+        alert('Por favor, informe um CNPJ válido.');
+        setSaving(false);
+        return;
+      }
       if (formData.logo_url) safeLS.set(`vendpro_company_logo_${companyId}`, formData.logo_url);
       if (formData.primary_color) { safeLS.set(`vendpro_company_color_${companyId}`, formData.primary_color); document.documentElement.style.setProperty('--vendpro-primary', formData.primary_color); }
       const { error } = await supabase.from('companies').update({ nome: formData.nome, cnpj: formData.cnpj, email: formData.email, senha: formData.senha, logo_url: formData.logo_url, primary_color: formData.primary_color }).eq('id', companyId);
@@ -166,7 +172,7 @@ export default function Configuracoes({ companyId, user, role, onLogout }: { com
                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 block">CNPJ</label>
                 <div className="relative">
                   <FileText size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" />
-                  <input className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 outline-none focus:border-primary/40" value={formData.cnpj} onChange={e => setFormData({ ...formData, cnpj: e.target.value })} />
+                  <input className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 outline-none focus:border-primary/40" value={formData.cnpj} onChange={e => setFormData({ ...formData, cnpj: formatCNPJ(e.target.value) })} />
                 </div>
               </div>
             )}

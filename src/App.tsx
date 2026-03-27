@@ -48,6 +48,7 @@ import { subscribeToPush, isPushSupported } from './services/pushService';
 import SalesAIChat from './components/SalesAIChat';
 import { Product, Category, Seller, Customer, UserRole, CartItem, Company, Brand, BannerData } from './types';
 import { searchProductByImage } from './services/aiService';
+import { validateCNPJ, validateCPFOrCNPJ, formatCPFOrCNPJ, formatCNPJ } from './lib/validators';
 import { Card } from './components/Card';
 import { Badge } from './components/Badge';
 import CartScreen from './pages/CartScreen';
@@ -1225,7 +1226,12 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
 
   const handleCustomerSubmit = async () => {
     if (!customerData.nome || !customerData.telefone || !customerData.cnpj) {
-      alert("Por favor, preencha o nome, o CNPJ e o telefone.");
+      alert("Por favor, preencha o nome, o CNPJ/CPF e o telefone.");
+      return;
+    }
+
+    if (!validateCPFOrCNPJ(customerData.cnpj)) {
+      alert("Por favor, informe um CPF ou CNPJ válido.");
       return;
     }
 
@@ -1292,6 +1298,10 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
   };
 
   const handleCompanyRegister = async () => {
+    if (!companyData.cnpj || !validateCNPJ(companyData.cnpj)) {
+      alert("Por favor, informe um CNPJ válido.");
+      return;
+    }
     const result = await registerCompany(companyData);
     if (result.success) {
       onLogin('company', result.company);
@@ -1303,6 +1313,11 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
   const handleCompanyLogin = async () => {
     const cnpj = companyLoginCnpj.trim();
     const senha = companyLoginSenha.trim();
+
+    if (!cnpj || !validateCNPJ(cnpj)) {
+      alert("Por favor, informe um CNPJ válido.");
+      return;
+    }
     
     if (cnpj.toUpperCase() === 'ADMIN') {
       if (supabase) {
@@ -1474,7 +1489,7 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3 text-center">Acesso Empresa</p>
             <div>
               <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 block">CNPJ</label>
-              <input type="text" placeholder="Digite seu CNPJ" className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:border-primary/40 outline-none text-sm font-bold text-slate-700" value={companyLoginCnpj} onChange={e => setCompanyLoginCnpj(e.target.value)} />
+              <input type="text" placeholder="Digite seu CNPJ" className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:border-primary/40 outline-none text-sm font-bold text-slate-700" value={companyLoginCnpj} onChange={e => setCompanyLoginCnpj(formatCNPJ(e.target.value))} />
             </div>
             <div>
               <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Senha</label>
@@ -1504,7 +1519,7 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
               { ph: 'E-mail', key: 'email', type: 'email' },
               { ph: 'Telefone', key: 'telefone', type: 'text' },
             ].map(f => (
-              <input key={f.key} type={f.type} placeholder={f.ph} className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:border-primary/40 outline-none text-sm font-bold text-slate-700" value={(companyData as any)[f.key]} onChange={e => setCompanyData({...companyData, [f.key]: e.target.value})} required={f.key === 'email'} />
+              <input key={f.key} type={f.type} placeholder={f.ph} className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:border-primary/40 outline-none text-sm font-bold text-slate-700" value={(companyData as any)[f.key]} onChange={e => setCompanyData({...companyData, [f.key]: f.key === 'cnpj' ? formatCNPJ(e.target.value) : e.target.value})} required={f.key === 'email'} />
             ))}
             <div className="relative">
               <input type={showPassword ? "text" : "password"} placeholder="Senha de Acesso" className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:border-primary/40 outline-none text-sm font-bold text-slate-700 pr-9" value={companyData.senha} onChange={e => setCompanyData({...companyData, senha: e.target.value})} />
@@ -1697,9 +1712,9 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
           <div className="space-y-4 text-left">
             <p className="font-black text-[10px] text-slate-400 uppercase tracking-[0.2em] mb-6 text-center">Identificação do Cliente</p>
             <div className="space-y-3">
-              <input placeholder="Seu Nome ou Nome da Empresa" className="w-full p-5 bg-white rounded-3xl border border-slate-100 font-bold focus:ring-2 focus:ring-primary outline-none shadow-inner" onChange={e => setCustomerData({...customerData, nome: e.target.value})} />
-              <input placeholder="CNPJ" className="w-full p-5 bg-white rounded-3xl border border-slate-100 font-bold focus:ring-2 focus:ring-primary outline-none shadow-inner" onChange={e => setCustomerData({...customerData, cnpj: e.target.value})} />
-              <input placeholder="Telefone / WhatsApp" className="w-full p-5 bg-white rounded-3xl border border-slate-100 font-bold focus:ring-2 focus:ring-primary outline-none shadow-inner" onChange={e => setCustomerData({...customerData, telefone: e.target.value})} />
+              <input placeholder="Seu Nome ou Nome da Empresa" className="w-full p-5 bg-white rounded-3xl border border-slate-100 font-bold focus:ring-2 focus:ring-primary outline-none shadow-inner" value={customerData.nome} onChange={e => setCustomerData({...customerData, nome: e.target.value})} />
+              <input placeholder="CNPJ ou CPF" className="w-full p-5 bg-white rounded-3xl border border-slate-100 font-bold focus:ring-2 focus:ring-primary outline-none shadow-inner" value={customerData.cnpj} onChange={e => setCustomerData({...customerData, cnpj: formatCPFOrCNPJ(e.target.value)})} />
+              <input placeholder="Telefone / WhatsApp" className="w-full p-5 bg-white rounded-3xl border border-slate-100 font-bold focus:ring-2 focus:ring-primary outline-none shadow-inner" value={customerData.telefone} onChange={e => setCustomerData({...customerData, telefone: e.target.value})} />
             </div>
             <button 
               onClick={handleCustomerSubmit}

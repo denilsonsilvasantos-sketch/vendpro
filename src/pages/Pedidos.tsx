@@ -36,10 +36,12 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
 
   async function fetchOrders() {
     if (!supabase || companyId === null) return;
+    setLoading(true);
+    console.log('fetchOrders - role:', role, 'user.id:', user?.id, 'companyId:', companyId);
 
     let query = supabase
       .from('orders')
-      .select('id, company_id, customer_id, seller_id, brand_id, total, status, whatsapp_sent, created_at, client_name, payment_method, customers!customer_id(nome, telefone), brands!brand_id(name)')
+      .select('*')
       .eq('company_id', companyId)
       .order('created_at', { ascending: false });
 
@@ -47,6 +49,8 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
       query = query.eq('seller_id', user.id);
     } else if (role === 'customer' && user?.id) {
       query = query.eq('customer_id', user.id);
+    } else if (role === 'company' && companyId) {
+      query = query.eq('company_id', companyId);
     }
 
     const { data, error } = await query;

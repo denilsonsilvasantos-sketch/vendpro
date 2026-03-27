@@ -14,13 +14,13 @@ export default function CustomerFormModal({ onClose, onSave, customer, companyId
     seller_id: '' 
   });
   const [loading, setLoading] = useState(false);
-  const [sellers, setSellers] = useState<Seller[]>([]);
+  const [sellers, setSellers] = useState<Pick<Seller, 'id' | 'nome'>[]>([]);
 
   useEffect(() => {
     async function fetchSellers() {
       if (!supabase || !companyId) return;
       const { data } = await supabase.from('sellers').select('id, nome').eq('company_id', companyId);
-      setSellers(data || []);
+      setSellers(data as Pick<Seller, 'id' | 'nome'>[] || []);
     }
     fetchSellers();
   }, [companyId]);

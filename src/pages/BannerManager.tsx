@@ -18,7 +18,7 @@ export default function BannerManager({ companyId }: { companyId: string }) {
     load();
   }, [companyId]);
 
-  const handleAddBanner = () => setBanners([...banners, { id: Math.random().toString(36).substr(2, 9), company_id: companyId, tag: '', title: '', sub: '', cta: '', className: 'bg-slate-900', imageUrl: '', visuals: [], order_index: banners.length }]);
+  const handleAddBanner = () => setBanners([...banners, { id: Math.random().toString(36).substr(2, 9), company_id: companyId, tag: '', title: '', sub: '', cta: '', className: 'bg-slate-900', image_url: '', visuals: [], order_index: banners.length }]);
   const handleRemoveBanner = (id: string) => setBanners(banners.filter(b => b.id !== id));
   const handleUpdateBanner = (id: string, updates: Partial<BannerData>) => setBanners(banners.map(b => b.id === id ? { ...b, ...updates } : b));
   const handleAddTopBar = () => setTopBarMessages([...topBarMessages, { id: Math.random().toString(36).substr(2, 9), company_id: companyId, text: 'Nova mensagem', order_index: topBarMessages.length }]);
@@ -104,7 +104,7 @@ export default function BannerManager({ companyId }: { companyId: string }) {
             <motion.div layout initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.98 }} key={banner.id} className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
               {/* Banner preview strip */}
               <div className={`h-10 flex items-center px-4 justify-between ${banner.className || 'bg-slate-800'}`}
-                style={banner.imageUrl ? { backgroundImage: `url(${banner.imageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}>
+                style={banner.image_url ? { backgroundImage: `url(${banner.image_url})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}>
                 <span className="text-white text-xs font-bold truncate opacity-90">{banner.title || `Banner ${index + 1}`}</span>
                 <button onClick={() => handleRemoveBanner(banner.id)} className="bg-rose-500 text-white rounded-md px-2 py-0.5 text-[9px] font-bold hover:bg-rose-600 transition-colors">Remover</button>
               </div>
@@ -115,7 +115,7 @@ export default function BannerManager({ companyId }: { companyId: string }) {
                   <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Imagem de Fundo (URL)</label>
                   <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
                     <ImageIcon size={12} className="text-slate-300 shrink-0" />
-                    <input type="text" value={banner.imageUrl || ''} onChange={e => handleUpdateBanner(banner.id, { imageUrl: e.target.value })} className="flex-1 bg-transparent border-none outline-none text-xs text-slate-600 placeholder:text-slate-300" placeholder="https://res.cloudinary.com/..." />
+                    <input type="text" value={banner.image_url || ''} onChange={e => handleUpdateBanner(banner.id, { image_url: e.target.value })} className="flex-1 bg-transparent border-none outline-none text-xs text-slate-600 placeholder:text-slate-300" placeholder="https://res.cloudinary.com/..." />
                   </div>
                 </div>
 
@@ -143,7 +143,7 @@ export default function BannerManager({ companyId }: { companyId: string }) {
                   <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Link</label>
                   <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
                     <LinkIcon size={12} className="text-slate-300 shrink-0" />
-                    <input type="text" value={banner.link || ''} onChange={e => handleUpdateBanner(banner.id, { link: e.target.value })} className="flex-1 bg-transparent border-none outline-none text-xs text-slate-600 placeholder:text-slate-300" placeholder="https://..." />
+                    <input type="text" value={banner.link_url || ''} onChange={e => handleUpdateBanner(banner.id, { link_url: e.target.value })} className="flex-1 bg-transparent border-none outline-none text-xs text-slate-600 placeholder:text-slate-300" placeholder="https://..." />
                   </div>
                 </div>
 

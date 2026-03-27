@@ -11,7 +11,7 @@ export function generateLinkCode(prefix: string = 'VEND'): string {
 /**
  * Gera uma senha curta aleatória (ex: 4567)
  */
-export function generateShortPassword(): string {
+export function generateSellerPassword(): string {
   return Math.floor(1000 + Math.random() * 9000).toString();
 }
 
@@ -88,7 +88,7 @@ export async function createSeller(sellerData: any) {
 
   // Se não tiver código ou senha, gera automaticamente
   const codigo_vinculo = sellerData.codigo_vinculo || generateLinkCode();
-  const senha = sellerData.senha || generateShortPassword();
+  const senha = sellerData.senha || generateSellerPassword();
 
   const { data, error } = await supabase
     .from("sellers")

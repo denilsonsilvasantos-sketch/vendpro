@@ -22,8 +22,8 @@ export async function getBanners(companyId: string): Promise<BannerData[]> {
   
   const mappedData = (data || []).map((b: any) => ({
     ...b,
-    imageUrl: b.imageUrl || b.image_url,
-    sub: b.sub || b.subtitle
+    image_url: b.image_url || b.imageUrl,
+    link_url: b.link_url || b.link
   }));
 
   return mappedData.length > 0 ? mappedData : localBanners;
@@ -38,19 +38,42 @@ export async function saveBanners(companyId: string, banners: BannerData[]): Pro
   // Try to save to Supabase
   try {
     // Delete existing
-    await supabase.from('banners').delete().eq('company_id', companyId);
+    const { error: deleteError } = await supabase.from('banners').delete().eq('company_id', companyId);
+    if (deleteError) {
+      console.warn('Could not delete banners (maybe table missing?):', deleteError.message);
+      return; // Stop if delete fails
+    }
+
     // Insert new
     if (banners.length > 0) {
+      // We'll try to insert with both naming conventions. 
+      // If one fails, we'll try the other.
       const toInsert = banners.map(({ id, ...rest }) => ({
         ...rest,
         company_id: companyId,
-        image_url: rest.imageUrl,
-        subtitle: rest.sub
+        imageUrl: rest.image_url,
+        link: rest.link_url
       }));
-      await supabase.from('banners').insert(toInsert);
+
+      const { error: insertError } = await supabase.from('banners').insert(toInsert);
+      
+      if (insertError) {
+        console.error('Error inserting banners:', insertError);
+        // Fallback: try without visuals in case the column is missing
+        const fallbackInsert = banners.map(({ id, visuals, ...rest }) => ({
+          ...rest,
+          company_id: companyId,
+          imageUrl: rest.image_url,
+          link: rest.link_url
+        }));
+        const { error: fallbackError } = await supabase.from('banners').insert(fallbackInsert);
+        if (fallbackError) {
+          console.error('Fallback banner insert also failed:', fallbackError);
+        }
+      }
     }
   } catch (err) {
-    console.error('Error saving banners to Supabase:', err);
+    console.error('Unexpected error saving banners to Supabase:', err);
   }
 }
 

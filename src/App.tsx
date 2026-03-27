@@ -252,6 +252,8 @@ export default function App() {
   const [pendingCompanyId, setPendingCompanyId] = useState<string | null>(null);
   const [showCompanyWarning, setShowCompanyWarning] = useState(false);
   const [banners, setBanners] = useState<BannerData[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [sellers, setSellers] = useState<Seller[]>([]);
   const [topBarMessages, setTopBarMessages] = useState<string[]>([]);
   const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -279,14 +281,21 @@ export default function App() {
     addToCart(product, quantity);
   };
 
-  const handleSendOrder = async (manualClientName?: string, paymentMethod?: string) => {
+  const handleSendOrder = async (manualClientName?: string, paymentMethod?: string, selectedCustomerId?: string, selectedSellerId?: string) => {
     let whatsappNumber = '';
     
     if (role === 'customer' && user) {
+      // Customer sends to seller or company
       whatsappNumber = user.vendedor_whatsapp || user.vendedor_telefone || company?.telefone || '';
-    } else if (role === 'seller' && company && company.telefone) {
-      whatsappNumber = company.telefone;
-    } else if (role === 'company' && company && company.telefone) {
+    } else if (role === 'seller' && selectedCustomerId) {
+      // Seller sends to selected customer
+      const targetCustomer = customers.find(c => c.id === selectedCustomerId);
+      whatsappNumber = targetCustomer?.whatsapp || company?.telefone || '';
+    } else if (role === 'company' && selectedSellerId) {
+      // Company sends to selected seller
+      const targetSeller = sellers.find(s => s.id === selectedSellerId);
+      whatsappNumber = targetSeller?.whatsapp || targetSeller?.telefone || company?.telefone || '';
+    } else if (company && company.telefone) {
       whatsappNumber = company.telefone;
     }
 
@@ -302,8 +311,8 @@ export default function App() {
         try {
           const orderData = {
             company_id: activeCompanyId,
-            customer_id: role === 'customer' ? user.id : null,
-            seller_id: role === 'customer' ? user.seller_id : (role === 'seller' ? user.id : null),
+            customer_id: selectedCustomerId || (role === 'customer' ? user.id : null),
+            seller_id: selectedSellerId || (role === 'customer' ? user.seller_id : (role === 'seller' ? user.id : null)),
             brand_id: selectedBrand,
             total: total,
             status: 'pending',
@@ -403,6 +412,27 @@ export default function App() {
         ]);
         setBanners(bannerData);
         setTopBarMessages(topBarData.map(m => m.text));
+
+        // Fetch customers and sellers if role is seller or company
+        if (supabase && (role === 'seller' || role === 'company')) {
+          const { data: customerData } = await supabase
+            .from('customers')
+            .select('*')
+            .eq('company_id', activeCompanyId)
+            .eq('ativo', true)
+            .order('nome');
+          setCustomers(customerData || []);
+
+          if (role === 'company') {
+            const { data: sellerData } = await supabase
+              .from('sellers')
+              .select('*')
+              .eq('company_id', activeCompanyId)
+              .eq('ativo', true)
+              .order('nome');
+            setSellers(sellerData || []);
+          }
+        }
 
         // Also fetch categories and brands for this company
         if (supabase) {
@@ -969,13 +999,15 @@ export default function App() {
                   total={total}
                   onUpdateQuantity={updateQuantity}
                   onRemove={removeFromCart}
-                  onSendOrder={(clientName, paymentMethod) => {
-                    handleSendOrder(clientName, paymentMethod);
+                  onSendOrder={(clientName, paymentMethod, customerId, sellerId) => {
+                    handleSendOrder(clientName, paymentMethod, customerId, sellerId);
                     setIsCartOpen(false);
                   }}
                   selectedBrand={selectedBrand}
                   brands={brands}
                   role={role}
+                  customers={customers}
+                  sellers={sellers}
                   isDrawer={true}
                 />
               </div>

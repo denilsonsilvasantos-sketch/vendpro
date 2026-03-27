@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import { supabase } from '../integrations/supabaseClient';
 import { Customer, UserRole } from '../types';
-import { Edit, Trash2, Plus, Share2, Copy, MessageCircle, Check, QrCode, Users, Search, Phone, Building2, UserCircle2, FileSpreadsheet, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Edit, Trash2, Plus, Share2, Copy, MessageCircle, Check, QrCode, Users, Search, Phone, Building2, UserCircle2, FileSpreadsheet, AlertCircle, CheckCircle2, User as UserIcon } from 'lucide-react';
 import CustomerFormModal from '../components/CustomerFormModal';
 import { motion, AnimatePresence } from 'motion/react';
 import { QRCodeSVG } from 'qrcode.react';
@@ -101,7 +101,8 @@ export default function Clientes({ companyId, role, user }: { companyId: string 
   useEffect(() => { fetchCustomers(); }, [companyId, role, user?.id]);
 
   const handleDelete = async (id: string) => {
-    if (!supabase || !confirm('Excluir este cliente?')) return;
+    if (!supabase) return;
+    // Removido confirm para evitar problemas em iframe e seguir diretrizes
     await supabase.from('customers').delete().eq('id', id);
     fetchCustomers();
   };
@@ -265,7 +266,7 @@ export default function Clientes({ companyId, role, user }: { companyId: string 
                     </td>
                     <td className="p-3 hidden sm:table-cell">
                       <div className="flex items-center gap-1.5 text-sm text-slate-500 font-medium">
-                        <User size={11} className="text-slate-300" /> {customer.responsavel || '—'}
+                        <UserIcon size={11} className="text-slate-300" /> {customer.responsavel || '—'}
                       </div>
                     </td>
                     <td className="p-3 hidden sm:table-cell">

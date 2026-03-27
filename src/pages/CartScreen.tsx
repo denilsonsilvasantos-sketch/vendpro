@@ -1,6 +1,6 @@
 import React from 'react';
-import { CartItem, Brand, UserRole } from '../types';
-import { Plus, Minus, Trash2, ShoppingBag, User as UserIcon, ReceiptText, CreditCard } from 'lucide-react';
+import { CartItem, Brand, UserRole, Customer, Seller } from '../types';
+import { Plus, Minus, Trash2, ShoppingBag, User as UserIcon, ReceiptText, CreditCard, Search, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function CartScreen({ 
@@ -12,21 +12,55 @@ export default function CartScreen({
   selectedBrand,
   brands,
   role,
+  customers = [],
+  sellers = [],
   isDrawer = false
 }: { 
   cart: CartItem[], 
   total: number, 
   onUpdateQuantity: (id: string, q: number) => void, 
   onRemove: (id: string) => void, 
-  onSendOrder: (clientName?: string, paymentMethod?: string) => void,
+  onSendOrder: (clientName?: string, paymentMethod?: string, customerId?: string, sellerId?: string) => void,
   selectedBrand: string | null,
   brands: Brand[],
   role: UserRole,
+  customers?: Customer[],
+  sellers?: Seller[],
   isDrawer?: boolean
 }) {
   const [clientName, setClientName] = React.useState('');
   const [paymentMethod, setPaymentMethod] = React.useState('');
+  const [selectedCustomerId, setSelectedCustomerId] = React.useState<string>('');
+  const [selectedSellerId, setSelectedSellerId] = React.useState<string>('');
+  const [customerSearch, setCustomerSearch] = React.useState('');
+  const [sellerSearch, setSellerSearch] = React.useState('');
+  const [showCustomerList, setShowCustomerList] = React.useState(false);
+  const [showSellerList, setShowSellerList] = React.useState(false);
+
   const currentBrand = brands.find(b => b.id === selectedBrand);
+
+  const filteredCustomers = customers.filter(c => 
+    c.nome.toLowerCase().includes(customerSearch.toLowerCase()) ||
+    c.cnpj.includes(customerSearch) ||
+    c.responsavel.toLowerCase().includes(customerSearch.toLowerCase())
+  );
+
+  const filteredSellers = sellers.filter(s => 
+    s.nome.toLowerCase().includes(sellerSearch.toLowerCase())
+  );
+
+  const handleSelectCustomer = (customer: Customer) => {
+    setSelectedCustomerId(customer.id);
+    setClientName(customer.nome);
+    setCustomerSearch(customer.nome);
+    setShowCustomerList(false);
+  };
+
+  const handleSelectSeller = (seller: Seller) => {
+    setSelectedSellerId(seller.id);
+    setSellerSearch(seller.nome);
+    setShowSellerList(false);
+  };
 
   if (isDrawer) {
     return (
@@ -97,15 +131,89 @@ export default function CartScreen({
             </div>
 
             <div className="border-t border-slate-100 px-4 py-4 bg-white space-y-2">
-              {role === 'seller' && (
-                <input
-                  type="text"
-                  value={clientName}
-                  onChange={e => setClientName(e.target.value)}
-                  placeholder="Nome do cliente..."
-                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-primary/40"
-                />
+              {(role === 'seller' || role === 'company') && (
+                <div className="relative">
+                  <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl">
+                    <UserIcon size={14} className="text-slate-400" />
+                    <input
+                      type="text"
+                      value={customerSearch}
+                      onChange={e => {
+                        setCustomerSearch(e.target.value);
+                        setShowCustomerList(true);
+                      }}
+                      onFocus={() => setShowCustomerList(true)}
+                      placeholder="Selecionar Cliente..."
+                      className="flex-1 bg-transparent text-xs font-bold text-slate-700 outline-none"
+                    />
+                    {selectedCustomerId && <Check size={14} className="text-emerald-500" />}
+                  </div>
+                  
+                  <AnimatePresence>
+                    {showCustomerList && filteredCustomers.length > 0 && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="absolute bottom-full left-0 right-0 mb-2 bg-white border border-slate-200 rounded-xl shadow-xl z-50 max-h-48 overflow-y-auto"
+                      >
+                        {filteredCustomers.map(c => (
+                          <button
+                            key={c.id}
+                            onClick={() => handleSelectCustomer(c)}
+                            className="w-full px-4 py-2 text-left hover:bg-slate-50 border-b border-slate-50 last:border-0"
+                          >
+                            <p className="text-xs font-black text-slate-800 uppercase">{c.nome}</p>
+                            <p className="text-[10px] text-slate-400">{c.cnpj}</p>
+                          </button>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
               )}
+
+              {role === 'company' && (
+                <div className="relative">
+                  <div className={`flex items-center gap-2 px-3 py-2 bg-slate-50 border ${selectedSellerId ? 'border-emerald-200 bg-emerald-50/30' : 'border-slate-200'} rounded-xl transition-colors`}>
+                    <Search size={14} className={selectedSellerId ? 'text-emerald-500' : 'text-slate-400'} />
+                    <input
+                      type="text"
+                      value={sellerSearch}
+                      onChange={e => {
+                        setSellerSearch(e.target.value);
+                        setShowSellerList(true);
+                      }}
+                      onFocus={() => setShowSellerList(true)}
+                      placeholder="Selecionar Vendedor..."
+                      className="flex-1 bg-transparent text-xs font-bold text-slate-700 outline-none"
+                    />
+                    {selectedSellerId && <Check size={14} className="text-emerald-500" />}
+                  </div>
+                  
+                  <AnimatePresence>
+                    {showSellerList && filteredSellers.length > 0 && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="absolute bottom-full left-0 right-0 mb-2 bg-white border border-slate-200 rounded-xl shadow-xl z-50 max-h-48 overflow-y-auto"
+                      >
+                        {filteredSellers.map(s => (
+                          <button
+                            key={s.id}
+                            onClick={() => handleSelectSeller(s)}
+                            className="w-full px-4 py-2 text-left hover:bg-slate-50 border-b border-slate-50 last:border-0"
+                          >
+                            <p className="text-xs font-black text-slate-800 uppercase">{s.nome}</p>
+                          </button>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              )}
+
               <input
                 type="text"
                 value={paymentMethod}
@@ -119,7 +227,17 @@ export default function CartScreen({
                   <p className="text-xl font-black text-slate-900">R$ {total.toFixed(2)}</p>
                 </div>
                 <button
-                  onClick={() => onSendOrder(clientName, paymentMethod)}
+                  onClick={() => {
+                    if ((role === 'seller' || role === 'company') && !selectedCustomerId) {
+                      alert('Por favor, selecione um cliente antes de finalizar.');
+                      return;
+                    }
+                    if (role === 'company' && !selectedSellerId) {
+                      alert('Por favor, selecione um vendedor antes de finalizar.');
+                      return;
+                    }
+                    onSendOrder(clientName, paymentMethod, selectedCustomerId, selectedSellerId);
+                  }}
                   className="px-6 py-3 text-white font-black text-xs uppercase tracking-wide rounded-xl shadow-lg hover:-translate-y-0.5 transition-all active:scale-95 flex items-center gap-2"
                   style={{ background: 'linear-gradient(135deg, #C21863, #E8257A)' }}
                 >
@@ -238,21 +356,95 @@ export default function CartScreen({
             <div className="relative z-10 space-y-10">
               <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8">
                 <div className="space-y-6 flex-1 w-full">
-                  {role === 'seller' && (
-                    <div className="space-y-3">
+                  {(role === 'seller' || role === 'company') && (
+                    <div className="space-y-3 relative">
                       <label className="flex items-center gap-3 text-[10px] font-black uppercase tracking-[2px] text-white/40">
                         <UserIcon size={16} className="text-primary" />
                         Identificação do Cliente
                       </label>
-                      <input 
-                        type="text" 
-                        value={clientName}
-                        onChange={(e) => setClientName(e.target.value)}
-                        placeholder="Nome do cliente ou empresa..."
-                        className="w-full p-6 bg-white/5 border border-white/10 rounded-[10px] font-black text-lg text-white placeholder:text-white/10 focus:ring-2 focus:ring-primary outline-none transition-all shadow-inner"
-                      />
+                      <div className="relative">
+                        <input 
+                          type="text" 
+                          value={customerSearch}
+                          onChange={(e) => {
+                            setCustomerSearch(e.target.value);
+                            setShowCustomerList(true);
+                          }}
+                          onFocus={() => setShowCustomerList(true)}
+                          placeholder="Pesquisar cliente..."
+                          className="w-full p-6 bg-white/5 border border-white/10 rounded-[10px] font-black text-lg text-white placeholder:text-white/10 focus:ring-2 focus:ring-primary outline-none transition-all shadow-inner"
+                        />
+                        {selectedCustomerId && <Check size={24} className="absolute right-6 top-1/2 -translate-y-1/2 text-emerald-500" />}
+                      </div>
+
+                      <AnimatePresence>
+                        {showCustomerList && filteredCustomers.length > 0 && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 10 }}
+                            className="absolute bottom-full left-0 right-0 mb-4 bg-slate-800 border border-white/10 rounded-[20px] shadow-2xl z-50 max-h-64 overflow-y-auto backdrop-blur-xl"
+                          >
+                            {filteredCustomers.map(c => (
+                              <button
+                                key={c.id}
+                                onClick={() => handleSelectCustomer(c)}
+                                className="w-full p-6 text-left hover:bg-white/5 border-b border-white/5 last:border-0 transition-colors"
+                              >
+                                <p className="text-sm font-black text-white uppercase">{c.nome}</p>
+                                <p className="text-xs text-white/40">{c.cnpj} - {c.responsavel}</p>
+                              </button>
+                            ))}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
                   )}
+
+                  {role === 'company' && (
+                    <div className="space-y-3 relative">
+                      <label className="flex items-center gap-3 text-[10px] font-black uppercase tracking-[2px] text-white/40">
+                        <Search size={16} className="text-primary" />
+                        Vendedor Responsável
+                      </label>
+                      <div className="relative">
+                        <input 
+                          type="text" 
+                          value={sellerSearch}
+                          onChange={(e) => {
+                            setSellerSearch(e.target.value);
+                            setShowSellerList(true);
+                          }}
+                          onFocus={() => setShowSellerList(true)}
+                          placeholder="Pesquisar vendedor..."
+                          className="w-full p-6 bg-white/5 border border-white/10 rounded-[10px] font-black text-lg text-white placeholder:text-white/10 focus:ring-2 focus:ring-primary outline-none transition-all shadow-inner"
+                        />
+                        {selectedSellerId && <Check size={24} className="absolute right-6 top-1/2 -translate-y-1/2 text-emerald-500" />}
+                      </div>
+
+                      <AnimatePresence>
+                        {showSellerList && filteredSellers.length > 0 && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 10 }}
+                            className="absolute bottom-full left-0 right-0 mb-4 bg-slate-800 border border-white/10 rounded-[20px] shadow-2xl z-50 max-h-64 overflow-y-auto backdrop-blur-xl"
+                          >
+                            {filteredSellers.map(s => (
+                              <button
+                                key={s.id}
+                                onClick={() => handleSelectSeller(s)}
+                                className="w-full p-6 text-left hover:bg-white/5 border-b border-white/5 last:border-0 transition-colors"
+                              >
+                                <p className="text-sm font-black text-white uppercase">{s.nome}</p>
+                              </button>
+                            ))}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  )}
+
                   <div className="space-y-3">
                     <label className="flex items-center gap-3 text-[10px] font-black uppercase tracking-[2px] text-white/40">
                       <CreditCard size={16} className="text-primary" />
@@ -280,7 +472,7 @@ export default function CartScreen({
 
                 <div className="w-full lg:w-auto">
                   <button 
-                    onClick={() => onSendOrder(clientName, paymentMethod)} 
+                    onClick={() => onSendOrder(clientName, paymentMethod, selectedCustomerId, selectedSellerId)} 
                     className="w-full lg:w-auto px-16 py-6 bg-primary text-white rounded-[10px] font-black uppercase tracking-widest text-xs shadow-2xl shadow-primary/40 hover:-translate-y-2 transition-all active:translate-y-0 flex items-center justify-center gap-4 group"
                   >
                     Finalizar Pedido

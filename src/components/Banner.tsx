@@ -24,7 +24,7 @@ export default function Banner({ banners }: { banners?: BannerData[] }) {
     <div className="w-full mb-4">
       <div className="relative rounded-2xl overflow-hidden shadow-lg bg-slate-100 group">
         <div
-          className="relative w-full h-[180px] sm:h-[190px] md:h-[210px] overflow-hidden"
+          className="relative w-full aspect-[2/1] sm:aspect-[2.5/1] md:aspect-[3/1] overflow-hidden"
           onMouseEnter={() => setIsPaused(true)}
           onMouseLeave={() => setIsPaused(false)}
         >
@@ -34,9 +34,9 @@ export default function Banner({ banners }: { banners?: BannerData[] }) {
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               transition={{ duration: 0.6, ease: "easeInOut" }}
               className={`absolute inset-0 flex items-center ${currentSlide.className || ''}`}
-              style={currentSlide.imageUrl ? { backgroundImage: `url(${currentSlide.imageUrl})`, backgroundSize: 'cover', backgroundRepeat: 'no-repeat', backgroundPosition: 'center' } : {}}
+              style={currentSlide.image_url ? { backgroundImage: `url(${currentSlide.image_url})`, backgroundSize: 'cover', backgroundRepeat: 'no-repeat', backgroundPosition: 'center' } : {}}
             >
-              {currentSlide.imageUrl && <div className="absolute inset-0 bg-gradient-to-r from-black/30 via-transparent to-transparent" />}
+              {currentSlide.image_url && <div className="absolute inset-0 bg-gradient-to-r from-black/30 via-transparent to-transparent" />}
 
               <div className="relative z-10 px-6 md:px-10 max-w-md">
                 {currentSlide.tag && (
@@ -57,9 +57,9 @@ export default function Banner({ banners }: { banners?: BannerData[] }) {
                     {currentSlide.sub}
                   </motion.p>
                 )}
-                {(currentSlide.cta || currentSlide.link) && currentSlide.cta && (
+                {(currentSlide.cta || currentSlide.link_url) && currentSlide.cta && (
                   <motion.button initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3 }}
-                    onClick={() => currentSlide.link && window.open(currentSlide.link, '_blank')}
+                    onClick={() => currentSlide.link_url && window.open(currentSlide.link_url, '_blank')}
                     className="pink-gradient text-white px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[1.5px] shadow-lg hover:-translate-y-0.5 transition-all active:scale-95 flex items-center gap-1">
                     {currentSlide.cta} <ChevronRight size={11} strokeWidth={3} />
                   </motion.button>

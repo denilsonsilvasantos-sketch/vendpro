@@ -11,7 +11,7 @@ export function generateCustomerAccessCode() {
 }
 
 // Helper to generate a short random password
-export function generateShortPassword() {
+export function generateCustomerPassword() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let pwd = '';
   for (let i = 0; i < 4; i++) {
@@ -172,7 +172,7 @@ export async function createCustomer(companyId: string, customerData: any) {
     cnpj: cleanCnpj,
     company_id: companyId,
     codigo_acesso: customerData.codigo_acesso || generateCustomerAccessCode(),
-    senha: customerData.senha || generateShortPassword()
+    senha: customerData.senha || generateCustomerPassword()
   };
 
   const { data, error } = await supabase

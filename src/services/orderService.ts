@@ -4,7 +4,7 @@ export async function getOrders(companyId: string) {
   if (!supabase) return [];
   const { data, error } = await supabase
     .from("orders")
-    .select("id, company_id, customer_id, seller_id, brand_id, total, status, whatsapp_sent, created_at, client_name, payment_method, customers!customer_id(nome)")
+    .select("id, company_id, customer_id, seller_id, brand_id, total, status, whatsapp_sent, created_at, client_name, payment_method, customers!customer_id(nome, whatsapp)")
     .eq("company_id", companyId);
 
   if (error) {

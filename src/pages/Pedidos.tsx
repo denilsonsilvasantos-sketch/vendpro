@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { supabase } from '../integrations/supabaseClient';
-import { X, Eye, ShoppingBag, TrendingUp, AlertTriangle, PackageSearch, Calendar, CreditCard, Filter, Trash2, AlertCircle, Search, Send, Edit2, Check, Plus } from 'lucide-react';
+import { X, Eye, ShoppingBag, TrendingUp, AlertTriangle, PackageSearch, Calendar, CreditCard, Filter, Trash2, AlertCircle, Search, Send, Check, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 function formatDate(dateStr: string) {
@@ -79,7 +79,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
 
     let query = supabase
       .from('orders')
-      .select('*, customer:customer_id(nome), brand:brand_id(name)')
+      .select('*, customer:customer_id(nome, whatsapp)')
       .eq('company_id', companyId)
       .order('created_at', { ascending: false });
 
@@ -330,9 +330,9 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
   };
 
   const handleNotifyCustomer = (order: any) => {
-    const phone = order.customer?.telefone || order.customers?.telefone;
+    const phone = order.customer?.whatsapp;
     if (!phone) {
-      alert('Cliente não possui telefone cadastrado.');
+      alert('Cliente não possui WhatsApp cadastrado.');
       return;
     }
 
@@ -343,7 +343,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
       cancelled: 'foi Cancelado'
     }[order.status as string] || 'teve o status atualizado';
 
-    const brandName = order.brand?.name || order.brands?.name || 'nossa loja';
+    const brandName = getBrandName(order.brand_id);
     const message = `Olá! Passando para avisar que seu pedido #${order.id.slice(-4)} da marca ${brandName} ${statusMsg}. Você pode acompanhar os detalhes no nosso aplicativo!`;
     
     const whatsappUrl = `https://wa.me/${phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
@@ -435,6 +435,9 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
 
   const canEditOrder = role === 'seller' || role === 'company';
   const showRemovedToCustomer = role === 'customer' && selectedOrder?.status === 'finished';
+
+  const getBrandName = (brandId: string) =>
+    brands.find((b: any) => b.id === brandId)?.name || '—';
 
   if (loading) return (
     <div className="p-6 flex items-center justify-center min-h-[400px]">
@@ -598,7 +601,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                   )}
                   <td className="p-6">
                     <span className="text-xs font-bold text-slate-600 uppercase tracking-tight">
-                      {order.brand?.name || (order.brand_id ? `ID: ${order.brand_id.slice(0, 8)}` : 'N/A')}
+                      {getBrandName(order.brand_id)}
                     </span>
                   </td>
                   <td className="p-6 hidden sm:table-cell">
@@ -693,65 +696,71 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                     <div className="grid grid-cols-2 gap-3">
                       <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
                         <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1 flex items-center gap-1.5"><PackageSearch size={10} /> Marca</p>
-                        <p className="text-sm font-bold text-slate-700">{selectedOrder.brand?.name || (selectedOrder.brand_id ? `ID: ${selectedOrder.brand_id.slice(0, 8)}` : 'N/A')}</p>
+                        <p className="text-sm font-bold text-slate-700">{getBrandName(selectedOrder.brand_id)}</p>
                       </div>
                       <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
                         <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1 flex items-center gap-1.5"><Calendar size={10} /> Data</p>
                         <p className="text-sm font-bold text-slate-700">{formatDate(selectedOrder.created_at)}</p>
                       </div>
                       <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10 col-span-2">
-                        <div className="flex justify-between items-center mb-2">
-                          <p className="text-[10px] font-bold uppercase tracking-widest text-primary/60">Resumo de Valores</p>
-                          {canEditOrder && !editingDiscount && (
-                            <button onClick={() => {
-                              setTempDiscountValue(selectedOrder.discount_value || 0);
-                              setTempDiscountType(selectedOrder.discount_type || 'fixed');
-                              setEditingDiscount(true);
-                            }} className="text-[10px] font-bold text-primary hover:underline flex items-center gap-1">
-                              <Edit2 size={10} /> Aplicar Desconto
-                            </button>
-                          )}
-                        </div>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-primary/60 mb-3">Resumo de Valores</p>
                         
-                        <div className="space-y-1">
+                        <div className="space-y-2">
                           <div className="flex justify-between text-sm">
                             <span className="text-slate-500">Subtotal:</span>
                             <span className="font-bold text-slate-700">R$ {Number(selectedOrder.subtotal || selectedOrder.total || 0).toFixed(2)}</span>
                           </div>
-                          
-                          {(selectedOrder.discount_value > 0 || editingDiscount) && (
-                            <div className="flex justify-between text-sm items-center">
-                              <span className="text-rose-500">Desconto:</span>
-                              {editingDiscount ? (
-                                <div className="flex items-center gap-2">
-                                  <input 
-                                    type="number" 
-                                    value={tempDiscountValue} 
-                                    onChange={e => setTempDiscountValue(Number(e.target.value))}
-                                    className="w-16 px-2 py-0.5 border rounded text-right text-xs"
-                                  />
-                                  <select 
-                                    value={tempDiscountType} 
-                                    onChange={e => setTempDiscountType(e.target.value as any)}
-                                    className="text-[10px] border rounded"
+
+                          {canEditOrder ? (
+                            <div className="flex justify-between text-sm items-center gap-2">
+                              <span className="text-rose-500 font-medium shrink-0">Desconto:</span>
+                              <div className="flex items-center gap-1.5">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={tempDiscountValue || ''}
+                                  placeholder="0"
+                                  onChange={e => setTempDiscountValue(Number(e.target.value))}
+                                  className="w-20 px-2 py-1 border border-slate-200 rounded-lg text-right text-xs font-bold bg-white focus:outline-none focus:border-primary"
+                                />
+                                <select
+                                  value={tempDiscountType}
+                                  onChange={e => setTempDiscountType(e.target.value as any)}
+                                  className="px-2 py-1 border border-slate-200 rounded-lg text-xs font-bold bg-white focus:outline-none focus:border-primary"
+                                >
+                                  <option value="fixed">R$</option>
+                                  <option value="percentage">%</option>
+                                </select>
+                                <button
+                                  onClick={() => handleDiscountChange(selectedOrder.id, tempDiscountValue, tempDiscountType)}
+                                  className="w-7 h-7 flex items-center justify-center bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors"
+                                  title="Confirmar desconto"
+                                >
+                                  <Check size={13} />
+                                </button>
+                                {(tempDiscountValue > 0 || selectedOrder.discount_value > 0) && (
+                                  <button
+                                    onClick={() => { setTempDiscountValue(0); handleDiscountChange(selectedOrder.id, 0, tempDiscountType); }}
+                                    className="w-7 h-7 flex items-center justify-center bg-slate-100 text-slate-400 rounded-lg hover:bg-rose-50 hover:text-rose-400 transition-colors"
+                                    title="Remover desconto"
                                   >
-                                    <option value="fixed">R$</option>
-                                    <option value="percentage">%</option>
-                                  </select>
-                                  <button onClick={() => handleDiscountChange(selectedOrder.id, tempDiscountValue, tempDiscountType)} className="text-green-500"><Check size={14}/></button>
-                                  <button onClick={() => setEditingDiscount(false)} className="text-slate-400"><X size={14}/></button>
-                                </div>
-                              ) : (
-                                <span className="font-bold text-rose-500">
-                                  - R$ {selectedOrder.discount_type === 'percentage' 
-                                    ? ((Number(selectedOrder.subtotal || 0) * selectedOrder.discount_value) / 100).toFixed(2)
-                                    : Number(selectedOrder.discount_value).toFixed(2)}
-                                  <span className="text-[10px] ml-1">({selectedOrder.discount_value}{selectedOrder.discount_type === 'percentage' ? '%' : ' R$'})</span>
-                                </span>
-                              )}
+                                    <X size={13} />
+                                  </button>
+                                )}
+                              </div>
                             </div>
-                          )}
-                          
+                          ) : selectedOrder.discount_value > 0 ? (
+                            <div className="flex justify-between text-sm">
+                              <span className="text-rose-500">Desconto:</span>
+                              <span className="font-bold text-rose-500">
+                                - R$ {selectedOrder.discount_type === 'percentage'
+                                  ? ((Number(selectedOrder.subtotal || 0) * selectedOrder.discount_value) / 100).toFixed(2)
+                                  : Number(selectedOrder.discount_value).toFixed(2)}
+                                <span className="text-[10px] ml-1">({selectedOrder.discount_value}{selectedOrder.discount_type === 'percentage' ? '%' : ' R$'})</span>
+                              </span>
+                            </div>
+                          ) : null}
+
                           <div className="pt-2 border-t border-primary/10 flex justify-between items-end">
                             <span className="text-xs font-bold text-slate-900">Total Líquido:</span>
                             <span className="text-2xl font-black text-primary">R$ {Number(selectedOrder.total || 0).toFixed(2)}</span>
@@ -947,7 +956,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                   <span className="text-sm font-bold text-slate-600 uppercase tracking-widest">Status: {statusLabel(selectedOrder.status)}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  {canEditOrder && selectedOrder.customers?.telefone && (
+                  {canEditOrder && selectedOrder.customer?.whatsapp && (
                     <button 
                       onClick={() => handleNotifyCustomer(selectedOrder)}
                       className="px-6 py-3 bg-emerald-500 text-white rounded-xl font-bold shadow-lg shadow-emerald-500/20 hover:bg-emerald-600 transition-all flex items-center gap-2"

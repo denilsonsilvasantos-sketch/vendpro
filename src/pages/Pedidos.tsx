@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { supabase } from '../integrations/supabaseClient';
-import { X, Eye, ShoppingBag, TrendingUp, AlertTriangle, PackageSearch, Calendar, CreditCard, Filter, Trash2, AlertCircle, Search, Send } from 'lucide-react';
+import { X, Eye, ShoppingBag, TrendingUp, AlertTriangle, PackageSearch, Calendar, CreditCard, Filter, Trash2, AlertCircle, Search, Send, Edit2, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 function formatDate(dateStr: string) {
@@ -33,6 +33,8 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
   const [showFilters, setShowFilters] = useState(false);
 
   const [deletingItem, setDeletingItem] = useState<string | null>(null);
+  const [editingPayment, setEditingPayment] = useState(false);
+  const [tempPaymentMethod, setTempPaymentMethod] = useState('');
 
   async function fetchOrders() {
     if (!supabase || companyId === null) return;
@@ -41,7 +43,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
 
     let query = supabase
       .from('orders')
-      .select('*, customers:customer_id(nome), brands:brand_id(name)')
+      .select('*, customers!customer_id(nome), brands!brand_id(name)')
       .eq('company_id', companyId)
       .order('created_at', { ascending: false });
 
@@ -157,6 +159,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
     if (error) { alert('Erro ao atualizar pagamento.'); return; }
     setOrders(prev => prev.map(o => o.id === orderId ? { ...o, payment_method: newMethod } : o));
     if (selectedOrder?.id === orderId) setSelectedOrder((prev: any) => ({ ...prev, payment_method: newMethod }));
+    setEditingPayment(false);
   };
 
   const handleNotifyCustomer = (order: any) => {
@@ -411,7 +414,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                   )}
                   <td className="p-6">
                     <span className="text-xs font-bold text-slate-600 uppercase tracking-tight">
-                      {order.brands?.name || 'N/A'}
+                      {order.brands?.name || (order.brand_id ? `ID: ${order.brand_id.slice(0, 8)}` : 'N/A')}
                     </span>
                   </td>
                   <td className="p-6 hidden sm:table-cell">
@@ -469,7 +472,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
         {selectedOrder && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setSelectedOrder(null)} className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" />
+              onClick={() => { setSelectedOrder(null); setEditingPayment(false); }} className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" />
             <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }}
               className="bg-white w-full max-w-2xl rounded-[32px] shadow-2xl relative z-10 overflow-hidden flex flex-col max-h-[90vh]">
 
@@ -480,7 +483,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                     {selectedOrder.customers?.nome || selectedOrder.client_name}
                   </p>
                 </div>
-                <button onClick={() => setSelectedOrder(null)} className="p-3 bg-white text-slate-400 hover:text-rose-500 rounded-2xl shadow-sm border border-slate-100 transition-all">
+                <button onClick={() => { setSelectedOrder(null); setEditingPayment(false); }} className="p-3 bg-white text-slate-400 hover:text-rose-500 rounded-2xl shadow-sm border border-slate-100 transition-all">
                   <X size={20} />
                 </button>
               </div>
@@ -505,6 +508,10 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                   <>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1 flex items-center gap-1.5"><PackageSearch size={10} /> Marca</p>
+                        <p className="text-sm font-bold text-slate-700">{selectedOrder.brands?.name || (selectedOrder.brand_id ? `ID: ${selectedOrder.brand_id.slice(0, 8)}` : 'N/A')}</p>
+                      </div>
+                      <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
                         <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1 flex items-center gap-1.5"><Calendar size={10} /> Data</p>
                         <p className="text-sm font-bold text-slate-700">{formatDate(selectedOrder.created_at)}</p>
                       </div>
@@ -518,14 +525,46 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                       </div>
                       {canEditOrder && (
                         <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1 flex items-center gap-1.5"><CreditCard size={10} /> Pagamento</p>
-                          <input 
-                            type="text"
-                            value={selectedOrder.payment_method || ''}
-                            onChange={(e) => handlePaymentMethodChange(selectedOrder.id, e.target.value)}
-                            placeholder="Definir pagamento..."
-                            className="w-full bg-transparent border-none outline-none text-sm font-bold text-slate-700 p-0 focus:ring-0"
-                          />
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1 flex items-center justify-between">
+                            <span className="flex items-center gap-1.5"><CreditCard size={10} /> Pagamento</span>
+                            {!editingPayment && (
+                              <button 
+                                onClick={() => {
+                                  setTempPaymentMethod(selectedOrder.payment_method || '');
+                                  setEditingPayment(true);
+                                }}
+                                className="text-primary hover:text-primary/80 transition-colors"
+                              >
+                                <Edit2 size={12} />
+                              </button>
+                            )}
+                          </p>
+                          {editingPayment ? (
+                            <div className="flex items-center gap-2">
+                              <input 
+                                type="text"
+                                autoFocus
+                                value={tempPaymentMethod}
+                                onChange={(e) => setTempPaymentMethod(e.target.value)}
+                                placeholder="Definir pagamento..."
+                                className="flex-1 bg-white border border-slate-200 rounded-lg text-sm font-bold text-slate-700 px-2 py-1 focus:ring-2 focus:ring-primary/20 outline-none"
+                              />
+                              <button 
+                                onClick={() => handlePaymentMethodChange(selectedOrder.id, tempPaymentMethod)}
+                                className="p-1.5 bg-primary text-white rounded-lg hover:bg-primary/90 transition-all"
+                              >
+                                <Check size={14} />
+                              </button>
+                              <button 
+                                onClick={() => setEditingPayment(false)}
+                                className="p-1.5 bg-slate-200 text-slate-500 rounded-lg hover:bg-slate-300 transition-all"
+                              >
+                                <X size={14} />
+                              </button>
+                            </div>
+                          ) : (
+                            <p className="text-sm font-bold text-slate-700">{selectedOrder.payment_method || '—'}</p>
+                          )}
                         </div>
                       )}
                       {!canEditOrder && (
@@ -620,7 +659,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                       Notificar Cliente
                     </button>
                   )}
-                  <button onClick={() => setSelectedOrder(null)} className="px-8 py-3 bg-white text-slate-600 rounded-xl font-bold shadow-sm border border-slate-200 hover:bg-slate-50 transition-all">
+                  <button onClick={() => { setSelectedOrder(null); setEditingPayment(false); }} className="px-8 py-3 bg-white text-slate-600 rounded-xl font-bold shadow-sm border border-slate-200 hover:bg-slate-50 transition-all">
                     Fechar
                   </button>
                 </div>

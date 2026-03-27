@@ -35,6 +35,9 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
   const [deletingItem, setDeletingItem] = useState<string | null>(null);
   const [editingPayment, setEditingPayment] = useState(false);
   const [tempPaymentMethod, setTempPaymentMethod] = useState('');
+  const [editingDiscount, setEditingDiscount] = useState(false);
+  const [tempDiscountValue, setTempDiscountValue] = useState(0);
+  const [tempDiscountType, setTempDiscountType] = useState<'fixed' | 'percentage'>('fixed');
 
   async function fetchOrders() {
     if (!supabase || companyId === null) return;
@@ -43,7 +46,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
 
     let query = supabase
       .from('orders')
-      .select('*, customers!customer_id(nome), brands!brand_id(name)')
+      .select('*, customers(nome), brands(name)')
       .eq('company_id', companyId)
       .order('created_at', { ascending: false });
 
@@ -58,6 +61,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
     }
 
     const { data, error } = await query;
+    console.log('fetchOrders - Dados recebidos:', data);
     
     if (error) {
       console.error('Erro na consulta de pedidos:', error);
@@ -162,7 +166,31 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
     setEditingPayment(false);
   };
 
-  const handleNotifyCustomer = (order: any) => {
+  const handleDiscountChange = async (orderId: string, value: number, type: 'fixed' | 'percentage') => {
+    if (!supabase || !selectedOrder) return;
+    
+    const subtotal = Number(selectedOrder.subtotal || selectedOrder.total || 0);
+    let discountAmount = 0;
+    if (type === 'percentage') {
+      discountAmount = (subtotal * value) / 100;
+    } else {
+      discountAmount = value;
+    }
+    
+    const newTotal = Math.max(0, subtotal - discountAmount);
+
+    const { error } = await supabase.from('orders').update({ 
+      discount_value: value, 
+      discount_type: type,
+      total: newTotal
+    }).eq('id', orderId);
+
+    if (error) { alert('Erro ao atualizar desconto.'); return; }
+    
+    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, discount_value: value, discount_type: type, total: newTotal } : o));
+    setSelectedOrder((prev: any) => ({ ...prev, discount_value: value, discount_type: type, total: newTotal }));
+    setEditingDiscount(false);
+  };
     const phone = order.customers?.telefone;
     if (!phone) {
       alert('Cliente não possui telefone cadastrado.');
@@ -414,7 +442,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                   )}
                   <td className="p-6">
                     <span className="text-xs font-bold text-slate-600 uppercase tracking-tight">
-                      {order.brands?.name || (order.brand_id ? `ID: ${order.brand_id.slice(0, 8)}` : 'N/A')}
+                      {order.brands?.name || (Array.isArray(order.brands) ? order.brands[0]?.name : null) || (order.brand_id ? `ID: ${order.brand_id.slice(0, 8)}` : 'N/A')}
                     </span>
                   </td>
                   <td className="p-6 hidden sm:table-cell">
@@ -509,15 +537,70 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                     <div className="grid grid-cols-2 gap-3">
                       <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
                         <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1 flex items-center gap-1.5"><PackageSearch size={10} /> Marca</p>
-                        <p className="text-sm font-bold text-slate-700">{selectedOrder.brands?.name || (selectedOrder.brand_id ? `ID: ${selectedOrder.brand_id.slice(0, 8)}` : 'N/A')}</p>
+                        <p className="text-sm font-bold text-slate-700">{selectedOrder.brands?.name || (Array.isArray(selectedOrder.brands) ? selectedOrder.brands[0]?.name : null) || (selectedOrder.brand_id ? `ID: ${selectedOrder.brand_id.slice(0, 8)}` : 'N/A')}</p>
                       </div>
                       <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
                         <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1 flex items-center gap-1.5"><Calendar size={10} /> Data</p>
                         <p className="text-sm font-bold text-slate-700">{formatDate(selectedOrder.created_at)}</p>
                       </div>
-                      <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-primary/60 mb-1">Total</p>
-                        <p className="text-xl font-black text-primary">R$ {Number(selectedOrder.total || 0).toFixed(2)}</p>
+                      <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10 col-span-2">
+                        <div className="flex justify-between items-center mb-2">
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-primary/60">Resumo de Valores</p>
+                          {canEditOrder && !editingDiscount && (
+                            <button onClick={() => {
+                              setTempDiscountValue(selectedOrder.discount_value || 0);
+                              setTempDiscountType(selectedOrder.discount_type || 'fixed');
+                              setEditingDiscount(true);
+                            }} className="text-[10px] font-bold text-primary hover:underline flex items-center gap-1">
+                              <Edit2 size={10} /> Aplicar Desconto
+                            </button>
+                          )}
+                        </div>
+                        
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-slate-500">Subtotal:</span>
+                            <span className="font-bold text-slate-700">R$ {Number(selectedOrder.subtotal || selectedOrder.total || 0).toFixed(2)}</span>
+                          </div>
+                          
+                          {(selectedOrder.discount_value > 0 || editingDiscount) && (
+                            <div className="flex justify-between text-sm items-center">
+                              <span className="text-rose-500">Desconto:</span>
+                              {editingDiscount ? (
+                                <div className="flex items-center gap-2">
+                                  <input 
+                                    type="number" 
+                                    value={tempDiscountValue} 
+                                    onChange={e => setTempDiscountValue(Number(e.target.value))}
+                                    className="w-16 px-2 py-0.5 border rounded text-right text-xs"
+                                  />
+                                  <select 
+                                    value={tempDiscountType} 
+                                    onChange={e => setTempDiscountType(e.target.value as any)}
+                                    className="text-[10px] border rounded"
+                                  >
+                                    <option value="fixed">R$</option>
+                                    <option value="percentage">%</option>
+                                  </select>
+                                  <button onClick={() => handleDiscountChange(selectedOrder.id, tempDiscountValue, tempDiscountType)} className="text-green-500"><Check size={14}/></button>
+                                  <button onClick={() => setEditingDiscount(false)} className="text-slate-400"><X size={14}/></button>
+                                </div>
+                              ) : (
+                                <span className="font-bold text-rose-500">
+                                  - R$ {selectedOrder.discount_type === 'percentage' 
+                                    ? ((Number(selectedOrder.subtotal || 0) * selectedOrder.discount_value) / 100).toFixed(2)
+                                    : Number(selectedOrder.discount_value).toFixed(2)}
+                                  <span className="text-[10px] ml-1">({selectedOrder.discount_value}{selectedOrder.discount_type === 'percentage' ? '%' : ' R$'})</span>
+                                </span>
+                              )}
+                            </div>
+                          )}
+                          
+                          <div className="pt-2 border-t border-primary/10 flex justify-between items-end">
+                            <span className="text-xs font-bold text-slate-900">Total Líquido:</span>
+                            <span className="text-2xl font-black text-primary">R$ {Number(selectedOrder.total || 0).toFixed(2)}</span>
+                          </div>
+                        </div>
                       </div>
                       <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
                         <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Itens</p>

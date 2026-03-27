@@ -25,7 +25,7 @@ export function formatWhatsAppMessage(items: CartItem[], clientName?: string, br
   if (clientName) {
     message += `${clientName}\n`;
   }
-  message += `\n${lines.join('\n')}\n\nTotal dos produtos: ${total.toFixed(2).replace('.', ',')}`;
+  message += `\n${lines.join('\n')}\n\nSubtotal: R$ ${total.toFixed(2).replace('.', ',')}\nDesconto: R$ 0,00\nTotal Líquido: R$ ${total.toFixed(2).replace('.', ',')}`;
   
   return message;
 }

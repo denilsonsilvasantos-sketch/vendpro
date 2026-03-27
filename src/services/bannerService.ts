@@ -20,13 +20,7 @@ export async function getBanners(companyId: string): Promise<BannerData[]> {
     return localBanners;
   }
   
-  const mappedData = (data || []).map((b: any) => ({
-    ...b,
-    image_url: b.image_url || b.imageUrl,
-    link_url: b.link_url || b.link
-  }));
-
-  return mappedData.length > 0 ? mappedData : localBanners;
+  return data && data.length > 0 ? data : localBanners;
 }
 
 export async function saveBanners(companyId: string, banners: BannerData[]): Promise<void> {
@@ -46,30 +40,22 @@ export async function saveBanners(companyId: string, banners: BannerData[]): Pro
 
     // Insert new
     if (banners.length > 0) {
-      // We'll try to insert with both naming conventions. 
-      // If one fails, we'll try the other.
       const toInsert = banners.map(({ id, ...rest }) => ({
-        ...rest,
         company_id: companyId,
-        imageUrl: rest.image_url,
-        link: rest.link_url
+        tag: rest.tag,
+        title: rest.title,
+        sub: rest.sub,
+        cta: rest.cta,
+        className: rest.className,
+        image_url: rest.image_url,
+        link_url: rest.link_url,
+        visuals: rest.visuals,
+        order_index: rest.order_index,
       }));
 
       const { error: insertError } = await supabase.from('banners').insert(toInsert);
-      
       if (insertError) {
         console.error('Error inserting banners:', insertError);
-        // Fallback: try without visuals in case the column is missing
-        const fallbackInsert = banners.map(({ id, visuals, ...rest }) => ({
-          ...rest,
-          company_id: companyId,
-          imageUrl: rest.image_url,
-          link: rest.link_url
-        }));
-        const { error: fallbackError } = await supabase.from('banners').insert(fallbackInsert);
-        if (fallbackError) {
-          console.error('Fallback banner insert also failed:', fallbackError);
-        }
       }
     }
   } catch (err) {

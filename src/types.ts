@@ -29,7 +29,6 @@ export interface Seller {
   id: string;
   company_id: string;
   nome: string;
-  telefone?: string;
   whatsapp?: string;
   codigo_vinculo: string;
   senha?: string;
@@ -46,10 +45,12 @@ export interface Customer {
   seller_id: string;
   company_id: string;
   nome: string;
-  cnpj: string;
-  whatsapp: string;
-  responsavel: string;
-  codigo_acesso: string;
+  nome_empresa?: string;
+  cnpj?: string;
+  whatsapp?: string;
+  responsavel?: string;
+  cidade?: string;
+  codigo_acesso?: string;
   senha?: string;
   ativo: boolean;
   seller_nome?: string;
@@ -90,6 +91,7 @@ export interface Product {
   novo_nome?: string;
   variacoes?: string;
   qtd_variacoes?: number;
+  estoque?: number;
   pending_status?: 'none' | 'not_found_full' | 'price_changed' | 'box_changed';
   last_seen_date?: string;
   last_seen_catalog_type?: 'full' | 'partial';
@@ -112,8 +114,13 @@ export interface Order {
   seller_id: string;
   brand_id: string;
   total: number;
+  subtotal?: number;
+  discount_type?: string;
+  discount_value?: number;
   status: 'pending' | 'typed' | 'finished' | 'cancelled';
   whatsapp_sent: boolean;
+  client_name?: string;
+  payment_method?: string;
   created_at: string;
   items: OrderItem[];
   customer_nome?: string;

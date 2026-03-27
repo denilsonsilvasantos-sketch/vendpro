@@ -1131,7 +1131,7 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
   const [sellerCode, setSellerCode] = useState('');
   const [sellerPassword, setSellerPassword] = useState('');
   const [showSellerPassword, setShowSellerPassword] = useState(false);
-  const [customerData, setCustomerData] = useState({ nome: '', nome_empresa: '', cnpj: '', telefone: '', responsavel: '', senha: '', confirmarSenha: '' });
+  const [customerData, setCustomerData] = useState({ nome: '', nome_empresa: '', cnpj: '', whatsapp: '', senha: '', confirmarSenha: '' });
   const [customerLoginCnpj, setCustomerLoginCnpj] = useState('');
   const [customerLoginSenha, setCustomerLoginSenha] = useState('');
   const [companyData, setCompanyData] = useState({ nome: '', cnpj: '', telefone: '', responsavel: '', senha: '', confirmarSenha: '' });
@@ -1289,7 +1289,7 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
   };
 
   const handleCustomerSubmit = async () => {
-    if (!customerData.nome || !customerData.nome_empresa || !customerData.cnpj || !customerData.telefone || !customerData.senha) {
+    if (!customerData.nome || !customerData.nome_empresa || !customerData.cnpj || !customerData.whatsapp || !customerData.senha) {
       alert("Por favor, preencha todos os campos obrigatórios.");
       return;
     }
@@ -1328,9 +1328,7 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
             nome: customerData.nome,
             nome_empresa: customerData.nome_empresa,
             cnpj: customerData.cnpj,
-            telefone: customerData.telefone,
-            whatsapp: customerData.telefone,
-            responsavel: customerData.responsavel || customerData.nome,
+            whatsapp: customerData.whatsapp,
             senha: customerData.senha,
             seller_id: sellerInfo.id,
             ativo: true
@@ -1844,7 +1842,7 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
               </div>
               <div>
                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-4 block">WhatsApp</label>
-                <input placeholder="WhatsApp" className="w-full p-4 bg-white rounded-3xl border border-slate-100 font-bold focus:ring-2 focus:ring-primary outline-none shadow-inner" value={customerData.telefone} onChange={e => setCustomerData({...customerData, telefone: e.target.value})} />
+                <input placeholder="WhatsApp" className="w-full p-4 bg-white rounded-3xl border border-slate-100 font-bold focus:ring-2 focus:ring-primary outline-none shadow-inner" value={customerData.whatsapp} onChange={e => setCustomerData({...customerData, whatsapp: e.target.value})} />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>

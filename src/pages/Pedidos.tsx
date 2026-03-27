@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { supabase } from '../integrations/supabaseClient';
-import { X, Eye, ShoppingBag, TrendingUp, AlertTriangle, PackageSearch, Calendar, CreditCard, Filter, Trash2, AlertCircle, Search, Send, Edit2, Check } from 'lucide-react';
+import { X, Eye, ShoppingBag, TrendingUp, AlertTriangle, PackageSearch, Calendar, CreditCard, Filter, Trash2, AlertCircle, Search, Send, Edit2, Check, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 function formatDate(dateStr: string) {
@@ -38,6 +38,11 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
   const [editingDiscount, setEditingDiscount] = useState(false);
   const [tempDiscountValue, setTempDiscountValue] = useState(0);
   const [tempDiscountType, setTempDiscountType] = useState<'fixed' | 'percentage'>('fixed');
+
+  const [newSku, setNewSku] = useState('');
+  const [newQuantity, setNewQuantity] = useState(1);
+  const [isAddingItem, setIsAddingItem] = useState(false);
+  const [addingItemLoading, setAddingItemLoading] = useState(false);
 
   async function fetchOrders() {
     if (!supabase || companyId === null) return;
@@ -192,6 +197,106 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
     setEditingDiscount(false);
   };
 
+  const handleAddItem = async () => {
+    if (!supabase || !selectedOrder || !newSku || newQuantity <= 0) return;
+    setAddingItemLoading(true);
+
+    try {
+      // 1. Find product by SKU
+      const { data: product, error: productError } = await supabase
+        .from('products')
+        .select('*')
+        .eq('company_id', companyId)
+        .eq('sku', newSku)
+        .single();
+
+      if (productError || !product) {
+        alert('Produto não encontrado com este SKU.');
+        setAddingItemLoading(false);
+        return;
+      }
+
+      // 2. Get company margin
+      const { data: company, error: companyError } = await supabase
+        .from('companies')
+        .select('margem')
+        .eq('id', companyId)
+        .single();
+
+      const margin = company?.margem || 0;
+      const precoUnitario = product.preco * (1 + margin / 100);
+      const subtotalItem = precoUnitario * newQuantity;
+
+      // 3. Insert into order_items
+      const { data: newItem, error: insertError } = await supabase
+        .from('order_items')
+        .insert({
+          order_id: selectedOrder.id,
+          product_id: product.id,
+          sku: product.sku,
+          nome: product.nome,
+          quantidade: newQuantity,
+          preco_unitario: precoUnitario,
+          subtotal: subtotalItem,
+          company_id: companyId
+        })
+        .select()
+        .single();
+
+      if (insertError) {
+        console.error('Erro ao inserir item:', insertError);
+        alert('Erro ao adicionar item ao pedido.');
+        setAddingItemLoading(false);
+        return;
+      }
+
+      // 4. Update order subtotal and total
+      const currentSubtotal = Number(selectedOrder.subtotal) || Number(selectedOrder.total) || 0;
+      const newSubtotal = currentSubtotal + subtotalItem;
+      
+      let newTotal = newSubtotal;
+      if (selectedOrder.discount_value > 0) {
+        if (selectedOrder.discount_type === 'percentage') {
+          newTotal = newSubtotal * (1 - selectedOrder.discount_value / 100);
+        } else {
+          newTotal = newSubtotal - selectedOrder.discount_value;
+        }
+      }
+
+      const { error: updateError } = await supabase
+        .from('orders')
+        .update({
+          subtotal: newSubtotal,
+          total: newTotal
+        })
+        .eq('id', selectedOrder.id);
+
+      if (updateError) {
+        console.error('Erro ao atualizar pedido:', updateError);
+      }
+
+      // 5. Update local state
+      setOrderItems(prev => [...prev, newItem]);
+      setSelectedOrder((prev: any) => ({
+        ...prev,
+        subtotal: newSubtotal,
+        total: newTotal
+      }));
+      setOrders(prev => prev.map(o => o.id === selectedOrder.id ? { ...o, subtotal: newSubtotal, total: newTotal } : o));
+      
+      // Reset form
+      setNewSku('');
+      setNewQuantity(1);
+      setIsAddingItem(false);
+      
+    } catch (err) {
+      console.error('Erro inesperado:', err);
+      alert('Ocorreu um erro ao processar sua solicitação.');
+    } finally {
+      setAddingItemLoading(false);
+    }
+  };
+
   const handleNotifyCustomer = (order: any) => {
     const phone = order.customer?.telefone || order.customers?.telefone;
     if (!phone) {
@@ -248,22 +353,35 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
         quantidade: item.quantidade,
         preco_unitario: item.preco_unitario,
         subtotal: item.subtotal,
+        company_id: companyId
       });
       if (insertErr) throw insertErr;
 
       const { error: deleteErr } = await supabase.from('order_items').delete().eq('id', item.id);
       if (deleteErr) throw deleteErr;
 
-      const newTotal = orderItems
+      const newSubtotal = orderItems
         .filter(i => i.id !== item.id)
         .reduce((acc: number, i: any) => acc + Number(i.subtotal), 0);
 
-      await supabase.from('orders').update({ total: newTotal }).eq('id', selectedOrder.id);
+      let newTotal = newSubtotal;
+      if (selectedOrder.discount_value > 0) {
+        if (selectedOrder.discount_type === 'percentage') {
+          newTotal = newSubtotal * (1 - selectedOrder.discount_value / 100);
+        } else {
+          newTotal = newSubtotal - selectedOrder.discount_value;
+        }
+      }
+
+      await supabase.from('orders').update({ 
+        subtotal: newSubtotal,
+        total: newTotal 
+      }).eq('id', selectedOrder.id);
 
       setOrderItems(prev => prev.filter(i => i.id !== item.id));
       setRemovedItems(prev => [...prev, { ...item }]);
-      setSelectedOrder((prev: any) => ({ ...prev, total: newTotal }));
-      setOrders(prev => prev.map(o => o.id === selectedOrder.id ? { ...o, total: newTotal } : o));
+      setSelectedOrder((prev: any) => ({ ...prev, subtotal: newSubtotal, total: newTotal }));
+      setOrders(prev => prev.map(o => o.id === selectedOrder.id ? { ...o, subtotal: newSubtotal, total: newTotal } : o));
     } catch (err: any) {
       alert(`Erro ao remover item: ${err.message}`);
     } finally {
@@ -661,7 +779,60 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                     </div>
 
                     <div className="space-y-3">
-                      <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400">Itens do Pedido</h4>
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400">Itens do Pedido</h4>
+                        {canEditOrder && !isAddingItem && (
+                          <button 
+                            onClick={() => setIsAddingItem(true)}
+                            className="text-[10px] font-bold text-primary hover:underline flex items-center gap-1"
+                          >
+                            <Plus size={10} /> Adicionar Item
+                          </button>
+                        )}
+                      </div>
+
+                      {isAddingItem && (
+                        <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10 space-y-3">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-[10px] font-bold text-primary uppercase tracking-widest">Novo Item</span>
+                            <button onClick={() => setIsAddingItem(false)} className="text-slate-400 hover:text-rose-500"><X size={14}/></button>
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-bold text-slate-400 uppercase">SKU</label>
+                              <input 
+                                type="text" 
+                                value={newSku}
+                                onChange={e => setNewSku(e.target.value)}
+                                placeholder="Ex: SKU001"
+                                className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-bold text-slate-400 uppercase">Qtd</label>
+                              <input 
+                                type="number" 
+                                value={newQuantity}
+                                onChange={e => setNewQuantity(Number(e.target.value))}
+                                min="1"
+                                className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20"
+                              />
+                            </div>
+                          </div>
+                          <button 
+                            onClick={handleAddItem}
+                            disabled={addingItemLoading || !newSku}
+                            className="w-full py-2 bg-primary text-white rounded-xl font-bold text-xs shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                          >
+                            {addingItemLoading ? (
+                              <div className="w-3 h-3 border-b-2 border-white rounded-full animate-spin" />
+                            ) : (
+                              <><Check size={14} /> Confirmar Adição</>
+                            )}
+                          </button>
+                        </div>
+                      )}
+
                       <div className="space-y-2">
                         <AnimatePresence mode="popLayout">
                           {orderItems.length > 0 ? orderItems.map(item => (

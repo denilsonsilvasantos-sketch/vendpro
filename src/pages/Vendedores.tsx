@@ -19,12 +19,8 @@ export default function Vendedores({ companyId }: { companyId: string | null }) 
     setLoading(true);
     try {
       const { data, error } = await supabase.from('sellers').select('*').eq('company_id', companyId).order('nome');
-      if (error) {
-        if (error.message.includes('marcas_liberadas')) {
-          const { data: fd } = await supabase.from('sellers').select('id, company_id, nome, telefone, whatsapp, codigo_vinculo, ativo').eq('company_id', companyId).order('nome');
-          setSellers(fd || []);
-        } else throw error;
-      } else setSellers(data || []);
+      if (error) throw error;
+      setSellers(data || []);
     } catch (error: any) { console.error("Erro:", error); }
     finally { setLoading(false); }
   };

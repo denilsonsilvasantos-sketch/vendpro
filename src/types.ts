@@ -34,7 +34,6 @@ export interface Seller {
   senha?: string;
   codigo_cliente?: string;
   ativo: boolean;
-  marcas_liberadas?: string[];
   marcas_bloqueadas?: string[];
   comissao?: number;
   comissao_por_marca?: Record<string, number>;

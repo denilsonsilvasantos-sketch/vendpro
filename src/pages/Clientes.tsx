@@ -260,8 +260,10 @@ export default function Clientes({ companyId, role, user }: { companyId: string 
                           <Building2 size={14} />
                         </div>
                         <div>
-                          <p className="text-sm font-black text-slate-900 uppercase tracking-tight group-hover:text-primary transition-colors">{customer.nome}</p>
-                          {customer.cnpj && <p className="text-[9px] text-slate-400 font-medium">CNPJ: {customer.cnpj}</p>}
+                          <p className="text-sm font-black text-slate-900 uppercase tracking-tight group-hover:text-primary transition-colors">
+                            {customer.nome_empresa || customer.nome}
+                          </p>
+                          {customer.cnpj && <p className="text-[9px] text-slate-400 font-medium tracking-wider uppercase">CNPJ: {customer.cnpj}</p>}
                         </div>
                       </div>
                     </td>

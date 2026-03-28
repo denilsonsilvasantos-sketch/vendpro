@@ -77,7 +77,6 @@ export default function SellerFormModal({ onClose, onSave, seller, companyId }: 
         whatsapp: formData.whatsapp,
         ativo: formData.ativo,
         company_id: companyId,
-        marcas_liberadas: seller?.marcas_liberadas || [],
         marcas_bloqueadas: blockedBrands,
         comissao: formData.comissao || 0,
         comissao_por_marca: comissaoPorMarca,

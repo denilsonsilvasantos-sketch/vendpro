@@ -441,16 +441,12 @@ export default function App() {
         if (supabase) {
           const { data: catData } = await supabase.from('categories').select('*').eq('company_id', activeCompanyId).order('nome');
 
-          let releasedBrandIds: string[] = [];
           let blockedBrandIds: string[] = [];
           
           if (role === 'seller' && user?.id) {
-            releasedBrandIds = user.marcas_liberadas || [];
             blockedBrandIds = user.marcas_bloqueadas || [];
             
-            if (releasedBrandIds.length > 0) {
-              finalProducts = fetchedProducts.filter(p => p.brand_id && releasedBrandIds.includes(p.brand_id));
-            } else if (blockedBrandIds.length > 0) {
+            if (blockedBrandIds.length > 0) {
               finalProducts = fetchedProducts.filter(p => !p.brand_id || !blockedBrandIds.includes(p.brand_id));
             }
           } else if (role === 'customer' && user?.vendedor_marcas_bloqueadas?.length > 0) {

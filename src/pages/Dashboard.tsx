@@ -15,13 +15,13 @@ export default function Dashboard({ companyId, role, user, banners }: { companyI
   useEffect(() => {
     async function fetchStats() {
       if (!supabase || companyId === null) return;
-      let releasedBrandIds: string[] = [];
+      let blockedBrandIds: string[] = [];
       if (role === 'seller' && user?.id) {
-        const { data: sellerData } = await supabase.from('sellers').select('marcas_liberadas').eq('id', user.id).maybeSingle();
-        releasedBrandIds = sellerData?.marcas_liberadas || user.marcas_liberadas || [];
+        const { data: sellerData } = await supabase.from('sellers').select('marcas_bloqueadas').eq('id', user.id).maybeSingle();
+        blockedBrandIds = sellerData?.marcas_bloqueadas || user.marcas_bloqueadas || [];
       }
       let productQuery = supabase.from('products').select('*', { count: 'exact', head: true }).eq('company_id', companyId);
-      if (role === 'seller' && releasedBrandIds.length > 0) productQuery = productQuery.in('brand_id', releasedBrandIds);
+      if (role === 'seller' && blockedBrandIds.length > 0) productQuery = productQuery.not('brand_id', 'in', `(${blockedBrandIds.join(',')})`);
       const { count: productCount } = await productQuery;
       let sellerIds: string[] = [];
       if (role === 'seller' && user?.id) { sellerIds = [user.id]; }

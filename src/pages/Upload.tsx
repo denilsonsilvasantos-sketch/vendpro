@@ -111,12 +111,12 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       const fileName = file.name.toLowerCase();
-      if (uploadMode === 'stock' && !fileName.endsWith('.xlsx') && !fileName.endsWith('.xls')) {
-        alert(`${file.name} não é Excel. Modo estoque aceita apenas .xlsx`);
+      if (uploadMode === 'stock' && !fileName.endsWith('.xlsx') && !fileName.endsWith('.xls') && !fileName.endsWith('.html') && !fileName.endsWith('.htm')) {
+        alert(`${file.name} não é um formato suportado. Modo estoque aceita .xlsx, .xls, .html ou .htm`);
         continue;
       }
       try {
-        if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) newFiles.push({ file, pages: [] });
+        if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls') || fileName.endsWith('.html') || fileName.endsWith('.htm')) newFiles.push({ file, pages: [] });
         else newFiles.push({ file, pages: await processFileToBase64(file) });
       } catch (error) {
         alert(`Erro ao processar ${file.name}`);
@@ -128,58 +128,103 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
 
   const removeFile = (index: number) => setUploadedFiles(prev => prev.filter((_, i) => i !== index));
 
+  const extractFromHtml = (html: string): { sku: string, qtd: number }[] => {
+    const results: { sku: string, qtd: number }[] = [];
+    // Regex para capturar SKU e Quantidade do formato Pluggar
+    // SKU: <p class="bold font-size-14 pull-right"> SKU: 10582</p>
+    // QTD: <p class="font-size-12"> <i class="fas fa-play-circle text-success mr-2"></i> Disponível: 25</p>
+    
+    const productBlocks = html.split(/<tr[^>]*class=["'](?:even|odd)["'][^>]*>/i);
+    
+    productBlocks.forEach(block => {
+      const skuMatch = block.match(/SKU:\s*([A-Z0-9-]+)/i);
+      const qtdMatch = block.match(/Disponível:\s*(\d+)/i);
+      
+      if (skuMatch && qtdMatch) {
+        results.push({
+          sku: skuMatch[1].trim().toUpperCase(),
+          qtd: parseInt(qtdMatch[1], 10)
+        });
+      }
+    });
+    
+    return results;
+  };
+
   const processStockSync = async () => {
     if (!companyId || !selectedBrandId || uploadedFiles.length === 0 || !supabase) {
-      setStatus({ type: 'error', message: 'Selecione uma marca e adicione o arquivo Excel primeiro.' });
+      setStatus({ type: 'error', message: 'Selecione uma marca e adicione o arquivo primeiro.' });
       return;
     }
     setIsUploading(true);
-    setStatus({ type: 'info', message: 'Lendo Excel e sincronizando estoque...' });
+    setStatus({ type: 'info', message: 'Sincronizando estoque...' });
     setProgress(0);
     try {
-      const data = await uploadedFiles[0].file.arrayBuffer();
-      const workbook = XLSX.read(data);
-      const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
-      const excelData: { sku: string, qtd: number }[] = [];
-      jsonData.forEach((row: any) => {
-        const skuKey = Object.keys(row).find(k => /sku|codigo|cod|ref|referencia/i.test(k));
-        const qtdKey = Object.keys(row).find(k => /quantidade|qtd|estoque|stock|qnt/i.test(k));
-        if (skuKey) {
-          const sku = String(row[skuKey]).trim().toUpperCase();
-          if (sku) excelData.push({ sku, qtd: parseNumber(qtdKey ? row[qtdKey] : 0, 0) });
-        }
-      });
-      if (excelData.length === 0) throw new Error('Não foi possível encontrar SKU/Quantidade no Excel.');
-      const { data: existingProducts } = await supabase.from('products').select('id, sku, nome, status_estoque').eq('company_id', companyId).eq('brand_id', selectedBrandId);
+      const file = uploadedFiles[0].file;
+      const fileName = file.name.toLowerCase();
+      let syncData: { sku: string, qtd: number }[] = [];
+
+      if (fileName.endsWith('.html') || fileName.endsWith('.htm')) {
+        const text = await file.text();
+        syncData = extractFromHtml(text);
+      } else {
+        const data = await file.arrayBuffer();
+        const workbook = XLSX.read(data);
+        const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+        jsonData.forEach((row: any) => {
+          const skuKey = Object.keys(row).find(k => /sku|codigo|cod|ref|referencia/i.test(k));
+          const qtdKey = Object.keys(row).find(k => /quantidade|qtd|estoque|stock|qnt|disponivel/i.test(k));
+          if (skuKey) {
+            const sku = String(row[skuKey]).trim().toUpperCase();
+            if (sku) syncData.push({ sku, qtd: parseNumber(qtdKey ? row[qtdKey] : 0, 0) });
+          }
+        });
+      }
+
+      if (syncData.length === 0) throw new Error('Não foi possível identificar produtos no arquivo.');
+      
+      const { data: existingProducts } = await supabase.from('products').select('id, sku, nome, status_estoque, estoque').eq('company_id', companyId).eq('brand_id', selectedBrandId);
       if (!existingProducts) throw new Error('Erro ao buscar produtos.');
+      
       const existingMap = new Map(existingProducts.map(p => [p.sku.toUpperCase().trim(), p]));
-      const excelSkus = new Set(excelData.map(d => d.sku));
-      const updates: { id: string, status_estoque: string }[] = [];
+      const fileSkus = new Set(syncData.map(d => d.sku));
+      const updates: { id: string, status_estoque: string, estoque: number }[] = [];
       const unregistered: { sku: string, qtd: number }[] = [];
       const newOutOfStock: { sku: string, nome: string }[] = [];
       const newLastUnits: { sku: string, nome: string }[] = [];
-      for (const d of excelData) {
+
+      for (const d of syncData) {
         const existing = existingMap.get(d.sku);
         if (existing) {
           const newStatus = d.qtd === 0 ? 'esgotado' : d.qtd < 10 ? 'ultimas' : 'normal';
-          if (existing.status_estoque !== newStatus) {
-            updates.push({ id: existing.id, status_estoque: newStatus });
+          // Atualiza se o status mudou OU se a quantidade numérica mudou
+          if (existing.status_estoque !== newStatus || existing.estoque !== d.qtd) {
+            updates.push({ id: existing.id, status_estoque: newStatus, estoque: d.qtd });
             if (newStatus === 'esgotado') newOutOfStock.push({ sku: existing.sku, nome: existing.nome });
             else if (newStatus === 'ultimas') newLastUnits.push({ sku: existing.sku, nome: existing.nome });
           }
         } else unregistered.push(d);
       }
+
+      // Produtos que estão no banco mas não no arquivo (marcar como esgotado se for semanal/completo)
+      // Por enquanto mantemos a lógica de marcar como esgotado o que sumiu do arquivo
       for (const p of existingProducts) {
-        if (!excelSkus.has(p.sku.toUpperCase().trim()) && p.status_estoque !== 'esgotado') {
-          updates.push({ id: p.id, status_estoque: 'esgotado' });
+        if (!fileSkus.has(p.sku.toUpperCase().trim()) && p.status_estoque !== 'esgotado') {
+          updates.push({ id: p.id, status_estoque: 'esgotado', estoque: 0 });
           newOutOfStock.push({ sku: p.sku, nome: p.nome });
         }
       }
+
       if (updates.length > 0) {
         const batchSize = 20;
         for (let i = 0; i < updates.length; i += batchSize) {
-          await Promise.all(updates.slice(i, i + batchSize).map(u => supabase!.from('products').update({ status_estoque: u.status_estoque }).eq('id', u.id)));
-          setProgress(Math.round(((i + batchSize) / updates.length) * 100));
+          await Promise.all(updates.slice(i, i + batchSize).map(u => 
+            supabase!.from('products').update({ 
+              status_estoque: u.status_estoque,
+              estoque: u.estoque 
+            }).eq('id', u.id)
+          ));
+          setProgress(Math.round(((i + Math.min(batchSize, updates.length - i)) / updates.length) * 100));
         }
       }
       setUnregisteredSkus(unregistered); setOutOfStockSkus(newOutOfStock); setLastUnitsSkus(newLastUnits);
@@ -327,7 +372,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
             {(['catalog', 'stock'] as UploadMode[]).map(mode => (
               <button key={mode} onClick={() => { setUploadMode(mode); setUploadedFiles([]); setStatus(null); }}
                 className={`px-3 py-1.5 rounded-md text-[10px] font-black uppercase tracking-wide transition-all flex items-center gap-1.5 ${uploadMode === mode ? 'bg-white text-primary shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>
-                {mode === 'catalog' ? <><Sparkles size={10} strokeWidth={3} /> Catálogo (IA)</> : <><Database size={10} strokeWidth={3} /> Estoque (Excel)</>}
+                {mode === 'catalog' ? <><Sparkles size={10} strokeWidth={3} /> Catálogo (IA)</> : <><Database size={10} strokeWidth={3} /> Estoque (Excel/HTML)</>}
               </button>
             ))}
           </div>
@@ -383,7 +428,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
             )}
 
             <div className={`p-2.5 rounded-lg border text-xs leading-relaxed ${uploadMode === 'stock' ? 'bg-blue-50 border-blue-100 text-blue-700' : catalogType === 'weekly' ? 'bg-amber-50 border-amber-100 text-amber-700' : 'bg-slate-50 border-slate-100 text-slate-500'}`}>
-              {uploadMode === 'stock' ? 'Atualiza status de disponibilidade via Excel (Normal, Últimas, Esgotado).'
+              {uploadMode === 'stock' ? 'Atualiza status de disponibilidade via Excel ou HTML (Normal, Últimas, Esgotado).'
                 : catalogType === 'weekly' ? 'Catálogo semanal: atualiza preços e identifica produtos fora de linha.'
                   : 'Reposição: adiciona/atualiza produtos específicos sem afetar os demais.'}
             </div>
@@ -392,12 +437,12 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
           {/* Drop zone */}
           <div onClick={() => !isUploading && fileInputRef.current?.click()}
             className={`border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center text-center transition-all cursor-pointer ${isUploading ? 'border-slate-100 bg-slate-50 opacity-50 cursor-not-allowed' : 'border-slate-200 bg-white hover:border-primary hover:bg-primary/5'}`}>
-            <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept={uploadMode === 'stock' ? '.xlsx,.xls' : '.pdf,image/*,.csv,.xlsx,.xls'} multiple={uploadMode === 'catalog'} className="hidden" />
+            <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept={uploadMode === 'stock' ? '.xlsx,.xls,.html,.htm' : '.pdf,image/*,.csv,.xlsx,.xls'} multiple={uploadMode === 'catalog'} className="hidden" />
             <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center mb-3">
               <Upload size={20} className="text-primary" strokeWidth={2.5} />
             </div>
-            <p className="text-xs font-black text-slate-700 uppercase mb-1">{uploadMode === 'stock' ? 'Selecionar Excel de Estoque' : 'Adicionar Arquivos'}</p>
-            <p className="text-[9px] text-slate-400">{uploadMode === 'stock' ? 'Apenas .xlsx ou .xls' : 'PDF, PNG, JPG, CSV ou Excel'}</p>
+            <p className="text-xs font-black text-slate-700 uppercase mb-1">{uploadMode === 'stock' ? 'Selecionar Arquivo de Estoque' : 'Adicionar Arquivos'}</p>
+            <p className="text-[9px] text-slate-400">{uploadMode === 'stock' ? 'Excel (.xlsx) ou HTML do Pluggar' : 'PDF, PNG, JPG, CSV ou Excel'}</p>
           </div>
         </div>
 

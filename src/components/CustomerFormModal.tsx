@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../integrations/supabaseClient';
 import { Customer, Seller } from '../types';
 import { X, Save, Loader2, Phone, User, FileText, Lock, Building2 } from 'lucide-react';
+import { formatPhone } from '../lib/validators';
 
 export default function CustomerFormModal({ onClose, onSave, customer, companyId }: { onClose: () => void, onSave: () => void, customer?: Customer, companyId: string | null }) {
   const [formData, setFormData] = useState<any>(customer || { 
@@ -108,7 +109,7 @@ export default function CustomerFormModal({ onClose, onSave, customer, companyId
                   className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:border-primary/50 transition-all" 
                   placeholder="(00) 00000-0000" 
                   value={formData.whatsapp || ''} 
-                  onChange={e => setFormData({...formData, whatsapp: e.target.value})} 
+                  onChange={e => setFormData({...formData, whatsapp: formatPhone(e.target.value)})} 
                 />
               </div>
             </div>

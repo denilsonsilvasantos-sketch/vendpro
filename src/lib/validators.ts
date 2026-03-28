@@ -118,3 +118,20 @@ export function formatCPFOrCNPJ(value: string): string {
   if (cleanValue.length <= 11) return formatCPF(cleanValue);
   return formatCNPJ(cleanValue);
 }
+
+/**
+ * Formata um número de telefone ((00) 00000-0000 ou (00) 0000-0000)
+ */
+export function formatPhone(value: string): string {
+  const cleanValue = value.replace(/\D/g, '');
+  if (cleanValue.length <= 10) {
+    return cleanValue
+      .replace(/(\d{2})(\d)/, '($1) $2')
+      .replace(/(\d{4})(\d)/, '$1-$2')
+      .replace(/(-\d{4})\d+?$/, '$1');
+  }
+  return cleanValue
+    .replace(/(\d{2})(\d)/, '($1) $2')
+    .replace(/(\d{5})(\d)/, '$1-$2')
+    .replace(/(-\d{4})\d+?$/, '$1');
+}

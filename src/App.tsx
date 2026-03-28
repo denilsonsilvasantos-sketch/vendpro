@@ -48,7 +48,7 @@ import { subscribeToPush, isPushSupported } from './services/pushService';
 import SalesAIChat from './components/SalesAIChat';
 import { Product, Category, Seller, Customer, UserRole, CartItem, Company, Brand, BannerData } from './types';
 import { searchProductByImage } from './services/aiService';
-import { validateCNPJ, validateCPFOrCNPJ, formatCPFOrCNPJ, formatCNPJ } from './lib/validators';
+import { validateCNPJ, validateCPFOrCNPJ, formatCPFOrCNPJ, formatCNPJ, formatPhone } from './lib/validators';
 import { Card } from './components/Card';
 import { Badge } from './components/Badge';
 import CartScreen from './pages/CartScreen';
@@ -508,7 +508,52 @@ export default function App() {
     }
   }, [user]);
 
+  const userRefreshed = useRef(false);
+  useEffect(() => {
+    async function refreshUserData() {
+      if (!supabase || !user?.id || !role || userRefreshed.current) return;
+      
+      try {
+        let table = '';
+        if (role === 'company') table = 'companies';
+        else if (role === 'seller') table = 'sellers';
+        else if (role === 'customer') table = 'customers';
+        
+        if (!table) return;
+        
+        const { data, error } = await supabase.from(table).select('*').eq('id', user.id).maybeSingle();
+        
+        if (error) {
+          console.error("Erro ao atualizar dados do usuário:", error);
+          return;
+        }
+        
+        if (data) {
+          userRefreshed.current = true;
+          if (role === 'customer' && data.seller_id) {
+            const { data: sellerData } = await supabase.from('sellers').select('*').eq('id', data.seller_id).maybeSingle();
+            if (sellerData) {
+              setUser({
+                ...data,
+                vendedor_nome: sellerData.nome,
+                vendedor_whatsapp: sellerData.whatsapp,
+                vendedor_marcas_bloqueadas: sellerData.marcas_bloqueadas || []
+              });
+              return;
+            }
+          }
+          setUser(data);
+        }
+      } catch (err) {
+        console.error("Erro ao atualizar dados do usuário:", err);
+      }
+    }
+    
+    refreshUserData();
+  }, [role, supabase, user?.id]);
+
   const handleLogin = (selectedRole: UserRole, userData: any, companies: any[] = [], sellers: any[] = []) => {
+    userRefreshed.current = true;
     setRole(selectedRole);
     setUser(userData);
     setAvailableCompanies(companies);
@@ -532,6 +577,7 @@ export default function App() {
   };
 
   const handleLogout = async () => {
+    userRefreshed.current = false;
     setRole(null);
     setUser(null);
     setAvailableCompanies([]);
@@ -1601,7 +1647,7 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
               { ph: 'CNPJ', key: 'cnpj', type: 'text' },
               { ph: 'WhatsApp', key: 'telefone', type: 'text' },
             ].map(f => (
-              <input key={f.key} type={f.type} placeholder={f.ph} className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:border-primary/40 outline-none text-sm font-bold text-slate-700" value={(companyData as any)[f.key]} onChange={e => setCompanyData({...companyData, [f.key]: f.key === 'cnpj' ? formatCNPJ(e.target.value) : e.target.value})} />
+              <input key={f.key} type={f.type} placeholder={f.ph} className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:border-primary/40 outline-none text-sm font-bold text-slate-700" value={(companyData as any)[f.key]} onChange={e => setCompanyData({...companyData, [f.key]: f.key === 'cnpj' ? formatCNPJ(e.target.value) : (f.key === 'telefone' ? formatPhone(e.target.value) : e.target.value)})} />
             ))}
             <div className="relative">
               <input type={showPassword ? "text" : "password"} placeholder="Senha de Acesso" className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:border-primary/40 outline-none text-sm font-bold text-slate-700 pr-9" value={companyData.senha} onChange={e => setCompanyData({...companyData, senha: e.target.value})} />
@@ -1843,7 +1889,7 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
               </div>
               <div>
                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-4 block">WhatsApp</label>
-                <input placeholder="WhatsApp" className="w-full p-4 bg-white rounded-3xl border border-slate-100 font-bold focus:ring-2 focus:ring-primary outline-none shadow-inner" value={customerData.whatsapp} onChange={e => setCustomerData({...customerData, whatsapp: e.target.value})} />
+                <input placeholder="WhatsApp" className="w-full p-4 bg-white rounded-3xl border border-slate-100 font-bold focus:ring-2 focus:ring-primary outline-none shadow-inner" value={customerData.whatsapp} onChange={e => setCustomerData({...customerData, whatsapp: formatPhone(e.target.value)})} />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>

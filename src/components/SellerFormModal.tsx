@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../integrations/supabaseClient';
 import { Seller, Brand } from '../types';
 import { X, Save, Loader2, Percent, Ban, Copy, Check, Eye, EyeOff, Key } from 'lucide-react';
+import { formatPhone } from '../lib/validators';
 import { motion, AnimatePresence } from 'motion/react';
 import { createSeller } from '../services/sellerService';
 
@@ -228,7 +229,7 @@ export default function SellerFormModal({ onClose, onSave, seller, companyId }: 
               <input className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none"
                 placeholder="(00) 00000-0000"
                 value={formData.whatsapp || ''}
-                onChange={e => setFormData({ ...formData, whatsapp: e.target.value })} />
+                onChange={e => setFormData({ ...formData, whatsapp: formatPhone(e.target.value) })} />
             </div>
 
             <div className="space-y-1">

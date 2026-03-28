@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import { supabase } from '../integrations/supabaseClient';
 import { Settings, Building2, Phone, Mail, FileText, Save, Loader2, User, Shield, LogOut, Upload, Image as ImageIcon, Eye, EyeOff, Lock, AlertCircle } from 'lucide-react';
-import { validateCNPJ, formatCNPJ } from '../lib/validators';
+import { validateCNPJ, formatCNPJ, formatPhone } from '../lib/validators';
 
 export default function Configuracoes({ companyId, user, role, onLogout, onUpdateUser }: { companyId: string | null, user: any, role: string | null, onLogout: () => void, onUpdateUser?: (user: any) => void }) {
   const [loading, setLoading] = useState(true);
@@ -76,10 +76,10 @@ export default function Configuracoes({ companyId, user, role, onLogout, onUpdat
           confirmarSenha: '',
           logo_url: '', 
           primary_color: '', 
-          whatsapp: data.whatsapp || data.telefone || '', 
+          whatsapp: formatPhone(data.whatsapp || ''), 
           codigo_cliente: '',
           vendedor_nome: data.sellers?.nome || '',
-          vendedor_whatsapp: data.sellers?.whatsapp || data.sellers?.telefone || ''
+          vendedor_whatsapp: formatPhone(data.sellers?.whatsapp || '')
         });
       }
       setLoading(false);
@@ -145,8 +145,7 @@ export default function Configuracoes({ companyId, user, role, onLogout, onUpdat
       const { data: updatedData, error } = await supabase.from('customers').update({ 
         nome: formData.nome, 
         nome_empresa: formData.nome_empresa,
-        whatsapp: formData.whatsapp,
-        telefone: formData.whatsapp,
+        whatsapp: formData.whatsapp.replace(/\D/g, ''),
         senha: formData.senha 
       }).eq('id', user.id).select('*').single();
       
@@ -315,7 +314,7 @@ export default function Configuracoes({ companyId, user, role, onLogout, onUpdat
                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 block">WhatsApp</label>
                 <div className="relative">
                   <Phone size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" />
-                  <input className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 outline-none focus:border-primary/40" value={formData.whatsapp} onChange={e => setFormData({ ...formData, whatsapp: e.target.value })} placeholder="(00) 00000-0000" />
+                  <input className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 outline-none focus:border-primary/40" value={formData.whatsapp} onChange={e => setFormData({ ...formData, whatsapp: formatPhone(e.target.value) })} placeholder="(00) 00000-0000" />
                 </div>
               </div>
             )}

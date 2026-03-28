@@ -18,8 +18,8 @@ export default function CartScreen({
 }: { 
   cart: CartItem[], 
   total: number, 
-  onUpdateQuantity: (id: string, q: number) => void, 
-  onRemove: (id: string) => void, 
+  onUpdateQuantity: (id: string, q: number, v?: Record<string, string>) => void, 
+  onRemove: (id: string, v?: Record<string, string>) => void, 
   onSendOrder: (clientName?: string, paymentMethod?: string, customerId?: string, sellerId?: string) => void,
   selectedBrand: string | null,
   brands: Brand[],
@@ -107,19 +107,28 @@ export default function CartScreen({
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-black text-slate-800 uppercase leading-tight truncate">{item.nome}</p>
                         <p className="text-[10px] text-slate-400 font-mono">{item.sku}</p>
+                        {item.selected_variation && Object.entries(item.selected_variation).length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-0.5">
+                            {Object.entries(item.selected_variation).map(([key, value]) => (
+                              <span key={key} className="text-[8px] bg-white text-slate-500 px-1 py-0 rounded border border-slate-100 font-bold uppercase">
+                                {key}: {value}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                         <p className="text-xs font-black text-primary">R$ {subtotal.toFixed(2)}</p>
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
-                        <button onClick={() => onUpdateQuantity(item.id, item.quantity > step ? item.quantity - step : step)}
+                        <button onClick={() => onUpdateQuantity(item.id, item.quantity > step ? item.quantity - step : step, item.selected_variation)}
                           className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 rounded-lg text-slate-500 hover:text-primary transition-all">
                           <Minus size={12} strokeWidth={2.5} />
                         </button>
                         <span className="text-xs font-black text-slate-700 w-6 text-center">{item.quantity}</span>
-                        <button onClick={() => onUpdateQuantity(item.id, item.quantity + step)}
+                        <button onClick={() => onUpdateQuantity(item.id, item.quantity + step, item.selected_variation)}
                           className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 rounded-lg text-slate-500 hover:text-primary transition-all">
                           <Plus size={12} strokeWidth={2.5} />
                         </button>
-                        <button onClick={() => onRemove(item.id)}
+                        <button onClick={() => onRemove(item.id, item.selected_variation)}
                           className="w-7 h-7 flex items-center justify-center text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all ml-1">
                           <Trash2 size={12} strokeWidth={2} />
                         </button>
@@ -309,6 +318,15 @@ export default function CartScreen({
                         {isBoxDiscount && <span className="text-[9px] font-black text-amber-600 uppercase tracking-[2px] bg-amber-50 px-3 py-1 rounded-full border border-amber-100 shadow-inner">DESCONTO BOX</span>}
                       </div>
                       <h3 className="font-black text-slate-800 text-sm tracking-tight uppercase leading-tight">{item.nome}</h3>
+                      {item.selected_variation && Object.entries(item.selected_variation).length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-1">
+                          {Object.entries(item.selected_variation).map(([key, value]) => (
+                            <span key={key} className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md font-black uppercase border border-slate-200 shadow-sm">
+                              {key}: {value}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                       <p className="text-[10px] text-slate-400 font-black uppercase tracking-[2px]">
                         {item.quantity} {item.venda_somente_box ? 'box' : 'un'} × <span className="text-primary font-black">R$ {unitPrice.toFixed(2)}</span>
                       </p>
@@ -319,12 +337,12 @@ export default function CartScreen({
                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-[2px] mb-1">Subtotal</p>
                         <p className="text-lg font-black text-slate-900 tracking-tighter">R$ {subtotal.toFixed(2)}</p>
                       </div>
-
+ 
                       <div className="flex items-center bg-slate-50 rounded-[10px] p-1.5 border border-slate-100 shadow-inner">
                         <button 
                           onClick={() => {
                             const newQty = item.quantity > step ? item.quantity - step : step;
-                            onUpdateQuantity(item.id, newQty);
+                            onUpdateQuantity(item.id, newQty, item.selected_variation);
                           }} 
                           className="w-10 h-10 flex items-center justify-center text-slate-400 hover:bg-white hover:text-primary hover:shadow-lg rounded-[6px] transition-all"
                         >
@@ -332,15 +350,15 @@ export default function CartScreen({
                         </button>
                         <span className="text-sm font-black w-12 text-center text-slate-700">{item.quantity}</span>
                         <button 
-                          onClick={() => onUpdateQuantity(item.id, item.quantity + step)} 
+                          onClick={() => onUpdateQuantity(item.id, item.quantity + step, item.selected_variation)} 
                           className="w-10 h-10 flex items-center justify-center text-slate-400 hover:bg-white hover:text-primary hover:shadow-lg rounded-[6px] transition-all"
                         >
                           <Plus size={18} strokeWidth={2.5} />
                         </button>
                       </div>
-
+ 
                       <button 
-                        onClick={() => onRemove(item.id)} 
+                        onClick={() => onRemove(item.id, item.selected_variation)} 
                         className="w-12 h-12 flex items-center justify-center text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-[10px] transition-all duration-300 shadow-sm hover:shadow-md"
                       >
                         <Trash2 size={22} strokeWidth={2} />

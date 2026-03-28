@@ -893,6 +893,15 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                                   <span className="text-[10px] font-mono font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded">{item.sku}</span>
                                   <h5 className="font-bold text-slate-800 text-sm">{item.nome}</h5>
                                 </div>
+                                {item.variacoes && Object.entries(item.variacoes as Record<string, string>).length > 0 && (
+                                  <div className="flex flex-wrap gap-1 mt-1">
+                                    {Object.entries(item.variacoes as Record<string, string>).map(([key, value]) => (
+                                      <span key={key} className="text-[8px] bg-slate-50 text-slate-500 px-1.5 py-0.5 rounded font-bold uppercase border border-slate-100">
+                                        {key}: {value}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
                                 <p className="text-xs text-slate-400 mt-1">{item.quantidade} x R$ {Number(item.preco_unitario).toFixed(2)}</p>
                               </div>
                               <div className="flex items-center gap-3">
@@ -935,6 +944,15 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                                   <span className="text-[10px] font-mono font-bold bg-rose-100 text-rose-400 px-1.5 py-0.5 rounded line-through">{item.sku}</span>
                                   <h5 className="font-bold text-rose-700 text-sm line-through">{item.nome}</h5>
                                 </div>
+                                {item.variacoes && Object.entries(item.variacoes as Record<string, string>).length > 0 && (
+                                  <div className="flex flex-wrap gap-1 mt-1 opacity-50">
+                                    {Object.entries(item.variacoes as Record<string, string>).map(([key, value]) => (
+                                      <span key={key} className="text-[8px] bg-rose-100 text-rose-500 px-1.5 py-0.5 rounded font-bold uppercase border border-rose-200 line-through">
+                                        {key}: {value}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
                                 <p className="text-xs text-rose-400 mt-1">{item.quantidade} x R$ {Number(item.preco_unitario).toFixed(2)}</p>
                               </div>
                               <p className="font-black text-rose-400 line-through">R$ {Number(item.subtotal).toFixed(2)}</p>

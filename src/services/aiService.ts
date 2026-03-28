@@ -56,8 +56,8 @@ export async function extractProductsFromMedia(base64Data: string, mimeType: str
   - venda_somente_box: true se o produto só for vendido em caixa fechada
   - has_box_discount: true se houver desconto para compra em caixa
   - status_estoque: Tente identificar se está esgotado ou com poucas unidades. Use: "normal", "baixo", "ultimas" ou "esgotado".
-  - variacoes: Cores, tamanhos ou sabores disponíveis (ex: "Azul, Verde, P, M, G")
-  - qtd_variacoes: Número total de variações (ex: 5)
+  - tipo_variacao: Se o produto tiver variações que o cliente pode escolher individualmente (ex: cores, tamanhos), identifique o tipo. Use: "cor", "tamanho" ou "modelo". Se não houver, deixe em branco.
+  - variacoes_disponiveis: Lista das variações disponíveis separadas por vírgula (ex: "Azul, Verde, Vermelho" ou "P, M, G, GG"). Se não houver, deixe em branco.
   ${categories ? `- category_name: Escolha a categoria mais adequada APENAS entre estas: [${categoriesList}]. Se não encontrar uma correspondência exata, deixe em branco.` : ''}
 
   IMPORTANTE: 
@@ -79,8 +79,8 @@ export async function extractProductsFromMedia(base64Data: string, mimeType: str
         "has_box_discount": boolean,
         "is_last_units": boolean,
         "status_estoque": "normal | baixo | ultimas | esgotado",
-        "variacoes": "string",
-        "qtd_variacoes": "string"${categories ? ',\n        "category_name": "string"' : ''}
+        "tipo_variacao": "string",
+        "variacoes_disponiveis": "string"${categories ? ',\n        "category_name": "string"' : ''}
       }
     ]
   }`;

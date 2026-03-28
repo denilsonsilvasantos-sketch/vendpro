@@ -284,11 +284,11 @@ export default function App() {
 
   const effectiveRole = viewMode === 'customer' ? 'customer' : role;
 
-  const handleAddToCart = (product: Product, quantity: number) => {
+  const handleAddToCart = (product: Product, quantity: number, selected_variation?: Record<string, string>) => {
     if (cart.length === 0) {
       setShowCartDisclaimer(true);
     }
-    addToCart(product, quantity);
+    addToCart(product, quantity, selected_variation);
   };
 
   const handleSendOrder = async (manualClientName?: string, paymentMethod?: string, selectedCustomerId?: string, selectedSellerId?: string) => {
@@ -356,7 +356,8 @@ export default function App() {
               nome: item.nome,
               quantidade: item.quantity,
               preco_unitario: unitPrice,
-              subtotal: item.quantity * unitPrice
+              subtotal: item.quantity * unitPrice,
+              variacoes: item.selected_variation || null
             };
           });
 
@@ -1082,8 +1083,8 @@ export default function App() {
                 <CartScreen
                   cart={cart}
                   total={total}
-                  onUpdateQuantity={updateQuantity}
-                  onRemove={removeFromCart}
+                  onUpdateQuantity={(id, q, v) => updateQuantity(id, q, undefined, v)}
+                  onRemove={(id, v) => removeFromCart(id, undefined, v)}
                   onSendOrder={(clientName, paymentMethod, customerId, sellerId) => {
                     handleSendOrder(clientName, paymentMethod, customerId, sellerId);
                     setIsCartOpen(false);
@@ -1995,7 +1996,7 @@ function CatalogScreen({
   products: Product[], 
   categories: Category[], 
   brands: Brand[], 
-  onAddToCart: (p: Product, q: number) => void, 
+  onAddToCart: (p: Product, q: number, v?: Record<string, string>) => void, 
   onEdit: (p: Product) => void, 
   role: UserRole, 
   onZoom: (img: string) => void,
@@ -2522,8 +2523,9 @@ function CatalogScreen({
   );
 }
 
-function ProductCard({ product, onAdd, onEdit, role, onZoom, isInCart, ...props }: { product: Product, onAdd: (p: Product, q: number) => void, onEdit: (p: Product) => void, role: UserRole, onZoom: (img: string) => void, isInCart?: boolean, [key: string]: any }) {
+function ProductCard({ product, onAdd, onEdit, role, onZoom, isInCart, ...props }: { product: Product, onAdd: (p: Product, q: number, v?: Record<string, string>) => void, onEdit: (p: Product) => void, role: UserRole, onZoom: (img: string) => void, isInCart?: boolean, [key: string]: any }) {
   const [qty, setQty] = useState(product.venda_somente_box ? 1 : (product.multiplo_venda || 1));
+  const [selectedVariations, setSelectedVariations] = useState<Record<string, string>>({});
   const isEsgotado = product.status_estoque === 'esgotado';
 
   const handleAddQty = () => {
@@ -2535,6 +2537,16 @@ function ProductCard({ product, onAdd, onEdit, role, onZoom, isInCart, ...props 
       const step = product.venda_somente_box ? 1 : (product.multiplo_venda || 1);
       return prev > step ? prev - step : step;
     });
+  };
+
+  const handleVariationChange = (name: string, value: string) => {
+    setSelectedVariations(prev => ({ ...prev, [name]: value }));
+  };
+
+  const isSelectionComplete = () => {
+    if (product.tipo_variacao !== 'escolha_livre') return true;
+    if (!product.variacoes_disponiveis) return true;
+    return product.variacoes_disponiveis.every(v => selectedVariations[v.nome]);
   };
 
   return (
@@ -2562,6 +2574,27 @@ function ProductCard({ product, onAdd, onEdit, role, onZoom, isInCart, ...props 
         )}
       </div>
 
+      {!isEsgotado && product.tipo_variacao === 'escolha_livre' && product.variacoes_disponiveis && (
+        <div className="mb-4 space-y-3">
+          {product.variacoes_disponiveis.map(v => (
+            <div key={v.nome} className="space-y-1.5">
+              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{v.nome}</p>
+              <div className="flex flex-wrap gap-1.5">
+                {v.opcoes.map(opt => (
+                  <button
+                    key={opt}
+                    onClick={() => handleVariationChange(v.nome, opt)}
+                    className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${selectedVariations[v.nome] === opt ? 'bg-primary text-white border-primary shadow-md' : 'bg-white text-slate-500 border-slate-100 hover:border-primary/30'}`}
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {(product.has_box_discount || product.venda_somente_box) && !isEsgotado && (
         <div className="mb-4 p-2.5 bg-rose-50 border border-rose-200 rounded-2xl text-center flex flex-col items-center justify-center">
           <span className="text-base font-black text-rose-700 tracking-tight">R$ {(product.preco_box || 0).toFixed(2)}</span>
@@ -2578,7 +2611,13 @@ function ProductCard({ product, onAdd, onEdit, role, onZoom, isInCart, ...props 
           <button onClick={handleAddQty} disabled={isEsgotado} className="p-2 text-slate-400 hover:bg-white hover:text-primary rounded-xl disabled:opacity-50 transition-all shadow-sm"><Plus size={14}/></button>
         </div>
         <button 
-          onClick={() => onAdd(product, qty)} 
+          onClick={() => {
+            if (!isSelectionComplete()) {
+              alert('Por favor, selecione todas as variações.');
+              return;
+            }
+            onAdd(product, qty, selectedVariations);
+          }} 
           disabled={isEsgotado}
           className="w-full py-4 text-white rounded-[20px] font-black uppercase tracking-widest text-[10px] shadow-lg hover:scale-[0.98] active:scale-95 disabled:opacity-50 transition-all"
           style={{ background: 'linear-gradient(135deg, #C21863, #E8257A)' }}

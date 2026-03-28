@@ -99,10 +99,16 @@ export interface Product {
   brand_nome?: string;
   margin_percentage?: number;
   created_at?: string;
+  tipo_variacao?: 'grade' | 'escolha_livre';
+  variacoes_disponiveis?: {
+    nome: string; // e.g., "Cor", "Tamanho"
+    opcoes: string[]; // e.g., ["Azul", "Vermelho"], ["P", "M", "G"]
+  }[];
 }
 
 export interface CartItem extends Product {
   quantity: number;
+  selected_variation?: Record<string, string>; // e.g., { "Cor": "Azul", "Tamanho": "M" }
 }
 
 export interface Order {
@@ -134,6 +140,7 @@ export interface OrderItem {
   quantidade: number;
   preco_unitario: number;
   subtotal: number;
+  variacoes?: Record<string, string>;
 }
 
 export interface BannerData {

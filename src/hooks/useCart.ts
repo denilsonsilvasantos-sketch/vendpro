@@ -43,7 +43,7 @@ export function useCart(brandId?: string | null) {
     localStorage.setItem('vendpro_carts_time', Date.now().toString());
   }, [carts]);
 
-  const addToCart = (product: Product, quantity: number) => {
+  const addToCart = (product: Product, quantity: number, selected_variation?: Record<string, string>) => {
     const bId = product.brand_id || 'default';
     
     if (product.multiplo_venda && quantity % product.multiplo_venda !== 0) {
@@ -53,43 +53,55 @@ export function useCart(brandId?: string | null) {
 
     setCarts(prev => {
       const brandCart = prev[bId] || [];
-      const existing = brandCart.find(item => item.id === product.id);
+      const existing = brandCart.find(item => 
+        item.id === product.id && 
+        JSON.stringify(item.selected_variation) === JSON.stringify(selected_variation)
+      );
       let newBrandCart;
       if (existing) {
         const newQty = existing.quantity + quantity;
         newBrandCart = brandCart.map(item => 
-          item.id === product.id ? { ...item, quantity: newQty } : item
+          (item.id === product.id && JSON.stringify(item.selected_variation) === JSON.stringify(selected_variation))
+            ? { ...item, quantity: newQty } 
+            : item
         );
       } else {
-        newBrandCart = [...brandCart, { ...product, quantity }];
+        newBrandCart = [...brandCart, { ...product, quantity, selected_variation }];
       }
       return { ...prev, [bId]: newBrandCart };
     });
   };
 
-  const removeFromCart = (productId: string, itemBrandId?: string) => {
+  const removeFromCart = (productId: string, itemBrandId?: string, selected_variation?: Record<string, string>) => {
     const bId = itemBrandId || brandId || 'default';
     setCarts(prev => {
       const brandCart = prev[bId] || [];
-      return { ...prev, [bId]: brandCart.filter(item => item.id !== productId) };
+      return { ...prev, [bId]: brandCart.filter(item => 
+        !(item.id === productId && JSON.stringify(item.selected_variation) === JSON.stringify(selected_variation))
+      ) };
     });
   };
 
-  const updateQuantity = (productId: string, quantity: number, itemBrandId?: string) => {
+  const updateQuantity = (productId: string, quantity: number, itemBrandId?: string, selected_variation?: Record<string, string>) => {
     const bId = itemBrandId || brandId || 'default';
     if (quantity <= 0) {
-      removeFromCart(productId, bId);
+      removeFromCart(productId, bId, selected_variation);
       return;
     }
 
     setCarts(prev => {
       const brandCart = prev[bId] || [];
-      const item = brandCart.find(i => i.id === productId);
+      const item = brandCart.find(i => 
+        i.id === productId && 
+        JSON.stringify(i.selected_variation) === JSON.stringify(selected_variation)
+      );
       if (item && !item.venda_somente_box && item.multiplo_venda && quantity % item.multiplo_venda !== 0) {
         return prev;
       }
       const newBrandCart = brandCart.map(item => 
-        item.id === productId ? { ...item, quantity } : item
+        (item.id === productId && JSON.stringify(item.selected_variation) === JSON.stringify(selected_variation))
+          ? { ...item, quantity } 
+          : item
       );
       return { ...prev, [bId]: newBrandCart };
     });

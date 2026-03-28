@@ -296,7 +296,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
               const foundCat = categories.find(c => c.nome.toLowerCase() === extracted.category_name.toLowerCase());
               if (foundCat) categoriaId = foundCat.id;
             }
-            const productData: any = { company_id: companyId, brand_id: selectedBrandId, sku, nome: extracted.nome ? String(extracted.nome).trim() : `Produto (${sku})`, preco_unitario: parsedPrecoUnitario, preco_box: parsedPrecoBox, qtd_box: parseNumber(extracted.qtd_box, 1), venda_somente_box: !!extracted.venda_somente_box, has_box_discount: !!extracted.has_box_discount, is_last_units: !!extracted.is_last_units, multiplo_venda: 1, status_estoque: statusEstoque, category_id: categoriaId, categoria_pendente: !categoriaId, imagem_pendente: existing ? !existing.imagem : true };
+            const productData: any = { company_id: companyId, brand_id: selectedBrandId, sku, nome: extracted.nome ? String(extracted.nome).trim() : `Produto (${sku})`, preco_unitario: parsedPrecoUnitario, preco_box: parsedPrecoBox, qtd_box: parseNumber(extracted.qtd_box, 1), venda_somente_box: !!extracted.venda_somente_box, has_box_discount: !!extracted.has_box_discount, is_last_units: !!extracted.is_last_units, multiplo_venda: 1, status_estoque: statusEstoque, category_id: categoriaId, categoria_pendente: !categoriaId, imagem_pendente: existing ? !existing.imagem : true, tipo_variacao: extracted.tipo_variacao || null, variacoes_disponiveis: extracted.variacoes_disponiveis || null };
             if (existing?.imagem) productData.imagem = existing.imagem;
             try {
               if (existing) await supabase.from('products').update(productData).eq('id', existing.id);

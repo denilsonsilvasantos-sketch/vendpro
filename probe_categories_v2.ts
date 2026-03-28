@@ -13,20 +13,20 @@ if (!supabaseUrl || !supabaseKey) {
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-async function probeProducts() {
-  const { data, error } = await supabase.from('products').select('*').limit(1);
+async function probeCategories() {
+  const { data, error } = await supabase.from('categories').select('*').limit(1);
   if (error) {
-    console.error('Error probing products table:', error);
+    console.error('Error probing categories table:', error);
     return;
   }
   if (data && data.length > 0) {
-    console.log('Columns in products table:', Object.keys(data[0]));
+    console.log('Columns in categories table:', Object.keys(data[0]));
   } else {
-    const { error: insertError } = await supabase.from('products').insert([{}]).select();
+    const { error: insertError } = await supabase.from('categories').insert([{}]).select();
     if (insertError) {
        console.log('Insert error (can reveal columns):', insertError.message);
     }
   }
 }
 
-probeProducts();
+probeCategories();

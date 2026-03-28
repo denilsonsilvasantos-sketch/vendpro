@@ -50,9 +50,9 @@ export async function extractProductsFromMedia(base64Data: string, mimeType: str
   Para cada produto, identifique com precisão:
   - nome: Nome completo do produto (MUITO IMPORTANTE)
   - sku: Código, SKU ou Referência (se houver). Se não houver, deixe em branco.
-  - preco_unitario: Preço por unidade (ex: 10,50). Se houver apenas preço de caixa, calcule o unitário dividindo pela quantidade.
-  - preco_box: Preço da caixa fechada (se houver)
-  - qtd_box: Quantidade de itens na caixa (ex: 12)
+  - preco_unitario: Preço por unidade (ex: 10,50). Extraia exatamente o valor unitário que estiver no arquivo.
+  - preco_box: Preço da caixa fechada (se houver). Extraia exatamente o valor que estiver no arquivo, SEM MULTIPLICAR o unitário pela quantidade.
+  - qtd_box: Quantidade de itens na caixa (ex: 12). Extraia exatamente o que estiver no arquivo.
   - venda_somente_box: true se o produto só for vendido em caixa fechada
   - has_box_discount: true se houver desconto para compra em caixa
   - status_estoque: Tente identificar se está esgotado ou com poucas unidades. Use: "normal", "baixo", "ultimas" ou "esgotado".

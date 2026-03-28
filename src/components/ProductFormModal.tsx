@@ -379,37 +379,37 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
                 )}
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2">
-                <label className="flex items-center gap-3 cursor-pointer group bg-slate-50/50 p-3 rounded-[6px] border border-slate-100 hover:border-primary/20 transition-all">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+                <label className="flex items-center gap-2 cursor-pointer group bg-slate-50/50 p-2.5 rounded-[6px] border border-slate-100 hover:border-primary/20 transition-all">
                   <div className={`w-5 h-5 rounded-[4px] border-2 flex items-center justify-center transition-all shrink-0 ${formData.venda_somente_box ? 'bg-primary border-primary shadow-lg shadow-primary/20' : 'border-slate-200 group-hover:border-primary/50'}`}>
                     {formData.venda_somente_box && <Check size={12} strokeWidth={4} className="text-white" />}
                   </div>
                   <input type="checkbox" className="hidden" checked={formData.venda_somente_box} onChange={e => setFormData({...formData, venda_somente_box: e.target.checked})} />
-                  <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Somente Box</span>
+                  <span className="text-[9px] font-black text-slate-600 uppercase tracking-tight leading-none">Somente Box</span>
                 </label>
 
-                <label className="flex items-center gap-3 cursor-pointer group bg-slate-50/50 p-3 rounded-[6px] border border-slate-100 hover:border-primary/20 transition-all">
+                <label className="flex items-center gap-2 cursor-pointer group bg-slate-50/50 p-2.5 rounded-[6px] border border-slate-100 hover:border-primary/20 transition-all">
                   <div className={`w-5 h-5 rounded-[4px] border-2 flex items-center justify-center transition-all shrink-0 ${formData.has_box_discount ? 'bg-primary border-primary shadow-lg shadow-primary/20' : 'border-slate-200 group-hover:border-primary/50'}`}>
                     {formData.has_box_discount && <Check size={12} strokeWidth={4} className="text-white" />}
                   </div>
                   <input type="checkbox" className="hidden" checked={formData.has_box_discount} onChange={e => setFormData({...formData, has_box_discount: e.target.checked})} />
-                  <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Desc. Box</span>
+                  <span className="text-[9px] font-black text-slate-600 uppercase tracking-tight leading-none">Desc. Box</span>
                 </label>
 
-                <label className="flex items-center gap-3 cursor-pointer group bg-slate-50/50 p-3 rounded-[6px] border border-slate-100 hover:border-rose-500/20 transition-all">
+                <label className="flex items-center gap-2 cursor-pointer group bg-slate-50/50 p-2.5 rounded-[6px] border border-slate-100 hover:border-rose-500/20 transition-all">
                   <div className={`w-5 h-5 rounded-[4px] border-2 flex items-center justify-center transition-all shrink-0 ${formData.is_last_units ? 'bg-rose-500 border-rose-500 shadow-lg shadow-rose-500/20' : 'border-slate-200 group-hover:border-rose-500/50'}`}>
                     {formData.is_last_units && <Check size={12} strokeWidth={4} className="text-white" />}
                   </div>
                   <input type="checkbox" className="hidden" checked={formData.is_last_units} onChange={e => setFormData({...formData, is_last_units: e.target.checked})} />
-                  <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Últimas</span>
+                  <span className="text-[9px] font-black text-slate-600 uppercase tracking-tight leading-none">Últimas</span>
                 </label>
 
-                <label className="flex items-center gap-3 cursor-pointer group bg-slate-50/50 p-3 rounded-[6px] border border-slate-100 hover:border-slate-800/20 transition-all">
+                <label className="flex items-center gap-2 cursor-pointer group bg-slate-50/50 p-2.5 rounded-[6px] border border-slate-100 hover:border-slate-800/20 transition-all">
                   <div className={`w-5 h-5 rounded-[4px] border-2 flex items-center justify-center transition-all shrink-0 ${formData.status_estoque === 'esgotado' ? 'bg-slate-800 border-slate-800 shadow-lg shadow-slate-800/20' : 'border-slate-200 group-hover:border-slate-800/50'}`}>
                     {formData.status_estoque === 'esgotado' && <Check size={12} strokeWidth={4} className="text-white" />}
                   </div>
                   <input type="checkbox" className="hidden" checked={formData.status_estoque === 'esgotado'} onChange={e => setFormData({...formData, status_estoque: e.target.checked ? 'esgotado' : 'normal'})} />
-                  <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Esgotado</span>
+                  <span className="text-[9px] font-black text-slate-600 uppercase tracking-tight leading-none">Esgotado</span>
                 </label>
               </div>
             </div>

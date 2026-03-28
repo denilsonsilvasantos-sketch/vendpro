@@ -286,7 +286,7 @@ export default function App() {
     
     if (role === 'customer' && user) {
       // Customer sends to seller or company
-      whatsappNumber = user.vendedor_whatsapp || user.vendedor_telefone || company?.telefone || '';
+      whatsappNumber = user.vendedor_whatsapp || company?.telefone || '';
     } else if (role === 'seller' && selectedCustomerId) {
       // Seller sends to selected customer
       const targetCustomer = customers.find(c => c.id === selectedCustomerId);
@@ -294,7 +294,7 @@ export default function App() {
     } else if (role === 'company' && selectedSellerId) {
       // Company sends to selected seller
       const targetSeller = sellers.find(s => s.id === selectedSellerId);
-      whatsappNumber = targetSeller?.whatsapp || targetSeller?.telefone || company?.telefone || '';
+      whatsappNumber = targetSeller?.whatsapp || company?.telefone || '';
     } else if (company && company.telefone) {
       whatsappNumber = company.telefone;
     }
@@ -1276,7 +1276,6 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
           ...result.customer, 
           vendedor_nome: result.seller?.nome,
           vendedor_whatsapp: result.seller?.whatsapp,
-          vendedor_telefone: result.seller?.telefone,
           vendedor_marcas_bloqueadas: result.seller?.marcas_bloqueadas || [],
         }, [result.company]);
       } else {
@@ -1340,7 +1339,6 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
               sellerCode,
               vendedor_nome: sellerInfo.nome,
               vendedor_whatsapp: sellerInfo.whatsapp,
-              vendedor_telefone: sellerInfo.telefone,
               vendedor_marcas_bloqueadas: sellerInfo.marcas_bloqueadas || [],
             }, availableCompanies);
           } else {
@@ -1357,8 +1355,7 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
         ...customerData, 
         sellerCode,
         vendedor_nome: sellerInfo?.nome,
-        vendedor_whatsapp: sellerInfo?.whatsapp,
-        vendedor_telefone: sellerInfo?.telefone
+        vendedor_whatsapp: sellerInfo?.whatsapp
       }, availableCompanies);
     }
   };
@@ -2019,7 +2016,7 @@ function CatalogScreen({
     let whatsappNumber = '';
     
     if (role === 'customer') {
-      whatsappNumber = user?.vendedor_whatsapp || user?.vendedor_telefone || company?.telefone || '';
+      whatsappNumber = user?.vendedor_whatsapp || company?.telefone || '';
     } else if (role === 'seller') {
       whatsappNumber = company?.telefone || '';
     } else {

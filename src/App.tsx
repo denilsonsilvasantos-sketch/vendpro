@@ -459,15 +459,12 @@ export default function App() {
           let brandQuery = supabase.from('brands').select('*').eq('company_id', activeCompanyId).order('name');
           
           if (role === 'seller') {
-            if (releasedBrandIds.length > 0) {
-              brandQuery = brandQuery.in('id', releasedBrandIds);
-              filteredCats = filteredCats.filter((c: any) => c.brand_id && releasedBrandIds.includes(c.brand_id));
-            } else if (blockedBrandIds.length > 0) {
-              brandQuery = brandQuery.not('id', 'in', `(${blockedBrandIds.join(',')})`);
+            if (blockedBrandIds.length > 0) {
+              brandQuery = brandQuery.not('id', 'in', blockedBrandIds);
               filteredCats = filteredCats.filter((c: any) => !c.brand_id || !blockedBrandIds.includes(c.brand_id));
             }
           } else if (role === 'customer' && blockedBrandIds.length > 0) {
-            brandQuery = brandQuery.not('id', 'in', `(${blockedBrandIds.join(',')})`);
+            brandQuery = brandQuery.not('id', 'in', blockedBrandIds);
             filteredCats = filteredCats.filter((c: any) => !c.brand_id || !blockedBrandIds.includes(c.brand_id));
           }
 

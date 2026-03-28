@@ -259,6 +259,16 @@ export default function App() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const { cart, carts, addToCart, removeFromCart, updateQuantity, clearCart, total } = useCart(selectedBrand);
 
+  // Reset selected brand if it becomes blocked
+  useEffect(() => {
+    if (selectedBrand && brands.length > 0) {
+      const isStillAvailable = brands.some(b => b.id === selectedBrand);
+      if (!isStillAvailable) {
+        setSelectedBrand(brands[0]?.id || null);
+      }
+    }
+  }, [brands, selectedBrand]);
+
   const { notifications, unreadCount, markAllRead, requestBrowserPermission } = useNotifications(
     activeCompanyId, role, role === 'seller' ? user?.id : null
   );
@@ -434,6 +444,34 @@ export default function App() {
               .eq('ativo', true)
               .order('nome');
             setSellers(sellerData || []);
+          } else if (role === 'seller' && user?.id) {
+            // Refresh current seller data
+            const { data: currentSeller } = await supabase
+              .from('sellers')
+              .select('*')
+              .eq('id', user.id)
+              .maybeSingle();
+            if (currentSeller) {
+              setUser((prev: any) => ({ ...prev, ...currentSeller }));
+            }
+          }
+        } else if (supabase && role === 'customer' && user?.id) {
+          // Refresh current customer data to get latest blocked brands from seller
+          const { data: currentCustomer } = await supabase
+            .from('customers')
+            .select('*, sellers!customers_seller_id_fkey(*)')
+            .eq('id', user.id)
+            .maybeSingle();
+            
+          if (currentCustomer) {
+            const updatedUser = {
+              ...user,
+              ...currentCustomer,
+              vendedor_nome: currentCustomer.sellers?.nome,
+              vendedor_whatsapp: currentCustomer.sellers?.whatsapp,
+              vendedor_marcas_bloqueadas: currentCustomer.sellers?.marcas_bloqueadas || [],
+            };
+            setUser(updatedUser);
           }
         }
 
@@ -460,11 +498,11 @@ export default function App() {
           
           if (role === 'seller') {
             if (blockedBrandIds.length > 0) {
-              brandQuery = brandQuery.not('id', 'in', blockedBrandIds);
+              brandQuery = brandQuery.not('id', 'in', `(${blockedBrandIds.join(',')})`);
               filteredCats = filteredCats.filter((c: any) => !c.brand_id || !blockedBrandIds.includes(c.brand_id));
             }
           } else if (role === 'customer' && blockedBrandIds.length > 0) {
-            brandQuery = brandQuery.not('id', 'in', blockedBrandIds);
+            brandQuery = brandQuery.not('id', 'in', `(${blockedBrandIds.join(',')})`);
             filteredCats = filteredCats.filter((c: any) => !c.brand_id || !blockedBrandIds.includes(c.brand_id));
           }
 
@@ -1354,7 +1392,7 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
         // Try to find existing customer by CNPJ globally
         const { data: existingCustomers, error: searchError } = await supabase
           .from('customers')
-          .select('*, sellers!seller_id(*)')
+          .select('*, sellers!customers_seller_id_fkey(*)')
           .eq('cnpj', customerData.cnpj.replace(/\D/g, ''))
           .maybeSingle();
 

@@ -21,7 +21,7 @@ export default function Dashboard({ companyId, role, user, banners }: { companyI
         blockedBrandIds = sellerData?.marcas_bloqueadas || user.marcas_bloqueadas || [];
       }
       let productQuery = supabase.from('products').select('*', { count: 'exact', head: true }).eq('company_id', companyId);
-      if (role === 'seller' && blockedBrandIds.length > 0) productQuery = productQuery.not('brand_id', 'in', blockedBrandIds);
+      if (role === 'seller' && blockedBrandIds.length > 0) productQuery = productQuery.not('brand_id', 'in', `(${blockedBrandIds.join(',')})`);
       const { count: productCount } = await productQuery;
       let sellerIds: string[] = [];
       if (role === 'seller' && user?.id) { sellerIds = [user.id]; }

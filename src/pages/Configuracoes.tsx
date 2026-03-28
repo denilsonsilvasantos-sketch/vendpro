@@ -66,7 +66,7 @@ export default function Configuracoes({ companyId, user, role, onLogout, onUpdat
           vendedor_whatsapp: ''
         });
       } else if (role === 'customer' && user?.id) {
-        const { data } = await supabase.from('customers').select('*, sellers!seller_id(*)').eq('id', user.id).single();
+        const { data } = await supabase.from('customers').select('*, sellers!customers_seller_id_fkey(*)').eq('id', user.id).single();
         if (data) setFormData({ 
           nome: data.nome || '', 
           nome_empresa: data.nome_empresa || '',

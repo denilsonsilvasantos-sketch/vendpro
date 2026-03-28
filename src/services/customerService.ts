@@ -113,6 +113,8 @@ export async function validateCustomerLogin(cnpj: string, password?: string) {
     .from('customers')
     .select('*')
     .eq('cnpj', cleanCnpj)
+    .order('created_at', { ascending: false })
+    .limit(1)
     .maybeSingle();
 
   if (error) return { success: false, error: error.message };
@@ -178,7 +180,7 @@ export async function createCustomer(companyId: string, customerData: any) {
   const { data, error } = await supabase
     .from("customers")
     .insert([dataToSave])
-    .select('id, nome')
+    .select('*')
     .single();
 
   if (error) {

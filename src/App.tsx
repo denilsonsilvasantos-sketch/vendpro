@@ -500,6 +500,14 @@ export default function App() {
     loadData();
   }, [activeCompanyId]);
 
+  useEffect(() => {
+    if (user) {
+      localStorage.setItem('vendpro_user', JSON.stringify(user));
+    } else {
+      localStorage.removeItem('vendpro_user');
+    }
+  }, [user]);
+
   const handleLogin = (selectedRole: UserRole, userData: any, companies: any[] = [], sellers: any[] = []) => {
     setRole(selectedRole);
     setUser(userData);
@@ -518,7 +526,6 @@ export default function App() {
     }
 
     localStorage.setItem('vendpro_role', selectedRole as string);
-    localStorage.setItem('vendpro_user', JSON.stringify(userData));
     localStorage.setItem('vendpro_available_companies', JSON.stringify(companies));
     localStorage.setItem('vendpro_sellers', JSON.stringify(sellers));
     setActiveTab('catalog');
@@ -531,7 +538,6 @@ export default function App() {
     setAvailableSellers([]);
     setActiveCompanyId(null);
     localStorage.removeItem('vendpro_role');
-    localStorage.removeItem('vendpro_user');
     localStorage.removeItem('vendpro_seller_code');
     localStorage.removeItem('vendpro_available_companies');
     localStorage.removeItem('vendpro_active_company_id');
@@ -560,7 +566,6 @@ export default function App() {
             const sellerForCompany = availableSellers.find(s => s.company_id === c.id);
             if (sellerForCompany) {
               setUser(sellerForCompany);
-              localStorage.setItem('vendpro_user', JSON.stringify(sellerForCompany));
             }
           }
           
@@ -939,7 +944,7 @@ export default function App() {
             {activeTab === 'clientes' && <Clientes companyId={activeCompanyId} role={role} user={user} />}
             {activeTab === 'pedidos' && <Pedidos companyId={activeCompanyId} role={role} user={user} />}
             {activeTab === 'comissoes' && (role === 'seller' || role === 'company') && <Comissao companyId={activeCompanyId} role={role} user={user} />}
-            {activeTab === 'account' && <Configuracoes companyId={activeCompanyId} user={user} role={role} onLogout={handleLogout} />}
+            {activeTab === 'account' && <Configuracoes companyId={activeCompanyId} user={user} role={role} onLogout={handleLogout} onUpdateUser={setUser} />}
           </Suspense>
         </div>
       </main>
@@ -1307,18 +1312,17 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
       try {
         const { createCustomer } = await import('./services/customerService');
         
-        // Try to find existing customer by CNPJ under this seller
+        // Try to find existing customer by CNPJ globally
         const { data: existingCustomers, error: searchError } = await supabase
           .from('customers')
-          .select('*')
-          .eq('seller_id', sellerInfo.id)
+          .select('*, sellers!seller_id(*)')
           .eq('cnpj', customerData.cnpj.replace(/\D/g, ''))
           .maybeSingle();
 
         if (searchError) throw searchError;
 
         if (existingCustomers) {
-          alert('Este CNPJ já está cadastrado para este vendedor. Por favor, faça login.');
+          alert('Este CNPJ já está cadastrado no sistema. Por favor, faça login.');
           setView('customer-login');
           setCustomerLoginCnpj(customerData.cnpj);
         } else {

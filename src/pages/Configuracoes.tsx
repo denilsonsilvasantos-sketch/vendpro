@@ -4,7 +4,7 @@ import { supabase } from '../integrations/supabaseClient';
 import { Settings, Building2, Phone, Mail, FileText, Save, Loader2, User, Shield, LogOut, Upload, Image as ImageIcon, Eye, EyeOff, Lock, AlertCircle } from 'lucide-react';
 import { validateCNPJ, formatCNPJ } from '../lib/validators';
 
-export default function Configuracoes({ companyId, user, role, onLogout }: { companyId: string | null, user: any, role: string | null, onLogout: () => void }) {
+export default function Configuracoes({ companyId, user, role, onLogout, onUpdateUser }: { companyId: string | null, user: any, role: string | null, onLogout: () => void, onUpdateUser?: (user: any) => void }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
@@ -105,18 +105,21 @@ export default function Configuracoes({ companyId, user, role, onLogout }: { com
       if (formData.logo_url) safeLS.set(`vendpro_company_logo_${companyId}`, formData.logo_url);
       if (formData.primary_color) { safeLS.set(`vendpro_company_color_${companyId}`, formData.primary_color); document.documentElement.style.setProperty('--vendpro-primary', formData.primary_color); }
       
-      const { error } = await supabase.from('companies').update({ 
+      const { data: updatedData, error } = await supabase.from('companies').update({ 
         nome: formData.nome, 
         cnpj: formData.cnpj.replace(/\D/g, ''), 
         email: formData.email, 
         senha: formData.senha, 
         logo_url: formData.logo_url, 
         primary_color: formData.primary_color 
-      }).eq('id', companyId);
+      }).eq('id', companyId).select('*').single();
       
       if (error) {
         alert('Erro: ' + error.message);
       } else {
+        if (onUpdateUser && updatedData) {
+          onUpdateUser({ ...user, ...updatedData });
+        }
         if (formData.senha) {
           const { error: authError } = await supabase.auth.updateUser({ password: formData.senha });
           if (authError) console.warn('Erro ao atualizar senha no Auth:', authError.message);
@@ -124,25 +127,35 @@ export default function Configuracoes({ companyId, user, role, onLogout }: { com
         alert('Configurações salvas!');
       }
     } else if (role === 'seller' && user?.id) {
-      const { error } = await supabase.from('sellers').update({ nome: formData.nome, whatsapp: formData.whatsapp, codigo_cliente: formData.codigo_cliente }).eq('id', user.id);
-      if (error) alert('Erro: ' + error.message); else alert('Dados atualizados!');
+      const { data: updatedData, error } = await supabase.from('sellers').update({ nome: formData.nome, whatsapp: formData.whatsapp, codigo_cliente: formData.codigo_cliente }).eq('id', user.id).select('*').single();
+      if (error) {
+        alert('Erro: ' + error.message);
+      } else {
+        if (onUpdateUser && updatedData) {
+          onUpdateUser({ ...user, ...updatedData });
+        }
+        alert('Dados atualizados!');
+      }
     } else if (role === 'customer' && user?.id) {
       if (formData.senha && formData.senha !== formData.confirmarSenha) {
         alert('As senhas não coincidem.');
         setSaving(false);
         return;
       }
-      const { error } = await supabase.from('customers').update({ 
+      const { data: updatedData, error } = await supabase.from('customers').update({ 
         nome: formData.nome, 
         nome_empresa: formData.nome_empresa,
         whatsapp: formData.whatsapp,
         telefone: formData.whatsapp,
         senha: formData.senha 
-      }).eq('id', user.id);
+      }).eq('id', user.id).select('*').single();
       
       if (error) {
         alert('Erro: ' + error.message);
       } else {
+        if (onUpdateUser && updatedData) {
+          onUpdateUser({ ...user, ...updatedData });
+        }
         if (formData.senha) {
           const { error: authError } = await supabase.auth.updateUser({ password: formData.senha });
           if (authError) console.warn('Erro ao atualizar senha no Auth:', authError.message);

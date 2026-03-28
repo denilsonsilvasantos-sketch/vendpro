@@ -65,6 +65,9 @@ CREATE TABLE IF NOT EXISTS products (
     imagem_pendente BOOLEAN DEFAULT FALSE,
     variacoes TEXT,
     qtd_variacoes INTEGER DEFAULT 0,
+    tipo_variacao TEXT,
+    variacoes_disponiveis JSONB DEFAULT '[]',
+    variacoes_flat JSONB DEFAULT '[]',
     created_at TIMESTAMPTZ DEFAULT now()
 );
 

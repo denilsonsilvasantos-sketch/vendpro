@@ -2526,6 +2526,8 @@ function CatalogScreen({
 function ProductCard({ product, onAdd, onEdit, role, onZoom, isInCart, ...props }: { product: Product, onAdd: (p: Product, q: number, v?: Record<string, string>) => void, onEdit: (p: Product) => void, role: UserRole, onZoom: (img: string) => void, isInCart?: boolean, [key: string]: any }) {
   const [qty, setQty] = useState(product.venda_somente_box ? 1 : (product.multiplo_venda || 1));
   const [selectedVariations, setSelectedVariations] = useState<Record<string, string>>({});
+  const [showVarieties, setShowVarieties] = useState(false);
+  const [varietiesQty, setVarietiesQty] = useState<Record<string, number>>({});
   const isEsgotado = product.status_estoque === 'esgotado';
 
   const handleAddQty = () => {
@@ -2544,9 +2546,31 @@ function ProductCard({ product, onAdd, onEdit, role, onZoom, isInCart, ...props 
   };
 
   const isSelectionComplete = () => {
+    if (product.tipo_variacao === 'variedades') return true;
     if (product.tipo_variacao !== 'escolha_livre') return true;
     if (!product.variacoes_disponiveis) return true;
     return product.variacoes_disponiveis.every(v => selectedVariations[v.nome]);
+  };
+
+  const handleVarietyQtyChange = (sku: string, value: number) => {
+    setVarietiesQty(prev => ({ ...prev, [sku]: Math.max(0, value) }));
+  };
+
+  const handleAddVarietiesToCart = () => {
+    let added = false;
+    (product.variacoes_flat || []).forEach(v => {
+      const q = varietiesQty[v.sku] || 0;
+      if (q > 0) {
+        onAdd(product, q, { "Variedade": v.nome, "SKU": v.sku });
+        added = true;
+      }
+    });
+    if (added) {
+      setShowVarieties(false);
+      setVarietiesQty({});
+    } else {
+      alert('Por favor, adicione a quantidade em pelo menos uma variedade.');
+    }
   };
 
   return (
@@ -2595,6 +2619,40 @@ function ProductCard({ product, onAdd, onEdit, role, onZoom, isInCart, ...props 
         </div>
       )}
 
+      {!isEsgotado && product.tipo_variacao === 'variedades' && showVarieties && product.variacoes_flat && (
+        <div className="mb-4 space-y-3 bg-slate-50 p-3 rounded-2xl border border-slate-100 shadow-inner max-h-48 overflow-y-auto">
+          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Selecione as Variedades</p>
+          {product.variacoes_flat.map(v => (
+            <div key={v.sku} className="flex items-center justify-between gap-2 py-1 border-b border-slate-200 last:border-0">
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] font-bold text-slate-700 truncate">{v.nome}</p>
+                <p className="text-[8px] text-slate-400 font-black uppercase tracking-widest">SKU: {v.sku}</p>
+              </div>
+              <div className="flex items-center bg-white rounded-lg border border-slate-200 p-0.5">
+                <button 
+                  onClick={() => handleVarietyQtyChange(v.sku, (varietiesQty[v.sku] || 0) - 1)}
+                  className="p-1 text-slate-400 hover:text-primary transition-colors"
+                >
+                  <Minus size={10} />
+                </button>
+                <input 
+                  type="number" 
+                  value={varietiesQty[v.sku] || 0}
+                  onChange={e => handleVarietyQtyChange(v.sku, parseInt(e.target.value) || 0)}
+                  className="w-8 text-center text-[10px] font-black bg-transparent outline-none"
+                />
+                <button 
+                  onClick={() => handleVarietyQtyChange(v.sku, (varietiesQty[v.sku] || 0) + 1)}
+                  className="p-1 text-slate-400 hover:text-primary transition-colors"
+                >
+                  <Plus size={10} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {(product.has_box_discount || product.venda_somente_box) && !isEsgotado && (
         <div className="mb-4 p-2.5 bg-rose-50 border border-rose-200 rounded-2xl text-center flex flex-col items-center justify-center">
           <span className="text-base font-black text-rose-700 tracking-tight">R$ {(product.preco_box || 0).toFixed(2)}</span>
@@ -2605,13 +2663,24 @@ function ProductCard({ product, onAdd, onEdit, role, onZoom, isInCart, ...props 
       )}
 
       <div className="mt-auto flex flex-col items-center gap-3">
-        <div className="flex items-center bg-slate-50 rounded-[20px] p-1.5 w-full justify-between shadow-inner border border-slate-100">
-          <button onClick={handleSubQty} disabled={isEsgotado} className="p-2 text-slate-400 hover:bg-white hover:text-primary rounded-xl disabled:opacity-50 transition-all shadow-sm"><Minus size={14}/></button>
-          <span className="text-xs font-black text-slate-700">{qty}</span>
-          <button onClick={handleAddQty} disabled={isEsgotado} className="p-2 text-slate-400 hover:bg-white hover:text-primary rounded-xl disabled:opacity-50 transition-all shadow-sm"><Plus size={14}/></button>
-        </div>
+        {product.tipo_variacao !== 'variedades' && (
+          <div className="flex items-center bg-slate-50 rounded-[20px] p-1.5 w-full justify-between shadow-inner border border-slate-100">
+            <button onClick={handleSubQty} disabled={isEsgotado} className="p-2 text-slate-400 hover:bg-white hover:text-primary rounded-xl disabled:opacity-50 transition-all shadow-sm"><Minus size={14}/></button>
+            <span className="text-xs font-black text-slate-700">{qty}</span>
+            <button onClick={handleAddQty} disabled={isEsgotado} className="p-2 text-slate-400 hover:bg-white hover:text-primary rounded-xl disabled:opacity-50 transition-all shadow-sm"><Plus size={14}/></button>
+          </div>
+        )}
+        
         <button 
           onClick={() => {
+            if (product.tipo_variacao === 'variedades') {
+              if (!showVarieties) {
+                setShowVarieties(true);
+              } else {
+                handleAddVarietiesToCart();
+              }
+              return;
+            }
             if (!isSelectionComplete()) {
               alert('Por favor, selecione todas as variações.');
               return;
@@ -2623,7 +2692,7 @@ function ProductCard({ product, onAdd, onEdit, role, onZoom, isInCart, ...props 
           style={{ background: 'linear-gradient(135deg, #C21863, #E8257A)' }}
         >
           <ShoppingCart size={14} className="inline-block mr-2" />
-          Adicionar
+          {product.tipo_variacao === 'variedades' && !showVarieties ? 'Escolher Variedades' : 'Adicionar'}
         </button>
       </div>
     </Card>

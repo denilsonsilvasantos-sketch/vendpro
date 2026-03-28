@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../integrations/supabaseClient';
 import { Product, Brand, Category } from '../types';
-import { X, Upload, Loader2, Image as ImageIcon, Link as LinkIcon, Check, Wand2, Package, ChevronDown, Trash2, AlertCircle } from 'lucide-react';
+import { X, Upload, Loader2, Image as ImageIcon, Link as LinkIcon, Check, Wand2, Package, ChevronDown, Trash2, AlertCircle, Plus } from 'lucide-react';
 import { removeImageBackground } from '../services/aiService';
 
 export default function ProductFormModal({ onClose, onSave, product, companyId }: { onClose: () => void, onSave: () => void, product?: Product, companyId: string | null }) {
@@ -365,6 +365,19 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
                   <span className="text-[11px] font-black text-slate-600 uppercase tracking-widest">Vender em Múltiplos</span>
                 </label>
 
+                <label className="flex items-center gap-3 cursor-pointer group">
+                  <div className={`w-6 h-6 rounded-[6px] border-2 flex items-center justify-center transition-all ${formData.tipo_variacao === 'variedades' ? 'bg-primary border-primary shadow-lg shadow-primary/20' : 'border-slate-200 group-hover:border-primary/50'}`}>
+                    {formData.tipo_variacao === 'variedades' && <Check size={14} strokeWidth={4} className="text-white" />}
+                  </div>
+                  <input 
+                    type="checkbox" 
+                    className="hidden" 
+                    checked={formData.tipo_variacao === 'variedades'} 
+                    onChange={e => setFormData({...formData, tipo_variacao: e.target.checked ? 'variedades' : undefined})} 
+                  />
+                  <span className="text-[11px] font-black text-slate-600 uppercase tracking-widest">Variedades</span>
+                </label>
+
                 {formData.multiplo_venda && formData.multiplo_venda > 1 && (
                   <div className="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-[6px] border border-slate-100 shadow-inner">
                     <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Múltiplo de:</span>
@@ -375,6 +388,71 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
                       onChange={e => setFormData({...formData, multiplo_venda: parseInt(e.target.value) || 2})} 
                       min="2"
                     />
+                  </div>
+                )}
+
+                {formData.tipo_variacao === 'variedades' && (
+                  <div className="space-y-4 bg-slate-50 p-4 rounded-xl border border-slate-100 shadow-inner">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Lista de Variedades</p>
+                      <button 
+                        type="button" 
+                        onClick={() => {
+                          const current = formData.variacoes_flat || [];
+                          setFormData({
+                            ...formData, 
+                            variacoes_flat: [...current, { sku: '', nome: '' }]
+                          });
+                        }}
+                        className="text-[9px] font-black text-primary uppercase tracking-widest flex items-center gap-1 hover:underline"
+                      >
+                        <Plus size={10} /> Adicionar
+                      </button>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      {(formData.variacoes_flat || []).map((v, idx) => (
+                        <div key={idx} className="flex gap-3 items-start">
+                          <div className="flex-1 space-y-1">
+                            <input 
+                              placeholder="SKU" 
+                              className="w-full p-2 bg-white border border-slate-200 rounded-md text-[10px] font-black uppercase tracking-widest outline-none focus:border-primary/30"
+                              value={v.sku}
+                              onChange={e => {
+                                const newList = [...(formData.variacoes_flat || [])];
+                                newList[idx] = { ...newList[idx], sku: e.target.value };
+                                setFormData({ ...formData, variacoes_flat: newList });
+                              }}
+                            />
+                          </div>
+                          <div className="flex-[2] space-y-1">
+                            <input 
+                              placeholder="Cor/Tamanho/Diferencial" 
+                              className="w-full p-2 bg-white border border-slate-200 rounded-md text-[10px] font-bold outline-none focus:border-primary/30"
+                              value={v.nome}
+                              onChange={e => {
+                                const newList = [...(formData.variacoes_flat || [])];
+                                newList[idx] = { ...newList[idx], nome: e.target.value };
+                                setFormData({ ...formData, variacoes_flat: newList });
+                              }}
+                            />
+                          </div>
+                          <button 
+                            type="button"
+                            onClick={() => {
+                              const newList = (formData.variacoes_flat || []).filter((_, i) => i !== idx);
+                              setFormData({ ...formData, variacoes_flat: newList });
+                            }}
+                            className="p-2 text-slate-300 hover:text-rose-500 transition-colors"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      ))}
+                      {(formData.variacoes_flat || []).length === 0 && (
+                        <p className="text-[9px] text-slate-400 text-center py-2 italic">Nenhuma variedade adicionada.</p>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>

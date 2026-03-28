@@ -17,7 +17,7 @@ export async function registerCompany(companyData: any) {
       cnpj: cleanCnpj,
       responsavel: companyData.responsavel,
       telefone: companyData.telefone,
-      email: authEmail,
+      // email: authEmail, // Removido pois a coluna não existe na tabela companies
       senha: companyData.senha
     }])
     .select()
@@ -65,7 +65,7 @@ export async function loginCompany(identifier: string, senha?: string) {
   const { data: company, error } = await supabase
     .from("companies")
     .select("*")
-    .or(`cnpj.eq.${cleanIdentifier},email.eq.${identifier}`)
+    .eq("cnpj", cleanIdentifier)
     .eq("senha", senha)
     .maybeSingle();
 
@@ -75,16 +75,17 @@ export async function loginCompany(identifier: string, senha?: string) {
   }
 
   // 2. Supabase Auth Integration for RLS
-  if (company.email && company.senha) {
+  const authEmail = `${company.cnpj}@vendpro.com.br`;
+  if (authEmail && company.senha) {
     const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: company.email,
+      email: authEmail,
       password: company.senha,
     });
 
     if (signInError) {
       // If sign in fails, try to sign up (first time login)
       await supabase.auth.signUp({
-        email: company.email,
+        email: authEmail,
         password: company.senha,
         options: {
           data: {

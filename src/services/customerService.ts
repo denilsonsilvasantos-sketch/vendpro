@@ -186,29 +186,66 @@ export async function validateCustomerLogin(cnpj: string, password?: string) {
 }
 
 export async function createCustomer(companyId: string, customerData: any) {
-  if (!supabase) return null;
+  if (!supabase) return { data: null, error: 'Supabase não inicializado' };
   
   // Clean CNPJ
   const cleanCnpj = customerData.cnpj ? customerData.cnpj.replace(/\D/g, '') : '';
 
   // Auto-generate access code if not provided
-  const dataToSave = {
-    ...customerData,
-    cnpj: cleanCnpj,
-    company_id: companyId,
-    codigo_acesso: customerData.codigo_acesso || generateCustomerAccessCode(),
-    senha: customerData.senha || generateCustomerPassword()
-  };
+  let codigo_acesso = customerData.codigo_acesso;
+  let senha = customerData.senha || generateCustomerPassword();
+  let data = null;
+  let error = null;
+  let attempts = 0;
+  const maxAttempts = 5;
 
-  const { data, error } = await supabase
-    .from("customers")
-    .insert([dataToSave])
-    .select('*')
-    .single();
+  while (attempts < maxAttempts) {
+    attempts++;
+    const currentCode = codigo_acesso || generateCustomerAccessCode();
+    
+    // Explicitly pick fields to avoid passing extra fields like 'confirmarSenha'
+    const dataToSave = {
+      nome: customerData.nome,
+      nome_empresa: customerData.nome_empresa,
+      cnpj: cleanCnpj,
+      whatsapp: customerData.whatsapp,
+      senha: senha,
+      seller_id: customerData.seller_id,
+      company_id: companyId,
+      codigo_acesso: currentCode,
+      ativo: true,
+      vendedor_marcas_bloqueadas: customerData.vendedor_marcas_bloqueadas || []
+    };
 
-  if (error) {
-    console.error("Erro detalhado do Supabase ao criar cliente:", error);
-    return { data: null, error: error.message };
+    console.log(`Tentativa ${attempts} de criar cliente no banco com código:`, currentCode);
+
+    const { data: insertData, error: insertError } = await supabase
+      .from("customers")
+      .insert([dataToSave])
+      .select('*')
+      .single();
+
+    if (!insertError) {
+      data = insertData;
+      codigo_acesso = currentCode;
+      break;
+    }
+
+    // Se o erro for de unicidade no código de acesso, tentamos novamente com outro código
+    if (insertError.code === '23505' && (insertError.message.includes('codigo_acesso') || insertError.details?.includes('codigo_acesso'))) {
+      console.warn(`Colisão de código de acesso (${currentCode}), tentando novamente...`);
+      codigo_acesso = null; // Força gerar um novo
+      error = insertError;
+      continue;
+    }
+
+    // Outros erros, paramos por aqui
+    console.error("Erro fatal ao criar cliente no banco de dados:", insertError);
+    return { data: null, error: insertError.message || "Erro ao inserir no banco de dados" };
+  }
+
+  if (!data) {
+    return { data: null, error: error?.message || "Não foi possível gerar um código de acesso único após várias tentativas." };
   }
 
   // Create Supabase Auth account immediately for RLS support
@@ -217,6 +254,7 @@ export async function createCustomer(companyId: string, customerData: any) {
     const authPassword = data.senha;
 
     try {
+      console.log("Criando credenciais Auth para cliente:", email);
       const { error: signUpError } = await supabase.auth.signUp({
         email,
         password: authPassword,
@@ -240,9 +278,21 @@ export async function createCustomer(companyId: string, customerData: any) {
             warning: "Cadastro realizado, mas as credenciais de segurança demorarão alguns minutos para ativar devido ao limite de tentativas. Tente fazer login em instantes." 
           };
         }
+        
+        // For other Auth errors, we still return the data but with a warning
+        return {
+          data,
+          error: null,
+          warning: `Cadastro realizado, mas houve um erro ao configurar o acesso: ${signUpError.message}. Tente fazer login mais tarde.`
+        };
       }
-    } catch (authErr) {
+    } catch (authErr: any) {
       console.error("Erro inesperado no Auth durante cadastro:", authErr);
+      return {
+        data,
+        error: null,
+        warning: "Cadastro realizado, mas houve um erro técnico ao configurar o acesso. Por favor, tente fazer login em instantes."
+      };
     }
   }
 

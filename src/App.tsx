@@ -1403,6 +1403,13 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
           setView('customer-login');
           setCustomerLoginCnpj(customerData.cnpj);
         } else {
+          // Validate required IDs
+          if (!sellerInfo.id || !sellerInfo.company_id) {
+            console.error("Informações do vendedor incompletas:", sellerInfo);
+            alert("Erro: Informações do vendedor estão incompletas. Por favor, recarregue a página.");
+            return;
+          }
+
           // Create new customer using the service to generate credentials
           const result = await createCustomer(sellerInfo.company_id, {
             nome: customerData.nome,
@@ -1411,29 +1418,42 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
             whatsapp: customerData.whatsapp,
             senha: customerData.senha,
             seller_id: sellerInfo.id,
-            ativo: true
+            ativo: true,
+            vendedor_marcas_bloqueadas: sellerInfo.marcas_bloqueadas || []
           });
 
           if (result && result.data) {
             if (result.warning) {
               alert(result.warning);
             }
+            
+            // Se availableCompanies estiver vazio, tenta construir a partir do sellerInfo
+            let companiesToUse = availableCompanies;
+            if (companiesToUse.length === 0 && sellerInfo.companies) {
+              companiesToUse = [sellerInfo.companies];
+            } else if (companiesToUse.length === 0 && sellerInfo.company_id) {
+              // Fallback: se não tiver o objeto da empresa, cria um básico
+              companiesToUse = [{ id: sellerInfo.company_id, nome: 'Empresa do Vendedor' }];
+            }
+
+            console.log("Login automático após cadastro com empresas:", companiesToUse);
+
             onLogin('customer', { 
               ...result.data, 
               sellerCode,
               vendedor_nome: sellerInfo.nome,
               vendedor_whatsapp: sellerInfo.whatsapp,
               vendedor_marcas_bloqueadas: sellerInfo.marcas_bloqueadas || [],
-            }, availableCompanies);
+            }, companiesToUse);
           } else {
             const errorMsg = result?.error || 'Erro desconhecido';
-            console.error("Erro no cadastro:", errorMsg);
-            alert(`Erro ao criar cadastro: ${errorMsg}`);
+            console.error("Erro no cadastro (result.error):", errorMsg);
+            alert(`Erro ao criar cadastro: ${typeof errorMsg === 'object' ? JSON.stringify(errorMsg) : errorMsg}`);
           }
         }
-      } catch (err) {
-        console.error("Erro no cadastro:", err);
-        alert("Erro ao realizar cadastro.");
+      } catch (err: any) {
+        console.error("Erro no cadastro (catch):", err);
+        alert(`Erro ao realizar cadastro: ${err.message || 'Erro desconhecido'}`);
       }
     } else {
       // Fallback if no supabase (shouldn't happen)

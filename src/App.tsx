@@ -1384,6 +1384,9 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
           });
 
           if (result && result.data) {
+            if (result.warning) {
+              alert(result.warning);
+            }
             onLogin('customer', { 
               ...result.data, 
               sellerCode,
@@ -1392,7 +1395,9 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
               vendedor_marcas_bloqueadas: sellerInfo.marcas_bloqueadas || [],
             }, availableCompanies);
           } else {
-            alert(`Erro ao criar cadastro: ${result?.error || 'Erro desconhecido'}`);
+            const errorMsg = result?.error || 'Erro desconhecido';
+            console.error("Erro no cadastro:", errorMsg);
+            alert(`Erro ao criar cadastro: ${errorMsg}`);
           }
         }
       } catch (err) {

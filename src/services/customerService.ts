@@ -46,24 +46,36 @@ export async function validateCustomerCode(code: string, password?: string) {
   const email = `${data.codigo_acesso.toLowerCase()}@vendpro.com`;
   const authPassword = data.senha;
 
-  const { error: signInError } = await supabase.auth.signInWithPassword({
-    email,
-    password: authPassword,
-  });
-
-  if (signInError) {
-    await supabase.auth.signUp({
+  try {
+    const { error: signInError } = await supabase.auth.signInWithPassword({
       email,
       password: authPassword,
-      options: {
-        data: {
-          role: 'customer',
-          company_id: data.company_id,
-          seller_id: data.seller_id,
-          customer_id: data.id
+    });
+
+    if (signInError) {
+      const { error: signUpError } = await supabase.auth.signUp({
+        email,
+        password: authPassword,
+        options: {
+          data: {
+            role: 'customer',
+            company_id: data.company_id,
+            seller_id: data.seller_id,
+            customer_id: data.id
+          }
+        }
+      });
+      
+      if (signUpError) {
+        console.error("Erro ao criar credenciais de segurança:", signUpError);
+        // If it's a rate limit, we still allow login to the app state but warn
+        if (signUpError.status === 429) {
+          console.warn("Limite de tentativas atingido no Supabase Auth. O acesso pode ser limitado.");
         }
       }
-    });
+    }
+  } catch (authErr) {
+    console.error("Erro no processo de autenticação:", authErr);
   }
 
   return { 
@@ -134,24 +146,35 @@ export async function validateCustomerLogin(cnpj: string, password?: string) {
   const email = `${(data.codigo_acesso || data.id).toLowerCase()}@vendpro.com`;
   const authPassword = data.senha || 'vendpro123';
 
-  const { error: signInError } = await supabase.auth.signInWithPassword({
-    email,
-    password: authPassword,
-  });
-
-  if (signInError) {
-    await supabase.auth.signUp({
+  try {
+    const { error: signInError } = await supabase.auth.signInWithPassword({
       email,
       password: authPassword,
-      options: {
-        data: {
-          role: 'customer',
-          company_id: data.company_id,
-          seller_id: data.seller_id,
-          customer_id: data.id
+    });
+
+    if (signInError) {
+      const { error: signUpError } = await supabase.auth.signUp({
+        email,
+        password: authPassword,
+        options: {
+          data: {
+            role: 'customer',
+            company_id: data.company_id,
+            seller_id: data.seller_id,
+            customer_id: data.id
+          }
+        }
+      });
+
+      if (signUpError) {
+        console.error("Erro ao criar credenciais de segurança no login:", signUpError);
+        if (signUpError.status === 429) {
+          console.warn("Limite de tentativas atingido no Supabase Auth. O acesso pode ser limitado.");
         }
       }
-    });
+    }
+  } catch (authErr) {
+    console.error("Erro no processo de autenticação no login:", authErr);
   }
 
   return { 
@@ -187,5 +210,41 @@ export async function createCustomer(companyId: string, customerData: any) {
     console.error("Erro detalhado do Supabase ao criar cliente:", error);
     return { data: null, error: error.message };
   }
+
+  // Create Supabase Auth account immediately for RLS support
+  if (data) {
+    const email = `${data.codigo_acesso.toLowerCase()}@vendpro.com`;
+    const authPassword = data.senha;
+
+    try {
+      const { error: signUpError } = await supabase.auth.signUp({
+        email,
+        password: authPassword,
+        options: {
+          data: {
+            role: 'customer',
+            company_id: data.company_id,
+            seller_id: data.seller_id,
+            customer_id: data.id
+          }
+        }
+      });
+
+      if (signUpError) {
+        console.error("Erro ao criar credenciais de segurança no cadastro:", signUpError);
+        // If rate limit (429), we don't fail the whole registration but warn
+        if (signUpError.status === 429) {
+          return { 
+            data, 
+            error: null, 
+            warning: "Cadastro realizado, mas as credenciais de segurança demorarão alguns minutos para ativar devido ao limite de tentativas. Tente fazer login em instantes." 
+          };
+        }
+      }
+    } catch (authErr) {
+      console.error("Erro inesperado no Auth durante cadastro:", authErr);
+    }
+  }
+
   return { data, error: null };
 }

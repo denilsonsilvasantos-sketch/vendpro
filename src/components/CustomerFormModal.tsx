@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../integrations/supabaseClient';
-import { Customer, Seller } from '../types';
-import { X, Save, Loader2, Phone, User, FileText, Lock, Building2 } from 'lucide-react';
+import { Customer, Seller, UserRole } from '../types';
+import { X, Save, Loader2, Phone, User, FileText, Lock, Building2, AlertCircle } from 'lucide-react';
 import { formatPhone } from '../lib/validators';
 
-export default function CustomerFormModal({ onClose, onSave, customer, companyId }: { onClose: () => void, onSave: () => void, customer?: Customer, companyId: string | null }) {
+export default function CustomerFormModal({ onClose, onSave, customer, companyId, role, user }: { onClose: () => void, onSave: () => void, customer?: Customer, companyId: string | null, role?: UserRole, user?: any }) {
   const [formData, setFormData] = useState<any>(customer || { 
     nome: '',
     nome_empresa: '',
@@ -12,9 +12,10 @@ export default function CustomerFormModal({ onClose, onSave, customer, companyId
     cnpj: '', 
     senha: '',
     ativo: true, 
-    seller_id: '' 
+    seller_id: role === 'seller' ? user?.id : '' 
   });
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [sellers, setSellers] = useState<Pick<Seller, 'id' | 'nome'>[]>([]);
 
   useEffect(() => {
@@ -31,6 +32,7 @@ export default function CustomerFormModal({ onClose, onSave, customer, companyId
     if (!supabase || !companyId) return;
     
     setLoading(true);
+    setError(null);
     try {
       const dataToSave = { 
         nome: formData.nome || '',
@@ -41,20 +43,27 @@ export default function CustomerFormModal({ onClose, onSave, customer, companyId
         ativo: formData.ativo ?? true,
         seller_id: formData.seller_id || null,
         company_id: companyId,
+        responsavel: formData.nome || '', // Preenche responsavel com o mesmo valor de nome
       };
 
       if (customer) {
-        const { error } = await supabase.from('customers').update(dataToSave).eq('id', customer.id);
-        if (error) throw error;
+        const { error: saveError } = await supabase.from('customers').update(dataToSave).eq('id', customer.id);
+        if (saveError) throw saveError;
       } else {
-        const { error } = await supabase.from('customers').insert([dataToSave]);
-        if (error) throw error;
+        const { error: saveError } = await supabase.from('customers').insert([dataToSave]);
+        if (saveError) {
+          if (saveError.message.includes('duplicate key value violates unique constraint "customers_cnpj_key"')) {
+            throw new Error('Este CNPJ já está cadastrado para outro cliente.');
+          }
+          throw saveError;
+        }
       }
 
       onSave();
       onClose();
     } catch (err: any) {
-      alert('Erro ao salvar: ' + err.message);
+      setError(err.message);
+      console.error('Erro ao salvar cliente:', err);
     } finally {
       setLoading(false);
     }
@@ -73,6 +82,12 @@ export default function CustomerFormModal({ onClose, onSave, customer, companyId
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {error && (
+            <div className="bg-rose-50 border border-rose-100 p-3 rounded-xl flex items-center gap-2 text-rose-600 text-xs font-bold">
+              <AlertCircle size={14} />
+              {error}
+            </div>
+          )}
           <div className="space-y-1">
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nome da Empresa / Razão Social</label>
             <div className="relative">

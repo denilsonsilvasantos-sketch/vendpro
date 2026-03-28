@@ -296,7 +296,14 @@ export default function Clientes({ companyId, role, user }: { companyId: string 
       </div>
 
       {isModalOpen && (
-        <CustomerFormModal onClose={() => setIsModalOpen(false)} onSave={() => { fetchCustomers(); setIsModalOpen(false); }} customer={editingCustomer} companyId={companyId} />
+        <CustomerFormModal 
+          onClose={() => setIsModalOpen(false)} 
+          onSave={() => { fetchCustomers(); setIsModalOpen(false); }} 
+          customer={editingCustomer} 
+          companyId={companyId} 
+          role={role}
+          user={user}
+        />
       )}
     </motion.div>
   );

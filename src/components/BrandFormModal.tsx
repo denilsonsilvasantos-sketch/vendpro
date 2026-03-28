@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { supabase } from '../integrations/supabaseClient';
 import { Brand } from '../types';
-import { X, Upload, Loader2, Image as ImageIcon, Wand2, Sparkles, Tag, DollarSign, Percent, Truck, CreditCard, Package } from 'lucide-react';
+import { X, Upload, Loader2, Image as ImageIcon, Wand2, Sparkles, Tag, DollarSign, Percent, Truck, CreditCard, Package, AlertCircle, AlertTriangle } from 'lucide-react';
 import { removeImageBackground } from '../services/aiService';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -15,6 +15,7 @@ export default function BrandFormModal({ onClose, onSave, brand, companyId }: { 
     stock_policy: ''
   });
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isRemovingBackground, setIsRemovingBackground] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -103,18 +104,60 @@ export default function BrandFormModal({ onClose, onSave, brand, companyId }: { 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!supabase) return;
+    if (!supabase) {
+      setError('Erro: Conexão com o banco de dados não disponível.');
+      setLoading(false);
+      return;
+    }
     if (!companyId) return;
     setLoading(true);
+    setError(null);
     
     const dataToSave = { ...formData, company_id: companyId };
     
     try {
-      let error;
+      let saveError;
+      
+      // Helper function to handle insertion/update with retry for missing columns
+      const performSave = async (data: any, isUpdate: boolean) => {
+        if (!supabase) throw new Error('Conexão não disponível');
+        let currentData = { ...data };
+        
+        while (true) {
+          const { error: opError } = isUpdate 
+            ? await supabase.from('brands').update(currentData).eq('id', brand!.id)
+            : await supabase.from('brands').insert([currentData]);
+            
+          if (!opError) return { error: null };
+          
+          const msg = opError.message.toLowerCase();
+          if (msg.includes('does not exist') || msg.includes('schema cache')) {
+            // Try to find the column name in the error message
+            const match = opError.message.match(/column "(.+)" of relation/i) || 
+                          opError.message.match(/column '(.+)' of/i) ||
+                          opError.message.match(/column "(.+)" does not exist/i) ||
+                          opError.message.match(/'(.+)' column of/i);
+            
+            if (match && match[1]) {
+              const col = match[1];
+              console.warn(`Coluna ${col} não encontrada, removendo e tentando novamente...`);
+              delete currentData[col];
+              continue; // Retry
+            }
+            
+            // Fallback for known columns if regex fails
+            if (msg.includes('order_index')) { delete currentData.order_index; continue; }
+            if (msg.includes('logo_url')) { delete currentData.logo_url; continue; }
+          }
+          
+          return { error: opError };
+        }
+      };
+
       if (brand) {
         const { id, created_at, ...updateData } = dataToSave as any;
-        const { error: updateError } = await supabase.from('brands').update(updateData).eq('id', brand.id);
-        error = updateError;
+        const { error: updateError } = await performSave(updateData, true);
+        saveError = updateError;
       } else {
         const { data: existingBrands } = await supabase.from('brands').select('order_index').eq('company_id', companyId);
         const nextIndex = existingBrands && existingBrands.length > 0 
@@ -122,38 +165,19 @@ export default function BrandFormModal({ onClose, onSave, brand, companyId }: { 
           : 0;
           
         const insertData: any = { ...dataToSave, order_index: nextIndex };
-        const { error: insertError } = await supabase.from('brands').insert([insertData]);
-        
-        if (insertError && insertError.message?.includes('order_index does not exist')) {
-          delete insertData.order_index;
-          const retry = await supabase.from('brands').insert([insertData]);
-          error = retry.error;
-        } else {
-          error = insertError;
-        }
+        const { error: insertError } = await performSave(insertData, false);
+        saveError = insertError;
       }
 
-      if (error) {
-        if (error.message.includes('column "logo_url" of relation "brands" does not exist')) {
-          const { logo_url, ...retryData } = dataToSave as any;
-          if (brand) {
-            const { id, created_at, ...updateData } = retryData;
-            const { error: retryError } = await supabase.from('brands').update(updateData).eq('id', brand.id);
-            error = retryError;
-          } else {
-            const { error: retryError } = await supabase.from('brands').insert([retryData]);
-            error = retryError;
-          }
-        } else {
-          console.error('Erro ao salvar marca:', error);
-        }
-      }
-
-      if (!error) {
+      if (saveError) {
+        setError(saveError.message);
+        console.error('Erro ao salvar marca:', saveError);
+      } else {
         onSave();
         onClose();
       }
     } catch (err: any) {
+      setError('Erro inesperado ao salvar os dados.');
       console.error('Erro inesperado:', err);
     } finally {
       setLoading(false);
@@ -186,6 +210,12 @@ export default function BrandFormModal({ onClose, onSave, brand, companyId }: { 
         </div>
         
         <form onSubmit={handleSubmit} className="space-y-10">
+          {error && (
+            <div className="bg-rose-50 border border-rose-100 p-4 rounded-2xl flex items-center gap-3 text-rose-600 text-xs font-bold">
+              <AlertTriangle size={16} />
+              {error}
+            </div>
+          )}
           <div className="flex flex-col items-center gap-6">
             <div 
               className="w-32 h-32 bg-slate-50 rounded-[40px] flex items-center justify-center border-2 border-dashed border-slate-200 cursor-pointer overflow-hidden group relative shadow-inner hover:border-primary/30 transition-all"

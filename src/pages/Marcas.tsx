@@ -55,7 +55,8 @@ export default function Marcas({ companyId }: { companyId: string | null }) {
       const nextIndex = brandCategories.length > 0 ? Math.max(...brandCategories.map(c => c.order_index || 0)) + 1 : 0;
       let insertData: any = { company_id: companyId, brand_id: brandId, nome, ativo: true, order_index: nextIndex };
       let { error } = await supabase.from('categories').insert([insertData]);
-      if (error && error.message?.includes('order_index does not exist')) {
+      if (error && (error.message?.includes('order_index does not exist') || 
+          error.message?.includes("Could not find the 'order_index' column of 'categories' in the schema cache"))) {
         delete insertData.order_index;
         const retry = await supabase.from('categories').insert([insertData]);
         error = retry.error;

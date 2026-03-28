@@ -1229,6 +1229,8 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
   const [availableCompanies, setAvailableCompanies] = useState<any[]>([]);
   const [createdCustomer, setCreatedCustomer] = useState<any>(null);
   const [copied, setCopied] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (supabase) {
@@ -1385,84 +1387,67 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
       return;
     }
 
-    if (supabase && sellerInfo) {
-      try {
-        const { createCustomer } = await import('./services/customerService');
-        
-        // Try to find existing customer by CNPJ globally
-        const { data: existingCustomers, error: searchError } = await supabase
-          .from('customers')
-          .select('*, sellers!customers_seller_id_fkey(*)')
-          .eq('cnpj', customerData.cnpj.replace(/\D/g, ''))
-          .maybeSingle();
+    setLoading(true);
+    setError(null);
+    if (!supabase) {
+      setError('Erro: Conexão com o banco de dados não disponível.');
+      setLoading(false);
+      return;
+    }
+    try {
+      const { createCustomer } = await import('./services/customerService');
+      
+      // Try to find existing customer by CNPJ globally
+      const { data: existingCustomers, error: searchError } = await supabase
+        .from('customers')
+        .select('*, sellers!customers_seller_id_fkey(*)')
+        .eq('cnpj', customerData.cnpj.replace(/\D/g, ''))
+        .maybeSingle();
 
-        if (searchError) throw searchError;
+      if (searchError) throw searchError;
 
-        if (existingCustomers) {
-          alert('Este CNPJ já está cadastrado no sistema. Por favor, faça login.');
-          setView('customer-login');
-          setCustomerLoginCnpj(customerData.cnpj);
-        } else {
-          // Validate required IDs
-          if (!sellerInfo.id || !sellerInfo.company_id) {
-            console.error("Informações do vendedor incompletas:", sellerInfo);
-            alert("Erro: Informações do vendedor estão incompletas. Por favor, recarregue a página.");
-            return;
-          }
-
-          // Create new customer using the service to generate credentials
-          const result = await createCustomer(sellerInfo.company_id, {
-            nome: customerData.nome,
-            nome_empresa: customerData.nome_empresa,
-            cnpj: customerData.cnpj,
-            whatsapp: customerData.whatsapp,
-            senha: customerData.senha,
-            seller_id: sellerInfo.id,
-            ativo: true,
-            vendedor_marcas_bloqueadas: sellerInfo.marcas_bloqueadas || []
-          });
-
-          if (result && result.data) {
-            if (result.warning) {
-              alert(result.warning);
-            }
-            
-            // Se availableCompanies estiver vazio, tenta construir a partir do sellerInfo
-            let companiesToUse = availableCompanies;
-            if (companiesToUse.length === 0 && sellerInfo.companies) {
-              companiesToUse = [sellerInfo.companies];
-            } else if (companiesToUse.length === 0 && sellerInfo.company_id) {
-              // Fallback: se não tiver o objeto da empresa, cria um básico
-              companiesToUse = [{ id: sellerInfo.company_id, nome: 'Empresa do Vendedor' }];
-            }
-
-            console.log("Login automático após cadastro com empresas:", companiesToUse);
-
-            onLogin('customer', { 
-              ...result.data, 
-              sellerCode,
-              vendedor_nome: sellerInfo.nome,
-              vendedor_whatsapp: sellerInfo.whatsapp,
-              vendedor_marcas_bloqueadas: sellerInfo.marcas_bloqueadas || [],
-            }, companiesToUse);
-          } else {
-            const errorMsg = result?.error || 'Erro desconhecido';
-            console.error("Erro no cadastro (result.error):", errorMsg);
-            alert(`Erro ao criar cadastro: ${typeof errorMsg === 'object' ? JSON.stringify(errorMsg) : errorMsg}`);
-          }
+      if (existingCustomers) {
+        setError('Este CNPJ já está cadastrado no sistema. Por favor, faça login.');
+        setView('customer-login');
+        setCustomerLoginCnpj(customerData.cnpj);
+      } else {
+        // Validate required IDs
+        if (!sellerInfo.id || !sellerInfo.company_id) {
+          console.error("Informações do vendedor incompletas:", sellerInfo);
+          setError("Erro: Informações do vendedor estão incompletas. Por favor, recarregue a página.");
+          return;
         }
-      } catch (err: any) {
-        console.error("Erro no cadastro (catch):", err);
-        alert(`Erro ao realizar cadastro: ${err.message || 'Erro desconhecido'}`);
+
+        // Create new customer using the service to generate credentials
+        const result = await createCustomer(sellerInfo.company_id, {
+          nome: customerData.nome,
+          nome_empresa: customerData.nome_empresa,
+          cnpj: customerData.cnpj,
+          whatsapp: customerData.whatsapp,
+          senha: customerData.senha,
+          seller_id: sellerInfo.id,
+          ativo: true,
+          vendedor_marcas_bloqueadas: sellerInfo.marcas_bloqueadas || [],
+          responsavel: customerData.nome || '', // Preenche responsavel com o mesmo valor de nome
+        });
+
+        if (result && result.data) {
+          if (result.warning) {
+            setError(result.warning);
+          }
+          
+          setCreatedCustomer(result.data);
+        } else {
+          const errorMsg = result?.error || 'Erro desconhecido';
+          console.error("Erro no cadastro (result.error):", errorMsg);
+          setError(`Erro ao criar cadastro: ${typeof errorMsg === 'object' ? JSON.stringify(errorMsg) : errorMsg}`);
+        }
       }
-    } else {
-      // Fallback if no supabase (shouldn't happen)
-      onLogin('customer', { 
-        ...customerData, 
-        sellerCode,
-        vendedor_nome: sellerInfo?.nome,
-        vendedor_whatsapp: sellerInfo?.whatsapp
-      }, availableCompanies);
+    } catch (err: any) {
+      console.error("Erro no cadastro (catch):", err);
+      setError(`Erro ao realizar cadastro: ${err.message || 'Erro desconhecido'}`);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -1561,6 +1546,12 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
 
         {/* Body */}
         <div className="bg-white rounded-b-2xl px-6 py-6 shadow-2xl shadow-slate-200/60">
+          {error && (
+            <div className="bg-rose-50 border border-rose-100 p-3 rounded-xl flex items-center gap-2 text-rose-600 text-[10px] font-bold mb-4">
+              <AlertCircle size={14} />
+              {error}
+            </div>
+          )}
 
         {createdCustomer && (
           <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-center space-y-6">
@@ -1960,9 +1951,11 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
             </div>
             <button 
               onClick={handleCustomerSubmit}
-              className="w-full py-5 bg-primary text-white rounded-full font-black uppercase tracking-widest text-xs mt-6 shadow-lg shadow-primary/20 hover:bg-primary-dark transition-all"
+              disabled={loading}
+              className="w-full py-5 bg-primary text-white rounded-full font-black uppercase tracking-widest text-xs mt-6 shadow-lg shadow-primary/20 hover:bg-primary-dark transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              Cadastrar e Acessar
+              {loading && <Loader2 size={16} className="animate-spin" />}
+              {loading ? 'Cadastrando...' : 'Cadastrar e Acessar'}
             </button>
             <button onClick={() => setView('seller-code')} className="w-full text-center text-[10px] font-black text-slate-400 uppercase tracking-widest mt-4 hover:text-primary transition-colors">Voltar</button>
           </div>

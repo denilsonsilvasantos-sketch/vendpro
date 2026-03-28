@@ -214,7 +214,8 @@ export async function createCustomer(companyId: string, customerData: any) {
       company_id: companyId,
       codigo_acesso: currentCode,
       ativo: true,
-      vendedor_marcas_bloqueadas: customerData.vendedor_marcas_bloqueadas || []
+      vendedor_marcas_bloqueadas: customerData.vendedor_marcas_bloqueadas || [],
+      responsavel: customerData.nome || '', // Preenche responsavel com o mesmo valor de nome
     };
 
     console.log(`Tentativa ${attempts} de criar cliente no banco com código:`, currentCode);

@@ -437,6 +437,20 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
                               }}
                             />
                           </div>
+                          <div className="flex flex-col items-center gap-1">
+                            <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Esgotado</label>
+                            <button 
+                              type="button"
+                              onClick={() => {
+                                const newList = [...(formData.variacoes_flat || [])];
+                                newList[idx] = { ...newList[idx], esgotado: !v.esgotado };
+                                setFormData({ ...formData, variacoes_flat: newList });
+                              }}
+                              className={`w-6 h-6 rounded border-2 flex items-center justify-center transition-all ${v.esgotado ? 'bg-rose-500 border-rose-500' : 'border-slate-200'}`}
+                            >
+                              {v.esgotado && <Check size={12} strokeWidth={4} className="text-white" />}
+                            </button>
+                          </div>
                           <button 
                             type="button"
                             onClick={() => {

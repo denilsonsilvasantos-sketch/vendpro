@@ -104,7 +104,7 @@ export interface Product {
     nome: string; // e.g., "Cor", "Tamanho"
     opcoes: string[]; // e.g., ["Azul", "Vermelho"], ["P", "M", "G"]
   }[];
-  variacoes_flat?: { sku: string; nome: string }[];
+  variacoes_flat?: { sku: string; nome: string; esgotado?: boolean }[];
 }
 
 export interface CartItem extends Product {

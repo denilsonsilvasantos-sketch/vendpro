@@ -2144,7 +2144,14 @@ function CatalogScreen({
     const nome = (p.nome || '').toLowerCase();
     const sku = (p.sku || '').toLowerCase();
     
-    const matchesSearch = searchTerms.every(term => nome.includes(term) || sku.includes(term));
+    // Check variety SKUs
+    const varietySkus = (p.variacoes_flat || []).map(v => (v.sku || '').toLowerCase());
+    
+    const matchesSearch = searchTerms.every(term => 
+      nome.includes(term) || 
+      sku.includes(term) || 
+      varietySkus.some(vSku => vSku.includes(term))
+    );
     const matchesCategory = selectedCategory ? p.category_id === selectedCategory : true;
     const matchesBrand = selectedBrand ? p.brand_id === selectedBrand : true;
     return matchesSearch && matchesCategory && matchesBrand;
@@ -2623,13 +2630,17 @@ function ProductCard({ product, onAdd, onEdit, role, onZoom, isInCart, ...props 
         <div className="mb-4 space-y-3 bg-slate-50 p-3 rounded-2xl border border-slate-100 shadow-inner max-h-48 overflow-y-auto">
           <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Selecione as Variedades</p>
           {product.variacoes_flat.map(v => (
-            <div key={v.sku} className="flex items-center justify-between gap-2 py-1 border-b border-slate-200 last:border-0">
+            <div key={v.sku} className={`flex items-center justify-between gap-2 py-1 border-b border-slate-200 last:border-0 ${v.esgotado ? 'opacity-50' : ''}`}>
               <div className="flex-1 min-w-0">
-                <p className="text-[10px] font-bold text-slate-700 truncate">{v.nome}</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-[10px] font-bold text-slate-700 truncate">{v.nome}</p>
+                  {v.esgotado && <span className="text-[8px] font-black text-rose-500 uppercase tracking-widest">Esgotado</span>}
+                </div>
                 <p className="text-[8px] text-slate-400 font-black uppercase tracking-widest">SKU: {v.sku}</p>
               </div>
-              <div className="flex items-center bg-white rounded-lg border border-slate-200 p-0.5">
+              <div className={`flex items-center bg-white rounded-lg border border-slate-200 p-0.5 ${v.esgotado ? 'pointer-events-none grayscale' : ''}`}>
                 <button 
+                  disabled={v.esgotado}
                   onClick={() => handleVarietyQtyChange(v.sku, (varietiesQty[v.sku] || 0) - 1)}
                   className="p-1 text-slate-400 hover:text-primary transition-colors"
                 >
@@ -2637,11 +2648,13 @@ function ProductCard({ product, onAdd, onEdit, role, onZoom, isInCart, ...props 
                 </button>
                 <input 
                   type="number" 
+                  disabled={v.esgotado}
                   value={varietiesQty[v.sku] || 0}
                   onChange={e => handleVarietyQtyChange(v.sku, parseInt(e.target.value) || 0)}
                   className="w-8 text-center text-[10px] font-black bg-transparent outline-none"
                 />
                 <button 
+                  disabled={v.esgotado}
                   onClick={() => handleVarietyQtyChange(v.sku, (varietiesQty[v.sku] || 0) + 1)}
                   className="p-1 text-slate-400 hover:text-primary transition-colors"
                 >

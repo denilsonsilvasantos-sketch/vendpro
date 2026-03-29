@@ -58,7 +58,7 @@ export async function extractProductsFromMedia(base64Data: string, mimeType: str
   - status_estoque: Tente identificar se está esgotado ou com poucas unidades. Use: "normal", "baixo", "ultimas" ou "esgotado".
   - tipo_variacao: 'grade' (múltiplos fixos), 'escolha_livre' (cliente escolhe cor/tamanho) ou 'variedades' (lista de SKUs diferentes para o mesmo produto).
   - variacoes_disponiveis: Se 'escolha_livre', array de objetos {nome: string, opcoes: string[]}.
-  - variacoes_flat: Se 'variedades', array de objetos {sku: string, nome: string}.
+  - variacoes_flat: Se 'variedades', array de objetos {sku: string, nome: string, esgotado: boolean}.
   ${categories ? `- category_name: Escolha a categoria mais adequada APENAS entre estas: [${categoriesList}]. Se não encontrar uma correspondência exata, deixe em branco.` : ''}
 
   IMPORTANTE: 

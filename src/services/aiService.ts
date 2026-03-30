@@ -185,6 +185,37 @@ export async function extractProductsFromMedia(base64Data: string, mimeType: str
   throw lastError;
 }
 
+export async function generateSalesScript(product: any): Promise<string> {
+  const prompt = `Você é um especialista em vendas B2B de cosméticos.
+  Crie um roteiro de vendas (script) persuasivo e curto para o WhatsApp para o seguinte produto:
+  
+  PRODUTO: ${product.nome}
+  SKU: ${product.sku}
+  PREÇO: R$ ${product.preco_unitario?.toFixed(2)}
+  ${product.has_box_discount ? `DESCONTO NO BOX: R$ ${product.preco_box?.toFixed(2)} (a partir de ${product.qtd_box} un)` : ''}
+  ${product.venda_somente_box ? `VENDA SOMENTE NO BOX: R$ ${product.preco_box?.toFixed(2)}` : ''}
+  
+  O roteiro deve:
+  1. Ter um gancho inicial atraente.
+  2. Destacar 2-3 benefícios principais.
+  3. Ter uma chamada para ação (CTA) clara.
+  4. Usar emojis de forma profissional.
+  5. Ser formatado para WhatsApp (negritos, quebras de linha).
+  
+  Responda APENAS com o texto do roteiro.`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: prompt,
+    });
+    return response.text?.trim() || "Não foi possível gerar o roteiro.";
+  } catch (error) {
+    console.error("Erro ao gerar roteiro de vendas:", error);
+    return "Erro ao gerar roteiro. Tente novamente.";
+  }
+}
+
 export async function querySalesInsights(
   question: string,
   salesData: { nome: string; sku: string; total_qtd: number; total_valor: number }[]

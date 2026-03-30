@@ -40,14 +40,15 @@ import {
   Bell,
   BellRing,
   Mic,
-  Camera
+  Camera,
+  Sparkles
 } from 'lucide-react';
 import { useCart } from './hooks/useCart';
 import { useNotifications } from './hooks/useNotifications';
 import { subscribeToPush, isPushSupported } from './services/pushService';
 import SalesAIChat from './components/SalesAIChat';
 import { Product, Category, Seller, Customer, UserRole, CartItem, Company, Brand, BannerData } from './types';
-import { searchProductByImage } from './services/aiService';
+import { searchProductByImage, generateSalesScript } from './services/aiService';
 import { validateCNPJ, validateCPFOrCNPJ, formatCPFOrCNPJ, formatCNPJ, formatPhone } from './lib/validators';
 import { Card } from './components/Card';
 import { Badge } from './components/Badge';
@@ -2530,6 +2531,100 @@ function CatalogScreen({
   );
 }
 
+function SalesScriptModal({ 
+  product, 
+  onClose 
+}: { 
+  product: Product, 
+  onClose: () => void 
+}) {
+  const [script, setScript] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    async function generate() {
+      try {
+        const res = await generateSalesScript(product);
+        setScript(res);
+      } catch (err) {
+        setScript('Erro ao gerar roteiro.');
+      } finally {
+        setLoading(false);
+      }
+    }
+    generate();
+  }, [product]);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(script);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="fixed inset-0 z-[160] flex items-center justify-center p-4">
+      <motion.div 
+        initial={{ opacity: 0 }} 
+        animate={{ opacity: 1 }} 
+        exit={{ opacity: 0 }} 
+        className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
+        onClick={onClose}
+      />
+      <motion.div 
+        initial={{ scale: 0.9, opacity: 0, y: 20 }} 
+        animate={{ scale: 1, opacity: 1, y: 0 }} 
+        exit={{ scale: 0.9, opacity: 0, y: 20 }} 
+        className="bg-white w-full max-w-md rounded-[40px] shadow-2xl relative z-10 overflow-hidden flex flex-col"
+      >
+        <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #C21863, #E8257A)' }}>
+              <Sparkles size={18} className="text-white" />
+            </div>
+            <div>
+              <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight">Roteiro de Vendas</h3>
+              <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Gerado por IA</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-slate-100 text-slate-400 hover:text-rose-500 transition-all">
+            <X size={16} strokeWidth={2.5} />
+          </button>
+        </div>
+
+        <div className="p-6">
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-12 gap-4">
+              <Loader2 className="animate-spin text-primary" size={32} />
+              <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Criando roteiro persuasivo...</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="bg-slate-50 rounded-3xl p-5 border border-slate-100 relative group">
+                <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-line font-medium">
+                  {script}
+                </p>
+              </div>
+              
+              <button 
+                onClick={handleCopy}
+                className={`w-full py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-xs transition-all flex items-center justify-center gap-3 ${copied ? 'bg-emerald-500 text-white' : 'bg-slate-900 text-white hover:bg-slate-800'}`}
+              >
+                {copied ? <Check size={16} /> : <Copy size={16} />}
+                {copied ? 'Copiado!' : 'Copiar Roteiro'}
+              </button>
+              
+              <p className="text-[9px] text-slate-400 text-center font-black uppercase tracking-widest">
+                Dica: Cole no WhatsApp do seu cliente para fechar a venda!
+              </p>
+            </div>
+          )}
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
 function VarietiesModal({ 
   product, 
   onClose, 
@@ -2629,6 +2724,7 @@ function ProductCard({ product, onAdd, onEdit, role, onZoom, isInCart, ...props 
   const [qty, setQty] = useState(product.venda_somente_box ? 1 : (product.multiplo_venda || 1));
   const [selectedVariations, setSelectedVariations] = useState<Record<string, string>>({});
   const [showVarieties, setShowVarieties] = useState(false);
+  const [showScript, setShowScript] = useState(false);
   const [varietiesQty, setVarietiesQty] = useState<Record<string, number>>({});
   const isEsgotado = product.status_estoque === 'esgotado';
 
@@ -2684,7 +2780,21 @@ function ProductCard({ product, onAdd, onEdit, role, onZoom, isInCart, ...props 
       )}
       <div className="relative aspect-square mb-4 rounded-[24px] overflow-hidden bg-slate-50 cursor-zoom-in group-hover:scale-[1.02] transition-transform duration-500 shadow-inner" onClick={() => onZoom(product.imagem || '')}>
         <img src={product.imagem || `https://picsum.photos/seed/${product.sku}/400/400`} className="w-full h-full object-contain p-2" alt={product.nome} referrerPolicy="no-referrer" />
-        <div className="absolute top-3 w-full flex flex-col gap-1 items-center">
+        
+        <div className="absolute top-3 right-3 flex flex-col gap-2">
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowScript(true);
+            }}
+            className="w-8 h-8 rounded-xl bg-white/90 backdrop-blur-sm border border-white flex items-center justify-center text-primary shadow-lg hover:scale-110 transition-all"
+            title="Gerar Roteiro de Vendas"
+          >
+            <Sparkles size={14} />
+          </button>
+        </div>
+
+        <div className="absolute top-3 w-full flex flex-col gap-1 items-center px-12">
           {isEsgotado && <span className="bg-slate-900 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-widest">ESGOTADO</span>}
           {!isEsgotado && product.is_last_units && <span className="bg-rose-500 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-widest">ÚLTIMAS UNIDADES</span>}
           {product.venda_somente_box && <span className="bg-amber-500 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-widest">SOMENTE NO BOX</span>}
@@ -2729,6 +2839,12 @@ function ProductCard({ product, onAdd, onEdit, role, onZoom, isInCart, ...props 
             onQtyChange={handleVarietyQtyChange}
             onClose={() => setShowVarieties(false)}
             onAdd={handleAddVarietiesToCart}
+          />
+        )}
+        {showScript && (
+          <SalesScriptModal 
+            product={product}
+            onClose={() => setShowScript(false)}
           />
         )}
       </AnimatePresence>

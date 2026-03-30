@@ -45,7 +45,10 @@ export default function Produtos({ companyId, onRefresh }: { companyId: string |
 
   const filteredProducts = products.filter(p => {
     const searchLower = searchTerm.trim().toLowerCase();
-    const matchesSearch = p.nome.toLowerCase().includes(searchLower) || p.sku.toLowerCase().includes(searchLower);
+    const varietySkus = (p.variacoes_flat || []).map(v => (v.sku || '').toLowerCase());
+    const matchesSearch = p.nome.toLowerCase().includes(searchLower) || 
+                         p.sku.toLowerCase().includes(searchLower) ||
+                         varietySkus.some(vSku => vSku.includes(searchLower));
     const matchesBrand = filterBrand ? p.brand_id === filterBrand : true;
     return matchesSearch && matchesBrand;
   }).sort((a, b) => {

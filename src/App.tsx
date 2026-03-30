@@ -2530,6 +2530,101 @@ function CatalogScreen({
   );
 }
 
+function VarietiesModal({ 
+  product, 
+  onClose, 
+  onAdd, 
+  varietiesQty, 
+  onQtyChange 
+}: { 
+  product: Product, 
+  onClose: () => void, 
+  onAdd: () => void,
+  varietiesQty: Record<string, number>,
+  onQtyChange: (sku: string, val: number) => void
+}) {
+  return (
+    <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
+      <motion.div 
+        initial={{ opacity: 0 }} 
+        animate={{ opacity: 1 }} 
+        exit={{ opacity: 0 }} 
+        className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
+        onClick={onClose}
+      />
+      <motion.div 
+        initial={{ scale: 0.9, opacity: 0, y: 20 }} 
+        animate={{ scale: 1, opacity: 1, y: 0 }} 
+        exit={{ scale: 0.9, opacity: 0, y: 20 }} 
+        className="bg-white w-full max-w-lg rounded-[40px] shadow-2xl relative z-10 overflow-hidden flex flex-col max-h-[90vh]"
+      >
+        <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl overflow-hidden bg-white border border-slate-100 shadow-sm shrink-0">
+              <img src={product.imagem || `https://picsum.photos/seed/${product.sku}/100/100`} className="w-full h-full object-contain p-1" alt={product.nome} />
+            </div>
+            <div className="min-w-0">
+              <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight line-clamp-1">{product.nome}</h3>
+              <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Escolha as variedades</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="w-10 h-10 flex items-center justify-center rounded-full bg-white border border-slate-100 text-slate-400 hover:text-rose-500 transition-all shadow-sm">
+            <X size={20} strokeWidth={2.5} />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          {product.variacoes_flat?.map(v => (
+            <div key={v.sku} className={`flex items-center justify-between gap-4 p-4 rounded-3xl border transition-all ${varietiesQty[v.sku] > 0 ? 'bg-primary/5 border-primary/20 shadow-sm' : 'bg-white border-slate-100'} ${v.esgotado ? 'opacity-50 grayscale' : ''}`}>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <p className="text-xs font-black text-slate-800 uppercase tracking-tight">{v.nome}</p>
+                  {v.esgotado && <span className="bg-rose-100 text-rose-600 text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">Esgotado</span>}
+                </div>
+                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">SKU: {v.sku}</p>
+              </div>
+              
+              <div className="flex items-center bg-white rounded-2xl border border-slate-200 p-1 shadow-sm">
+                <button 
+                  disabled={v.esgotado}
+                  onClick={() => onQtyChange(v.sku, (varietiesQty[v.sku] || 0) - 1)}
+                  className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-primary transition-colors rounded-xl hover:bg-slate-50"
+                >
+                  <Minus size={14} strokeWidth={2.5} />
+                </button>
+                <input 
+                  type="number" 
+                  disabled={v.esgotado}
+                  value={varietiesQty[v.sku] || 0}
+                  onChange={e => onQtyChange(v.sku, parseInt(e.target.value) || 0)}
+                  className="w-12 text-center text-sm font-black bg-transparent outline-none text-slate-800"
+                />
+                <button 
+                  disabled={v.esgotado}
+                  onClick={() => onQtyChange(v.sku, (varietiesQty[v.sku] || 0) + 1)}
+                  className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-primary transition-colors rounded-xl hover:bg-slate-50"
+                >
+                  <Plus size={14} strokeWidth={2.5} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="p-6 bg-slate-50 border-t border-slate-100">
+          <button 
+            onClick={onAdd}
+            className="w-full py-4 bg-primary text-white rounded-2xl font-black uppercase tracking-[0.2em] text-xs shadow-xl shadow-primary/20 hover:scale-[0.98] active:scale-95 transition-all flex items-center justify-center gap-3"
+          >
+            <ShoppingCart size={18} strokeWidth={2.5} />
+            Adicionar ao Carrinho
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
 function ProductCard({ product, onAdd, onEdit, role, onZoom, isInCart, ...props }: { product: Product, onAdd: (p: Product, q: number, v?: Record<string, string>) => void, onEdit: (p: Product) => void, role: UserRole, onZoom: (img: string) => void, isInCart?: boolean, [key: string]: any }) {
   const [qty, setQty] = useState(product.venda_somente_box ? 1 : (product.multiplo_venda || 1));
   const [selectedVariations, setSelectedVariations] = useState<Record<string, string>>({});
@@ -2626,45 +2721,17 @@ function ProductCard({ product, onAdd, onEdit, role, onZoom, isInCart, ...props 
         </div>
       )}
 
-      {!isEsgotado && product.tipo_variacao === 'variedades' && showVarieties && product.variacoes_flat && (
-        <div className="mb-4 space-y-3 bg-slate-50 p-3 rounded-2xl border border-slate-100 shadow-inner max-h-48 overflow-y-auto">
-          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Selecione as Variedades</p>
-          {product.variacoes_flat.map(v => (
-            <div key={v.sku} className={`flex items-center justify-between gap-2 py-1 border-b border-slate-200 last:border-0 ${v.esgotado ? 'opacity-50' : ''}`}>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <p className="text-[10px] font-bold text-slate-700 truncate">{v.nome}</p>
-                  {v.esgotado && <span className="text-[8px] font-black text-rose-500 uppercase tracking-widest">Esgotado</span>}
-                </div>
-                <p className="text-[8px] text-slate-400 font-black uppercase tracking-widest">SKU: {v.sku}</p>
-              </div>
-              <div className={`flex items-center bg-white rounded-lg border border-slate-200 p-0.5 ${v.esgotado ? 'pointer-events-none grayscale' : ''}`}>
-                <button 
-                  disabled={v.esgotado}
-                  onClick={() => handleVarietyQtyChange(v.sku, (varietiesQty[v.sku] || 0) - 1)}
-                  className="p-1 text-slate-400 hover:text-primary transition-colors"
-                >
-                  <Minus size={10} />
-                </button>
-                <input 
-                  type="number" 
-                  disabled={v.esgotado}
-                  value={varietiesQty[v.sku] || 0}
-                  onChange={e => handleVarietyQtyChange(v.sku, parseInt(e.target.value) || 0)}
-                  className="w-8 text-center text-[10px] font-black bg-transparent outline-none"
-                />
-                <button 
-                  disabled={v.esgotado}
-                  onClick={() => handleVarietyQtyChange(v.sku, (varietiesQty[v.sku] || 0) + 1)}
-                  className="p-1 text-slate-400 hover:text-primary transition-colors"
-                >
-                  <Plus size={10} />
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      <AnimatePresence>
+        {showVarieties && (
+          <VarietiesModal 
+            product={product}
+            varietiesQty={varietiesQty}
+            onQtyChange={handleVarietyQtyChange}
+            onClose={() => setShowVarieties(false)}
+            onAdd={handleAddVarietiesToCart}
+          />
+        )}
+      </AnimatePresence>
 
       {(product.has_box_discount || product.venda_somente_box) && !isEsgotado && (
         <div className="mb-4 p-2.5 bg-rose-50 border border-rose-200 rounded-2xl text-center flex flex-col items-center justify-center">
@@ -2687,11 +2754,7 @@ function ProductCard({ product, onAdd, onEdit, role, onZoom, isInCart, ...props 
         <button 
           onClick={() => {
             if (product.tipo_variacao === 'variedades') {
-              if (!showVarieties) {
-                setShowVarieties(true);
-              } else {
-                handleAddVarietiesToCart();
-              }
+              setShowVarieties(true);
               return;
             }
             if (!isSelectionComplete()) {
@@ -2705,7 +2768,7 @@ function ProductCard({ product, onAdd, onEdit, role, onZoom, isInCart, ...props 
           style={{ background: 'linear-gradient(135deg, #C21863, #E8257A)' }}
         >
           <ShoppingCart size={14} className="inline-block mr-2" />
-          {product.tipo_variacao === 'variedades' && !showVarieties ? 'Escolher Variedades' : 'Adicionar'}
+          {product.tipo_variacao === 'variedades' ? 'Escolher Variedades' : 'Adicionar'}
         </button>
       </div>
     </Card>

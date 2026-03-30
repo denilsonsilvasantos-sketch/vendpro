@@ -1,5 +1,4 @@
 import { useState, useEffect, lazy, Suspense, useRef } from 'react';
-import { createPortal } from 'react-dom';
 import { getProducts } from "./services/productService";
 import { validateSellerCode } from './services/sellerService';
 import { registerCompany, loginCompany, getCompanyById } from './services/companyService';
@@ -2677,103 +2676,103 @@ function ProductCard({ product, onAdd, onEdit, role, onZoom, isInCart, ...props 
   };
 
   return (
-    <Card className={`p-3 md:p-4 flex flex-col group hover:border-primary/20 transition-all duration-500 neumorphic-shadow hover:shadow-2xl hover:shadow-primary/5 hover:-translate-y-1 rounded-[32px] relative ${isEsgotado ? 'opacity-75 grayscale-[0.5]' : ''}`}>
-      {isInCart && (
-        <div className="absolute top-4 right-4 z-10 bg-emerald-500 text-white p-2 rounded-full shadow-lg shadow-emerald-500/20 animate-in zoom-in duration-300">
-          <CheckCircle2 size={16} />
-        </div>
-      )}
-      <div className="relative aspect-square mb-4 rounded-[24px] overflow-hidden bg-slate-50 cursor-zoom-in group-hover:scale-[1.02] transition-transform duration-500 shadow-inner" onClick={() => onZoom(product.imagem || '')}>
-        <img src={product.imagem || `https://picsum.photos/seed/${product.sku}/400/400`} className="w-full h-full object-contain p-2" alt={product.nome} referrerPolicy="no-referrer" />
-        <div className="absolute top-3 w-full flex flex-col gap-1 items-center">
-          {isEsgotado && <span className="bg-slate-900 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-widest">ESGOTADO</span>}
-          {!isEsgotado && product.is_last_units && <span className="bg-rose-500 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-widest">ÚLTIMAS UNIDADES</span>}
-          {product.venda_somente_box && <span className="bg-amber-500 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-widest">SOMENTE NO BOX</span>}
-        </div>
-      </div>
-      
-      <div className="text-center mb-4">
-        <h3 className="font-black text-slate-800 text-[11px] md:text-xs leading-tight mb-2 h-10 flex items-center justify-center overflow-hidden line-clamp-2 uppercase tracking-tight">{product.nome}</h3>
-        <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mb-3">SKU: {product.sku}</p>
-        
-        {!isEsgotado && (
-          <p className="text-lg md:text-xl font-black text-[#C21863] tracking-tight">R$ {(product.preco_unitario || 0).toFixed(2)}</p>
+    <>
+      <Card className={`p-3 md:p-4 flex flex-col group hover:border-primary/20 transition-all duration-500 neumorphic-shadow hover:shadow-2xl hover:shadow-primary/5 hover:-translate-y-1 rounded-[32px] relative ${isEsgotado ? 'opacity-75 grayscale-[0.5]' : ''}`}>
+        {isInCart && (
+          <div className="absolute top-4 right-4 z-10 bg-emerald-500 text-white p-2 rounded-full shadow-lg shadow-emerald-500/20 animate-in zoom-in duration-300">
+            <CheckCircle2 size={16} />
+          </div>
         )}
-      </div>
-
-      {!isEsgotado && product.tipo_variacao === 'escolha_livre' && product.variacoes_disponiveis && (
-        <div className="mb-4 space-y-3">
-          {product.variacoes_disponiveis.map(v => (
-            <div key={v.nome} className="space-y-1.5">
-              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{v.nome}</p>
-              <div className="flex flex-wrap gap-1.5">
-                {v.opcoes.map(opt => (
-                  <button
-                    key={opt}
-                    onClick={() => handleVariationChange(v.nome, opt)}
-                    className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${selectedVariations[v.nome] === opt ? 'bg-primary text-white border-primary shadow-md' : 'bg-white text-slate-500 border-slate-100 hover:border-primary/30'}`}
-                  >
-                    {opt}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ))}
+        <div className="relative aspect-square mb-4 rounded-[24px] overflow-hidden bg-slate-50 cursor-zoom-in group-hover:scale-[1.02] transition-transform duration-500 shadow-inner" onClick={() => onZoom(product.imagem || '')}>
+          <img src={product.imagem || `https://picsum.photos/seed/${product.sku}/400/400`} className="w-full h-full object-contain p-2" alt={product.nome} referrerPolicy="no-referrer" />
+          <div className="absolute top-3 w-full flex flex-col gap-1 items-center">
+            {isEsgotado && <span className="bg-slate-900 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-widest">ESGOTADO</span>}
+            {!isEsgotado && product.is_last_units && <span className="bg-rose-500 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-widest">ÚLTIMAS UNIDADES</span>}
+            {product.venda_somente_box && <span className="bg-amber-500 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-widest">SOMENTE NO BOX</span>}
+          </div>
         </div>
-      )}
+        
+        <div className="text-center mb-4">
+          <h3 className="font-black text-slate-800 text-[11px] md:text-xs leading-tight mb-2 h-10 flex items-center justify-center overflow-hidden line-clamp-2 uppercase tracking-tight">{product.nome}</h3>
+          <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mb-3">SKU: {product.sku}</p>
+          
+          {!isEsgotado && (
+            <p className="text-lg md:text-xl font-black text-[#C21863] tracking-tight">R$ {(product.preco_unitario || 0).toFixed(2)}</p>
+          )}
+        </div>
+
+        {!isEsgotado && product.tipo_variacao === 'escolha_livre' && product.variacoes_disponiveis && (
+          <div className="mb-4 space-y-3">
+            {product.variacoes_disponiveis.map(v => (
+              <div key={v.nome} className="space-y-1.5">
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{v.nome}</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {v.opcoes.map(opt => (
+                    <button
+                      key={opt}
+                      onClick={() => handleVariationChange(v.nome, opt)}
+                      className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${selectedVariations[v.nome] === opt ? 'bg-primary text-white border-primary shadow-md' : 'bg-white text-slate-500 border-slate-100 hover:border-primary/30'}`}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {(product.has_box_discount || product.venda_somente_box) && !isEsgotado && (
+          <div className="mb-4 p-2.5 bg-rose-50 border border-rose-200 rounded-2xl text-center flex flex-col items-center justify-center">
+            <span className="text-base font-black text-rose-700 tracking-tight">R$ {(product.preco_box || 0).toFixed(2)}</span>
+            <p className="text-[9px] uppercase font-black text-rose-600 tracking-widest mt-0.5">
+              {product.venda_somente_box ? 'SOMENTE NO BOX:' : 'A PARTIR DE:'} {product.qtd_box} UN
+            </p>
+          </div>
+        )}
+
+        <div className="mt-auto flex flex-col items-center gap-3">
+          {product.tipo_variacao !== 'variedades' && (
+            <div className="flex items-center bg-slate-50 rounded-[20px] p-1.5 w-full justify-between shadow-inner border border-slate-100">
+              <button onClick={handleSubQty} disabled={isEsgotado} className="p-2 text-slate-400 hover:bg-white hover:text-primary rounded-xl disabled:opacity-50 transition-all shadow-sm"><Minus size={14}/></button>
+              <span className="text-xs font-black text-slate-700">{qty}</span>
+              <button onClick={handleAddQty} disabled={isEsgotado} className="p-2 text-slate-400 hover:bg-white hover:text-primary rounded-xl disabled:opacity-50 transition-all shadow-sm"><Plus size={14}/></button>
+            </div>
+          )}
+          
+          <button 
+            onClick={() => {
+              if (product.tipo_variacao === 'variedades') {
+                setShowVarieties(true);
+                return;
+              }
+              if (!isSelectionComplete()) {
+                alert('Por favor, selecione todas as variações.');
+                return;
+              }
+              onAdd(product, qty, selectedVariations);
+            }} 
+            disabled={isEsgotado}
+            className="w-full py-4 text-white rounded-[20px] font-black uppercase tracking-widest text-[10px] shadow-lg hover:scale-[0.98] active:scale-95 disabled:opacity-50 transition-all"
+            style={{ background: 'linear-gradient(135deg, #C21863, #E8257A)' }}
+          >
+            <ShoppingCart size={14} className="inline-block mr-2" />
+            {product.tipo_variacao === 'variedades' ? 'Escolher Variedades' : 'Adicionar'}
+          </button>
+        </div>
+      </Card>
 
       <AnimatePresence>
-        {showVarieties && createPortal(
+        {showVarieties && (
           <VarietiesModal 
             product={product}
             varietiesQty={varietiesQty}
             onQtyChange={handleVarietyQtyChange}
             onClose={() => setShowVarieties(false)}
             onAdd={handleAddVarietiesToCart}
-          />,
-          document.body
+          />
         )}
       </AnimatePresence>
-
-      {(product.has_box_discount || product.venda_somente_box) && !isEsgotado && (
-        <div className="mb-4 p-2.5 bg-rose-50 border border-rose-200 rounded-2xl text-center flex flex-col items-center justify-center">
-          <span className="text-base font-black text-rose-700 tracking-tight">R$ {(product.preco_box || 0).toFixed(2)}</span>
-          <p className="text-[9px] uppercase font-black text-rose-600 tracking-widest mt-0.5">
-            {product.venda_somente_box ? 'SOMENTE NO BOX:' : 'A PARTIR DE:'} {product.qtd_box} UN
-          </p>
-        </div>
-      )}
-
-      <div className="mt-auto flex flex-col items-center gap-3">
-        {product.tipo_variacao !== 'variedades' && (
-          <div className="flex items-center bg-slate-50 rounded-[20px] p-1.5 w-full justify-between shadow-inner border border-slate-100">
-            <button onClick={handleSubQty} disabled={isEsgotado} className="p-2 text-slate-400 hover:bg-white hover:text-primary rounded-xl disabled:opacity-50 transition-all shadow-sm"><Minus size={14}/></button>
-            <span className="text-xs font-black text-slate-700">{qty}</span>
-            <button onClick={handleAddQty} disabled={isEsgotado} className="p-2 text-slate-400 hover:bg-white hover:text-primary rounded-xl disabled:opacity-50 transition-all shadow-sm"><Plus size={14}/></button>
-          </div>
-        )}
-        
-        <button 
-          onClick={(e) => {
-            e.stopPropagation();
-            if (product.tipo_variacao === 'variedades') {
-              setShowVarieties(true);
-              return;
-            }
-            if (!isSelectionComplete()) {
-              alert('Por favor, selecione todas as variações.');
-              return;
-            }
-            onAdd(product, qty, selectedVariations);
-          }} 
-          disabled={isEsgotado}
-          className="w-full py-4 text-white rounded-[20px] font-black uppercase tracking-widest text-[10px] shadow-lg hover:scale-[0.98] active:scale-95 disabled:opacity-50 transition-all"
-          style={{ background: 'linear-gradient(135deg, #C21863, #E8257A)' }}
-        >
-          <ShoppingCart size={14} className="inline-block mr-2" />
-          {product.tipo_variacao === 'variedades' ? 'Escolher Variedades' : 'Adicionar'}
-        </button>
-      </div>
-    </Card>
+    </>
   );
 }

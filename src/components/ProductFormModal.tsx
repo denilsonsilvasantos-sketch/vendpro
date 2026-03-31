@@ -154,9 +154,28 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
     }
     setLoading(true);
     
+    const skuToSave = formData.sku?.trim().toUpperCase();
+    
+    // Check for duplicate SKU within the same brand
+    if (skuToSave && formData.brand_id) {
+      const { data: existingSku } = await supabase
+        .from('products')
+        .select('id, nome')
+        .eq('company_id', companyId)
+        .eq('brand_id', formData.brand_id)
+        .eq('sku', skuToSave)
+        .maybeSingle();
+
+      if (existingSku && (!product || existingSku.id !== product.id)) {
+        alert(`Já existe um produto com este SKU (${skuToSave}) nesta marca: ${existingSku.nome}`);
+        setLoading(false);
+        return;
+      }
+    }
+
     const dataToSave = { 
       ...formData, 
-      sku: formData.sku?.trim().toUpperCase(),
+      sku: skuToSave,
       company_id: companyId,
       categoria_pendente: !formData.category_id,
       imagem_pendente: !formData.imagem

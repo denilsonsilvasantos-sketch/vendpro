@@ -280,7 +280,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
             let sku = extracted.sku ? String(extracted.sku).trim().toUpperCase() : '';
             if (!sku) { const h = extracted.nome ? extracted.nome.split('').reduce((a: number, b: string) => { a = ((a << 5) - a) + b.charCodeAt(0); return a & a; }, 0) : Math.random(); sku = `AUTO-${Math.abs(h).toString(36).toUpperCase()}`; }
             processedSkus.push(sku);
-            const { data: existing } = await supabase.from('products').select('id, nome, preco_unitario, imagem, sku').eq('company_id', companyId).ilike('sku', sku).maybeSingle();
+            const { data: existing } = await supabase.from('products').select('id, nome, preco_unitario, imagem, sku').eq('company_id', companyId).eq('brand_id', selectedBrandId).ilike('sku', sku).maybeSingle();
             let pendingStatus = 'none';
             const parsedPrecoUnitario = parseNumber(extracted.preco_unitario, 0);
             const parsedPrecoBox = parseNumber(extracted.preco_box, 0);

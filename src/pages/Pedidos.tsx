@@ -53,12 +53,17 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
         return;
       }
       setSearchingSku(true);
-      const { data } = await supabase
+      let query = supabase
         .from('products')
         .select('nome')
         .eq('company_id', companyId)
-        .eq('sku', newSku)
-        .maybeSingle();
+        .eq('sku', newSku);
+      
+      if (selectedOrder?.brand_id) {
+        query = query.eq('brand_id', selectedOrder.brand_id);
+      }
+
+      const { data } = await query.maybeSingle();
       
       if (data) {
         setFoundProductName(data.nome);
@@ -70,7 +75,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
 
     const timer = setTimeout(searchProduct, 600);
     return () => clearTimeout(timer);
-  }, [newSku, companyId]);
+  }, [newSku, companyId, selectedOrder?.brand_id]);
 
   async function fetchOrders() {
     if (!supabase || companyId === null) return;
@@ -231,12 +236,17 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
 
     try {
       // 1. Find product by SKU
-      const { data: product, error: productError } = await supabase
+      let query = supabase
         .from('products')
         .select('*')
         .eq('company_id', companyId)
-        .eq('sku', newSku)
-        .single();
+        .eq('sku', newSku);
+      
+      if (selectedOrder.brand_id) {
+        query = query.eq('brand_id', selectedOrder.brand_id);
+      }
+
+      const { data: product, error: productError } = await query.single();
 
       if (productError || !product) {
         alert('Produto não encontrado com este SKU.');

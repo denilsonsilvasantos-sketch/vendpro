@@ -67,7 +67,7 @@ const Marcas = lazy(() => import('./pages/Marcas'));
 const Upload = lazy(() => import('./pages/Upload'));
 const Vendedores = lazy(() => import('./pages/Vendedores'));
 const BannerManager = lazy(() => import('./pages/BannerManager'));
-const ProductFormModal = lazy(() => import('./components/ProductFormModal'));
+import ProductFormModal from './components/ProductFormModal';
 const Pendencias = lazy(() => import('./pages/Pendencias'));
 
 const PageLoader = () => (
@@ -1029,17 +1029,15 @@ export default function App() {
 
       <AnimatePresence>
         {editingProduct && (
-          <Suspense fallback={<PageLoader />}>
-            <ProductFormModal 
-              product={editingProduct.id === 'new' ? undefined : editingProduct} 
-              companyId={activeCompanyId}
-              onClose={() => setEditingProduct(null)} 
-              onSave={() => { 
-                setEditingProduct(null);
-                loadData();
-              }} 
-            />
-          </Suspense>
+          <ProductFormModal 
+            product={editingProduct.id === 'new' ? undefined : editingProduct} 
+            companyId={activeCompanyId}
+            onClose={() => setEditingProduct(null)} 
+            onSave={() => { 
+              setEditingProduct(null);
+              loadData();
+            }} 
+          />
         )}
       </AnimatePresence>
 

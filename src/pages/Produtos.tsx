@@ -253,14 +253,16 @@ export default function Produtos({ companyId, onRefresh }: { companyId: string |
         )}
       </AnimatePresence>
 
-      {isModalOpen && (
-        <ProductFormModal 
-          onClose={() => setIsModalOpen(false)} 
-          onSave={() => { fetchData(); setIsModalOpen(false); if (onRefresh) onRefresh(); }} 
-          product={editingProduct}
-          companyId={companyId}
-        />
-      )}
+      <AnimatePresence>
+        {isModalOpen && (
+          <ProductFormModal 
+            onClose={() => setIsModalOpen(false)} 
+            onSave={() => { fetchData(); setIsModalOpen(false); if (onRefresh) onRefresh(); }} 
+            product={editingProduct}
+            companyId={companyId}
+          />
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {zoomImage && (

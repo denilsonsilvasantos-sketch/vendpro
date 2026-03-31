@@ -4,6 +4,8 @@ import { Product, Brand, Category } from '../types';
 import { X, Upload, Loader2, Image as ImageIcon, Link as LinkIcon, Check, Wand2, Package, ChevronDown, Trash2, AlertCircle, Plus } from 'lucide-react';
 import { removeImageBackground } from '../services/aiService';
 
+import { motion, AnimatePresence } from 'motion/react';
+
 export default function ProductFormModal({ onClose, onSave, product, companyId }: { onClose: () => void, onSave: () => void, product?: Product, companyId: string | null }) {
   const [formData, setFormData] = useState<Partial<Product>>(product ? {
     ...product,
@@ -213,7 +215,11 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
 
       if (error) {
         console.error('Erro ao salvar produto:', error);
-        alert('Erro ao salvar produto: ' + error.message);
+        if (error.message.includes('unique_sku_per_brand') || error.message.includes('duplicate key value violates unique constraint')) {
+          alert('Erro de duplicidade: Já existe um produto com este SKU nesta marca. Se você está tentando usar o mesmo SKU em marcas diferentes, certifique-se de que a restrição de banco de dados correta foi aplicada.');
+        } else {
+          alert('Erro ao salvar produto: ' + error.message);
+        }
       } else {
         alert('Produto salvo com sucesso!');
         onSave();
@@ -229,7 +235,12 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
 
   return (
     <div className="fixed inset-0 bg-slate-900/40 flex items-center justify-center z-50 p-4 backdrop-blur-md">
-      <div className="bg-white p-6 md:p-10 rounded-[14px] w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl neumorphic-shadow border border-white/20">
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.9, y: 20 }}
+        className="bg-white p-6 md:p-10 rounded-[14px] w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl neumorphic-shadow border border-white/20"
+      >
         <div className="flex justify-between items-center mb-10">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-primary/10 rounded-[10px] flex items-center justify-center text-primary border border-primary/20 shadow-inner">
@@ -377,7 +388,7 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
                   </div>
                   <input 
                     type="checkbox" 
-                    className="hidden" 
+                    className="sr-only" 
                     checked={!!(formData.multiplo_venda && formData.multiplo_venda > 1)} 
                     onChange={e => setFormData({...formData, multiplo_venda: e.target.checked ? 2 : 1})} 
                   />
@@ -390,7 +401,7 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
                   </div>
                   <input 
                     type="checkbox" 
-                    className="hidden" 
+                    className="sr-only" 
                     checked={formData.tipo_variacao === 'variedades'} 
                     onChange={e => setFormData({...formData, tipo_variacao: e.target.checked ? 'variedades' : undefined})} 
                   />
@@ -562,21 +573,29 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
             </button>
           </div>
         </form>
-      </div>
+      </motion.div>
 
-      {zoomImage && (
-        <div 
-          className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/90 backdrop-blur-md cursor-zoom-out"
-          onClick={() => setZoomImage(null)}
-        >
-          <img 
-            src={zoomImage} 
-            className="max-w-full max-h-full rounded-2xl shadow-2xl object-contain"
-            alt="Zoom"
-            referrerPolicy="no-referrer"
-          />
-        </div>
-      )}
+      <AnimatePresence>
+        {zoomImage && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/90 backdrop-blur-md cursor-zoom-out"
+            onClick={() => setZoomImage(null)}
+          >
+            <motion.img 
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.9 }}
+              src={zoomImage} 
+              className="max-w-full max-h-full rounded-2xl shadow-2xl object-contain"
+              alt="Zoom"
+              referrerPolicy="no-referrer"
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

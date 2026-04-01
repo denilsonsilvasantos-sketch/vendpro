@@ -2109,10 +2109,8 @@ function CatalogScreen({
   };
   const [pendingBrandId, setPendingBrandId] = useState<string | null>(null);
   const [acknowledgedBrands, setAcknowledgedBrands] = useState<Set<string>>(() => {
-    try {
-      const saved = localStorage.getItem('vendpro_acknowledged_brands');
-      return saved ? new Set(JSON.parse(saved)) : new Set();
-    } catch { return new Set(); }
+    const saved = localStorage.getItem('vendpro_acknowledged_brands');
+    return saved ? new Set(JSON.parse(saved)) : new Set();
   });
 
   const currentBrand = brands.find(b => b.id === selectedBrand);
@@ -2121,7 +2119,7 @@ function CatalogScreen({
     if (selectedBrand && !acknowledgedBrands.has(selectedBrand) && role === 'customer') {
       setShowConditions(true);
     }
-  }, [selectedBrand, role]);
+  }, [selectedBrand, role, acknowledgedBrands]);
 
   const handleBrandChange = (brandId: string) => {
     if (brandId === selectedBrand) return;
@@ -2152,11 +2150,9 @@ function CatalogScreen({
 
   const handleAcknowledgeConditions = () => {
     if (selectedBrand) {
-      setAcknowledgedBrands(prev => {
-        const next = new Set([...prev, selectedBrand]);
-        try { localStorage.setItem('vendpro_acknowledged_brands', JSON.stringify([...next])); } catch {}
-        return next;
-      });
+      const newSet = new Set([...acknowledgedBrands, selectedBrand]);
+      setAcknowledgedBrands(newSet);
+      localStorage.setItem('vendpro_acknowledged_brands', JSON.stringify([...newSet]));
     }
     setShowConditions(false);
   };
@@ -2407,15 +2403,15 @@ function CatalogScreen({
 
         {/* Category Bar */}
         <div className="flex items-center gap-4 mb-12 overflow-x-auto pb-4 custom-scrollbar">
-          {brands.map(brand => (
-            <button 
-              key={brand.id}
-              onClick={() => handleBrandChange(brand.id)}
-              className={`px-8 py-3 rounded-full text-xs font-black uppercase tracking-widest whitespace-nowrap transition-all ${selectedBrand === brand.id ? 'pink-gradient text-white shadow-lg shadow-primary/20' : 'bg-white text-slate-500 hover:bg-slate-50 shadow-sm rounded-full'}`}
-            >
-              {brand.name}
-            </button>
-          ))}
+              {brands.map(brand => (
+                <button 
+                  key={brand.id}
+                  onClick={() => handleBrandChange(brand.id)}
+                  className={`px-8 py-3 rounded-full text-xs font-black uppercase tracking-widest whitespace-nowrap transition-all ${selectedBrand === brand.id ? 'pink-gradient text-white shadow-lg shadow-primary/20' : 'bg-white text-slate-900 hover:bg-slate-50 shadow-sm rounded-full border border-slate-100'}`}
+                >
+                  {brand.name}
+                </button>
+              ))}
         </div>
 
         <div className="flex flex-col lg:flex-row gap-12">
@@ -2426,7 +2422,7 @@ function CatalogScreen({
               <div className="space-y-2">
                 <button 
                   onClick={() => setSelectedCategory(null)}
-                  className={`w-full text-left px-5 py-3 rounded-[20px] text-xs font-black uppercase tracking-widest transition-all ${!selectedCategory ? 'bg-primary/10 text-primary' : 'text-slate-500 hover:bg-slate-50'}`}
+                  className={`w-full text-left px-5 py-3 rounded-[20px] text-xs font-black uppercase tracking-widest transition-all ${!selectedCategory ? 'bg-primary/10 text-primary' : 'text-slate-900 hover:bg-slate-50'}`}
                 >
                   Todas
                 </button>
@@ -2434,7 +2430,7 @@ function CatalogScreen({
                   <button 
                     key={cat.id}
                     onClick={() => setSelectedCategory(cat.id)}
-                    className={`w-full text-left px-5 py-3 rounded-[20px] text-xs font-black uppercase tracking-widest transition-all ${selectedCategory === cat.id ? 'bg-primary/10 text-primary' : 'text-slate-500 hover:bg-slate-50'}`}
+                    className={`w-full text-left px-5 py-3 rounded-[20px] text-xs font-black uppercase tracking-widest transition-all ${selectedCategory === cat.id ? 'bg-primary/10 text-primary' : 'text-slate-900 hover:bg-slate-50'}`}
                   >
                     {cat.nome}
                   </button>
@@ -2469,7 +2465,7 @@ function CatalogScreen({
                 {currentBrand && (
                   <button
                     onClick={() => setShowConditions(true)}
-                    className="text-[10px] font-black text-primary/70 hover:text-primary uppercase tracking-[0.15em] flex items-center gap-1 transition-colors border-b border-primary/30 hover:border-primary pb-px"
+                    className="text-[10px] font-black text-primary hover:text-primary/80 uppercase tracking-[0.15em] flex items-center gap-1 transition-colors border-b border-primary/50 hover:border-primary pb-px"
                   >
                     <FileText size={10} strokeWidth={2.5} />
                     Ver Condições
@@ -2523,9 +2519,9 @@ function CatalogScreen({
                 <button 
                   disabled={currentPage === 1}
                   onClick={() => setCurrentPage(prev => prev - 1)}
-                  className="p-3 bg-white rounded-xl text-slate-400 hover:text-primary disabled:opacity-30 transition-all"
+                  className="p-3 bg-white rounded-xl text-slate-400 hover:text-primary disabled:opacity-30 transition-all border border-slate-100 shadow-sm"
                 >
-                  <ChevronLeft size={20} />
+                  <ChevronLeft size={24} strokeWidth={2.5} />
                 </button>
                 
                 <div className="flex items-center gap-2">
@@ -2568,9 +2564,9 @@ function CatalogScreen({
                 <button 
                   disabled={currentPage === totalPages}
                   onClick={() => setCurrentPage(prev => prev + 1)}
-                  className="p-3 bg-white rounded-xl text-slate-400 hover:text-primary disabled:opacity-30 transition-all"
+                  className="p-3 bg-white rounded-xl text-slate-400 hover:text-primary disabled:opacity-30 transition-all border border-slate-100 shadow-sm"
                 >
-                  <ChevronRight size={20} />
+                  <ChevronRight size={24} strokeWidth={2.5} />
                 </button>
               </div>
             )}
@@ -2636,7 +2632,7 @@ function VarietiesModal({
                     }}
                     className="absolute left-0 top-1/2 -translate-y-1/2 bg-slate-900/70 hover:bg-slate-900/90 text-white p-1.5 rounded-r transition-all z-10 shadow-lg"
                   >
-                    <ChevronLeft size={20} strokeWidth={3} />
+                    <ChevronLeft size={24} strokeWidth={2.5} />
                   </button>
                   <button 
                     onClick={(e) => {
@@ -2645,7 +2641,7 @@ function VarietiesModal({
                     }}
                     className="absolute right-0 top-1/2 -translate-y-1/2 bg-slate-900/70 hover:bg-slate-900/90 text-white p-1.5 rounded-l transition-all z-10 shadow-lg"
                   >
-                    <ChevronRight size={20} strokeWidth={3} />
+                    <ChevronRight size={24} strokeWidth={2.5} />
                   </button>
                 </>
               )}
@@ -2819,7 +2815,7 @@ const ProductCard = memo(({ product, onAdd, onEdit, role, onZoom, isInCart, ...p
         </div>
         
         <div className="text-center mb-4">
-          <h3 className="font-black text-slate-800 text-[11px] md:text-xs leading-tight mb-2 h-10 flex items-center justify-center overflow-hidden line-clamp-2 uppercase tracking-tight">{product.nome}</h3>
+          <h3 className="font-black text-slate-800 text-[11px] md:text-xs leading-tight mb-2 min-h-[2.5rem] flex items-center justify-center uppercase tracking-tight">{product.nome}</h3>
           <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mb-3">SKU: {product.sku}</p>
           
           {!isEsgotado && (

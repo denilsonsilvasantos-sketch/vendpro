@@ -33,6 +33,8 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
   const [showFilters, setShowFilters] = useState(false);
 
   const [deletingItem, setDeletingItem] = useState<string | null>(null);
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [tempQuantity, setTempQuantity] = useState<number>(0);
   const [editingPayment, setEditingPayment] = useState(false);
   const [tempPaymentMethod, setTempPaymentMethod] = useState('');
   const [editingDiscount, setEditingDiscount] = useState(false);
@@ -435,6 +437,57 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
     }
   };
 
+  const handleUpdateQuantity = async (item: any, newQty: number) => {
+    if (!supabase || !selectedOrder || newQty <= 0) return;
+    if (newQty === item.quantidade) {
+      setEditingItemId(null);
+      return;
+    }
+
+    try {
+      const newSubtotalItem = Number(item.preco_unitario) * newQty;
+      
+      const { error: itemError } = await supabase
+        .from('order_items')
+        .update({ 
+          quantidade: newQty,
+          subtotal: newSubtotalItem
+        })
+        .eq('id', item.id);
+
+      if (itemError) throw itemError;
+
+      const newItems = orderItems.map(i => i.id === item.id ? { ...i, quantidade: newQty, subtotal: newSubtotalItem } : i);
+      const newSubtotal = newItems.reduce((acc: number, i: any) => acc + Number(i.subtotal), 0);
+      
+      let newTotal = newSubtotal;
+      if (selectedOrder.discount_value > 0) {
+        if (selectedOrder.discount_type === 'percentage') {
+          newTotal = newSubtotal * (1 - selectedOrder.discount_value / 100);
+        } else {
+          newTotal = newSubtotal - selectedOrder.discount_value;
+        }
+      }
+
+      const { error: orderError } = await supabase
+        .from('orders')
+        .update({ 
+          subtotal: newSubtotal,
+          total: newTotal 
+        })
+        .eq('id', selectedOrder.id);
+
+      if (orderError) throw orderError;
+
+      setOrderItems(newItems);
+      setSelectedOrder((prev: any) => ({ ...prev, subtotal: newSubtotal, total: newTotal }));
+      setOrders(prev => prev.map(o => o.id === selectedOrder.id ? { ...o, subtotal: newSubtotal, total: newTotal } : o));
+      setEditingItemId(null);
+    } catch (err: any) {
+      alert(`Erro ao atualizar quantidade: ${err.message}`);
+    }
+  };
+
   const statusLabel = (s: string) => ({ pending: 'Pendente', typed: 'Digitado', finished: 'Finalizado', cancelled: 'Cancelado' }[s] || s);
   const statusClass = (s: string) => ({
     pending: 'bg-amber-50 text-amber-600',
@@ -496,13 +549,13 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                   <div className="space-y-1">
                     <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Buscar cliente</label>
                     <div className="relative">
-                      <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" />
+                      <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                       <input
                         type="text"
                         value={filterSearch}
                         onChange={e => setFilterSearch(e.target.value)}
                         placeholder="Nome do cliente..."
-                        className="w-full pl-8 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-primary/40 font-medium"
+                        className="w-full pl-8 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-primary/40 font-bold text-slate-900 placeholder:text-slate-400"
                       />
                     </div>
                   </div>
@@ -512,7 +565,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                   <select
                     value={filterBrand}
                     onChange={e => setFilterBrand(e.target.value)}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-primary/40 font-medium"
+                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-primary/40 font-bold text-slate-900"
                   >
                     <option value="">Todas</option>
                     {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
@@ -523,7 +576,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                   <select
                     value={filterStatus}
                     onChange={e => setFilterStatus(e.target.value)}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-primary/40 font-medium"
+                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-primary/40 font-bold text-slate-900"
                   >
                     <option value="">Todos</option>
                     <option value="pending">Pendente</option>
@@ -538,7 +591,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                     type="date"
                     value={filterDateFrom}
                     onChange={e => setFilterDateFrom(e.target.value)}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-primary/40 font-medium"
+                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-primary/40 font-bold text-slate-900"
                   />
                 </div>
                 <div className="space-y-1">
@@ -547,7 +600,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                     type="date"
                     value={filterDateTo}
                     onChange={e => setFilterDateTo(e.target.value)}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-primary/40 font-medium"
+                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-primary/40 font-bold text-slate-900"
                   />
                 </div>
               </div>
@@ -900,7 +953,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                               className="flex items-center justify-between p-4 bg-white rounded-2xl border border-slate-100 hover:border-primary/20 transition-all group">
                               <div className="flex-1">
                                 <div className="flex items-center gap-2">
-                                  <span className="text-[10px] font-mono font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded">{item.sku}</span>
+                                  <span className="text-xs font-mono font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded">{item.sku}</span>
                                   <h5 className="font-bold text-slate-800 text-sm">{item.nome}</h5>
                                 </div>
                                 {item.variacoes && Object.entries(item.variacoes as Record<string, string>).length > 0 && (
@@ -912,7 +965,34 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                                     ))}
                                   </div>
                                 )}
-                                <p className="text-xs text-slate-400 mt-1">{item.quantidade} x R$ {Number(item.preco_unitario).toFixed(2)}</p>
+                                {editingItemId === item.id ? (
+                                  <div className="flex items-center gap-2 mt-2">
+                                    <input 
+                                      type="number"
+                                      value={tempQuantity}
+                                      onChange={e => setTempQuantity(Number(e.target.value))}
+                                      className="w-20 px-2 py-1 border border-slate-200 rounded-lg text-xs font-bold bg-white focus:outline-none focus:border-primary"
+                                    />
+                                    <button onClick={() => handleUpdateQuantity(item, tempQuantity)} className="p-1.5 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-all">
+                                      <Check size={12} />
+                                    </button>
+                                    <button onClick={() => setEditingItemId(null)} className="p-1.5 bg-slate-200 text-slate-500 rounded-lg hover:bg-slate-300 transition-all">
+                                      <X size={12} />
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-2 mt-1">
+                                    <p className="text-xs text-slate-400">{item.quantidade} x R$ {Number(item.preco_unitario).toFixed(2)}</p>
+                                    {canEditOrder && (
+                                      <button 
+                                        onClick={() => { setEditingItemId(item.id); setTempQuantity(item.quantidade); }}
+                                        className="text-primary hover:text-primary/80 transition-colors"
+                                      >
+                                        <Edit2 size={12} />
+                                      </button>
+                                    )}
+                                  </div>
+                                )}
                               </div>
                               <div className="flex items-center gap-3">
                                 <p className="font-black text-slate-900">R$ {Number(item.subtotal).toFixed(2)}</p>

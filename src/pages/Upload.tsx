@@ -34,6 +34,8 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [selectedCatalogBrands, setSelectedCatalogBrands] = useState<string[]>([]);
+  const [includeOutOfStock, setIncludeOutOfStock] = useState(false);
+  const [includeLastUnits, setIncludeLastUnits] = useState(true);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -385,91 +387,209 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
     setStatus({ type: 'info', message: 'Gerando catálogo PDF...' });
 
     try {
-      const [productsRes, brandsRes] = await Promise.all([
-        supabase!
-          .from('products')
-          .select('*')
-          .in('brand_id', selectedCatalogBrands)
-          .order('brand_id')
-          .order('nome'),
+      // Fetch products and categories
+      let productQuery = supabase!
+        .from('products')
+        .select('*')
+        .in('brand_id', selectedCatalogBrands);
+
+      if (!includeOutOfStock) {
+        productQuery = productQuery.neq('status_estoque', 'esgotado');
+      }
+      if (!includeLastUnits) {
+        productQuery = productQuery.neq('status_estoque', 'ultimas');
+      }
+
+      const [productsRes, brandsRes, categoriesRes] = await Promise.all([
+        productQuery.order('brand_id').order('category_id').order('nome'),
         supabase!
           .from('brands')
           .select('id, name')
-          .in('id', selectedCatalogBrands)
+          .in('id', selectedCatalogBrands),
+        supabase!
+          .from('categories')
+          .select('id, nome')
+          .in('brand_id', selectedCatalogBrands)
       ]);
 
       if (productsRes.error) throw productsRes.error;
       if (brandsRes.error) throw brandsRes.error;
+      if (categoriesRes.error) throw categoriesRes.error;
 
       const products = productsRes.data || [];
       const brandsMap = new Map((brandsRes.data || []).map(b => [b.id, b.name]));
+      const categoriesMap = new Map((categoriesRes.data || []).map(c => [c.id, c.nome]));
 
       if (products.length === 0) {
-        throw new Error('Nenhum produto encontrado para as marcas selecionadas.');
+        throw new Error('Nenhum produto encontrado com os filtros selecionados.');
       }
 
       const doc = new jsPDF();
       const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const margin = 10;
+      const cardWidth = 60;
+      const cardHeight = 85;
+      const gap = 5;
+      const cols = 3;
       
-      // Header
-      doc.setFontSize(22);
-      doc.setTextColor(236, 72, 153); // text-primary
-      doc.text('Catálogo de Produtos', pageWidth / 2, 20, { align: 'center' });
-      
-      doc.setFontSize(10);
-      doc.setTextColor(100, 116, 139); // text-slate-500
-      doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, pageWidth / 2, 28, { align: 'center' });
-
+      let currentX = margin;
       let currentY = 40;
 
-      // Group by brand
-      const productsByBrand: Record<string, any[]> = {};
+      // Header
+      const drawHeader = (pageNumber: number) => {
+        doc.setFontSize(22);
+        doc.setTextColor(236, 72, 153); // text-primary
+        doc.text('Catálogo de Produtos', pageWidth / 2, 20, { align: 'center' });
+        
+        doc.setFontSize(10);
+        doc.setTextColor(100, 116, 139); // text-slate-500
+        doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')} | Página ${pageNumber}`, pageWidth / 2, 28, { align: 'center' });
+      };
+
+      drawHeader(1);
+
+      // Helper to load image
+      const loadImage = (url: string): Promise<string | null> => {
+        return new Promise((resolve) => {
+          const img = new Image();
+          img.crossOrigin = 'Anonymous';
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) { resolve(null); return; }
+            ctx.drawImage(img, 0, 0);
+            resolve(canvas.toDataURL('image/jpeg', 0.7));
+          };
+          img.onerror = () => resolve(null);
+          img.src = url;
+        });
+      };
+
+      // Group by brand then category
+      const grouped: Record<string, Record<string, any[]>> = {};
       products.forEach(p => {
         const brandName = brandsMap.get(p.brand_id) || 'Sem Marca';
-        if (!productsByBrand[brandName]) productsByBrand[brandName] = [];
-        productsByBrand[brandName].push(p);
+        const categoryName = categoriesMap.get(p.category_id) || 'Sem Categoria';
+        if (!grouped[brandName]) grouped[brandName] = {};
+        if (!grouped[brandName][categoryName]) grouped[brandName][categoryName] = [];
+        grouped[brandName][categoryName].push(p);
       });
 
-      for (const [brandName, brandProducts] of Object.entries(productsByBrand)) {
+      let pageCount = 1;
+
+      for (const [brandName, categories] of Object.entries(grouped)) {
         // Brand Title
-        doc.setFontSize(16);
-        doc.setTextColor(30, 41, 59); // text-slate-800
-        doc.text(brandName, 14, currentY);
+        if (currentY > pageHeight - 40) {
+          doc.addPage();
+          pageCount++;
+          drawHeader(pageCount);
+          currentY = 40;
+        }
+
+        doc.setFontSize(18);
+        doc.setTextColor(30, 41, 59);
+        doc.text(brandName, margin, currentY);
         currentY += 10;
 
-        const tableData = brandProducts.map(p => [
-          p.sku || '-',
-          p.nome,
-          `R$ ${Number(p.preco_unitario || 0).toFixed(2)}`,
-          p.status_estoque === 'esgotado' ? 'Esgotado' : p.status_estoque === 'ultimas' ? 'Últimas Unidades' : 'Disponível'
-        ]);
-
-        // @ts-ignore
-        const finalAutoTable = autoTable.default || autoTable;
-        finalAutoTable(doc, {
-          startY: currentY,
-          head: [['SKU', 'Produto', 'Preço', 'Status']],
-          body: tableData,
-          theme: 'striped',
-          headStyles: { fillColor: [236, 72, 153], textColor: [255, 255, 255], fontStyle: 'bold' },
-          styles: { fontSize: 9, cellPadding: 3 },
-          columnStyles: {
-            0: { cellWidth: 30 },
-            1: { cellWidth: 'auto' },
-            2: { cellWidth: 30, halign: 'right' },
-            3: { cellWidth: 35, halign: 'center' }
-          },
-          didDrawPage: (data: any) => {
-            currentY = data.cursor.y + 15;
+        for (const [categoryName, categoryProducts] of Object.entries(categories)) {
+          // Category Title
+          if (currentY > pageHeight - 30) {
+            doc.addPage();
+            pageCount++;
+            drawHeader(pageCount);
+            currentY = 40;
           }
-        });
 
-        currentY = (doc as any).lastAutoTable.finalY + 15;
-        
-        if (currentY > doc.internal.pageSize.getHeight() - 20) {
-          doc.addPage();
-          currentY = 20;
+          doc.setFontSize(14);
+          doc.setTextColor(100, 116, 139);
+          doc.text(categoryName, margin, currentY);
+          currentY += 8;
+
+          let colIndex = 0;
+
+          for (const p of categoryProducts) {
+            if (currentY + cardHeight > pageHeight - margin) {
+              doc.addPage();
+              pageCount++;
+              drawHeader(pageCount);
+              currentY = 40;
+              colIndex = 0;
+            }
+
+            const x = margin + colIndex * (cardWidth + gap);
+            const y = currentY;
+
+            // Card Border
+            doc.setDrawColor(241, 245, 249); // slate-100
+            doc.roundedRect(x, y, cardWidth, cardHeight, 2, 2);
+
+            // Image
+            if (p.imagem) {
+              const base64 = await loadImage(p.imagem);
+              if (base64) {
+                try {
+                  doc.addImage(base64, 'JPEG', x + 2, y + 2, cardWidth - 4, 45);
+                } catch (e) {
+                  console.error('Error adding image to PDF', e);
+                }
+              }
+            } else {
+              doc.setFillColor(248, 250, 252); // slate-50
+              doc.rect(x + 2, y + 2, cardWidth - 4, 45, 'F');
+              doc.setFontSize(8);
+              doc.setTextColor(203, 213, 225);
+              doc.text('Sem imagem', x + cardWidth / 2, y + 25, { align: 'center' });
+            }
+
+            // Product Info
+            doc.setTextColor(30, 41, 59);
+            doc.setFontSize(9);
+            const nameLines = doc.splitTextToSize(p.nome, cardWidth - 6);
+            doc.text(nameLines.slice(0, 2), x + 3, y + 52);
+
+            doc.setFontSize(7);
+            doc.setTextColor(148, 163, 184);
+            doc.text(`SKU: ${p.sku}`, x + 3, y + 62);
+
+            // Price
+            doc.setFontSize(10);
+            doc.setTextColor(236, 72, 153);
+            doc.text(`R$ ${Number(p.preco_unitario || 0).toFixed(2)}`, x + 3, y + 68);
+
+            // Box Price
+            if (p.preco_box && p.preco_box > 0) {
+              doc.setFontSize(7);
+              doc.setTextColor(100, 116, 139);
+              doc.text(`Box: R$ ${Number(p.preco_box).toFixed(2)} (${p.qtd_box} un)`, x + 3, y + 73);
+            }
+
+            // Status Badge
+            if (p.status_estoque === 'esgotado' || p.status_estoque === 'ultimas') {
+              const statusText = p.status_estoque === 'esgotado' ? 'ESGOTADO' : 'ÚLTIMAS';
+              const badgeColor = p.status_estoque === 'esgotado' ? [244, 63, 94] : [245, 158, 11];
+              doc.setFillColor(badgeColor[0], badgeColor[1], badgeColor[2]);
+              doc.roundedRect(x + 3, y + 78, 25, 4, 1, 1, 'F');
+              doc.setTextColor(255, 255, 255);
+              doc.setFontSize(6);
+              doc.text(statusText, x + 15.5, y + 81, { align: 'center' });
+            }
+
+            colIndex++;
+            if (colIndex >= cols) {
+              colIndex = 0;
+              currentY += cardHeight + gap;
+            }
+          }
+
+          if (colIndex > 0) {
+            currentY += cardHeight + gap;
+          }
+          currentY += 5; // Extra space between categories
         }
+        currentY += 10; // Extra space between brands
       }
 
       doc.save(`Catalogo_VendPro_${new Date().getTime()}.pdf`);
@@ -577,6 +697,27 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
             <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
               <Download size={12} className="text-primary" />
               <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Download de Catálogo</span>
+            </div>
+
+            <div className="space-y-3">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Filtros do Catálogo</p>
+              <div className="flex flex-wrap gap-3">
+                <label className="flex items-center gap-2 cursor-pointer group">
+                  <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${includeOutOfStock ? 'bg-rose-500 border-rose-500' : 'bg-white border-slate-200 group-hover:border-slate-300'}`}>
+                    {includeOutOfStock && <CheckCircle2 size={10} className="text-white" strokeWidth={3} />}
+                  </div>
+                  <input type="checkbox" className="hidden" checked={includeOutOfStock} onChange={e => setIncludeOutOfStock(e.target.checked)} />
+                  <span className="text-[10px] font-bold text-slate-600 uppercase tracking-tight">Incluir Esgotados</span>
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer group">
+                  <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${includeLastUnits ? 'bg-amber-500 border-amber-500' : 'bg-white border-slate-200 group-hover:border-slate-300'}`}>
+                    {includeLastUnits && <CheckCircle2 size={10} className="text-white" strokeWidth={3} />}
+                  </div>
+                  <input type="checkbox" className="hidden" checked={includeLastUnits} onChange={e => setIncludeLastUnits(e.target.checked)} />
+                  <span className="text-[10px] font-bold text-slate-600 uppercase tracking-tight">Incluir Últimas Unidades</span>
+                </label>
+              </div>
             </div>
 
             <div className="space-y-2">

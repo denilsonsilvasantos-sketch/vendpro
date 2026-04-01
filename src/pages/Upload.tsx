@@ -1,11 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Upload, FileText, CheckCircle2, AlertCircle, Loader2, Image as ImageIcon, Trash2, Send, AlertTriangle, RefreshCw, ChevronDown, Sparkles, Database, Zap } from 'lucide-react';
+import { Upload, FileText, CheckCircle2, AlertCircle, Loader2, Image as ImageIcon, Trash2, Send, AlertTriangle, RefreshCw, ChevronDown, Sparkles, Database, Zap, Download, Printer } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { supabase } from '../integrations/supabaseClient';
 import { extractProductsFromMedia, classifyCategory } from '../services/aiService';
 import { Brand, Product } from '../types';
 import { PDFDocument } from 'pdf-lib';
 import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 type CatalogType = 'weekly' | 'replenishment';
 type UploadMode = 'catalog' | 'stock';
@@ -31,6 +33,8 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
   const [showSyncReport, setShowSyncReport] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
+  const [selectedCatalogBrands, setSelectedCatalogBrands] = useState<string[]>([]);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -363,6 +367,108 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
     finally { setIsResetting(false); }
   };
 
+  const toggleCatalogBrand = (brandId: string) => {
+    setSelectedCatalogBrands(prev => 
+      prev.includes(brandId) 
+        ? prev.filter(id => id !== brandId) 
+        : [...prev, brandId]
+    );
+  };
+
+  const generatePdfCatalog = async () => {
+    if (selectedCatalogBrands.length === 0) {
+      setStatus({ type: 'warning', message: 'Selecione pelo menos uma marca para gerar o catálogo.' });
+      return;
+    }
+
+    setIsGeneratingPdf(true);
+    setStatus({ type: 'info', message: 'Gerando catálogo PDF...' });
+
+    try {
+      const { data: products, error } = await supabase!
+        .from('products')
+        .select('*, brands(name)')
+        .in('brand_id', selectedCatalogBrands)
+        .order('brand_id')
+        .order('nome');
+
+      if (error) throw error;
+      if (!products || products.length === 0) {
+        throw new Error('Nenhum produto encontrado para as marcas selecionadas.');
+      }
+
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      
+      // Header
+      doc.setFontSize(22);
+      doc.setTextColor(236, 72, 153); // text-primary
+      doc.text('Catálogo de Produtos', pageWidth / 2, 20, { align: 'center' });
+      
+      doc.setFontSize(10);
+      doc.setTextColor(100, 116, 139); // text-slate-500
+      doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, pageWidth / 2, 28, { align: 'center' });
+
+      let currentY = 40;
+
+      // Group by brand
+      const productsByBrand: Record<string, any[]> = {};
+      products.forEach(p => {
+        const brandName = p.brands?.name || 'Sem Marca';
+        if (!productsByBrand[brandName]) productsByBrand[brandName] = [];
+        productsByBrand[brandName].push(p);
+      });
+
+      for (const [brandName, brandProducts] of Object.entries(productsByBrand)) {
+        // Brand Title
+        doc.setFontSize(16);
+        doc.setTextColor(30, 41, 59); // text-slate-800
+        doc.text(brandName, 14, currentY);
+        currentY += 10;
+
+        const tableData = brandProducts.map(p => [
+          p.sku || '-',
+          p.nome,
+          `R$ ${Number(p.preco_unitario || 0).toFixed(2)}`,
+          p.status_estoque === 'esgotado' ? 'Esgotado' : p.status_estoque === 'ultimas' ? 'Últimas Unidades' : 'Disponível'
+        ]);
+
+        (doc as any).autoTable({
+          startY: currentY,
+          head: [['SKU', 'Produto', 'Preço', 'Status']],
+          body: tableData,
+          theme: 'striped',
+          headStyles: { fillColor: [236, 72, 153], textColor: [255, 255, 255], fontStyle: 'bold' },
+          styles: { fontSize: 9, cellPadding: 3 },
+          columnStyles: {
+            0: { cellWidth: 30 },
+            1: { cellWidth: 'auto' },
+            2: { cellWidth: 30, halign: 'right' },
+            3: { cellWidth: 35, halign: 'center' }
+          },
+          didDrawPage: (data: any) => {
+            currentY = data.cursor.y + 15;
+          }
+        });
+
+        currentY = (doc as any).lastAutoTable.finalY + 15;
+        
+        if (currentY > doc.internal.pageSize.getHeight() - 20) {
+          doc.addPage();
+          currentY = 20;
+        }
+      }
+
+      doc.save(`Catalogo_VendPro_${new Date().getTime()}.pdf`);
+      setStatus({ type: 'success', message: 'Catálogo gerado com sucesso!' });
+    } catch (error: any) {
+      console.error('Erro ao gerar PDF:', error);
+      setStatus({ type: 'error', message: `Erro ao gerar catálogo: ${error.message}` });
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
+
   const statusColors: Record<string, string> = {
     success: 'bg-emerald-50 text-emerald-800 border-emerald-100',
     error: 'bg-rose-50 text-rose-800 border-rose-100',
@@ -451,6 +557,51 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
                 : catalogType === 'weekly' ? 'Catálogo semanal: atualiza preços e identifica produtos fora de linha.'
                   : 'Reposição: adiciona/atualiza produtos específicos sem afetar os demais.'}
             </div>
+          </div>
+
+          {/* Download Section */}
+          <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-4 space-y-4">
+            <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+              <Download size={12} className="text-primary" />
+              <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Download de Catálogo</span>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Selecione as marcas</p>
+              <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto p-1">
+                {brands.map(brand => (
+                  <label key={brand.id} className={`flex items-center gap-2 p-2 rounded-lg border transition-all cursor-pointer ${selectedCatalogBrands.includes(brand.id) ? 'bg-primary/5 border-primary/20' : 'bg-slate-50 border-slate-100 hover:border-slate-200'}`}>
+                    <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${selectedCatalogBrands.includes(brand.id) ? 'bg-primary border-primary' : 'bg-white border-slate-200'}`}>
+                      {selectedCatalogBrands.includes(brand.id) && <CheckCircle2 size={10} className="text-white" strokeWidth={3} />}
+                    </div>
+                    <input type="checkbox" className="hidden" checked={selectedCatalogBrands.includes(brand.id)} onChange={() => toggleCatalogBrand(brand.id)} />
+                    <span className={`text-[10px] font-bold truncate ${selectedCatalogBrands.includes(brand.id) ? 'text-primary' : 'text-slate-600'}`}>{brand.name}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <button
+              onClick={generatePdfCatalog}
+              disabled={isGeneratingPdf || selectedCatalogBrands.length === 0}
+              className={`w-full py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${
+                isGeneratingPdf || selectedCatalogBrands.length === 0
+                  ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                  : 'pink-gradient text-white shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98]'
+              }`}
+            >
+              {isGeneratingPdf ? (
+                <>
+                  <Loader2 size={12} className="animate-spin" />
+                  Gerando PDF...
+                </>
+              ) : (
+                <>
+                  <Printer size={12} />
+                  Gerar Catálogo PDF
+                </>
+              )}
+            </button>
           </div>
 
           {/* Drop zone */}

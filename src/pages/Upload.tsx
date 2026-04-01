@@ -6,8 +6,8 @@ import { extractProductsFromMedia, classifyCategory } from '../services/aiServic
 import { Brand, Product } from '../types';
 import { PDFDocument } from 'pdf-lib';
 import * as XLSX from 'xlsx';
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 type CatalogType = 'weekly' | 'replenishment';
 type UploadMode = 'catalog' | 'stock';
@@ -444,7 +444,9 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
           p.status_estoque === 'esgotado' ? 'Esgotado' : p.status_estoque === 'ultimas' ? 'Últimas Unidades' : 'Disponível'
         ]);
 
-        (doc as any).autoTable({
+        // @ts-ignore
+        const finalAutoTable = autoTable.default || autoTable;
+        finalAutoTable(doc, {
           startY: currentY,
           head: [['SKU', 'Produto', 'Preço', 'Status']],
           body: tableData,

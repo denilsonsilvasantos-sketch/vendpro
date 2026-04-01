@@ -387,7 +387,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
     try {
       const { data: products, error } = await supabase!
         .from('products')
-        .select('*, brands(name)')
+        .select('*, brand:brands!brand_id(name)')
         .in('brand_id', selectedCatalogBrands)
         .order('brand_id')
         .order('nome');
@@ -414,7 +414,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
       // Group by brand
       const productsByBrand: Record<string, any[]> = {};
       products.forEach(p => {
-        const brandName = p.brands?.name || 'Sem Marca';
+        const brandName = p.brand?.name || 'Sem Marca';
         if (!productsByBrand[brandName]) productsByBrand[brandName] = [];
         productsByBrand[brandName].push(p);
       });

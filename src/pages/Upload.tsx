@@ -385,15 +385,26 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
     setStatus({ type: 'info', message: 'Gerando catálogo PDF...' });
 
     try {
-      const { data: products, error } = await supabase!
-        .from('products')
-        .select('*, brand:brands!brand_id(name)')
-        .in('brand_id', selectedCatalogBrands)
-        .order('brand_id')
-        .order('nome');
+      const [productsRes, brandsRes] = await Promise.all([
+        supabase!
+          .from('products')
+          .select('*')
+          .in('brand_id', selectedCatalogBrands)
+          .order('brand_id')
+          .order('nome'),
+        supabase!
+          .from('brands')
+          .select('id, name')
+          .in('id', selectedCatalogBrands)
+      ]);
 
-      if (error) throw error;
-      if (!products || products.length === 0) {
+      if (productsRes.error) throw productsRes.error;
+      if (brandsRes.error) throw brandsRes.error;
+
+      const products = productsRes.data || [];
+      const brandsMap = new Map((brandsRes.data || []).map(b => [b.id, b.name]));
+
+      if (products.length === 0) {
         throw new Error('Nenhum produto encontrado para as marcas selecionadas.');
       }
 
@@ -414,7 +425,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
       // Group by brand
       const productsByBrand: Record<string, any[]> = {};
       products.forEach(p => {
-        const brandName = p.brand?.name || 'Sem Marca';
+        const brandName = brandsMap.get(p.brand_id) || 'Sem Marca';
         if (!productsByBrand[brandName]) productsByBrand[brandName] = [];
         productsByBrand[brandName].push(p);
       });

@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo, memo } from 'react';
 import { supabase } from '../integrations/supabaseClient';
 import { Product, Brand, Category } from '../types';
 import { getProducts } from '../services/productService';
-import { Package, Edit, Trash2, Plus, Search, Filter, Tag, AlertCircle, CheckCircle2, Loader2, ChevronDown, X, ZoomIn, Info } from 'lucide-react';
+import { Package, Edit, Trash2, Plus, Search, Filter, Tag, AlertCircle, CheckCircle2, Loader2, ChevronDown, X, ZoomIn, Info, ChevronLeft, ChevronRight } from 'lucide-react';
 import ProductFormModal from '../components/ProductFormModal';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -17,6 +17,8 @@ export default function Produtos({ companyId, onRefresh }: { companyId: string |
   const [editingProduct, setEditingProduct] = useState<Product | undefined>();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterBrand, setFilterBrand] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
 
   async function fetchData() {
     if (!supabase || !companyId) return;
@@ -44,50 +46,57 @@ export default function Produtos({ companyId, onRefresh }: { companyId: string |
     if (onRefresh) onRefresh();
   };
 
-  const filteredProducts = products.filter(p => {
-    const searchLower = searchTerm.trim().toLowerCase();
-    const varietySkus = (p.variacoes_flat || []).map(v => (v.sku || '').toLowerCase());
-    const matchesSearch = p.nome.toLowerCase().includes(searchLower) || 
-                         p.sku.toLowerCase().includes(searchLower) ||
-                         varietySkus.some(vSku => vSku.includes(searchLower));
-    const matchesBrand = filterBrand ? p.brand_id === filterBrand : true;
-    return matchesSearch && matchesBrand;
-  }).sort((a, b) => {
-    const isEsgotadoA = a.status_estoque === 'esgotado';
-    const isEsgotadoB = b.status_estoque === 'esgotado';
+  const filteredProducts = useMemo(() => {
+    return products.filter(p => {
+      const searchLower = searchTerm.trim().toLowerCase();
+      const varietySkus = (p.variacoes_flat || []).map(v => (v.sku || '').toLowerCase());
+      const matchesSearch = p.nome.toLowerCase().includes(searchLower) || 
+                           p.sku.toLowerCase().includes(searchLower) ||
+                           varietySkus.some(vSku => vSku.includes(searchLower));
+      const matchesBrand = filterBrand ? p.brand_id === filterBrand : true;
+      return matchesSearch && matchesBrand;
+    }).sort((a, b) => {
+      const isEsgotadoA = a.status_estoque === 'esgotado';
+      const isEsgotadoB = b.status_estoque === 'esgotado';
 
-    // Se não houver filtro de marca (ou seja, "Todas"), esgotados vão para o final absoluto
-    if (!filterBrand) {
-      if (isEsgotadoA && !isEsgotadoB) return 1;
-      if (!isEsgotadoA && isEsgotadoB) return -1;
-    }
+      if (!filterBrand) {
+        if (isEsgotadoA && !isEsgotadoB) return 1;
+        if (!isEsgotadoA && isEsgotadoB) return -1;
+      }
 
-    const brandA = brands.find(br => br.id === a.brand_id);
-    const brandB = brands.find(br => br.id === b.brand_id);
-    const brandOrderA = brandA?.order_index ?? 999999;
-    const brandOrderB = brandB?.order_index ?? 999999;
+      const brandA = brands.find(br => br.id === a.brand_id);
+      const brandB = brands.find(br => br.id === b.brand_id);
+      const brandOrderA = brandA?.order_index ?? 999999;
+      const brandOrderB = brandB?.order_index ?? 999999;
 
-    if (brandOrderA !== brandOrderB) {
-      return brandOrderA - brandOrderB;
-    }
+      if (brandOrderA !== brandOrderB) {
+        return brandOrderA - brandOrderB;
+      }
 
-    const catA = categories.find(c => c.id === a.category_id);
-    const catB = categories.find(c => c.id === b.category_id);
-    const orderA = catA?.order_index ?? 999999;
-    const orderB = catB?.order_index ?? 999999;
-    
-    if (orderA !== orderB) {
-      return orderA - orderB;
-    }
+      const catA = categories.find(c => c.id === a.category_id);
+      const catB = categories.find(c => c.id === b.category_id);
+      const orderA = catA?.order_index ?? 999999;
+      const orderB = catB?.order_index ?? 999999;
+      
+      if (orderA !== orderB) {
+        return orderA - orderB;
+      }
 
-    // Se houver filtro de marca, esgotados ficam no final da sua categoria
-    if (filterBrand) {
-      if (isEsgotadoA && !isEsgotadoB) return 1;
-      if (!isEsgotadoA && isEsgotadoB) return -1;
-    }
+      if (filterBrand) {
+        if (isEsgotadoA && !isEsgotadoB) return 1;
+        if (!isEsgotadoA && isEsgotadoB) return -1;
+      }
 
-    return a.nome.localeCompare(b.nome);
-  });
+      return a.nome.localeCompare(b.nome);
+    });
+  }, [products, searchTerm, filterBrand, brands, categories]);
+
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+  const paginatedProducts = filteredProducts.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterBrand]);
 
   if (loading && products.length === 0) {
     return (
@@ -148,7 +157,7 @@ export default function Produtos({ companyId, onRefresh }: { companyId: string |
       </div>
       
       <AnimatePresence mode="popLayout">
-        {filteredProducts.length === 0 ? (
+        {paginatedProducts.length === 0 ? (
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -163,18 +172,50 @@ export default function Produtos({ companyId, onRefresh }: { companyId: string |
             </div>
           </motion.div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 md:gap-6">
-            {filteredProducts.map(product => (
-              <ProductItem 
-                key={product.id}
-                product={product}
-                brands={brands}
-                categories={categories}
-                onEdit={(p) => { setEditingProduct(p); setIsModalOpen(true); }}
-                onDelete={handleDelete}
-                onZoom={(imgs, idx) => { setZoomImages(imgs); setZoomIndex(idx); }}
-              />
-            ))}
+          <div className="space-y-8">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 md:gap-6">
+              {paginatedProducts.map(product => (
+                <ProductItem 
+                  key={product.id}
+                  product={product}
+                  brands={brands}
+                  categories={categories}
+                  onEdit={(p) => { setEditingProduct(p); setIsModalOpen(true); }}
+                  onDelete={handleDelete}
+                  onZoom={(imgs, idx) => { setZoomImages(imgs); setZoomIndex(idx); }}
+                />
+              ))}
+            </div>
+
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-4 pt-8">
+                <button
+                  disabled={currentPage === 1}
+                  onClick={() => {
+                    setCurrentPage(prev => Math.max(1, prev - 1));
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-slate-100 text-slate-400 disabled:opacity-30 disabled:cursor-not-allowed hover:text-primary transition-all shadow-sm"
+                >
+                  <ChevronLeft size={20} />
+                </button>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-black text-slate-900 uppercase tracking-widest bg-white px-4 py-2 rounded-xl border border-slate-100 shadow-sm">
+                    Página {currentPage} de {totalPages}
+                  </span>
+                </div>
+                <button
+                  disabled={currentPage === totalPages}
+                  onClick={() => {
+                    setCurrentPage(prev => Math.min(totalPages, prev + 1));
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-slate-100 text-slate-400 disabled:opacity-30 disabled:cursor-not-allowed hover:text-primary transition-all shadow-sm"
+                >
+                  <ChevronRight size={20} />
+                </button>
+              </div>
+            )}
           </div>
         )}
       </AnimatePresence>
@@ -259,7 +300,7 @@ export default function Produtos({ companyId, onRefresh }: { companyId: string |
   );
 }
 
-function ProductItem({ 
+const ProductItem = memo(({ 
   product, 
   brands, 
   categories, 
@@ -273,7 +314,7 @@ function ProductItem({
   onEdit: (p: Product) => void, 
   onDelete: (id: string) => void,
   onZoom: (imgs: string[], idx: number) => void
-}) {
+}) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
   const isEsgotado = product.status_estoque === 'esgotado';
@@ -320,6 +361,7 @@ function ProductItem({
             alt={product.nome} 
             className="w-full h-full object-contain p-4 group-hover:scale-110 transition-transform duration-1000 ease-out"
             referrerPolicy="no-referrer"
+            loading="lazy"
           />
         </AnimatePresence>
         <div className="absolute top-2 right-2 flex flex-col gap-1.5 items-end z-10">
@@ -384,5 +426,5 @@ function ProductItem({
       </div>
     </motion.div>
   );
-}
+});
 

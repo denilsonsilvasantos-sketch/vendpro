@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense, useRef } from 'react';
+import { useState, useEffect, lazy, Suspense, useRef, memo, useMemo } from 'react';
 import { getProducts } from "./services/productService";
 import { validateSellerCode } from './services/sellerService';
 import { registerCompany, loginCompany, getCompanyById } from './services/companyService';
@@ -688,6 +688,7 @@ export default function App() {
                 className="max-w-full max-h-[90vh] rounded-2xl shadow-2xl object-contain"
                 alt="Zoom"
                 referrerPolicy="no-referrer"
+                loading="lazy"
               />
               
               {zoomImages.length > 1 && (
@@ -2184,62 +2185,64 @@ function CatalogScreen({
     window.open(url, '_blank');
   };
 
-  const filtered = products.filter(p => {
-    const searchLower = search.trim().toLowerCase();
-    if (!searchLower) return (selectedCategory ? p.category_id === selectedCategory : true) && (selectedBrand ? p.brand_id === selectedBrand : true);
-    
-    const searchTerms = searchLower.split(/\s+/);
-    const nome = (p.nome || '').toLowerCase();
-    const sku = (p.sku || '').toLowerCase();
-    
-    // Check variety SKUs
-    const varietySkus = (p.variacoes_flat || []).map(v => (v.sku || '').toLowerCase());
-    
-    const matchesSearch = searchTerms.every(term => 
-      nome.includes(term) || 
-      sku.includes(term) || 
-      varietySkus.some(vSku => vSku.includes(term))
-    );
-    const matchesCategory = selectedCategory ? p.category_id === selectedCategory : true;
-    const matchesBrand = selectedBrand ? p.brand_id === selectedBrand : true;
-    return matchesSearch && matchesCategory && matchesBrand;
-  }).sort((a, b) => {
-    const isEsgotadoA = a.status_estoque === 'esgotado';
-    const isEsgotadoB = b.status_estoque === 'esgotado';
+  const filtered = useMemo(() => {
+    return products.filter(p => {
+      const searchLower = search.trim().toLowerCase();
+      if (!searchLower) return (selectedCategory ? p.category_id === selectedCategory : true) && (selectedBrand ? p.brand_id === selectedBrand : true);
+      
+      const searchTerms = searchLower.split(/\s+/);
+      const nome = (p.nome || '').toLowerCase();
+      const sku = (p.sku || '').toLowerCase();
+      
+      // Check variety SKUs
+      const varietySkus = (p.variacoes_flat || []).map(v => (v.sku || '').toLowerCase());
+      
+      const matchesSearch = searchTerms.every(term => 
+        nome.includes(term) || 
+        sku.includes(term) || 
+        varietySkus.some(vSku => vSku.includes(term))
+      );
+      const matchesCategory = selectedCategory ? p.category_id === selectedCategory : true;
+      const matchesBrand = selectedBrand ? p.brand_id === selectedBrand : true;
+      return matchesSearch && matchesCategory && matchesBrand;
+    }).sort((a, b) => {
+      const isEsgotadoA = a.status_estoque === 'esgotado';
+      const isEsgotadoB = b.status_estoque === 'esgotado';
 
-    // Se estiver em "Todas as Categorias", esgotados vão para o final absoluto
-    if (!selectedCategory) {
-      if (isEsgotadoA && !isEsgotadoB) return 1;
-      if (!isEsgotadoA && isEsgotadoB) return -1;
-    }
+      // Se estiver em "Todas as Categorias", esgotados vão para o final absoluto
+      if (!selectedCategory) {
+        if (isEsgotadoA && !isEsgotadoB) return 1;
+        if (!isEsgotadoA && isEsgotadoB) return -1;
+      }
 
-    const brandA = brands.find(br => br.id === a.brand_id);
-    const brandB = brands.find(br => br.id === b.brand_id);
-    const brandOrderA = brandA?.order_index ?? 999999;
-    const brandOrderB = brandB?.order_index ?? 999999;
+      const brandA = brands.find(br => br.id === a.brand_id);
+      const brandB = brands.find(br => br.id === b.brand_id);
+      const brandOrderA = brandA?.order_index ?? 999999;
+      const brandOrderB = brandB?.order_index ?? 999999;
 
-    if (brandOrderA !== brandOrderB) {
-      return brandOrderA - brandOrderB;
-    }
+      if (brandOrderA !== brandOrderB) {
+        return brandOrderA - brandOrderB;
+      }
 
-    const catA = categories.find(c => c.id === a.category_id);
-    const catB = categories.find(c => c.id === b.category_id);
-    const orderA = catA?.order_index ?? 999999;
-    const orderB = catB?.order_index ?? 999999;
-    if (orderA !== orderB) {
-      return orderA - orderB;
-    }
+      const catA = categories.find(c => c.id === a.category_id);
+      const catB = categories.find(c => c.id === b.category_id);
+      const orderA = catA?.order_index ?? 999999;
+      const orderB = catB?.order_index ?? 999999;
+      if (orderA !== orderB) {
+        return orderA - orderB;
+      }
 
-    // Se NÃO estiver em "Todas", esgotados ficam no final da sua categoria
-    if (selectedCategory) {
-      if (isEsgotadoA && !isEsgotadoB) return 1;
-      if (!isEsgotadoA && isEsgotadoB) return -1;
-    }
+      // Se NÃO estiver em "Todas", esgotados ficam no final da sua categoria
+      if (selectedCategory) {
+        if (isEsgotadoA && !isEsgotadoB) return 1;
+        if (!isEsgotadoA && isEsgotadoB) return -1;
+      }
 
-    const nomeA = a.nome || '';
-    const nomeB = b.nome || '';
-    return nomeA.localeCompare(nomeB);
-  });
+      const nomeA = a.nome || '';
+      const nomeB = b.nome || '';
+      return nomeA.localeCompare(nomeB);
+    });
+  }, [products, search, selectedCategory, selectedBrand, brands, categories]);
 
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -2709,7 +2712,7 @@ function VarietiesModal({
   );
 }
 
-function ProductCard({ product, onAdd, onEdit, role, onZoom, isInCart, ...props }: { product: Product, onAdd: (p: Product, q: number, v?: Record<string, string>) => void, onEdit: (p: Product) => void, role: UserRole, onZoom: (imgs: string[], index: number) => void, isInCart?: boolean, [key: string]: any }) {
+const ProductCard = memo(({ product, onAdd, onEdit, role, onZoom, isInCart, ...props }: { product: Product, onAdd: (p: Product, q: number, v?: Record<string, string>) => void, onEdit: (p: Product) => void, role: UserRole, onZoom: (imgs: string[], index: number) => void, isInCart?: boolean, [key: string]: any }) => {
   const [qty, setQty] = useState(product.venda_somente_box ? 1 : (product.multiplo_venda || 1));
   const [selectedVariations, setSelectedVariations] = useState<Record<string, string>>({});
   const [showVarieties, setShowVarieties] = useState(false);
@@ -2805,6 +2808,7 @@ function ProductCard({ product, onAdd, onEdit, role, onZoom, isInCart, ...props 
               className="w-full h-full object-contain p-2" 
               alt={product.nome} 
               referrerPolicy="no-referrer" 
+              loading="lazy"
             />
           </AnimatePresence>
           <div className="absolute top-3 w-full flex flex-col gap-1 items-center">
@@ -2898,4 +2902,4 @@ function ProductCard({ product, onAdd, onEdit, role, onZoom, isInCart, ...props 
       </AnimatePresence>
     </>
   );
-}
+});

@@ -220,18 +220,18 @@ export default function Produtos({ companyId, onRefresh }: { companyId: string |
                       e.stopPropagation();
                       setZoomIndex(prev => (prev - 1 + zoomImages.length) % zoomImages.length);
                     }}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 w-14 h-14 bg-white/20 hover:bg-white/40 backdrop-blur-xl text-white rounded-full flex items-center justify-center transition-all active:scale-90 z-20 shadow-2xl border border-white/20"
+                    className="absolute left-4 top-1/2 -translate-y-1/2 w-16 h-16 bg-slate-900/60 hover:bg-slate-900/80 backdrop-blur-xl text-white rounded-full flex items-center justify-center transition-all active:scale-95 z-20 shadow-2xl border border-white/20"
                   >
-                    <ChevronLeft size={40} strokeWidth={3} />
+                    <ChevronLeft size={48} strokeWidth={3} />
                   </button>
                   <button 
                     onClick={(e) => {
                       e.stopPropagation();
                       setZoomIndex(prev => (prev + 1) % zoomImages.length);
                     }}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 w-14 h-14 bg-white/20 hover:bg-white/40 backdrop-blur-xl text-white rounded-full flex items-center justify-center transition-all active:scale-90 z-20 shadow-2xl border border-white/20"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 w-16 h-16 bg-slate-900/60 hover:bg-slate-900/80 backdrop-blur-xl text-white rounded-full flex items-center justify-center transition-all active:scale-95 z-20 shadow-2xl border border-white/20"
                   >
-                    <ChevronRight size={40} strokeWidth={3} />
+                    <ChevronRight size={48} strokeWidth={3} />
                   </button>
                   
                   <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2 z-20">

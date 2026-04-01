@@ -83,6 +83,7 @@ export interface Product {
   status_estoque: 'normal' | 'baixo' | 'ultimas' | 'esgotado';
   sugestao_revenda_max?: number;
   imagem?: string;
+  imagens?: string[];
   categoria_pendente: boolean;
   imagem_pendente: boolean;
   nome_pendente?: boolean;

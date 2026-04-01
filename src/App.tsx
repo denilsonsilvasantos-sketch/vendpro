@@ -246,7 +246,8 @@ export default function App() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [zoomImage, setZoomImage] = useState<string | null>(null);
+  const [zoomImages, setZoomImages] = useState<string[]>([]);
+  const [zoomIndex, setZoomIndex] = useState(0);
   const [showCartDisclaimer, setShowCartDisclaimer] = useState(false);
   const [viewMode, setViewMode] = useState<'admin' | 'customer'>('admin');
   const [pendingCompanyId, setPendingCompanyId] = useState<string | null>(null);
@@ -622,6 +623,11 @@ export default function App() {
     localStorage.removeItem('vendpro_sellers');
   };
 
+  const onZoom = (imgs: string[], index: number = 0) => {
+    setZoomImages(imgs);
+    setZoomIndex(index);
+  };
+
   if (!role) {
     return (
       <>
@@ -665,20 +671,64 @@ export default function App() {
   return (
     <div className="min-h-screen bg-nude font-sans text-slate-800">
       <AnimatePresence>
-        {zoomImage && (
+        {zoomImages.length > 0 && (
           <div 
-            className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/90 backdrop-blur-md cursor-zoom-out"
-            onClick={() => setZoomImage(null)}
+            className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/90 backdrop-blur-md"
+            onClick={() => setZoomImages([])}
           >
-            <motion.img 
+            <motion.div 
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.8, opacity: 0 }}
-              src={zoomImage} 
-              className="max-w-full max-h-full rounded-2xl shadow-2xl object-contain"
-              alt="Zoom"
-              referrerPolicy="no-referrer"
-            />
+              className="relative max-w-full max-h-full flex items-center justify-center"
+              onClick={e => e.stopPropagation()}
+            >
+              <img 
+                src={zoomImages[zoomIndex]} 
+                className="max-w-full max-h-[90vh] rounded-2xl shadow-2xl object-contain"
+                alt="Zoom"
+                referrerPolicy="no-referrer"
+              />
+              
+              {zoomImages.length > 1 && (
+                <>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setZoomIndex(prev => (prev - 1 + zoomImages.length) % zoomImages.length);
+                    }}
+                    className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white rounded-full flex items-center justify-center transition-all active:scale-90"
+                  >
+                    <ChevronLeft size={32} strokeWidth={3} />
+                  </button>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setZoomIndex(prev => (prev + 1) % zoomImages.length);
+                    }}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white rounded-full flex items-center justify-center transition-all active:scale-90"
+                  >
+                    <ChevronRight size={32} strokeWidth={3} />
+                  </button>
+                  
+                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+                    {zoomImages.map((_, idx) => (
+                      <div 
+                        key={idx} 
+                        className={`w-2 h-2 rounded-full transition-all ${idx === zoomIndex ? 'bg-white w-4' : 'bg-white/30'}`}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+              
+              <button 
+                onClick={() => setZoomImages([])}
+                className="absolute -top-12 right-0 text-white/70 hover:text-white transition-colors"
+              >
+                <X size={32} strokeWidth={3} />
+              </button>
+            </motion.div>
           </div>
         )}
       </AnimatePresence>
@@ -997,7 +1047,7 @@ export default function App() {
               onAddToCart={handleAddToCart} 
               onEdit={setEditingProduct} 
               role={effectiveRole} 
-              onZoom={setZoomImage}
+              onZoom={onZoom}
               banners={banners}
               user={user}
               company={company}
@@ -1997,7 +2047,7 @@ function CatalogScreen({
   onAddToCart: (p: Product, q: number, v?: Record<string, string>) => void, 
   onEdit: (p: Product) => void, 
   role: UserRole, 
-  onZoom: (img: string) => void,
+  onZoom: (imgs: string[], index: number) => void,
   banners?: BannerData[],
   user: any,
   company: any,
@@ -2541,6 +2591,9 @@ function VarietiesModal({
   varietiesQty: Record<string, number>,
   onQtyChange: (sku: string, val: number) => void
 }) {
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const images = product.imagens && product.imagens.length > 0 ? product.imagens : [product.imagem || `https://picsum.photos/seed/${product.sku}/400/400`];
+
   return (
     <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
       <motion.div 
@@ -2558,8 +2611,35 @@ function VarietiesModal({
       >
         <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl overflow-hidden bg-white border border-slate-100 shadow-sm shrink-0">
-              <img src={product.imagem || `https://picsum.photos/seed/${product.sku}/100/100`} className="w-full h-full object-contain p-1" alt={product.nome} />
+            <div className="w-16 h-16 rounded-2xl overflow-hidden bg-white border border-slate-100 shadow-sm shrink-0 relative group">
+              <AnimatePresence mode="wait">
+                <motion.img 
+                  key={currentImageIndex}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  src={images[currentImageIndex]} 
+                  className="w-full h-full object-contain p-1" 
+                  alt={product.nome} 
+                />
+              </AnimatePresence>
+              
+              {images.length > 1 && (
+                <>
+                  <button 
+                    onClick={() => setCurrentImageIndex(prev => (prev - 1 + images.length) % images.length)}
+                    className="absolute left-0 top-1/2 -translate-y-1/2 bg-black/20 text-white p-0.5 rounded-r opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <ChevronLeft size={12} />
+                  </button>
+                  <button 
+                    onClick={() => setCurrentImageIndex(prev => (prev + 1) % images.length)}
+                    className="absolute right-0 top-1/2 -translate-y-1/2 bg-black/20 text-white p-0.5 rounded-l opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <ChevronRight size={12} />
+                  </button>
+                </>
+              )}
             </div>
             <div className="min-w-0">
               <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight line-clamp-1">{product.nome}</h3>
@@ -2623,12 +2703,28 @@ function VarietiesModal({
   );
 }
 
-function ProductCard({ product, onAdd, onEdit, role, onZoom, isInCart, ...props }: { product: Product, onAdd: (p: Product, q: number, v?: Record<string, string>) => void, onEdit: (p: Product) => void, role: UserRole, onZoom: (img: string) => void, isInCart?: boolean, [key: string]: any }) {
+function ProductCard({ product, onAdd, onEdit, role, onZoom, isInCart, ...props }: { product: Product, onAdd: (p: Product, q: number, v?: Record<string, string>) => void, onEdit: (p: Product) => void, role: UserRole, onZoom: (imgs: string[], index: number) => void, isInCart?: boolean, [key: string]: any }) {
   const [qty, setQty] = useState(product.venda_somente_box ? 1 : (product.multiplo_venda || 1));
   const [selectedVariations, setSelectedVariations] = useState<Record<string, string>>({});
   const [showVarieties, setShowVarieties] = useState(false);
   const [varietiesQty, setVarietiesQty] = useState<Record<string, number>>({});
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isHovering, setIsHovering] = useState(false);
   const isEsgotado = product.status_estoque === 'esgotado';
+
+  const images = product.imagens && product.imagens.length > 0 ? product.imagens : [product.imagem || `https://picsum.photos/seed/${product.sku}/400/400`];
+
+  useEffect(() => {
+    let interval: any;
+    if (isHovering && images.length > 1) {
+      interval = setInterval(() => {
+        setCurrentImageIndex(prev => (prev + 1) % images.length);
+      }, 1500);
+    } else {
+      setCurrentImageIndex(0);
+    }
+    return () => clearInterval(interval);
+  }, [isHovering, images.length]);
 
   const handleAddQty = () => {
     setQty(prev => prev + (product.venda_somente_box ? 1 : (product.multiplo_venda || 1)));
@@ -2675,14 +2771,36 @@ function ProductCard({ product, onAdd, onEdit, role, onZoom, isInCart, ...props 
 
   return (
     <>
-      <Card className={`p-3 md:p-4 flex flex-col group hover:border-primary/20 transition-all duration-500 neumorphic-shadow hover:shadow-2xl hover:shadow-primary/5 hover:-translate-y-1 rounded-[32px] relative ${isEsgotado ? 'opacity-75 grayscale-[0.5]' : ''}`}>
+    <div 
+      onMouseEnter={() => setIsHovering(true)}
+      onMouseLeave={() => setIsHovering(false)}
+      className="h-full"
+    >
+      <Card 
+        className={`p-3 md:p-4 flex flex-col group hover:border-primary/20 transition-all duration-500 neumorphic-shadow hover:shadow-2xl hover:shadow-primary/5 hover:-translate-y-1 rounded-[32px] relative h-full ${isEsgotado ? 'opacity-75 grayscale-[0.5]' : ''}`}
+      >
         {isInCart && (
           <div className="absolute top-4 right-4 z-10 bg-emerald-500 text-white p-2 rounded-full shadow-lg shadow-emerald-500/20 animate-in zoom-in duration-300">
             <CheckCircle2 size={16} />
           </div>
         )}
-        <div className="relative aspect-square mb-4 rounded-[24px] overflow-hidden bg-slate-50 cursor-zoom-in group-hover:scale-[1.02] transition-transform duration-500 shadow-inner" onClick={() => onZoom(product.imagem || '')}>
-          <img src={product.imagem || `https://picsum.photos/seed/${product.sku}/400/400`} className="w-full h-full object-contain p-2" alt={product.nome} referrerPolicy="no-referrer" />
+        <div 
+          className="relative aspect-square mb-4 rounded-[24px] overflow-hidden bg-slate-50 cursor-zoom-in group-hover:scale-[1.02] transition-transform duration-500 shadow-inner" 
+          onClick={() => onZoom(images, currentImageIndex)}
+        >
+          <AnimatePresence mode="wait">
+            <motion.img 
+              key={currentImageIndex}
+              initial={{ opacity: 0.8 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0.8 }}
+              transition={{ duration: 0.5 }}
+              src={images[currentImageIndex]} 
+              className="w-full h-full object-contain p-2" 
+              alt={product.nome} 
+              referrerPolicy="no-referrer" 
+            />
+          </AnimatePresence>
           <div className="absolute top-3 w-full flex flex-col gap-1 items-center">
             {isEsgotado && <span className="bg-slate-900 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-widest">ESGOTADO</span>}
             {!isEsgotado && product.is_last_units && <span className="bg-rose-500 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-widest">ÚLTIMAS UNIDADES</span>}
@@ -2759,8 +2877,9 @@ function ProductCard({ product, onAdd, onEdit, role, onZoom, isInCart, ...props 
           </button>
         </div>
       </Card>
+    </div>
 
-      <AnimatePresence>
+    <AnimatePresence>
         {showVarieties && (
           <VarietiesModal 
             product={product}

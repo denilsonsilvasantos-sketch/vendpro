@@ -22,6 +22,7 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
     is_last_units: false,
     multiplo_venda: 1,
     imagem: '',
+    imagens: [],
     brand_id: undefined,
     category_id: undefined
   });
@@ -71,7 +72,11 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
       });
       const data = await response.json();
       if (data.secure_url) {
-        setFormData(prev => ({ ...prev, imagem: data.secure_url }));
+        if (!formData.imagem) {
+          setFormData(prev => ({ ...prev, imagem: data.secure_url, imagens: [data.secure_url, ...(prev.imagens || [])] }));
+        } else {
+          setFormData(prev => ({ ...prev, imagens: [...(prev.imagens || []), data.secure_url] }));
+        }
       }
     } catch (error) {
       console.error('Erro no upload:', error);
@@ -128,16 +133,32 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
           });
           const data = await response.json();
           if (data.secure_url) {
-            setFormData(prev => ({ ...prev, imagem: data.secure_url }));
+            setFormData(prev => ({ 
+              ...prev, 
+              imagem: data.secure_url,
+              imagens: prev.imagens ? [...prev.imagens, data.secure_url] : [data.secure_url]
+            }));
           } else {
-            setFormData(prev => ({ ...prev, imagem: processedImage }));
+            setFormData(prev => ({ 
+              ...prev, 
+              imagem: processedImage,
+              imagens: prev.imagens ? [...prev.imagens, processedImage] : [processedImage]
+            }));
           }
         } catch (uploadError) {
           console.error('Erro ao subir imagem processada para Cloudinary:', uploadError);
-          setFormData(prev => ({ ...prev, imagem: processedImage }));
+          setFormData(prev => ({ 
+            ...prev, 
+            imagem: processedImage,
+            imagens: prev.imagens ? [...prev.imagens, processedImage] : [processedImage]
+          }));
         }
       } else {
-        setFormData(prev => ({ ...prev, imagem: processedImage }));
+        setFormData(prev => ({ 
+          ...prev, 
+          imagem: processedImage,
+          imagens: prev.imagens ? [...prev.imagens, processedImage] : [processedImage]
+        }));
       }
     } catch (error) {
       console.error('Erro ao remover fundo:', error);
@@ -299,6 +320,56 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
               </div>
               <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
               
+              <div className="space-y-4">
+                <div className="flex items-center justify-between px-2">
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-[2px]">Galeria de Imagens</label>
+                  <span className="text-[8px] font-bold text-slate-300">{(formData.imagens || []).length} fotos</span>
+                </div>
+                
+                <div className="grid grid-cols-4 gap-2">
+                  {(formData.imagens || []).map((img, idx) => (
+                    <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border border-slate-100 group/img">
+                      <img src={img} className="w-full h-full object-cover" alt={`Galeria ${idx}`} />
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          const newImgs = (formData.imagens || []).filter((_, i) => i !== idx);
+                          setFormData({ 
+                            ...formData, 
+                            imagens: newImgs,
+                            imagem: formData.imagem === img ? (newImgs[0] || '') : formData.imagem
+                          });
+                        }}
+                        className="absolute inset-0 bg-rose-500/80 text-white opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                      {formData.imagem === img && (
+                        <div className="absolute top-1 left-1 bg-primary text-white p-0.5 rounded-full shadow-sm">
+                          <Check size={8} strokeWidth={4} />
+                        </div>
+                      )}
+                      {formData.imagem !== img && (
+                        <button 
+                          type="button"
+                          onClick={() => setFormData({ ...formData, imagem: img })}
+                          className="absolute bottom-1 right-1 bg-white/90 text-slate-600 p-1 rounded shadow-sm opacity-0 group-hover/img:opacity-100 transition-opacity text-[8px] font-black uppercase"
+                        >
+                          Capa
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  <button 
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="aspect-square rounded-lg border-2 border-dashed border-slate-200 flex items-center justify-center text-slate-300 hover:border-primary/30 hover:text-primary transition-all"
+                  >
+                    <Plus size={20} />
+                  </button>
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-[2px] ml-2">URL da Imagem</label>
                 <div className="relative group">

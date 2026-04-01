@@ -12,7 +12,8 @@ export default function Produtos({ companyId, onRefresh }: { companyId: string |
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [zoomImage, setZoomImage] = useState<string | null>(null);
+  const [zoomImages, setZoomImages] = useState<string[]>([]);
+  const [zoomIndex, setZoomIndex] = useState(0);
   const [editingProduct, setEditingProduct] = useState<Product | undefined>();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterBrand, setFilterBrand] = useState<string | null>(null);
@@ -163,92 +164,17 @@ export default function Produtos({ companyId, onRefresh }: { companyId: string |
           </motion.div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 md:gap-6">
-            {filteredProducts.map(product => {
-              const isEsgotado = product.status_estoque === 'esgotado';
-              const brand = brands.find(b => b.id === product.brand_id);
-              const category = categories.find(c => c.id === product.category_id);
-              
-              return (
-                <motion.div 
-                  layout
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  key={product.id} 
-                  className={`bg-white rounded-[32px] overflow-hidden border transition-all duration-500 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1 group border-slate-100 flex flex-col relative neumorphic-shadow ${isEsgotado ? 'opacity-75' : ''}`}
-                >
-                  <div 
-                    className="aspect-square relative overflow-hidden bg-slate-50/30 cursor-zoom-in"
-                    onClick={() => setZoomImage(product.imagem || `https://picsum.photos/seed/${product.sku}/400/400`)}
-                  >
-                    <img 
-                      src={product.imagem || `https://picsum.photos/seed/${product.sku}/400/400`} 
-                      alt={product.nome} 
-                      className="w-full h-full object-contain p-4 group-hover:scale-110 transition-transform duration-1000 ease-out"
-                      referrerPolicy="no-referrer"
-                    />
-                    <div className="absolute top-2 right-2 flex flex-col gap-1.5 items-end z-10">
-                      {isEsgotado && <span className="bg-slate-900 text-white text-[7px] font-black px-1.5 py-0.5 rounded shadow-xl uppercase tracking-wider border border-white/10">Esgotado</span>}
-                      {!isEsgotado && product.is_last_units && <span className="bg-rose-500 text-white text-[7px] font-black px-1.5 py-0.5 rounded shadow-xl uppercase tracking-wider border border-white/10">Últimas</span>}
-                      {product.venda_somente_box && <span className="bg-amber-500 text-white text-[7px] font-black px-1.5 py-0.5 rounded shadow-xl uppercase tracking-wider border border-white/10">Somente Box</span>}
-                    </div>
-                  </div>
-                  
-                  <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
-                    <div className="space-y-1.5">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[7px] font-black text-primary uppercase tracking-wider bg-primary/5 px-1.5 py-0.5 rounded border border-primary/10">{brand?.name}</span>
-                        <span className="text-[7px] font-black text-slate-400 uppercase tracking-wider">{category?.nome}</span>
-                      </div>
-                      <h3 className="font-black text-slate-900 text-[11px] leading-tight group-hover:text-primary transition-colors line-clamp-2 uppercase tracking-tight h-8 flex items-center">{product.nome}</h3>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[7px] font-black text-slate-300 uppercase tracking-widest">SKU</span>
-                        <span className="text-[8px] font-mono font-black text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100">{product.sku}</span>
-                      </div>
-                    </div>
-
-                    <div className="space-y-3">
-                      <div className="flex items-end justify-between">
-                        <div className="space-y-0.5">
-                          <p className="text-[7px] font-black text-slate-300 uppercase tracking-wider">Preço Unitário</p>
-                          {!isEsgotado ? (
-                            <p className="text-lg font-black text-slate-900 tracking-tighter">R$ {product.preco_unitario.toFixed(2)}</p>
-                          ) : (
-                            <p className="text-lg font-black text-slate-200 tracking-tighter">--</p>
-                          )}
-                        </div>
-                        <div className="flex gap-1">
-                          <button 
-                            onClick={() => { setEditingProduct(product); setIsModalOpen(true); }} 
-                            className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-primary hover:bg-primary/5 rounded-full transition-all border border-slate-100"
-                          >
-                            <Edit size={14} strokeWidth={2.5} />
-                          </button>
-                          <button 
-                            onClick={() => handleDelete(product.id)} 
-                            className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-full transition-all border border-slate-100"
-                          >
-                            <Trash2 size={14} strokeWidth={2.5} />
-                          </button>
-                        </div>
-                      </div>
-
-                      {(product.has_box_discount || product.venda_somente_box) && !isEsgotado && (
-                        <div className="p-2 bg-rose-50 rounded-xl border border-rose-100 text-[10px] font-black text-rose-600 text-center uppercase tracking-wider flex items-center justify-center gap-1">
-                          <Info size={11} />
-                          <span className="line-clamp-1">
-                            {!product.venda_somente_box ? (
-                              `A partir de ${product.qtd_box} un: R$ ${product.preco_box.toFixed(2)}`
-                            ) : (
-                              `Box com ${product.qtd_box} un: R$ ${product.preco_box.toFixed(2)}`
-                            )}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </motion.div>
-              );
-            })}
+            {filteredProducts.map(product => (
+              <ProductItem 
+                key={product.id}
+                product={product}
+                brands={brands}
+                categories={categories}
+                onEdit={(p) => { setEditingProduct(p); setIsModalOpen(true); }}
+                onDelete={handleDelete}
+                onZoom={(imgs, idx) => { setZoomImages(imgs); setZoomIndex(idx); }}
+              />
+            ))}
           </div>
         )}
       </AnimatePresence>
@@ -265,30 +191,198 @@ export default function Produtos({ companyId, onRefresh }: { companyId: string |
       </AnimatePresence>
 
       <AnimatePresence>
-        {zoomImage && (
+        {zoomImages.length > 0 && (
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[110] flex items-center justify-center p-8 md:p-20 bg-slate-900/95 backdrop-blur-xl cursor-zoom-out"
-            onClick={() => setZoomImage(null)}
+            className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/95 backdrop-blur-xl"
+            onClick={() => setZoomImages([])}
           >
-            <button className="absolute top-8 right-8 w-14 h-14 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center transition-all">
-              <X size={32} strokeWidth={2.5} />
-            </button>
-            <motion.img 
+            <motion.div 
               initial={{ scale: 0.9, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: 20 }}
-              src={zoomImage} 
-              className="max-w-full max-h-full rounded-[40px] shadow-2xl object-contain bg-white p-12"
-              alt="Zoom"
-              referrerPolicy="no-referrer"
-            />
+              className="relative max-w-full max-h-full flex items-center justify-center"
+              onClick={e => e.stopPropagation()}
+            >
+              <img 
+                src={zoomImages[zoomIndex]} 
+                className="max-w-full max-h-[90vh] rounded-[40px] shadow-2xl object-contain bg-white p-4 md:p-12"
+                alt="Zoom"
+                referrerPolicy="no-referrer"
+              />
+              
+              {zoomImages.length > 1 && (
+                <>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setZoomIndex(prev => (prev - 1 + zoomImages.length) % zoomImages.length);
+                    }}
+                    className="absolute left-4 top-1/2 -translate-y-1/2 w-14 h-14 bg-white/20 hover:bg-white/40 backdrop-blur-xl text-white rounded-full flex items-center justify-center transition-all active:scale-90 z-20 shadow-2xl border border-white/20"
+                  >
+                    <ChevronLeft size={40} strokeWidth={3} />
+                  </button>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setZoomIndex(prev => (prev + 1) % zoomImages.length);
+                    }}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 w-14 h-14 bg-white/20 hover:bg-white/40 backdrop-blur-xl text-white rounded-full flex items-center justify-center transition-all active:scale-90 z-20 shadow-2xl border border-white/20"
+                  >
+                    <ChevronRight size={40} strokeWidth={3} />
+                  </button>
+                  
+                  <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2 z-20">
+                    {zoomImages.map((_, idx) => (
+                      <div 
+                        key={idx} 
+                        className={`w-2 h-2 rounded-full transition-all ${idx === zoomIndex ? 'bg-primary w-4' : 'bg-slate-300'}`}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+              
+              <button 
+                onClick={() => setZoomImages([])}
+                className="absolute -top-12 right-0 text-white/70 hover:text-white transition-colors"
+              >
+                <X size={32} strokeWidth={3} />
+              </button>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+function ProductItem({ 
+  product, 
+  brands, 
+  categories, 
+  onEdit, 
+  onDelete, 
+  onZoom 
+}: { 
+  product: Product, 
+  brands: Brand[], 
+  categories: Category[], 
+  onEdit: (p: Product) => void, 
+  onDelete: (id: string) => void,
+  onZoom: (imgs: string[], idx: number) => void
+}) {
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isHovering, setIsHovering] = useState(false);
+  const isEsgotado = product.status_estoque === 'esgotado';
+  const brand = brands.find(b => b.id === product.brand_id);
+  const category = categories.find(c => c.id === product.category_id);
+
+  const images = product.imagens && product.imagens.length > 0 
+    ? product.imagens 
+    : [product.imagem || `https://picsum.photos/seed/${product.sku}/400/400`];
+
+  useEffect(() => {
+    let interval: any;
+    if (isHovering && images.length > 1) {
+      interval = setInterval(() => {
+        setCurrentImageIndex(prev => (prev + 1) % images.length);
+      }, 1500);
+    } else {
+      setCurrentImageIndex(0);
+    }
+    return () => clearInterval(interval);
+  }, [isHovering, images.length]);
+
+  return (
+    <motion.div 
+      layout
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      onMouseEnter={() => setIsHovering(true)}
+      onMouseLeave={() => setIsHovering(false)}
+      className={`bg-white rounded-[32px] overflow-hidden border transition-all duration-500 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1 group border-slate-100 flex flex-col relative neumorphic-shadow ${isEsgotado ? 'opacity-75' : ''}`}
+    >
+      <div 
+        className="aspect-square relative overflow-hidden bg-slate-50/30 cursor-zoom-in"
+        onClick={() => onZoom(images, currentImageIndex)}
+      >
+        <AnimatePresence mode="wait">
+          <motion.img 
+            key={currentImageIndex}
+            initial={{ opacity: 0.8 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0.8 }}
+            transition={{ duration: 0.5 }}
+            src={images[currentImageIndex]} 
+            alt={product.nome} 
+            className="w-full h-full object-contain p-4 group-hover:scale-110 transition-transform duration-1000 ease-out"
+            referrerPolicy="no-referrer"
+          />
+        </AnimatePresence>
+        <div className="absolute top-2 right-2 flex flex-col gap-1.5 items-end z-10">
+          {isEsgotado && <span className="bg-slate-900 text-white text-[7px] font-black px-1.5 py-0.5 rounded shadow-xl uppercase tracking-wider border border-white/10">Esgotado</span>}
+          {!isEsgotado && product.is_last_units && <span className="bg-rose-500 text-white text-[7px] font-black px-1.5 py-0.5 rounded shadow-xl uppercase tracking-wider border border-white/10">Últimas</span>}
+          {product.venda_somente_box && <span className="bg-amber-500 text-white text-[7px] font-black px-1.5 py-0.5 rounded shadow-xl uppercase tracking-wider border border-white/10">Somente Box</span>}
+        </div>
+      </div>
+      
+      <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[7px] font-black text-primary uppercase tracking-wider bg-primary/5 px-1.5 py-0.5 rounded border border-primary/10">{brand?.name}</span>
+            <span className="text-[7px] font-black text-slate-400 uppercase tracking-wider">{category?.nome}</span>
+          </div>
+          <h3 className="font-black text-slate-900 text-[11px] leading-tight group-hover:text-primary transition-colors line-clamp-2 uppercase tracking-tight h-8 flex items-center">{product.nome}</h3>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[7px] font-black text-slate-300 uppercase tracking-widest">SKU</span>
+            <span className="text-[8px] font-mono font-black text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100">{product.sku}</span>
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          <div className="flex items-end justify-between">
+            <div className="space-y-0.5">
+              <p className="text-[7px] font-black text-slate-300 uppercase tracking-wider">Preço Unitário</p>
+              {!isEsgotado ? (
+                <p className="text-lg font-black text-slate-900 tracking-tighter">R$ {product.preco_unitario.toFixed(2)}</p>
+              ) : (
+                <p className="text-lg font-black text-slate-200 tracking-tighter">--</p>
+              )}
+            </div>
+            <div className="flex gap-1">
+              <button 
+                onClick={() => onEdit(product)} 
+                className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-primary hover:bg-primary/5 rounded-full transition-all border border-slate-100"
+              >
+                <Edit size={14} strokeWidth={2.5} />
+              </button>
+              <button 
+                onClick={() => onDelete(product.id)} 
+                className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-full transition-all border border-slate-100"
+              >
+                <Trash2 size={14} strokeWidth={2.5} />
+              </button>
+            </div>
+          </div>
+
+          {(product.has_box_discount || product.venda_somente_box) && !isEsgotado && (
+            <div className="p-2 bg-rose-50 rounded-xl border border-rose-100 text-[10px] font-black text-rose-600 text-center uppercase tracking-wider flex items-center justify-center gap-1">
+              <Info size={11} />
+              <span className="line-clamp-1">
+                {!product.venda_somente_box ? (
+                  `A partir de ${product.qtd_box} un: R$ ${product.preco_box.toFixed(2)}`
+                ) : (
+                  `Box com ${product.qtd_box} un: R$ ${product.preco_box.toFixed(2)}`
+                )}
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+    </motion.div>
   );
 }
 

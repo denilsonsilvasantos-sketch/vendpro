@@ -697,18 +697,18 @@ export default function App() {
                       e.stopPropagation();
                       setZoomIndex(prev => (prev - 1 + zoomImages.length) % zoomImages.length);
                     }}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white rounded-full flex items-center justify-center transition-all active:scale-90"
+                    className="absolute left-4 top-1/2 -translate-y-1/2 w-14 h-14 bg-white/20 hover:bg-white/40 backdrop-blur-xl text-white rounded-full flex items-center justify-center transition-all active:scale-90 z-20 shadow-2xl border border-white/20"
                   >
-                    <ChevronLeft size={32} strokeWidth={3} />
+                    <ChevronLeft size={40} strokeWidth={3} />
                   </button>
                   <button 
                     onClick={(e) => {
                       e.stopPropagation();
                       setZoomIndex(prev => (prev + 1) % zoomImages.length);
                     }}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white rounded-full flex items-center justify-center transition-all active:scale-90"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 w-14 h-14 bg-white/20 hover:bg-white/40 backdrop-blur-xl text-white rounded-full flex items-center justify-center transition-all active:scale-90 z-20 shadow-2xl border border-white/20"
                   >
-                    <ChevronRight size={32} strokeWidth={3} />
+                    <ChevronRight size={40} strokeWidth={3} />
                   </button>
                   
                   <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
@@ -2627,16 +2627,22 @@ function VarietiesModal({
               {images.length > 1 && (
                 <>
                   <button 
-                    onClick={() => setCurrentImageIndex(prev => (prev - 1 + images.length) % images.length)}
-                    className="absolute left-0 top-1/2 -translate-y-1/2 bg-black/20 text-white p-0.5 rounded-r opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCurrentImageIndex(prev => (prev - 1 + images.length) % images.length);
+                    }}
+                    className="absolute left-0 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white p-1 rounded-r transition-all z-10"
                   >
-                    <ChevronLeft size={12} />
+                    <ChevronLeft size={16} strokeWidth={3} />
                   </button>
                   <button 
-                    onClick={() => setCurrentImageIndex(prev => (prev + 1) % images.length)}
-                    className="absolute right-0 top-1/2 -translate-y-1/2 bg-black/20 text-white p-0.5 rounded-l opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCurrentImageIndex(prev => (prev + 1) % images.length);
+                    }}
+                    className="absolute right-0 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white p-1 rounded-l transition-all z-10"
                   >
-                    <ChevronRight size={12} />
+                    <ChevronRight size={16} strokeWidth={3} />
                   </button>
                 </>
               )}

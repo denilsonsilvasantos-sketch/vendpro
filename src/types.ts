@@ -35,6 +35,7 @@ export interface Seller {
   codigo_cliente?: string;
   ativo: boolean;
   marcas_bloqueadas?: string[];
+  skus_bloqueados?: string[];
   comissao?: number;
   comissao_por_marca?: Record<string, number>;
 }

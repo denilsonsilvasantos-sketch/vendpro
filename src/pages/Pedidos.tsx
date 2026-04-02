@@ -106,10 +106,18 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
     if (error) {
       console.error('Erro na consulta de pedidos:', error);
       // Tenta uma consulta ultra-simples se a primeira falhar
-      const { data: simpleData, error: simpleError } = await supabase
+      let simpleQuery = supabase
         .from('orders')
         .select('*')
-        .eq('company_id', companyId)
+        .eq('company_id', companyId);
+      
+      if (role === 'seller' && user?.id) {
+        simpleQuery = simpleQuery.eq('seller_id', user.id);
+      } else if (role === 'customer' && user?.id) {
+        simpleQuery = simpleQuery.eq('customer_id', user.id);
+      }
+
+      const { data: simpleData, error: simpleError } = await simpleQuery
         .order('created_at', { ascending: false });
       
       if (simpleError) {

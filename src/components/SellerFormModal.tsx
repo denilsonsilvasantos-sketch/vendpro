@@ -21,6 +21,8 @@ export default function SellerFormModal({ onClose, onSave, seller, companyId }: 
   });
   const [brands, setBrands] = useState<Brand[]>([]);
   const [blockedBrands, setBlockedBrands] = useState<string[]>([]);
+  const [blockedSkus, setBlockedSkus] = useState<string[]>([]);
+  const [newSku, setNewSku] = useState('');
   const [comissaoPorMarca, setComissaoPorMarca] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(false);
   const [loadingBrands, setLoadingBrands] = useState(true);
@@ -38,6 +40,7 @@ export default function SellerFormModal({ onClose, onSave, seller, companyId }: 
         setBrands(data || []);
         if (seller?.id) {
           setBlockedBrands(seller.marcas_bloqueadas || []);
+          setBlockedSkus(seller.skus_bloqueados || []);
           setComissaoPorMarca(seller.comissao_por_marca || {});
         }
       } catch (error: any) {
@@ -78,6 +81,7 @@ export default function SellerFormModal({ onClose, onSave, seller, companyId }: 
         ativo: formData.ativo,
         company_id: companyId,
         marcas_bloqueadas: blockedBrands,
+        skus_bloqueados: blockedSkus,
         comissao: formData.comissao || 0,
         comissao_por_marca: comissaoPorMarca,
       };
@@ -256,6 +260,58 @@ export default function SellerFormModal({ onClose, onSave, seller, companyId }: 
                 checked={formData.ativo ?? true}
                 onChange={e => setFormData({ ...formData, ativo: e.target.checked })} />
               <label htmlFor="ativo" className="font-medium text-slate-700 cursor-pointer select-none">Vendedor Ativo</label>
+            </div>
+
+            <div className="space-y-3 pt-1">
+              <div>
+                <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-2">
+                  <Ban size={14} className="text-rose-400" />
+                  <span>Restringir por SKU</span>
+                </label>
+                <p className="text-[10px] text-slate-400 mt-1">Adicione SKUs específicos que este vendedor <span className="text-rose-500">NÃO</span> pode vender.</p>
+              </div>
+
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  className="flex-1 p-2 text-xs bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-primary/20 uppercase font-mono"
+                  placeholder="Digite o SKU..."
+                  value={newSku}
+                  onChange={e => setNewSku(e.target.value.toUpperCase())}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      if (newSku.trim() && !blockedSkus.includes(newSku.trim())) {
+                        setBlockedSkus([...blockedSkus, newSku.trim()]);
+                        setNewSku('');
+                      }
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (newSku.trim() && !blockedSkus.includes(newSku.trim())) {
+                      setBlockedSkus([...blockedSkus, newSku.trim()]);
+                      setNewSku('');
+                    }
+                  }}
+                  className="px-3 py-2 bg-slate-900 text-white rounded-lg text-xs font-bold"
+                >
+                  Add
+                </button>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {blockedSkus.map(sku => (
+                  <span key={sku} className="inline-flex items-center gap-1.5 px-2 py-1 bg-rose-50 text-rose-600 border border-rose-100 rounded-lg text-[10px] font-black font-mono">
+                    {sku}
+                    <button type="button" onClick={() => setBlockedSkus(blockedSkus.filter(s => s !== sku))} className="text-rose-400 hover:text-rose-600">
+                      <X size={12} />
+                    </button>
+                  </span>
+                ))}
+              </div>
             </div>
 
             <div className="space-y-3 pt-1">

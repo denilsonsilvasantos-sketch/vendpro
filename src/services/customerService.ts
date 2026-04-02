@@ -215,6 +215,7 @@ export async function createCustomer(companyId: string, customerData: any) {
       codigo_acesso: currentCode,
       ativo: true,
       vendedor_marcas_bloqueadas: customerData.vendedor_marcas_bloqueadas || [],
+      vendedor_skus_bloqueados: customerData.vendedor_skus_bloqueados || [],
       responsavel: customerData.nome || '', // Preenche responsavel com o mesmo valor de nome
     };
 

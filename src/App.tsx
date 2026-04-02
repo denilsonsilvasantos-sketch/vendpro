@@ -482,16 +482,26 @@ export default function App() {
           const { data: catData } = await supabase.from('categories').select('*').eq('company_id', activeCompanyId).order('nome');
 
           let blockedBrandIds: string[] = [];
+          let blockedSkus: string[] = [];
           
           if (role === 'seller' && user?.id) {
             blockedBrandIds = user.marcas_bloqueadas || [];
+            blockedSkus = user.skus_bloqueados || [];
             
-            if (blockedBrandIds.length > 0) {
-              finalProducts = fetchedProducts.filter(p => !p.brand_id || !blockedBrandIds.includes(p.brand_id));
-            }
-          } else if (role === 'customer' && user?.vendedor_marcas_bloqueadas?.length > 0) {
-            blockedBrandIds = user.vendedor_marcas_bloqueadas;
-            finalProducts = fetchedProducts.filter(p => !p.brand_id || !blockedBrandIds.includes(p.brand_id));
+            finalProducts = fetchedProducts.filter(p => {
+              const brandBlocked = p.brand_id && blockedBrandIds.includes(p.brand_id);
+              const skuBlocked = p.sku && blockedSkus.includes(p.sku);
+              return !brandBlocked && !skuBlocked;
+            });
+          } else if (role === 'customer') {
+            blockedBrandIds = user?.vendedor_marcas_bloqueadas || [];
+            blockedSkus = user?.vendedor_skus_bloqueados || [];
+            
+            finalProducts = fetchedProducts.filter(p => {
+              const brandBlocked = p.brand_id && blockedBrandIds.includes(p.brand_id);
+              const skuBlocked = p.sku && blockedSkus.includes(p.sku);
+              return !brandBlocked && !skuBlocked;
+            });
           }
 
           let filteredCats = catData || [];
@@ -1411,6 +1421,7 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
           vendedor_nome: result.seller?.nome,
           vendedor_whatsapp: result.seller?.whatsapp,
           vendedor_marcas_bloqueadas: result.seller?.marcas_bloqueadas || [],
+          vendedor_skus_bloqueados: result.seller?.skus_bloqueados || [],
         }, [result.company]);
       } else {
         alert(result.error || 'Erro ao realizar login');
@@ -1478,6 +1489,7 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
           seller_id: sellerInfo.id,
           ativo: true,
           vendedor_marcas_bloqueadas: sellerInfo.marcas_bloqueadas || [],
+          vendedor_skus_bloqueados: sellerInfo.skus_bloqueados || [],
           responsavel: customerData.nome || '', // Preenche responsavel com o mesmo valor de nome
         });
 

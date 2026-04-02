@@ -1,51 +1,60 @@
 import { useState, useEffect, useMemo } from 'react';
 import { CartItem, Product } from '../types';
 
-export function useCart(brandId?: string | null) {
-  const [carts, setCarts] = useState<{ [brandId: string]: CartItem[] }>(() => {
-    const userId = localStorage.getItem('vendpro_user_id');
-    const storageKey = userId ? `vendpro_carts_${userId}` : 'vendpro_carts';
+export function useCart(brandId?: string | null, userId?: string | null) {
+  const [carts, setCarts] = useState<{ [brandId: string]: CartItem[] }>({});
+
+  const storageKey = useMemo(() => {
+    return userId ? `vendpro_carts_${userId}` : 'vendpro_carts';
+  }, [userId]);
+
+  // Load cart when userId or storageKey changes
+  useEffect(() => {
     const saved = localStorage.getItem(storageKey);
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
         const lastUpdate = localStorage.getItem(`${storageKey}_time`);
         if (lastUpdate && Date.now() - parseInt(lastUpdate) > 5 * 24 * 60 * 60 * 1000) {
-          return {};
+          setCarts({});
+        } else {
+          setCarts(parsed);
         }
-        return parsed;
       } catch (e) {
-        return {};
+        setCarts({});
       }
+    } else {
+      // Migration from old cart (only if no user-specific cart exists)
+      const oldCart = localStorage.getItem('vendpro_cart');
+      if (oldCart) {
+        try {
+          const parsed = JSON.parse(oldCart) as CartItem[];
+          if (parsed.length > 0) {
+            const brandCarts: { [brandId: string]: CartItem[] } = {};
+            parsed.forEach(item => {
+              const bId = item.brand_id || 'default';
+              if (!brandCarts[bId]) brandCarts[bId] = [];
+              brandCarts[bId].push(item);
+            });
+            localStorage.removeItem('vendpro_cart');
+            setCarts(brandCarts);
+            return;
+          }
+        } catch (e) {}
+      }
+      setCarts({});
     }
-    // Migration from old cart
-    const oldCart = localStorage.getItem('vendpro_cart');
-    if (oldCart) {
-      try {
-        const parsed = JSON.parse(oldCart) as CartItem[];
-        if (parsed.length > 0) {
-          const brandCarts: { [brandId: string]: CartItem[] } = {};
-          parsed.forEach(item => {
-            const bId = item.brand_id || 'default';
-            if (!brandCarts[bId]) brandCarts[bId] = [];
-            brandCarts[bId].push(item);
-          });
-          localStorage.removeItem('vendpro_cart');
-          return brandCarts;
-        }
-      } catch (e) {}
-    }
-    return {};
-  });
+  }, [storageKey]);
 
   const cart = useMemo(() => brandId ? (carts[brandId] || []) : [], [carts, brandId]);
 
+  // Save cart whenever it changes
   useEffect(() => {
-    const userId = localStorage.getItem('vendpro_user_id');
-    const storageKey = userId ? `vendpro_carts_${userId}` : 'vendpro_carts';
-    localStorage.setItem(storageKey, JSON.stringify(carts));
-    localStorage.setItem(`${storageKey}_time`, Date.now().toString());
-  }, [carts]);
+    if (Object.keys(carts).length > 0 || localStorage.getItem(storageKey)) {
+      localStorage.setItem(storageKey, JSON.stringify(carts));
+      localStorage.setItem(`${storageKey}_time`, Date.now().toString());
+    }
+  }, [carts, storageKey]);
 
   const addToCart = (product: Product, quantity: number, selected_variation?: Record<string, string>) => {
     const bId = product.brand_id || 'default';

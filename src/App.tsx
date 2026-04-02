@@ -258,7 +258,7 @@ export default function App() {
   const [topBarMessages, setTopBarMessages] = useState<string[]>([]);
   const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const { cart, carts, addToCart, removeFromCart, updateQuantity, clearCart, total, productCount, itemCount } = useCart(selectedBrand);
+  const { cart, carts, addToCart, removeFromCart, updateQuantity, clearCart, total, productCount, itemCount } = useCart(selectedBrand, user?.id);
 
   // Reset selected brand if it becomes blocked
   useEffect(() => {
@@ -619,6 +619,7 @@ export default function App() {
     }
 
     localStorage.setItem('vendpro_role', selectedRole as string);
+    localStorage.setItem('vendpro_user_id', userData.id);
     localStorage.setItem('vendpro_available_companies', JSON.stringify(companies));
     localStorage.setItem('vendpro_sellers', JSON.stringify(sellers));
     setActiveTab('catalog');
@@ -632,6 +633,7 @@ export default function App() {
     setAvailableSellers([]);
     setActiveCompanyId(null);
     localStorage.removeItem('vendpro_role');
+    localStorage.removeItem('vendpro_user_id');
     localStorage.removeItem('vendpro_seller_code');
     localStorage.removeItem('vendpro_available_companies');
     localStorage.removeItem('vendpro_active_company_id');

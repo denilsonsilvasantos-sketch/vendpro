@@ -2879,7 +2879,13 @@ const ProductCard = memo(({ product, onAdd, onEdit, role, onZoom, isInCart, ...p
           {product.tipo_variacao !== 'variedades' && (
             <div className="flex items-center bg-slate-50 rounded-[20px] p-1.5 w-full justify-between shadow-inner border border-slate-100">
               <button onClick={handleSubQty} disabled={isEsgotado} className="p-2 text-slate-400 hover:bg-white hover:text-primary rounded-xl disabled:opacity-50 transition-all shadow-sm"><Minus size={14}/></button>
-              <span className="text-xs font-black text-slate-700">{qty}</span>
+              <input 
+                type="number"
+                value={qty}
+                onChange={(e) => setQty(Math.max(0, parseInt(e.target.value) || 0))}
+                disabled={isEsgotado}
+                className="w-12 text-center text-xs font-black bg-transparent outline-none text-slate-700 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              />
               <button onClick={handleAddQty} disabled={isEsgotado} className="p-2 text-slate-400 hover:bg-white hover:text-primary rounded-xl disabled:opacity-50 transition-all shadow-sm"><Plus size={14}/></button>
             </div>
           )}

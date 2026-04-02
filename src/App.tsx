@@ -430,12 +430,17 @@ export default function App() {
 
         // Fetch customers and sellers if role is seller or company
         if (supabase && (role === 'seller' || role === 'company')) {
-          const { data: customerData } = await supabase
+          let customerQuery = supabase
             .from('customers')
             .select('*')
             .eq('company_id', activeCompanyId)
-            .eq('ativo', true)
-            .order('nome');
+            .eq('ativo', true);
+          
+          if (role === 'seller' && user?.id) {
+            customerQuery = customerQuery.eq('seller_id', user.id);
+          }
+          
+          const { data: customerData } = await customerQuery.order('nome');
           setCustomers(customerData || []);
 
           if (role === 'company') {
@@ -541,7 +546,7 @@ export default function App() {
   useEffect(() => {
     console.log("Active Company ID:", activeCompanyId);
     loadData();
-  }, [activeCompanyId]);
+  }, [activeCompanyId, role, user?.id]);
 
   useEffect(() => {
     if (user) {

@@ -1,13 +1,16 @@
 import { CartItem } from '../types';
 
 export function formatWhatsAppMessage(items: CartItem[], clientName?: string, brandName?: string): string {
-  const lines = items.map(item => {
+  const itemCount = items.length;
+  const productCount = items.reduce((acc, item) => acc + item.quantity, 0);
+
+  const lines = items.map((item, index) => {
     const isBoxDiscount = item.has_box_discount && !item.venda_somente_box && item.quantity >= (item.qtd_box || 0);
     const unitPrice = item.venda_somente_box 
       ? item.preco_box
       : (isBoxDiscount ? item.preco_box : item.preco_unitario);
     
-    return `${item.quantity} / ${item.sku} / ${item.nome} / ${unitPrice.toFixed(2).replace('.', ',')} / ${(item.quantity * unitPrice).toFixed(2).replace('.', ',')}`;
+    return `${index + 1}. ${item.quantity} / ${item.sku} / ${item.nome} / ${unitPrice.toFixed(2).replace('.', ',')} / ${(item.quantity * unitPrice).toFixed(2).replace('.', ',')}`;
   });
   
   const total = items.reduce((acc, item) => {
@@ -25,6 +28,7 @@ export function formatWhatsAppMessage(items: CartItem[], clientName?: string, br
   if (clientName) {
     message += `${clientName}\n`;
   }
+  message += `\nItens: ${itemCount} | Produtos: ${productCount}\n`;
   message += `\n${lines.join('\n')}\n\nSubtotal: R$ ${total.toFixed(2).replace('.', ',')}\nDesconto: R$ 0,00\nTotal Líquido: R$ ${total.toFixed(2).replace('.', ',')}`;
   
   return message;

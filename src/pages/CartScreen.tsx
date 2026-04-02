@@ -80,7 +80,7 @@ export default function CartScreen({
                 <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-3">{currentBrand.name}</p>
               )}
               <AnimatePresence mode="popLayout">
-                {cart.map(item => {
+                {cart.map((item, index) => {
                   const step = item.venda_somente_box ? 1 : (item.multiplo_venda || 1);
                   const isBoxDiscount = item.has_box_discount && !item.venda_somente_box && item.quantity >= (item.qtd_box || 0);
                   const unitPrice = item.venda_somente_box
@@ -97,6 +97,7 @@ export default function CartScreen({
                       key={item.id}
                       className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100"
                     >
+                      <span className="text-[10px] font-black text-slate-300 w-4">{index + 1}</span>
                       <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center border border-slate-100 shrink-0 overflow-hidden">
                         {item.imagem ? (
                           <img src={item.imagem} alt={item.nome} className="w-full h-full object-contain p-1" referrerPolicy="no-referrer" />
@@ -123,7 +124,15 @@ export default function CartScreen({
                           className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 rounded-lg text-slate-500 hover:text-primary transition-all">
                           <Minus size={12} strokeWidth={2.5} />
                         </button>
-                        <span className="text-xs font-black text-slate-700 w-6 text-center">{item.quantity}</span>
+                        <input
+                          type="number"
+                          value={item.quantity}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value);
+                            if (!isNaN(val)) onUpdateQuantity(item.id, val, item.selected_variation);
+                          }}
+                          className="text-xs font-black text-slate-700 w-10 text-center bg-white border border-slate-200 rounded-lg py-1 outline-none focus:border-primary/40"
+                        />
                         <button onClick={() => onUpdateQuantity(item.id, item.quantity + step, item.selected_variation)}
                           className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 rounded-lg text-slate-500 hover:text-primary transition-all">
                           <Plus size={12} strokeWidth={2.5} />
@@ -232,7 +241,9 @@ export default function CartScreen({
               />
               <div className="flex items-center justify-between pt-1">
                 <div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total</p>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    {cart.length} Itens | {cart.reduce((acc, i) => acc + i.quantity, 0)} Produtos
+                  </p>
                   <p className="text-xl font-black text-slate-900">R$ {total.toFixed(2)}</p>
                 </div>
                 <button
@@ -295,7 +306,7 @@ export default function CartScreen({
         <div className="space-y-16">
           <div className="space-y-8">
             <AnimatePresence mode="popLayout">
-              {cart.map(item => {
+              {cart.map((item, index) => {
                 const step = item.venda_somente_box ? 1 : (item.multiplo_venda || 1);
                 const isBoxDiscount = item.has_box_discount && !item.venda_somente_box && item.quantity >= (item.qtd_box || 0);
                 const unitPrice = item.venda_somente_box 
@@ -312,6 +323,7 @@ export default function CartScreen({
                     key={item.id} 
                     className="group flex flex-col sm:flex-row justify-between items-start sm:items-center p-6 bg-white rounded-[10px] neumorphic-shadow border border-slate-100 gap-6 hover:shadow-2xl hover:shadow-primary/5 transition-all duration-500"
                   >
+                    <span className="text-xs font-black text-slate-300 w-6">{index + 1}</span>
                     <div className="flex-1 space-y-2">
                       <div className="flex items-center gap-2">
                         <span className="text-[9px] font-black text-slate-400 uppercase tracking-[2px] bg-slate-50 px-3 py-1 rounded-full border border-slate-100 shadow-inner">SKU: {item.sku}</span>
@@ -348,7 +360,15 @@ export default function CartScreen({
                         >
                           <Minus size={18} strokeWidth={2.5} />
                         </button>
-                        <span className="text-sm font-black w-12 text-center text-slate-700">{item.quantity}</span>
+                        <input
+                          type="number"
+                          value={item.quantity}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value);
+                            if (!isNaN(val)) onUpdateQuantity(item.id, val, item.selected_variation);
+                          }}
+                          className="text-sm font-black text-slate-700 w-14 text-center bg-white border border-slate-200 rounded-xl py-2 outline-none focus:border-primary/40 shadow-inner"
+                        />
                         <button 
                           onClick={() => onUpdateQuantity(item.id, item.quantity + step, item.selected_variation)} 
                           className="w-10 h-10 flex items-center justify-center text-slate-400 hover:bg-white hover:text-primary hover:shadow-lg rounded-[6px] transition-all"
@@ -482,7 +502,9 @@ export default function CartScreen({
                       <ReceiptText size={32} />
                     </div>
                     <div>
-                      <p className="text-[10px] font-black text-white/40 uppercase tracking-[2px] mb-1">Resumo do Pedido</p>
+                      <p className="text-[10px] font-black text-white/40 uppercase tracking-[2px] mb-1">
+                        {cart.length} Itens | {cart.reduce((acc, i) => acc + i.quantity, 0)} Produtos
+                      </p>
                       <p className="text-4xl font-black text-white tracking-tighter">R$ {total.toFixed(2)}</p>
                     </div>
                   </div>

@@ -258,7 +258,7 @@ export default function App() {
   const [topBarMessages, setTopBarMessages] = useState<string[]>([]);
   const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const { cart, carts, addToCart, removeFromCart, updateQuantity, clearCart, total } = useCart(selectedBrand);
+  const { cart, carts, addToCart, removeFromCart, updateQuantity, clearCart, total, productCount, itemCount } = useCart(selectedBrand);
 
   // Reset selected brand if it becomes blocked
   useEffect(() => {
@@ -869,13 +869,13 @@ export default function App() {
             )}
             <button onClick={() => setIsCartOpen(true)} className="relative flex items-center gap-2 px-3 py-2.5 bg-white text-slate-600 hover:text-primary hover:bg-primary/5 rounded-full transition-all shadow-sm border border-slate-100">
               <ShoppingCart size={20} />
-              {cart.length > 0 && (
+              {productCount > 0 && (
                 <>
                   <span className="text-xs font-black text-primary">
                     R$ {total.toFixed(2)}
                   </span>
                   <span className="absolute -top-1 -right-1 w-5 h-5 pink-gradient text-white text-[10px] font-black flex items-center justify-center rounded-full shadow-lg border-2 border-white">
-                    {cart.length}
+                    {productCount}
                   </span>
                 </>
               )}

@@ -34,10 +34,30 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [selectedCatalogBrands, setSelectedCatalogBrands] = useState<string[]>([]);
+  const [selectedCatalogCategories, setSelectedCatalogCategories] = useState<string[]>([]);
+  const [availableCategories, setAvailableCategories] = useState<any[]>([]);
   const [includeOutOfStock, setIncludeOutOfStock] = useState(false);
   const [includeLastUnits, setIncludeLastUnits] = useState(true);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    async function fetchCatalogCategories() {
+      if (!supabase || selectedCatalogBrands.length === 0) {
+        setAvailableCategories([]);
+        setSelectedCatalogCategories([]);
+        return;
+      }
+      const { data } = await supabase
+        .from('categories')
+        .select('id, nome, brand_id')
+        .in('brand_id', selectedCatalogBrands)
+        .order('nome');
+      setAvailableCategories(data || []);
+    }
+    fetchCatalogCategories();
+  }, [selectedCatalogBrands]);
 
   useEffect(() => {
     async function fetchBrands() {
@@ -399,6 +419,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
     }
 
     setIsGeneratingPdf(true);
+    setDownloadProgress(0);
     setStatus({ type: 'info', message: 'Gerando catálogo PDF...' });
 
     try {
@@ -407,6 +428,10 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
         .from('products')
         .select('*')
         .in('brand_id', selectedCatalogBrands);
+
+      if (selectedCatalogCategories.length > 0) {
+        productQuery = productQuery.in('category_id', selectedCatalogCategories);
+      }
 
       if (!includeOutOfStock) {
         productQuery = productQuery.neq('status_estoque', 'esgotado');
@@ -494,6 +519,8 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
       });
 
       let pageCount = 1;
+      const totalProducts = products.length;
+      let processedProducts = 0;
 
       for (const [brandName, categories] of Object.entries(grouped)) {
         // Brand Title
@@ -526,6 +553,9 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
           let colIndex = 0;
 
           for (const p of categoryProducts) {
+            processedProducts++;
+            setDownloadProgress(Math.round((processedProducts / totalProducts) * 100));
+
             if (currentY + cardHeight > pageHeight - margin) {
               doc.addPage();
               pageCount++;
@@ -750,6 +780,25 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
               </div>
             </div>
 
+            {selectedCatalogBrands.length > 0 && availableCategories.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Filtrar por categorias (opcional)</p>
+                <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto p-1">
+                  {availableCategories.map(cat => (
+                    <label key={cat.id} className={`flex items-center gap-2 p-2 rounded-lg border transition-all cursor-pointer ${selectedCatalogCategories.includes(cat.id) ? 'bg-primary/5 border-primary/20' : 'bg-slate-50 border-slate-100 hover:border-slate-200'}`}>
+                      <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${selectedCatalogCategories.includes(cat.id) ? 'bg-primary border-primary' : 'bg-white border-slate-200'}`}>
+                        {selectedCatalogCategories.includes(cat.id) && <CheckCircle2 size={10} className="text-white" strokeWidth={3} />}
+                      </div>
+                      <input type="checkbox" className="hidden" checked={selectedCatalogCategories.includes(cat.id)} onChange={() => {
+                        setSelectedCatalogCategories(prev => prev.includes(cat.id) ? prev.filter(id => id !== cat.id) : [...prev, cat.id]);
+                      }} />
+                      <span className={`text-[10px] font-bold truncate ${selectedCatalogCategories.includes(cat.id) ? 'text-primary' : 'text-slate-600'}`}>{cat.nome}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <button
               onClick={generatePdfCatalog}
               disabled={isGeneratingPdf || selectedCatalogBrands.length === 0}
@@ -760,10 +809,15 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
               }`}
             >
               {isGeneratingPdf ? (
-                <>
-                  <Loader2 size={12} className="animate-spin" />
-                  Gerando PDF...
-                </>
+                <div className="flex flex-col items-center gap-1 w-full px-4">
+                  <div className="flex items-center gap-2">
+                    <Loader2 size={12} className="animate-spin" />
+                    <span className="truncate">Gerando PDF... {downloadProgress}%</span>
+                  </div>
+                  <div className="w-full h-1 bg-white/20 rounded-full overflow-hidden">
+                    <div className="h-full bg-white transition-all duration-300" style={{ width: `${downloadProgress}%` }} />
+                  </div>
+                </div>
               ) : (
                 <>
                   <Printer size={12} />

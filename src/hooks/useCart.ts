@@ -3,11 +3,13 @@ import { CartItem, Product } from '../types';
 
 export function useCart(brandId?: string | null) {
   const [carts, setCarts] = useState<{ [brandId: string]: CartItem[] }>(() => {
-    const saved = localStorage.getItem('vendpro_carts');
+    const userId = localStorage.getItem('vendpro_user_id');
+    const storageKey = userId ? `vendpro_carts_${userId}` : 'vendpro_carts';
+    const saved = localStorage.getItem(storageKey);
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        const lastUpdate = localStorage.getItem('vendpro_carts_time');
+        const lastUpdate = localStorage.getItem(`${storageKey}_time`);
         if (lastUpdate && Date.now() - parseInt(lastUpdate) > 5 * 24 * 60 * 60 * 1000) {
           return {};
         }
@@ -39,8 +41,10 @@ export function useCart(brandId?: string | null) {
   const cart = useMemo(() => brandId ? (carts[brandId] || []) : [], [carts, brandId]);
 
   useEffect(() => {
-    localStorage.setItem('vendpro_carts', JSON.stringify(carts));
-    localStorage.setItem('vendpro_carts_time', Date.now().toString());
+    const userId = localStorage.getItem('vendpro_user_id');
+    const storageKey = userId ? `vendpro_carts_${userId}` : 'vendpro_carts';
+    localStorage.setItem(storageKey, JSON.stringify(carts));
+    localStorage.setItem(`${storageKey}_time`, Date.now().toString());
   }, [carts]);
 
   const addToCart = (product: Product, quantity: number, selected_variation?: Record<string, string>) => {
@@ -128,5 +132,8 @@ export function useCart(brandId?: string | null) {
     return acc + (item.quantity * price);
   }, 0), [cart]);
 
-  return { cart, carts, addToCart, removeFromCart, updateQuantity, clearCart, total };
+  const itemCount = useMemo(() => cart.length, [cart]);
+  const productCount = useMemo(() => cart.reduce((acc, item) => acc + item.quantity, 0), [cart]);
+
+  return { cart, carts, addToCart, removeFromCart, updateQuantity, clearCart, total, itemCount, productCount };
 }

@@ -73,6 +73,18 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
         reader.onerror = error => reject(error);
         reader.readAsArrayBuffer(file);
       });
+    } else if (fileName.endsWith('.html') || fileName.endsWith('.htm')) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const text = e.target?.result as string;
+            resolve([{ base64: btoa(unescape(encodeURIComponent(text))), mimeType: 'text/html' }]);
+          } catch (error) { reject(error); }
+        };
+        reader.onerror = error => reject(error);
+        reader.readAsText(file);
+      });
     } else if (fileName.endsWith('.pdf')) {
       try {
         const pdfDoc = await PDFDocument.load(await file.arrayBuffer());
@@ -122,8 +134,11 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
         continue;
       }
       try {
-        if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls') || fileName.endsWith('.html') || fileName.endsWith('.htm')) newFiles.push({ file, pages: [] });
-        else newFiles.push({ file, pages: await processFileToBase64(file) });
+        if (uploadMode === 'stock' && (fileName.endsWith('.xlsx') || fileName.endsWith('.xls') || fileName.endsWith('.html') || fileName.endsWith('.htm'))) {
+          newFiles.push({ file, pages: [] });
+        } else {
+          newFiles.push({ file, pages: await processFileToBase64(file) });
+        }
       } catch (error) {
         alert(`Erro ao processar ${file.name}`);
       }
@@ -630,7 +645,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
             {(['catalog', 'stock'] as UploadMode[]).map(mode => (
               <button key={mode} onClick={() => { setUploadMode(mode); setUploadedFiles([]); setStatus(null); }}
                 className={`px-3 py-1.5 rounded-md text-[10px] font-black uppercase tracking-wide transition-all flex items-center gap-1.5 ${uploadMode === mode ? 'bg-white text-primary shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>
-                {mode === 'catalog' ? <><Sparkles size={10} strokeWidth={3} /> Catálogo (IA)</> : <><Database size={10} strokeWidth={3} /> Estoque (Excel/HTML)</>}
+                {mode === 'catalog' ? <><Sparkles size={10} strokeWidth={3} /> Catálogo (PDF/Excel/IA)</> : <><Database size={10} strokeWidth={3} /> Estoque (Excel/HTML)</>}
               </button>
             ))}
           </div>

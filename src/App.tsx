@@ -2183,6 +2183,9 @@ function CatalogScreen({
 
   const filtered = useMemo(() => {
     return products.filter(p => {
+      // Ocultar produtos esgotados no catálogo para otimizar carregamento e experiência
+      if (p.status_estoque === 'esgotado') return false;
+
       const searchLower = search.trim().toLowerCase();
       if (!searchLower) return (selectedCategory ? p.category_id === selectedCategory : true) && (selectedBrand ? p.brand_id === selectedBrand : true);
       

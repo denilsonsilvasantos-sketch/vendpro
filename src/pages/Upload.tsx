@@ -331,7 +331,18 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
               pendingStatus = 'price_changed';
             }
             const validStatus = ['normal', 'baixo', 'ultimas', 'esgotado'];
-            const statusEstoque = validStatus.includes(extracted.status_estoque) ? extracted.status_estoque : 'normal';
+            let statusEstoque = validStatus.includes(extracted.status_estoque) ? extracted.status_estoque : 'normal';
+            
+            // Se a IA marcou como últimas unidades, garante que o status reflita isso
+            if (extracted.is_last_units && statusEstoque === 'normal') {
+              statusEstoque = 'ultimas';
+            }
+            
+            // Se o estoque for 0, garante que o status seja esgotado
+            if (extracted.estoque === 0) {
+              statusEstoque = 'esgotado';
+            }
+            
             let categoriaId = categoriaIdParaArquivo;
             if (!useCatalogNameAsCategory && extracted.category_name) {
               const foundCat = categories.find(c => c.nome.toLowerCase() === extracted.category_name.toLowerCase());

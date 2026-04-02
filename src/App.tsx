@@ -2203,7 +2203,9 @@ function CatalogScreen({
   const filtered = useMemo(() => {
     return products.filter(p => {
       // Ocultar produtos esgotados no catálogo para otimizar carregamento e experiência
-      if (p.status_estoque === 'esgotado') return false;
+      // Consideramos esgotado se o status for 'esgotado' (case-insensitive) ou se o estoque for 0
+      const isEsgotado = p.status_estoque?.toLowerCase() === 'esgotado' || p.estoque === 0;
+      if (isEsgotado) return false;
 
       const searchLower = search.trim().toLowerCase();
       if (!searchLower) return (selectedCategory ? p.category_id === selectedCategory : true) && (selectedBrand ? p.brand_id === selectedBrand : true);
@@ -2702,7 +2704,7 @@ function VarietiesModal({
                   disabled={v.esgotado}
                   value={varietiesQty[v.sku] || 0}
                   onChange={e => onQtyChange(v.sku, parseInt(e.target.value) || 0)}
-                  className="w-12 text-center text-sm font-black bg-transparent outline-none text-slate-800"
+                  className="w-16 text-center text-sm font-black bg-slate-50 border border-slate-100 rounded-lg py-1 outline-none text-slate-800 focus:border-primary/30 transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
                 <button 
                   disabled={v.esgotado}
@@ -2737,7 +2739,7 @@ const ProductCard = memo(({ product, onAdd, onEdit, role, onZoom, isInCart, ...p
   const [varietiesQty, setVarietiesQty] = useState<Record<string, number>>({});
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
-  const isEsgotado = product.status_estoque === 'esgotado';
+  const isEsgotado = product.status_estoque?.toLowerCase() === 'esgotado' || product.estoque === 0;
 
   const images = product.imagens && product.imagens.length > 0 ? product.imagens : [product.imagem || `https://picsum.photos/seed/${product.sku}/400/400`];
 
@@ -2831,7 +2833,7 @@ const ProductCard = memo(({ product, onAdd, onEdit, role, onZoom, isInCart, ...p
           </AnimatePresence>
           <div className="absolute top-3 w-full flex flex-col gap-1 items-center">
             {isEsgotado && <span className="bg-slate-900 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-widest">ESGOTADO</span>}
-            {!isEsgotado && product.is_last_units && <span className="bg-rose-500 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-widest">ÚLTIMAS UNIDADES</span>}
+            {!isEsgotado && (product.is_last_units || product.status_estoque === 'ultimas') && <span className="bg-rose-500 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-widest">ÚLTIMAS UNIDADES</span>}
             {product.venda_somente_box && <span className="bg-amber-500 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-widest">SOMENTE NO BOX</span>}
           </div>
         </div>
@@ -2884,7 +2886,7 @@ const ProductCard = memo(({ product, onAdd, onEdit, role, onZoom, isInCart, ...p
                 value={qty}
                 onChange={(e) => setQty(Math.max(0, parseInt(e.target.value) || 0))}
                 disabled={isEsgotado}
-                className="w-12 text-center text-xs font-black bg-transparent outline-none text-slate-700 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                className="w-16 text-center text-xs font-black bg-white border border-slate-100 rounded-xl py-1.5 outline-none text-slate-700 focus:border-primary/30 transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none shadow-sm"
               />
               <button onClick={handleAddQty} disabled={isEsgotado} className="p-2 text-slate-400 hover:bg-white hover:text-primary rounded-xl disabled:opacity-50 transition-all shadow-sm"><Plus size={14}/></button>
             </div>

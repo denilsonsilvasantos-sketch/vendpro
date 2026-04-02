@@ -141,7 +141,7 @@ export default function CartScreen({
                             const val = parseInt(e.target.value);
                             if (!isNaN(val)) onUpdateQuantity(item.id, val, item.selected_variation);
                           }}
-                          className="text-xs font-black text-slate-700 w-10 text-center bg-white border border-slate-200 rounded-lg py-1 outline-none focus:border-primary/40"
+                          className="text-xs font-black text-slate-700 w-12 text-center bg-white border border-slate-200 rounded-lg py-1.5 outline-none focus:border-primary/40 transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                         <button onClick={() => onUpdateQuantity(item.id, item.quantity + step, item.selected_variation)}
                           className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 rounded-lg text-slate-500 hover:text-primary transition-all">
@@ -378,7 +378,7 @@ export default function CartScreen({
                             const val = parseInt(e.target.value);
                             if (!isNaN(val)) onUpdateQuantity(item.id, val, item.selected_variation);
                           }}
-                          className="text-sm font-black text-slate-700 w-14 text-center bg-white border border-slate-200 rounded-xl py-2 outline-none focus:border-primary/40 shadow-inner"
+                          className="text-sm font-black text-slate-700 w-16 text-center bg-white border border-slate-200 rounded-xl py-2.5 outline-none focus:border-primary/40 shadow-inner transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                         <button 
                           onClick={() => onUpdateQuantity(item.id, item.quantity + step, item.selected_variation)} 

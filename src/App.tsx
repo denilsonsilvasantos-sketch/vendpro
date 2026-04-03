@@ -183,6 +183,24 @@ export default function App() {
 
   const [profile, setProfile] = useState<any>(null);
 
+  useEffect(() => {
+    async function fetchProfile() {
+      if (!supabase || !user?.id) {
+        setProfile(null);
+        return;
+      }
+      
+      const { data, error } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
+      if (error) {
+        console.error("Erro ao buscar perfil:", error);
+      } else {
+        setProfile(data);
+      }
+    }
+    
+    fetchProfile();
+  }, [user?.id, supabase]);
+
   const handleCompanyChange = (newCompanyId: string) => {
     if (cart.length > 0) {
       setPendingCompanyId(newCompanyId);
@@ -556,6 +574,45 @@ export default function App() {
     }
   }, [user]);
 
+  useEffect(() => {
+    async function recoverSession() {
+      if (!supabase || !user || !role) return;
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.log("Sessão do Supabase Auth não encontrada, tentando re-autenticar...");
+        
+        let authEmail = '';
+        let authPassword = '';
+        
+        if (role === 'company') {
+          authEmail = `${user.cnpj}@vendpro.com.br`;
+          authPassword = user.senha;
+        } else if (role === 'seller') {
+          authEmail = `${user.codigo_vendedor}@vendpro.com.br`;
+          authPassword = user.senha || 'vendedor123';
+        } else if (role === 'customer') {
+          authEmail = `${user.cnpj.replace(/\D/g, '')}@vendpro.com.br`;
+          authPassword = user.senha;
+        }
+        
+        if (authEmail && authPassword) {
+          try {
+            await supabase.auth.signInWithPassword({
+              email: authEmail,
+              password: authPassword,
+            });
+            console.log("Re-autenticação no Supabase Auth concluída com sucesso.");
+          } catch (err) {
+            console.warn("Falha na re-autenticação automática:", err);
+          }
+        }
+      }
+    }
+    
+    recoverSession();
+  }, [role, user, supabase]);
+
   const userRefreshed = useRef(false);
   useEffect(() => {
     async function refreshUserData() {
@@ -619,6 +676,7 @@ export default function App() {
     }
 
     localStorage.setItem('vendpro_role', selectedRole as string);
+    localStorage.setItem('vendpro_user', JSON.stringify(userData));
     localStorage.setItem('vendpro_user_id', userData.id);
     localStorage.setItem('vendpro_available_companies', JSON.stringify(companies));
     localStorage.setItem('vendpro_sellers', JSON.stringify(sellers));
@@ -1348,7 +1406,36 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
       if (supabase) {
         const { data } = await supabase.from('companies').select('*').limit(1);
         if (data && data.length > 0) {
-          onLogin('company', data[0], [data[0]]);
+          const company = data[0];
+          
+          // Sign in to Supabase Auth for RLS
+          const authEmail = `${company.cnpj || 'admin'}@vendpro.com.br`;
+          const authPassword = company.senha || 'admin123';
+          
+          try {
+            const { error: signInError } = await supabase.auth.signInWithPassword({
+              email: authEmail,
+              password: authPassword,
+            });
+
+            if (signInError) {
+              await supabase.auth.signUp({
+                email: authEmail,
+                password: authPassword,
+                options: {
+                  data: {
+                    role: 'company',
+                    company_id: company.id,
+                    nome: company.nome
+                  }
+                }
+              });
+            }
+          } catch (err) {
+            console.warn("Erro ao autenticar admin no Supabase Auth:", err);
+          }
+
+          onLogin('company', company, [company]);
         } else {
           const { data: newCompany, error } = await supabase.from('companies').insert([{ nome: 'VendPro Matriz' }]).select().single();
           if (newCompany) {
@@ -1562,7 +1649,36 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
       if (supabase) {
         const { data } = await supabase.from('companies').select('*').limit(1);
         if (data && data.length > 0) {
-          onLogin('company', data[0]);
+          const company = data[0];
+          
+          // Sign in to Supabase Auth for RLS
+          const authEmail = `${company.cnpj || 'admin'}@vendpro.com.br`;
+          const authPassword = company.senha || 'admin123';
+          
+          try {
+            const { error: signInError } = await supabase.auth.signInWithPassword({
+              email: authEmail,
+              password: authPassword,
+            });
+
+            if (signInError) {
+              await supabase.auth.signUp({
+                email: authEmail,
+                password: authPassword,
+                options: {
+                  data: {
+                    role: 'company',
+                    company_id: company.id,
+                    nome: company.nome
+                  }
+                }
+              });
+            }
+          } catch (err) {
+            console.warn("Erro ao autenticar admin no Supabase Auth:", err);
+          }
+
+          onLogin('company', company);
         } else {
           const { data: newCompany, error } = await supabase.from('companies').insert([{ nome: 'VendPro Matriz' }]).select().single();
           if (newCompany) {

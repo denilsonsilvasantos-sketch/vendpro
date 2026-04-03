@@ -201,6 +201,19 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
     setStatus({ type: 'info', message: 'Sincronizando estoque...' });
     setProgress(0);
     try {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (!authUser) {
+        throw new Error('Você precisa estar autenticado no Supabase Auth para realizar esta operação. Tente sair e entrar novamente.');
+      }
+      console.log('Sincronização de estoque iniciada por:', authUser?.email, 'para empresa:', companyId);
+      
+      const { data: profileData } = await supabase.from('profiles').select('*').eq('id', authUser?.id).maybeSingle();
+      console.log('Perfil do usuário:', profileData);
+
+      if (profileData && profileData.company_id !== companyId) {
+        console.warn('AVISO: O company_id do perfil não coincide com o companyId do componente!');
+      }
+
       const file = uploadedFiles[0].file;
       const fileName = file.name.toLowerCase();
       let syncData: { sku: string, qtd: number }[] = [];
@@ -287,6 +300,19 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
     }
     setIsUploading(true); setStatus({ type: 'info', message: 'A IA está analisando os arquivos...' }); setProgress(0);
     try {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (!authUser) {
+        throw new Error('Você precisa estar autenticado no Supabase Auth para realizar esta operação. Tente sair e entrar novamente.');
+      }
+      console.log('Upload iniciado por:', authUser?.email, 'para empresa:', companyId);
+      
+      const { data: profileData } = await supabase.from('profiles').select('*').eq('id', authUser?.id).maybeSingle();
+      console.log('Perfil do usuário:', profileData);
+
+      if (profileData && profileData.company_id !== companyId) {
+        console.warn('AVISO: O company_id do perfil não coincide com o companyId do componente!');
+      }
+
       const { data: brandData } = await supabase.from('brands').select('name, margin_percentage').eq('id', selectedBrandId).single();
       const margin = brandData?.margin_percentage || 0;
       const { data: initialCategories } = await supabase.from('categories').select('id, nome').eq('company_id', companyId).eq('brand_id', selectedBrandId);
@@ -301,7 +327,11 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
           const existingCat = categories.find(c => c.nome.toLowerCase() === categoryName.toLowerCase());
           if (existingCat) { categoriaIdParaArquivo = existingCat.id; }
           else {
-            const { data: newCat } = await supabase.from('categories').insert([{ company_id: companyId, brand_id: selectedBrandId, nome: categoryName, ativo: true }]).select('id, nome').single();
+            const { data: newCat, error: catError } = await supabase.from('categories').insert([{ company_id: companyId, brand_id: selectedBrandId, nome: categoryName, ativo: true }]).select('id, nome').single();
+            if (catError) {
+              console.error('Erro ao criar categoria:', catError);
+              throw new Error(`Erro ao criar categoria (RLS?): ${catError.message}`);
+            }
             if (newCat) { categoriaIdParaArquivo = String(newCat.id); categories.push({ id: categoriaIdParaArquivo, nome: newCat.nome }); }
           }
         }
@@ -369,10 +399,18 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
               variacoes_flat: extracted.variacoes_flat || null
             };
             if (existing?.imagem) productData.imagem = existing.imagem;
-            try {
-              if (existing) await supabase.from('products').update(productData).eq('id', existing.id);
-              else await supabase.from('products').insert([productData]);
-            } catch (err: any) { console.error('Erro ao salvar:', err); }
+            
+            let result;
+            if (existing) {
+              result = await supabase.from('products').update(productData).eq('id', existing.id);
+            } else {
+              result = await supabase.from('products').insert([productData]);
+            }
+
+            if (result.error) {
+              console.error('Erro ao salvar produto:', result.error);
+              throw new Error(`Erro no banco de dados (RLS?): ${result.error.message}`);
+            }
           }
           setProgress(Math.round(((i * pages.length + j + 1) / (uploadedFiles.length * pages.length)) * 100));
         }

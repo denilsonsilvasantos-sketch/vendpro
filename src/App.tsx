@@ -1409,7 +1409,7 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
           const company = data[0];
 
           // Sign in to Supabase Auth for RLS
-          const authEmail = `${company.cnpj || 'admin'}@vendpro.com.br`;
+          const authEmail = `${company.cnpj || 'admin'}@vendpro.com`;
           const authPassword = company.senha || 'admin123';
 
           try {
@@ -1650,7 +1650,7 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
           const company = data[0];
 
           // Sign in to Supabase Auth for RLS
-          const authEmail = `${company.cnpj || 'admin'}@vendpro.com.br`;
+          const authEmail = `${company.cnpj || 'admin'}@vendpro.com`;
           const authPassword = company.senha || 'admin123';
 
           try {

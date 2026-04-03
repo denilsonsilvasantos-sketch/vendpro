@@ -1,6 +1,9 @@
 import { GoogleGenAI } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
+// CORREÇÃO: No Vite, as variáveis devem ser acessadas usando import.meta.env e prefixadas com VITE_
+const ai = new GoogleGenAI({ 
+  apiKey: import.meta.env.VITE_GEMINI_API_KEY || '' 
+});
 
 export async function classifyCategory(productName: string, categories: { id: string, nome: string }[]) {
   if (categories.length === 0) return null;

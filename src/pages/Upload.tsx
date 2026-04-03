@@ -206,25 +206,18 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
         const { data: { user } } = await supabase.auth.getUser();
         authUser = user;
       } catch (err) {
-        console.warn('Erro ao obter usuário via getUser, tentando getSession:', err);
         const { data: { session } } = await supabase.auth.getSession();
         authUser = session?.user || null;
       }
 
-      if (!authUser) {
-        throw new Error('Sessão expirada ou inválida. Por favor, saia do sistema e entre novamente para re-autenticar.');
-      }
-
-      console.log('Sincronização de estoque iniciada por:', authUser.email, 'para empresa:', companyId);
-      
-      const { data: profile, error: profileError } = await supabase.from('profiles').select('*').eq('id', authUser.id).maybeSingle();
-      
-      if (profileError) {
-        console.error('Erro ao buscar perfil:', profileError);
-      }
-
-      if (profile && profile.company_id !== companyId) {
-        console.warn('AVISO: O company_id do perfil não coincide com o companyId do componente!');
+      if (authUser) {
+        console.log('Sincronização de estoque iniciada por:', authUser.email, 'para empresa:', companyId);
+        const { data: profile } = await supabase.from('profiles').select('*').eq('id', authUser.id).maybeSingle();
+        if (profile && profile.company_id !== companyId) {
+          console.warn('AVISO: O company_id do perfil não coincide com o companyId do componente!');
+        }
+      } else {
+        console.log('Sincronização de estoque iniciada (sem sessão Auth) para empresa:', companyId);
       }
 
       const file = uploadedFiles[0].file;
@@ -318,25 +311,18 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
         const { data: { user } } = await supabase.auth.getUser();
         authUser = user;
       } catch (err) {
-        console.warn('Erro ao obter usuário via getUser, tentando getSession:', err);
         const { data: { session } } = await supabase.auth.getSession();
         authUser = session?.user || null;
       }
 
-      if (!authUser) {
-        throw new Error('Sessão expirada ou inválida. Por favor, saia do sistema e entre novamente para re-autenticar.');
-      }
-
-      console.log('Upload iniciado por:', authUser.email, 'para empresa:', companyId);
-      
-      const { data: profile, error: profileError } = await supabase.from('profiles').select('*').eq('id', authUser.id).maybeSingle();
-      
-      if (profileError) {
-        console.error('Erro ao buscar perfil:', profileError);
-      }
-
-      if (profile && profile.company_id !== companyId) {
-        console.warn('AVISO: O company_id do perfil não coincide com o companyId do componente!');
+      if (authUser) {
+        console.log('Upload iniciado por:', authUser.email, 'para empresa:', companyId);
+        const { data: profile } = await supabase.from('profiles').select('*').eq('id', authUser.id).maybeSingle();
+        if (profile && profile.company_id !== companyId) {
+          console.warn('AVISO: O company_id do perfil não coincide com o companyId do componente!');
+        }
+      } else {
+        console.log('Upload iniciado (sem sessão Auth) para empresa:', companyId);
       }
 
       const { data: brandData } = await supabase.from('brands').select('name, margin_percentage').eq('id', selectedBrandId).single();

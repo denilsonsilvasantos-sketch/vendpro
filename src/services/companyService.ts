@@ -7,7 +7,7 @@ export async function registerCompany(companyData: any) {
   }
 
   const cleanCnpj = companyData.cnpj.replace(/\D/g, '');
-  const authEmail = companyData.email || `${cleanCnpj}@vendpro.com`;
+  const authEmail = companyData.email || `${cleanCnpj}@vendpro.com.br`;
 
   // 1. Insert into companies table first to get the ID
   const { data: company, error: companyError } = await supabase
@@ -62,7 +62,6 @@ export async function loginCompany(identifier: string, senha?: string) {
   const cleanIdentifier = identifier.replace(/\D/g, '');
 
   // 1. Find the company in the database
-  console.log("Tentando login com CNPJ:", cleanIdentifier);
   const { data: company, error } = await supabase
     .from("companies")
     .select("*")
@@ -71,12 +70,12 @@ export async function loginCompany(identifier: string, senha?: string) {
     .maybeSingle();
 
   if (error || !company) {
-    console.error("Erro ao buscar empresa no banco:", error || "Empresa não encontrada");
+    console.error("Erro ao fazer login:", error);
     return { success: false, message: "Identificador ou senha incorretos" };
   }
 
   // 2. Supabase Auth Integration for RLS
-  const authEmail = `${company.cnpj}@vendpro.com`;
+  const authEmail = `${company.cnpj}@vendpro.com.br`;
   if (authEmail && company.senha) {
     const { error: signInError } = await supabase.auth.signInWithPassword({
       email: authEmail,

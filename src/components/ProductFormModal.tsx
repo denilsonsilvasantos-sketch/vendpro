@@ -201,7 +201,11 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
       sku: skuToSave,
       company_id: companyId,
       categoria_pendente: !formData.category_id,
-      imagem_pendente: !formData.imagem
+      imagem_pendente: !formData.imagem,
+      // Se não for variedades, limpar campos relacionados
+      tipo_variacao: formData.tipo_variacao || null,
+      variacoes_flat: formData.tipo_variacao === 'variedades' ? formData.variacoes_flat : null,
+      variacoes_disponiveis: formData.tipo_variacao === 'escolha_livre' ? formData.variacoes_disponiveis : null
     };
     
     try {
@@ -474,7 +478,13 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
                     type="checkbox" 
                     className="sr-only" 
                     checked={formData.tipo_variacao === 'variedades'} 
-                    onChange={e => setFormData({...formData, tipo_variacao: e.target.checked ? 'variedades' : undefined})} 
+                    onChange={e => {
+                      if (e.target.checked) {
+                        setFormData({...formData, tipo_variacao: 'variedades'});
+                      } else {
+                        setFormData({...formData, tipo_variacao: undefined, variacoes_flat: []});
+                      }
+                    }} 
                   />
                   <span className="text-[11px] font-black text-slate-600 uppercase tracking-widest">Variedades</span>
                 </label>

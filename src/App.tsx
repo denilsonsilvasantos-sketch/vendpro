@@ -586,14 +586,14 @@ export default function App() {
         let authPassword = '';
         
         if (role === 'company') {
-          authEmail = `${user.cnpj}@vendpro.com.br`;
-          authPassword = user.senha;
+          authEmail = `${user.cnpj || 'admin'}@vendpro.com`;
+          authPassword = user.senha || 'admin123';
         } else if (role === 'seller') {
-          authEmail = `${user.codigo_vendedor}@vendpro.com.br`;
+          authEmail = `${(user.codigo_vendedor || user.codigo_vinculo || '').toLowerCase()}@vendpro.com`;
           authPassword = user.senha || 'vendedor123';
         } else if (role === 'customer') {
-          authEmail = `${user.cnpj.replace(/\D/g, '')}@vendpro.com.br`;
-          authPassword = user.senha;
+          authEmail = `${(user.codigo_acesso || user.id || '').toLowerCase()}@vendpro.com`;
+          authPassword = user.senha || 'vendpro123';
         }
         
         if (authEmail && authPassword) {
@@ -1141,7 +1141,7 @@ export default function App() {
             {activeTab === 'dashboard' && <Dashboard companyId={activeCompanyId} role={role} user={user} banners={banners} />}
             {activeTab === 'banners' && role === 'company' && <BannerManager companyId={activeCompanyId!} />}
             {activeTab === 'produtos' && <Produtos companyId={activeCompanyId} onRefresh={loadData} />}
-            {activeTab === 'upload' && <Upload companyId={activeCompanyId} onRefresh={loadData} />}
+            {activeTab === 'upload' && <Upload companyId={activeCompanyId} onRefresh={loadData} user={user} role={role} />}
             {activeTab === 'pendencias' && <Pendencias companyId={activeCompanyId} onRefresh={loadData} />}
             {activeTab === 'marcas' && <Marcas companyId={activeCompanyId} />}
             {activeTab === 'vendedores' && <Vendedores companyId={activeCompanyId} />}

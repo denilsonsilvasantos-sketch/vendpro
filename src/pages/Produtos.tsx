@@ -91,7 +91,7 @@ export default function Produtos({ companyId, onRefresh }: { companyId: string |
 
       return a.nome.localeCompare(b.nome);
     });
-  }, [products, searchTerm, filterBrand, brands, categories]);
+  }, [products, searchTerm, filterBrand, filterCategory, brands, categories]);
 
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
   const paginatedProducts = filteredProducts.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);

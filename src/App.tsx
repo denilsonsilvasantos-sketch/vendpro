@@ -2029,9 +2029,17 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
                     alert('Erro ao atualizar senha: ' + error.message);
                   } else {
                     // Tenta atualizar também na tabela companies para manter sincronia
-                    const { data: { user } } = await supabase.auth.getUser();
-                    if (user?.email) {
-                      await supabase.from('companies').update({ senha: newPassword }).eq('email', user.email);
+                    let authUser = null;
+                    try {
+                      const { data: { user } } = await supabase.auth.getUser();
+                      authUser = user;
+                    } catch (err) {
+                      const { data: { session } } = await supabase.auth.getSession();
+                      authUser = session?.user || null;
+                    }
+                    
+                    if (authUser?.email) {
+                      await supabase.from('companies').update({ senha: newPassword }).eq('email', authUser.email);
                     }
                     alert('Senha atualizada com sucesso!');
                     setShowResetPassword(false);

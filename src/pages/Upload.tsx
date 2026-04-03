@@ -12,7 +12,7 @@ import autoTable from 'jspdf-autotable';
 type CatalogType = 'weekly' | 'replenishment';
 type UploadMode = 'catalog' | 'stock';
 
-export default function UploadPage({ companyId, onRefresh, user, role }: { companyId: string | null, onRefresh?: () => void, user?: any, role?: string | null }) {
+export default function UploadPage({ companyId, onRefresh }: { companyId: string | null, onRefresh?: () => void }) {
   const [uploadMode, setUploadMode] = useState<UploadMode>('catalog');
   const [isUploading, setIsUploading] = useState(false);
   const [status, setStatus] = useState<{ type: 'success' | 'error' | 'info' | 'warning', message: string } | null>(null);
@@ -192,46 +192,6 @@ export default function UploadPage({ companyId, onRefresh, user, role }: { compa
     return results;
   };
 
-  const ensureAuth = async () => {
-    if (!supabase) return null;
-    try {
-      const { data: { user: authUser } } = await supabase.auth.getUser();
-      if (authUser) return authUser;
-
-      // Se não estiver autenticado, tenta re-autenticar se tivermos os dados
-      if (user && role) {
-        console.log("Tentando re-autenticação automática no Upload...");
-        let authEmail = '';
-        let authPassword = '';
-        
-        if (role === 'company') {
-          authEmail = `${user.cnpj || 'admin'}@vendpro.com`;
-          authPassword = user.senha || 'admin123';
-        } else if (role === 'seller') {
-          authEmail = `${(user.codigo_vendedor || user.codigo_vinculo || '').toLowerCase()}@vendpro.com`;
-          authPassword = user.senha || 'vendedor123';
-        } else if (role === 'customer') {
-          authEmail = `${(user.codigo_acesso || user.id || '').toLowerCase()}@vendpro.com`;
-          authPassword = user.senha || 'vendpro123';
-        }
-
-        if (authEmail && authPassword) {
-          const { data, error } = await supabase.auth.signInWithPassword({
-            email: authEmail,
-            password: authPassword,
-          });
-          if (!error && data.user) {
-            console.log("Re-autenticação no Upload concluída com sucesso.");
-            return data.user;
-          }
-        }
-      }
-    } catch (err) {
-      console.error("Erro ao verificar/recuperar autenticação:", err);
-    }
-    return null;
-  };
-
   const processStockSync = async () => {
     if (!companyId || !selectedBrandId || uploadedFiles.length === 0 || !supabase) {
       setStatus({ type: 'error', message: 'Selecione uma marca e adicione o arquivo primeiro.' });
@@ -241,16 +201,29 @@ export default function UploadPage({ companyId, onRefresh, user, role }: { compa
     setStatus({ type: 'info', message: 'Sincronizando estoque...' });
     setProgress(0);
     try {
-      const authUser = await ensureAuth();
-      if (!authUser) {
-        throw new Error('Você precisa estar autenticado no Supabase Auth para realizar esta operação. Tente sair e entrar novamente.');
+      let authUser = null;
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        authUser = user;
+      } catch (err) {
+        console.warn('Erro ao obter usuário via getUser, tentando getSession:', err);
+        const { data: { session } } = await supabase.auth.getSession();
+        authUser = session?.user || null;
       }
-      console.log('Sincronização de estoque iniciada por:', authUser?.email, 'para empresa:', companyId);
-      
-      const { data: profileData } = await supabase.from('profiles').select('*').eq('id', authUser?.id).maybeSingle();
-      console.log('Perfil do usuário:', profileData);
 
-      if (profileData && profileData.company_id !== companyId) {
+      if (!authUser) {
+        throw new Error('Sessão expirada ou inválida. Por favor, saia do sistema e entre novamente para re-autenticar.');
+      }
+
+      console.log('Sincronização de estoque iniciada por:', authUser.email, 'para empresa:', companyId);
+      
+      const { data: profile, error: profileError } = await supabase.from('profiles').select('*').eq('id', authUser.id).maybeSingle();
+      
+      if (profileError) {
+        console.error('Erro ao buscar perfil:', profileError);
+      }
+
+      if (profile && profile.company_id !== companyId) {
         console.warn('AVISO: O company_id do perfil não coincide com o companyId do componente!');
       }
 
@@ -328,13 +301,7 @@ export default function UploadPage({ companyId, onRefresh, user, role }: { compa
       if (onRefresh) onRefresh();
     } catch (error: any) {
       setIsUploading(false);
-      const isAuthError = error.message.includes('autenticado no Supabase Auth');
-      setStatus({ 
-        type: 'error', 
-        message: isAuthError 
-          ? 'Você precisa estar autenticado no Supabase Auth para realizar esta operação.' 
-          : `Erro: ${error.message}` 
-      });
+      setStatus({ type: 'error', message: `Erro: ${error.message}` });
     }
   };
 
@@ -346,16 +313,29 @@ export default function UploadPage({ companyId, onRefresh, user, role }: { compa
     }
     setIsUploading(true); setStatus({ type: 'info', message: 'A IA está analisando os arquivos...' }); setProgress(0);
     try {
-      const authUser = await ensureAuth();
-      if (!authUser) {
-        throw new Error('Você precisa estar autenticado no Supabase Auth para realizar esta operação. Tente sair e entrar novamente.');
+      let authUser = null;
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        authUser = user;
+      } catch (err) {
+        console.warn('Erro ao obter usuário via getUser, tentando getSession:', err);
+        const { data: { session } } = await supabase.auth.getSession();
+        authUser = session?.user || null;
       }
-      console.log('Upload iniciado por:', authUser?.email, 'para empresa:', companyId);
-      
-      const { data: profileData } = await supabase.from('profiles').select('*').eq('id', authUser?.id).maybeSingle();
-      console.log('Perfil do usuário:', profileData);
 
-      if (profileData && profileData.company_id !== companyId) {
+      if (!authUser) {
+        throw new Error('Sessão expirada ou inválida. Por favor, saia do sistema e entre novamente para re-autenticar.');
+      }
+
+      console.log('Upload iniciado por:', authUser.email, 'para empresa:', companyId);
+      
+      const { data: profile, error: profileError } = await supabase.from('profiles').select('*').eq('id', authUser.id).maybeSingle();
+      
+      if (profileError) {
+        console.error('Erro ao buscar perfil:', profileError);
+      }
+
+      if (profile && profile.company_id !== companyId) {
         console.warn('AVISO: O company_id do perfil não coincide com o companyId do componente!');
       }
 
@@ -474,13 +454,7 @@ export default function UploadPage({ companyId, onRefresh, user, role }: { compa
       if (onRefresh) onRefresh();
     } catch (error: any) {
       setIsUploading(false);
-      const isAuthError = error.message.includes('autenticado no Supabase Auth');
-      setStatus({ 
-        type: 'error', 
-        message: isAuthError 
-          ? 'Você precisa estar autenticado no Supabase Auth para realizar esta operação.' 
-          : `Erro: ${error.message}` 
-      });
+      setStatus({ type: 'error', message: `Erro: ${error.message}` });
     }
   };
 
@@ -992,18 +966,7 @@ export default function UploadPage({ companyId, onRefresh, user, role }: { compa
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
             className={`p-3 rounded-xl flex items-center gap-3 border text-xs font-bold ${statusColors[status.type]}`}>
             {status.type === 'success' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
-            <div className="flex-1">{status.message}</div>
-            {status.message.includes('autenticado no Supabase Auth') && (
-              <button 
-                onClick={() => ensureAuth().then(user => {
-                  if (user) setStatus({ type: 'success', message: 'Re-autenticado com sucesso! Tente a operação novamente.' });
-                  else setStatus({ type: 'error', message: 'Falha na re-autenticação. Por favor, saia e entre novamente.' });
-                })}
-                className="px-3 py-1 bg-white/20 hover:bg-white/30 rounded-lg transition-all shrink-0"
-              >
-                Tentar Re-autenticar
-              </button>
-            )}
+            {status.message}
           </motion.div>
         )}
       </AnimatePresence>

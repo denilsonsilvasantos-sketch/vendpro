@@ -59,6 +59,14 @@ export async function signOut() {
 
 export async function getCurrentUser() {
   if (!supabase) return null;
-  const { data: { user } } = await supabase.auth.getUser();
-  return user;
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) return user;
+    
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.user || null;
+  } catch (err) {
+    console.warn('Erro ao obter usuário atual:', err);
+    return null;
+  }
 }

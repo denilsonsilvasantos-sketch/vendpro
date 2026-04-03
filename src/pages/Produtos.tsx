@@ -17,6 +17,7 @@ export default function Produtos({ companyId, onRefresh }: { companyId: string |
   const [editingProduct, setEditingProduct] = useState<Product | undefined>();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterBrand, setFilterBrand] = useState<string | null>(null);
+  const [filterCategory, setFilterCategory] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
 
@@ -54,7 +55,8 @@ export default function Produtos({ companyId, onRefresh }: { companyId: string |
                            p.sku.toLowerCase().includes(searchLower) ||
                            varietySkus.some(vSku => vSku.includes(searchLower));
       const matchesBrand = filterBrand ? p.brand_id === filterBrand : true;
-      return matchesSearch && matchesBrand;
+      const matchesCategory = filterCategory ? p.category_id === filterCategory : true;
+      return matchesSearch && matchesBrand && matchesCategory;
     }).sort((a, b) => {
       const isEsgotadoA = a.status_estoque === 'esgotado';
       const isEsgotadoB = b.status_estoque === 'esgotado';
@@ -96,7 +98,7 @@ export default function Produtos({ companyId, onRefresh }: { companyId: string |
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, filterBrand]);
+  }, [searchTerm, filterBrand, filterCategory]);
 
   if (loading && products.length === 0) {
     return (
@@ -142,15 +144,33 @@ export default function Produtos({ companyId, onRefresh }: { companyId: string |
             onChange={e => setSearchTerm(e.target.value)}
           />
         </div>
-        <div className="relative min-w-[240px] group">
+        <div className="relative min-w-[200px] group">
           <Filter className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors" size={16} />
           <select 
             className="w-full pl-12 pr-10 py-3 bg-slate-50/50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary/30 transition-all appearance-none font-black uppercase tracking-widest text-[10px] text-slate-900 cursor-pointer"
             value={filterBrand || ''}
-            onChange={e => setFilterBrand(e.target.value || null)}
+            onChange={e => {
+              setFilterBrand(e.target.value || null);
+              setFilterCategory(null);
+            }}
           >
             <option value="">Todas as Marcas</option>
             {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+          </select>
+          <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={16} />
+        </div>
+
+        <div className="relative min-w-[200px] group">
+          <Tag className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors" size={16} />
+          <select 
+            className="w-full pl-12 pr-10 py-3 bg-slate-50/50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary/30 transition-all appearance-none font-black uppercase tracking-widest text-[10px] text-slate-900 cursor-pointer"
+            value={filterCategory || ''}
+            onChange={e => setFilterCategory(e.target.value || null)}
+          >
+            <option value="">Todas as Categorias</option>
+            {categories
+              .filter(c => !filterBrand || c.brand_id === filterBrand)
+              .map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
           </select>
           <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={16} />
         </div>

@@ -35,6 +35,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
   const [deletingItem, setDeletingItem] = useState<string | null>(null);
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [tempQuantity, setTempQuantity] = useState<number>(0);
+  const [tempPrice, setTempPrice] = useState<number>(0);
   const [editingPayment, setEditingPayment] = useState(false);
   const [tempPaymentMethod, setTempPaymentMethod] = useState('');
   const [editingDiscount, setEditingDiscount] = useState(false);
@@ -445,27 +446,28 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
     }
   };
 
-  const handleUpdateQuantity = async (item: any, newQty: number) => {
-    if (!supabase || !selectedOrder || newQty <= 0) return;
-    if (newQty === item.quantidade) {
+  const handleUpdateItem = async (item: any, newQty: number, newPrice: number) => {
+    if (!supabase || !selectedOrder || newQty <= 0 || newPrice < 0) return;
+    if (newQty === item.quantidade && newPrice === Number(item.preco_unitario)) {
       setEditingItemId(null);
       return;
     }
 
     try {
-      const newSubtotalItem = Number(item.preco_unitario) * newQty;
+      const newSubtotalItem = newPrice * newQty;
       
       const { error: itemError } = await supabase
         .from('order_items')
         .update({ 
           quantidade: newQty,
+          preco_unitario: newPrice,
           subtotal: newSubtotalItem
         })
         .eq('id', item.id);
 
       if (itemError) throw itemError;
 
-      const newItems = orderItems.map(i => i.id === item.id ? { ...i, quantidade: newQty, subtotal: newSubtotalItem } : i);
+      const newItems = orderItems.map(i => i.id === item.id ? { ...i, quantidade: newQty, preco_unitario: newPrice, subtotal: newSubtotalItem } : i);
       const newSubtotal = newItems.reduce((acc: number, i: any) => acc + Number(i.subtotal), 0);
       
       let newTotal = newSubtotal;
@@ -492,7 +494,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
       setOrders(prev => prev.map(o => o.id === selectedOrder.id ? { ...o, subtotal: newSubtotal, total: newTotal } : o));
       setEditingItemId(null);
     } catch (err: any) {
-      alert(`Erro ao atualizar quantidade: ${err.message}`);
+      alert(`Erro ao atualizar item: ${err.message}`);
     }
   };
 
@@ -974,26 +976,47 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                                   </div>
                                 )}
                                 {editingItemId === item.id ? (
-                                  <div className="flex items-center gap-2 mt-2">
-                                    <input 
-                                      type="number"
-                                      value={tempQuantity}
-                                      onChange={e => setTempQuantity(Number(e.target.value))}
-                                      className="w-20 px-2 py-1 border border-slate-200 rounded-lg text-xs font-bold bg-white focus:outline-none focus:border-primary"
-                                    />
-                                    <button onClick={() => handleUpdateQuantity(item, tempQuantity)} className="p-1.5 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-all">
-                                      <Check size={12} />
-                                    </button>
-                                    <button onClick={() => setEditingItemId(null)} className="p-1.5 bg-slate-200 text-slate-500 rounded-lg hover:bg-slate-300 transition-all">
-                                      <X size={12} />
-                                    </button>
+                                  <div className="flex flex-col gap-2 mt-2">
+                                    <div className="flex items-center gap-2">
+                                      <div className="flex flex-col">
+                                        <label className="text-[8px] font-bold text-slate-400 uppercase">Qtd</label>
+                                        <input 
+                                          type="number"
+                                          value={tempQuantity}
+                                          onChange={e => setTempQuantity(Number(e.target.value))}
+                                          className="w-16 px-2 py-1 border border-slate-200 rounded-lg text-xs font-bold bg-white focus:outline-none focus:border-primary"
+                                        />
+                                      </div>
+                                      <div className="flex flex-col">
+                                        <label className="text-[8px] font-bold text-slate-400 uppercase">Preço Unit.</label>
+                                        <input 
+                                          type="number"
+                                          step="0.01"
+                                          value={tempPrice}
+                                          onChange={e => setTempPrice(Number(e.target.value))}
+                                          className="w-24 px-2 py-1 border border-slate-200 rounded-lg text-xs font-bold bg-white focus:outline-none focus:border-primary"
+                                        />
+                                      </div>
+                                      <div className="flex items-end gap-1 pb-0.5">
+                                        <button onClick={() => handleUpdateItem(item, tempQuantity, tempPrice)} className="p-1.5 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-all">
+                                          <Check size={12} />
+                                        </button>
+                                        <button onClick={() => setEditingItemId(null)} className="p-1.5 bg-slate-200 text-slate-500 rounded-lg hover:bg-slate-300 transition-all">
+                                          <X size={12} />
+                                        </button>
+                                      </div>
+                                    </div>
                                   </div>
                                 ) : (
                                   <div className="flex items-center gap-2 mt-1">
                                     <p className="text-xs text-slate-400">{item.quantidade} x R$ {Number(item.preco_unitario).toFixed(2)}</p>
                                     {canEditOrder && (
                                       <button 
-                                        onClick={() => { setEditingItemId(item.id); setTempQuantity(item.quantidade); }}
+                                        onClick={() => { 
+                                          setEditingItemId(item.id); 
+                                          setTempQuantity(item.quantidade);
+                                          setTempPrice(Number(item.preco_unitario));
+                                        }}
                                         className="text-primary hover:text-primary/80 transition-colors"
                                       >
                                         <Edit2 size={12} />

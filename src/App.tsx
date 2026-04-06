@@ -224,6 +224,10 @@ export default function App() {
     }
   }, []);
   const [activeTab, setActiveTab] = useState('catalog');
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [activeTab]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -2339,6 +2343,10 @@ function CatalogScreen({
     setCurrentPage(1);
   }, [search, selectedCategory, selectedBrand, itemsPerPage]);
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [currentPage]);
+
   const visibleCategories = selectedBrand ? categories.filter(c => c.brand_id === selectedBrand) : categories;
 
   return (
@@ -2609,7 +2617,9 @@ function CatalogScreen({
               <div className="mt-16 flex items-center justify-center gap-2">
                 <button 
                   disabled={currentPage === 1}
-                  onClick={() => setCurrentPage(prev => prev - 1)}
+                  onClick={() => {
+                    setCurrentPage(prev => prev - 1);
+                  }}
                   className="p-3 bg-white rounded-xl text-slate-400 hover:text-primary disabled:opacity-30 transition-all border border-slate-100 shadow-sm"
                 >
                   <ChevronLeft size={24} strokeWidth={2.5} />
@@ -2625,7 +2635,9 @@ function CatalogScreen({
 
                     if (start > 1) {
                       pages.push(
-                        <button key={1} onClick={() => setCurrentPage(1)} className="w-10 h-10 rounded-xl text-sm font-bold bg-white text-slate-400 hover:bg-slate-50">1</button>
+                        <button key={1} onClick={() => {
+                          setCurrentPage(1);
+                        }} className="w-10 h-10 rounded-xl text-sm font-bold bg-white text-slate-400 hover:bg-slate-50">1</button>
                       );
                       if (start > 2) pages.push(<span key="sep1" className="text-slate-300">...</span>);
                     }
@@ -2634,7 +2646,9 @@ function CatalogScreen({
                       pages.push(
                         <button 
                           key={i}
-                          onClick={() => setCurrentPage(i)}
+                          onClick={() => {
+                            setCurrentPage(i);
+                          }}
                           className={`w-10 h-10 rounded-xl text-sm font-bold transition-all ${currentPage === i ? 'pink-gradient text-white shadow-lg shadow-primary/20' : 'bg-white text-slate-400 hover:bg-slate-50'}`}
                         >
                           {i}
@@ -2645,7 +2659,9 @@ function CatalogScreen({
                     if (end < totalPages) {
                       if (end < totalPages - 1) pages.push(<span key="sep2" className="text-slate-300">...</span>);
                       pages.push(
-                        <button key={totalPages} onClick={() => setCurrentPage(totalPages)} className="w-10 h-10 rounded-xl text-sm font-bold bg-white text-slate-400 hover:bg-slate-50">{totalPages}</button>
+                        <button key={totalPages} onClick={() => {
+                          setCurrentPage(totalPages);
+                        }} className="w-10 h-10 rounded-xl text-sm font-bold bg-white text-slate-400 hover:bg-slate-50">{totalPages}</button>
                       );
                     }
                     return pages;
@@ -2654,7 +2670,9 @@ function CatalogScreen({
 
                 <button 
                   disabled={currentPage === totalPages}
-                  onClick={() => setCurrentPage(prev => prev + 1)}
+                  onClick={() => {
+                    setCurrentPage(prev => prev + 1);
+                  }}
                   className="p-3 bg-white rounded-xl text-slate-400 hover:text-primary disabled:opacity-30 transition-all border border-slate-100 shadow-sm"
                 >
                   <ChevronRight size={24} strokeWidth={2.5} />

@@ -100,6 +100,10 @@ export default function Produtos({ companyId, onRefresh }: { companyId: string |
     setCurrentPage(1);
   }, [searchTerm, filterBrand, filterCategory]);
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [currentPage]);
+
   if (loading && products.length === 0) {
     return (
       <div className="p-8 flex flex-col items-center justify-center min-h-[400px] gap-6 animate-pulse">
@@ -213,7 +217,6 @@ export default function Produtos({ companyId, onRefresh }: { companyId: string |
                   disabled={currentPage === 1}
                   onClick={() => {
                     setCurrentPage(prev => Math.max(1, prev - 1));
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
                   className="w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-slate-100 text-slate-400 disabled:opacity-30 disabled:cursor-not-allowed hover:text-primary transition-all shadow-sm"
                 >
@@ -228,7 +231,6 @@ export default function Produtos({ companyId, onRefresh }: { companyId: string |
                   disabled={currentPage === totalPages}
                   onClick={() => {
                     setCurrentPage(prev => Math.min(totalPages, prev + 1));
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
                   className="w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-slate-100 text-slate-400 disabled:opacity-30 disabled:cursor-not-allowed hover:text-primary transition-all shadow-sm"
                 >

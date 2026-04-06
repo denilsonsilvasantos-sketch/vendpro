@@ -11,12 +11,13 @@
     "preview": "vite preview"
   },
   "engines": {
-    "node": "18.x"
+    "node": ">=18.x"
   },
   "dependencies": {
     "@google/genai": "^1.44.0",
     "@supabase/supabase-js": "^2.39.0",
     "cloudinary": "^2.9.0",
+    "glob": "^13.0.6",
     "jspdf": "^2.5.1",
     "jspdf-autotable": "^3.8.2",
     "lucide-react": "^0.577.0",

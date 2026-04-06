@@ -7,10 +7,11 @@ export async function getProducts(companyId: string): Promise<Product[]> {
     return [];
   }
 
-  // Busca produtos e marcas separadamente para garantir a margem mesmo sem join configurado
-  const [productsRes, brandsRes] = await Promise.all([
+  // Busca produtos, marcas e categorias separadamente para garantir a margem mesmo sem join configurado
+  const [productsRes, brandsRes, categoriesRes] = await Promise.all([
     supabase.from("products").select("*").eq("company_id", companyId).order("nome").limit(5000),
-    supabase.from("brands").select("id, name, margin_percentage").eq("company_id", companyId)
+    supabase.from("brands").select("id, name, margin_percentage").eq("company_id", companyId),
+    supabase.from("categories").select("id, nome").eq("company_id", companyId)
   ]);
 
   if (productsRes.error) {
@@ -20,11 +21,14 @@ export async function getProducts(companyId: string): Promise<Product[]> {
 
   const products = productsRes.data || [];
   const brands = brandsRes.data || [];
+  const categories = categoriesRes.data || [];
   const brandsMap = new Map(brands.map(b => [b.id, b]));
+  const categoriesMap = new Map(categories.map(c => [c.id, c]));
 
   // Aplica a margem de preço se existir
   return products.map((item: any) => {
     const brand = brandsMap.get(item.brand_id);
+    const category = categoriesMap.get(item.category_id);
     const margin = brand?.margin_percentage || 0;
     
     const finalPrice = margin > 0 
@@ -42,6 +46,7 @@ export async function getProducts(companyId: string): Promise<Product[]> {
       preco_unitario: finalPrice,
       preco_box: finalBoxPrice,
       brand_nome: brand?.name,
+      categoria_nome: category?.nome,
       margin_percentage: margin
     };
   });

@@ -72,11 +72,35 @@ export default function Clientes({ companyId, role, user }: { companyId: string 
 
       setImportStatus({ type: 'loading', msg: `Importando ${toInsert.length} clientes...` });
 
-      const { error } = await supabase.from('customers').insert(toInsert);
+      const { createCustomer } = await import('../services/customerService');
+      
+      let successCount = 0;
+      let errorCount = 0;
 
-      if (error) throw error;
+      for (const customerData of toInsert) {
+        try {
+          const result = await createCustomer(companyId!, customerData);
+          if (result.data) {
+            successCount++;
+          } else {
+            errorCount++;
+            console.error("Erro ao importar cliente:", result.error);
+          }
+        } catch (err) {
+          errorCount++;
+          console.error("Erro inesperado ao importar cliente:", err);
+        }
+      }
 
-      setImportStatus({ type: 'success', msg: `${toInsert.length} clientes importados com sucesso!` });
+      if (successCount > 0) {
+        setImportStatus({ 
+          type: 'success', 
+          msg: `${successCount} clientes importados com sucesso!${errorCount > 0 ? ` (${errorCount} erros)` : ''}` 
+        });
+      } else {
+        setImportStatus({ type: 'error', msg: `Nenhum cliente foi importado. Verifique os logs.` });
+      }
+
       fetchCustomers();
       setTimeout(() => setImportStatus({ type: null, msg: '' }), 4000);
     } catch (err: any) {

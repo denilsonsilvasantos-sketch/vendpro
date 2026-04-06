@@ -55,7 +55,7 @@ export default function Produtos({ companyId, onRefresh }: { companyId: string |
                            p.sku.toLowerCase().includes(searchLower) ||
                            varietySkus.some(vSku => vSku.includes(searchLower));
       const matchesBrand = filterBrand ? p.brand_id === filterBrand : true;
-      const matchesCategory = filterCategory ? p.category_id === filterCategory : true;
+      const matchesCategory = filterCategory ? String(p.category_id) === String(filterCategory) : true;
       return matchesSearch && matchesBrand && matchesCategory;
     }).sort((a, b) => {
       const isEsgotadoA = a.status_estoque === 'esgotado';

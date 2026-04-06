@@ -34,6 +34,8 @@ export default function CustomerFormModal({ onClose, onSave, customer, companyId
     setLoading(true);
     setError(null);
     try {
+      const { createCustomer } = await import('../services/customerService');
+      
       const dataToSave = { 
         nome: formData.nome || '',
         nome_empresa: formData.nome_empresa || '',
@@ -42,21 +44,15 @@ export default function CustomerFormModal({ onClose, onSave, customer, companyId
         senha: formData.senha || '',
         ativo: formData.ativo ?? true,
         seller_id: formData.seller_id || null,
-        company_id: companyId,
-        responsavel: formData.nome || '', // Preenche responsavel com o mesmo valor de nome
+        responsavel: formData.nome || '',
       };
 
       if (customer) {
         const { error: saveError } = await supabase.from('customers').update(dataToSave).eq('id', customer.id);
         if (saveError) throw saveError;
       } else {
-        const { error: saveError } = await supabase.from('customers').insert([dataToSave]);
-        if (saveError) {
-          if (saveError.message.includes('duplicate key value violates unique constraint "customers_cnpj_key"')) {
-            throw new Error('Este CNPJ já está cadastrado para outro cliente.');
-          }
-          throw saveError;
-        }
+        const result = await createCustomer(companyId, dataToSave);
+        if (result.error) throw new Error(result.error);
       }
 
       onSave();

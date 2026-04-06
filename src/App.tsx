@@ -2153,6 +2153,7 @@ function CatalogScreen({
   const [itemsPerPage, setItemsPerPage] = useState(24);
   const [currentPage, setCurrentPage] = useState(1);
   const [showConditions, setShowConditions] = useState(false);
+  const gridRef = useRef<HTMLDivElement>(null);
   const [showSwitchWarning, setShowSwitchWarning] = useState(false);
   const [showLogisticsWarning, setShowLogisticsWarning] = useState(false);
   const [isListening, setIsListening] = useState(false);
@@ -2344,7 +2345,9 @@ function CatalogScreen({
   }, [search, selectedCategory, selectedBrand, itemsPerPage]);
 
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (currentPage > 1 || search || selectedCategory || selectedBrand) {
+      gridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   }, [currentPage]);
 
   const visibleCategories = selectedBrand ? categories.filter(c => c.brand_id === selectedBrand) : categories;
@@ -2555,7 +2558,7 @@ function CatalogScreen({
           </aside>
 
           {/* Product Grid */}
-          <div className="flex-1 min-w-0">
+          <div ref={gridRef} className="flex-1 min-w-0">
             <div className="flex items-center justify-between mb-8">
               <div className="flex items-center gap-3">
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">

@@ -19,6 +19,7 @@ export default function Produtos({ companyId, onRefresh }: { companyId: string |
   const [filterBrand, setFilterBrand] = useState<string | null>(null);
   const [filterCategory, setFilterCategory] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const gridRef = React.useRef<HTMLDivElement>(null);
   const itemsPerPage = 20;
 
   async function fetchData() {
@@ -101,7 +102,9 @@ export default function Produtos({ companyId, onRefresh }: { companyId: string |
   }, [searchTerm, filterBrand, filterCategory]);
 
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (currentPage > 1 || searchTerm || filterBrand || filterCategory) {
+      gridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   }, [currentPage]);
 
   if (loading && products.length === 0) {
@@ -196,7 +199,7 @@ export default function Produtos({ companyId, onRefresh }: { companyId: string |
             </div>
           </motion.div>
         ) : (
-          <div className="space-y-8">
+          <div ref={gridRef} className="space-y-8">
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 md:gap-6">
               {paginatedProducts.map(product => (
                 <ProductItem 

@@ -1552,7 +1552,7 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
 
   const copyCustomerToClipboard = () => {
     if (!createdCustomer) return;
-    const text = `*Acesso VendPro*\n\nCódigo de Acesso: ${createdCustomer.codigo_acesso}\nSenha: ${createdCustomer.senha}\n\nEntre no app com esses dados para fazer seus pedidos!`;
+    const text = `*Acesso VendPro*\n\nLogin (CNPJ): ${createdCustomer.cnpj}\nSenha: ${createdCustomer.senha}\n\nEntre no app com esses dados para fazer seus pedidos!`;
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -1688,13 +1688,13 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
             </div>
             <div>
               <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight">Cadastro Realizado!</h2>
-              <p className="text-sm text-slate-500 mt-1">Anote seus dados de acesso para entrar no app futuramente.</p>
+              <p className="text-sm text-slate-500 mt-1">Utilize seu CNPJ e a senha cadastrada para entrar no app.</p>
             </div>
 
             <div className="bg-slate-50 rounded-2xl p-6 space-y-4 border border-slate-100">
               <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Código de Acesso</p>
-                <p className="text-2xl font-black text-primary tracking-wider uppercase">{createdCustomer.codigo_acesso}</p>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Seu CNPJ (Login)</p>
+                <p className="text-2xl font-black text-primary tracking-wider uppercase">{createdCustomer.cnpj}</p>
               </div>
               <div className="h-px bg-slate-200 w-12 mx-auto" />
               <div>

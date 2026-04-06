@@ -169,8 +169,8 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
 
   const removeFile = (index: number) => setUploadedFiles(prev => prev.filter((_, i) => i !== index));
 
-  const extractFromHtml = (html: string): { sku: string, qtd: number }[] => {
-    const results: { sku: string, qtd: number }[] = [];
+  const extractFromHtml = (html: string): { sku: string, qtd: number, nome?: string, preco?: number }[] => {
+    const results: { sku: string, qtd: number, nome?: string, preco?: number }[] = [];
     // Regex para capturar SKU e Quantidade do formato Pluggar
     // SKU: <p class="bold font-size-14 pull-right"> SKU: 10582</p>
     // QTD: <p class="font-size-12"> <i class="fas fa-play-circle text-success mr-2"></i> Disponível: 25</p>
@@ -180,11 +180,17 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
     productBlocks.forEach(block => {
       const skuMatch = block.match(/SKU:\s*([A-Z0-9-]+)/i);
       const qtdMatch = block.match(/Disponível:\s*(\d+)/i);
+      // Nome: Geralmente em um link ou span antes do SKU
+      const nomeMatch = block.match(/<a[^>]*>([^<]+)<\/a>/i) || block.match(/<span[^>]*class=["']product-name["'][^>]*>([^<]+)<\/span>/i);
+      // Preço: R$ 1.234,56
+      const precoMatch = block.match(/R\$\s*([\d.,]+)/i);
       
       if (skuMatch && qtdMatch) {
         results.push({
           sku: skuMatch[1].trim().toUpperCase(),
-          qtd: parseInt(qtdMatch[1], 10)
+          qtd: parseInt(qtdMatch[1], 10),
+          nome: nomeMatch ? nomeMatch[1].trim() : undefined,
+          preco: precoMatch ? parseNumber(precoMatch[1]) : undefined
         });
       }
     });
@@ -222,7 +228,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
 
       const file = uploadedFiles[0].file;
       const fileName = file.name.toLowerCase();
-      let syncData: { sku: string, qtd: number }[] = [];
+      let syncData: { sku: string, qtd: number, nome?: string, preco?: number }[] = [];
 
       if (fileName.endsWith('.html') || fileName.endsWith('.htm')) {
         const text = await file.text();
@@ -234,21 +240,28 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
         jsonData.forEach((row: any) => {
           const skuKey = Object.keys(row).find(k => /sku|codigo|cod|ref|referencia/i.test(k));
           const qtdKey = Object.keys(row).find(k => /quantidade|qtd|estoque|stock|qnt|disponivel/i.test(k));
+          const nomeKey = Object.keys(row).find(k => /nome|produto|descrição|description/i.test(k));
+          const precoKey = Object.keys(row).find(k => /preço|preco|valor|price|unitario/i.test(k));
           if (skuKey) {
             const sku = String(row[skuKey]).trim().toUpperCase();
-            if (sku) syncData.push({ sku, qtd: parseNumber(qtdKey ? row[qtdKey] : 0, 0) });
+            if (sku) syncData.push({ 
+              sku, 
+              qtd: parseNumber(qtdKey ? row[qtdKey] : 0, 0),
+              nome: nomeKey ? String(row[nomeKey]).trim() : undefined,
+              preco: precoKey ? parseNumber(row[precoKey]) : undefined
+            });
           }
         });
       }
 
       if (syncData.length === 0) throw new Error('Não foi possível identificar produtos no arquivo.');
       
-      const { data: existingProducts } = await supabase.from('products').select('id, sku, nome, status_estoque, estoque').eq('company_id', companyId).eq('brand_id', selectedBrandId);
+      const { data: existingProducts } = await supabase.from('products').select('id, sku, nome, status_estoque, estoque, preco_unitario').eq('company_id', companyId).eq('brand_id', selectedBrandId);
       if (!existingProducts) throw new Error('Erro ao buscar produtos.');
       
       const existingMap = new Map(existingProducts.map(p => [p.sku.toUpperCase().trim(), p]));
       const fileSkus = new Set(syncData.map(d => d.sku));
-      const updates: { id: string, status_estoque: string, estoque: number }[] = [];
+      const updates: { id: string, status_estoque: string, estoque: number, nome?: string, preco_unitario?: number }[] = [];
       const unregistered: { sku: string, qtd: number }[] = [];
       const newOutOfStock: { sku: string, nome: string }[] = [];
       const newLastUnits: { sku: string, nome: string }[] = [];
@@ -257,9 +270,17 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
         const existing = existingMap.get(d.sku);
         if (existing) {
           const newStatus = d.qtd === 0 ? 'esgotado' : d.qtd < 10 ? 'ultimas' : 'normal';
-          // Atualiza se o status mudou OU se a quantidade numérica mudou
-          if (existing.status_estoque !== newStatus || existing.estoque !== d.qtd) {
-            updates.push({ id: existing.id, status_estoque: newStatus, estoque: d.qtd });
+          
+          const nameChanged = d.nome && d.nome !== existing.nome;
+          const priceChanged = d.preco !== undefined && d.preco !== existing.preco_unitario;
+
+          // Atualiza se o status mudou OU se a quantidade numérica mudou OU se nome/preço mudaram
+          if (existing.status_estoque !== newStatus || existing.estoque !== d.qtd || nameChanged || priceChanged) {
+            const updateObj: any = { id: existing.id, status_estoque: newStatus, estoque: d.qtd };
+            if (nameChanged) updateObj.nome = d.nome;
+            if (priceChanged) updateObj.preco_unitario = d.preco;
+            
+            updates.push(updateObj);
             if (newStatus === 'esgotado') newOutOfStock.push({ sku: existing.sku, nome: existing.nome });
             else if (newStatus === 'ultimas') newLastUnits.push({ sku: existing.sku, nome: existing.nome });
           }
@@ -278,12 +299,10 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
       if (updates.length > 0) {
         const batchSize = 20;
         for (let i = 0; i < updates.length; i += batchSize) {
-          await Promise.all(updates.slice(i, i + batchSize).map(u => 
-            supabase!.from('products').update({ 
-              status_estoque: u.status_estoque,
-              estoque: u.estoque 
-            }).eq('id', u.id)
-          ));
+          await Promise.all(updates.slice(i, i + batchSize).map(u => {
+            const { id, ...data } = u;
+            return supabase!.from('products').update(data).eq('id', id);
+          }));
           setProgress(Math.round(((i + Math.min(batchSize, updates.length - i)) / updates.length) * 100));
         }
       }

@@ -24,6 +24,12 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
   const [itemsError, setItemsError] = useState<string | null>(null);
   const [abcCurve, setAbcCurve] = useState<any[]>([]);
   const [brands, setBrands] = useState<any[]>([]);
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  const [showMergeConfirm, setShowMergeConfirm] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const [filterStatus, setFilterStatus] = useState('');
   const [filterBrand, setFilterBrand] = useState('');
@@ -498,6 +504,124 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
     }
   };
 
+  const handleDeleteOrder = async (orderId: string) => {
+    if (!supabase) return;
+    setIsProcessing(true);
+    try {
+      // Delete items first (though Supabase might have cascade, let's be safe)
+      await supabase.from('order_items').delete().eq('order_id', orderId);
+      await supabase.from('order_removed_items').delete().eq('order_id', orderId);
+      
+      const { error } = await supabase.from('orders').delete().eq('id', orderId);
+      if (error) throw error;
+      
+      setOrders(prev => prev.filter(o => o.id !== orderId));
+      if (selectedOrder?.id === orderId) setSelectedOrder(null);
+      setShowDeleteConfirm(null);
+    } catch (err: any) {
+      alert(`Erro ao excluir pedido: ${err.message}`);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleMergeOrders = async () => {
+    if (!supabase || selectedOrderIds.length < 2) return;
+    setIsProcessing(true);
+    
+    try {
+      const ordersToMerge = orders.filter(o => selectedOrderIds.includes(o.id));
+      
+      // Validation: Same customer and same brand
+      const firstOrder = ordersToMerge[0];
+      const sameCustomer = ordersToMerge.every(o => o.customer_id === firstOrder.customer_id);
+      const sameBrand = ordersToMerge.every(o => o.brand_id === firstOrder.brand_id);
+      
+      if (!sameCustomer || !sameBrand) {
+        alert('Para ajuntar pedidos, eles devem ser do mesmo cliente e da mesma marca.');
+        setIsProcessing(false);
+        return;
+      }
+
+      // Target order is the first one (usually the oldest due to sorting)
+      const targetOrder = ordersToMerge[ordersToMerge.length - 1]; // Oldest
+      const sourceOrderIds = selectedOrderIds.filter(id => id !== targetOrder.id);
+
+      // 1. Move items from source orders to target order
+      // We need to handle potential duplicate SKUs by summing quantities
+      const { data: allItems, error: itemsError } = await supabase
+        .from('order_items')
+        .select('*')
+        .in('order_id', selectedOrderIds);
+      
+      if (itemsError) throw itemsError;
+
+      // Group items by product_id/sku to sum them up
+      const mergedItemsMap = new Map<string, any>();
+      
+      allItems?.forEach(item => {
+        const key = `${item.product_id}_${JSON.stringify(item.variacoes || {})}`;
+        if (mergedItemsMap.has(key)) {
+          const existing = mergedItemsMap.get(key);
+          existing.quantidade += item.quantidade;
+          existing.subtotal = Number(existing.subtotal) + Number(item.subtotal);
+        } else {
+          mergedItemsMap.set(key, { ...item, order_id: targetOrder.id });
+        }
+      });
+
+      // 2. Delete all current items of selected orders
+      await supabase.from('order_items').delete().in('order_id', selectedOrderIds);
+
+      // 3. Insert merged items
+      const itemsToInsert = Array.from(mergedItemsMap.values()).map(item => {
+        const { id, created_at, ...rest } = item;
+        return rest;
+      });
+      
+      const { error: insertError } = await supabase.from('order_items').insert(itemsToInsert);
+      if (insertError) throw insertError;
+
+      // 4. Update target order totals
+      const newSubtotal = itemsToInsert.reduce((acc, i) => acc + Number(i.subtotal), 0);
+      let newTotal = newSubtotal;
+      if (targetOrder.discount_value > 0) {
+        if (targetOrder.discount_type === 'percentage') {
+          newTotal = newSubtotal * (1 - targetOrder.discount_value / 100);
+        } else {
+          newTotal = newSubtotal - targetOrder.discount_value;
+        }
+      }
+
+      await supabase.from('orders').update({
+        subtotal: newSubtotal,
+        total: newTotal
+      }).eq('id', targetOrder.id);
+
+      // 5. Delete source orders
+      await supabase.from('orders').delete().in('id', sourceOrderIds);
+
+      // 6. Refresh local state
+      await fetchOrders(true);
+      setSelectedOrderIds([]);
+      setIsSelectionMode(false);
+      setShowMergeConfirm(false);
+      
+    } catch (err: any) {
+      alert(`Erro ao ajuntar pedidos: ${err.message}`);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const toggleOrderSelection = (orderId: string) => {
+    setSelectedOrderIds(prev => 
+      prev.includes(orderId) 
+        ? prev.filter(id => id !== orderId) 
+        : [...prev, orderId]
+    );
+  };
+
   const statusLabel = (s: string) => ({ pending: 'Pendente', typed: 'Digitado', finished: 'Finalizado', cancelled: 'Cancelado' }[s] || s);
   const statusClass = (s: string) => ({
     pending: 'bg-amber-50 text-amber-600',
@@ -525,6 +649,22 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
           {role === 'customer' ? 'Meus Pedidos' : 'Pedidos'}
         </h1>
         <div className="flex items-center gap-2">
+          {canEditOrder && (
+            <button
+              onClick={() => {
+                if (isSelectionMode) {
+                  if (selectedOrderIds.length >= 2) setShowMergeConfirm(true);
+                  else { setIsSelectionMode(false); setSelectedOrderIds([]); }
+                } else {
+                  setIsSelectionMode(true);
+                }
+              }}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold border transition-all ${isSelectionMode ? 'bg-emerald-500 text-white border-emerald-500 shadow-md shadow-emerald-500/30' : 'bg-white text-slate-500 border-slate-200 hover:border-primary/40'}`}
+            >
+              <Plus size={13} className={isSelectionMode ? 'rotate-45 transition-transform' : ''} />
+              {isSelectionMode ? (selectedOrderIds.length >= 2 ? 'Confirmar Junção' : 'Cancelar') : 'Ajuntar Pedidos'}
+            </button>
+          )}
           <button
             onClick={() => setShowFilters(p => !p)}
             className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold border transition-all ${showFilters || hasActiveFilters ? 'bg-primary text-white border-primary shadow-md shadow-primary/30' : 'bg-white text-slate-500 border-slate-200 hover:border-primary/40'}`}
@@ -649,6 +789,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
           <table className="w-full">
             <thead>
               <tr className="bg-slate-50/50 border-b border-slate-100">
+                {isSelectionMode && <th className="p-6 text-left w-10"></th>}
                 <th className="p-6 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400">ID</th>
                 {role !== 'customer' && <th className="p-6 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400">Cliente</th>}
                 <th className="p-6 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400">Marca</th>
@@ -661,7 +802,17 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
             </thead>
             <tbody className="divide-y divide-slate-50">
               {filteredOrders.map((order, index) => (
-                <tr key={order.id} className="hover:bg-slate-50/50 transition-colors">
+                <tr key={order.id} className={`hover:bg-slate-50/50 transition-colors ${selectedOrderIds.includes(order.id) ? 'bg-primary/5' : ''}`}>
+                  {isSelectionMode && (
+                    <td className="p-6">
+                      <input 
+                        type="checkbox" 
+                        checked={selectedOrderIds.includes(order.id)}
+                        onChange={() => toggleOrderSelection(order.id)}
+                        className="w-4 h-4 rounded border-slate-300 text-primary focus:ring-primary"
+                      />
+                    </td>
+                  )}
                   <td className="p-6">
                     <span className="font-mono text-xs font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-lg">#{filteredOrders.length - index}</span>
                   </td>
@@ -707,9 +858,19 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                     )}
                   </td>
                   <td className="p-6 text-right">
-                    <button onClick={() => openOrderDetails(order)} className="p-2 text-slate-400 hover:text-primary hover:bg-primary/5 rounded-xl transition-all">
-                      <Eye size={18} />
-                    </button>
+                    <div className="flex items-center justify-end gap-1">
+                      <button onClick={() => openOrderDetails(order)} className="p-2 text-slate-400 hover:text-primary hover:bg-primary/5 rounded-xl transition-all">
+                        <Eye size={18} />
+                      </button>
+                      {canEditOrder && (
+                        <button 
+                          onClick={() => setShowDeleteConfirm(order.id)} 
+                          className="p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -729,6 +890,74 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
       </div>
 
       <AnimatePresence>
+        {showDeleteConfirm && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setShowDeleteConfirm(null)} className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" />
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white w-full max-w-sm rounded-[32px] shadow-2xl relative z-10 p-8 text-center space-y-6">
+              <div className="w-20 h-20 bg-rose-50 rounded-full flex items-center justify-center mx-auto text-rose-500">
+                <Trash2 size={40} />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-xl font-bold text-slate-900 tracking-tight">Excluir Pedido?</h3>
+                <p className="text-slate-500 text-sm leading-relaxed">
+                  Esta ação não pode ser desfeita. Todos os itens deste pedido serão removidos permanentemente.
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => setShowDeleteConfirm(null)}
+                  className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-200 transition-all"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  onClick={() => handleDeleteOrder(showDeleteConfirm)}
+                  disabled={isProcessing}
+                  className="flex-1 py-3 bg-rose-500 text-white rounded-2xl font-bold shadow-lg shadow-rose-500/20 hover:bg-rose-600 transition-all disabled:opacity-50"
+                >
+                  {isProcessing ? 'Excluindo...' : 'Sim, Excluir'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {showMergeConfirm && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setShowMergeConfirm(false)} className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" />
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white w-full max-w-sm rounded-[32px] shadow-2xl relative z-10 p-8 text-center space-y-6">
+              <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mx-auto text-emerald-500">
+                <Plus size={40} className="rotate-45" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-xl font-bold text-slate-900 tracking-tight">Ajuntar {selectedOrderIds.length} Pedidos?</h3>
+                <p className="text-slate-500 text-sm leading-relaxed">
+                  Os itens de todos os pedidos selecionados serão combinados em um único pedido. Os pedidos originais serão excluídos.
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => setShowMergeConfirm(false)}
+                  className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-200 transition-all"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  onClick={handleMergeOrders}
+                  disabled={isProcessing}
+                  className="flex-1 py-3 bg-emerald-500 text-white rounded-2xl font-bold shadow-lg shadow-emerald-500/20 hover:bg-emerald-600 transition-all disabled:opacity-50"
+                >
+                  {isProcessing ? 'Processando...' : 'Sim, Ajuntar'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
         {selectedOrder && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -748,7 +977,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-8 space-y-6">
+              <div ref={scrollRef} className="flex-1 overflow-y-auto p-8 space-y-6">
                 {loadingItems ? (
                   <div className="flex items-center justify-center py-20">
                     <div className="flex flex-col items-center gap-3">
@@ -957,9 +1186,9 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                       )}
 
                       <div className="space-y-2">
-                        <AnimatePresence mode="popLayout">
+                        <AnimatePresence>
                           {orderItems.length > 0 ? orderItems.map(item => (
-                            <motion.div key={item.id} layout initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10, height: 0 }}
+                            <motion.div key={item.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }}
                               className="flex items-center justify-between p-4 bg-white rounded-2xl border border-slate-100 hover:border-primary/20 transition-all group">
                               <div className="flex-1">
                                 <div className="flex items-center gap-2">

@@ -972,8 +972,6 @@ export default function App() {
 
               <nav className="space-y-1.5 flex-1 overflow-y-auto pr-2 custom-scrollbar">
                 <SidebarItem icon={<LayoutGrid size={16}/>} label="Catálogo" active={activeTab === 'catalog'} onClick={() => { setActiveTab('catalog'); setIsSidebarOpen(false); }} />
-                <SidebarItem icon={<Plus size={16} className="text-amber-500" />} label="Novidades" active={activeTab === 'novidades'} onClick={() => { setActiveTab('novidades'); setIsSidebarOpen(false); }} />
-                <SidebarItem icon={<CheckCircle2 size={16} className="text-emerald-500" />} label="Reposição" active={activeTab === 'reposicao'} onClick={() => { setActiveTab('reposicao'); setIsSidebarOpen(false); }} />
                 
                 {effectiveRole !== 'customer' && (
                   <>
@@ -1082,6 +1080,7 @@ export default function App() {
               setSelectedCategory={setSelectedCategory}
               carts={carts}
               onGoToCart={() => setIsCartOpen(true)}
+              onTabChange={setActiveTab}
             />
           )}
 
@@ -1104,6 +1103,7 @@ export default function App() {
               carts={carts}
               onGoToCart={() => setIsCartOpen(true)}
               filterType="new"
+              onTabChange={setActiveTab}
             />
           )}
 
@@ -1126,6 +1126,7 @@ export default function App() {
               carts={carts}
               onGoToCart={() => setIsCartOpen(true)}
               filterType="back"
+              onTabChange={setActiveTab}
             />
           )}
         
@@ -2177,7 +2178,8 @@ function CatalogScreen({
   setSelectedCategory,
   carts,
   onGoToCart,
-  filterType = 'all'
+  filterType = 'all',
+  onTabChange
 }: { 
   products: Product[], 
   categories: Category[], 
@@ -2195,7 +2197,8 @@ function CatalogScreen({
   setSelectedCategory: (id: string | null) => void,
   carts: { [brandId: string]: CartItem[] },
   onGoToCart: () => void,
-  filterType?: 'all' | 'new' | 'back'
+  filterType?: 'all' | 'new' | 'back',
+  onTabChange?: (tab: string) => void
 }) {
   const [search, setSearch] = useState('');
   const [itemsPerPage, setItemsPerPage] = useState(24);
@@ -2611,16 +2614,39 @@ function CatalogScreen({
               <h3 className="text-[10px] font-black uppercase tracking-[0.2em] mb-6 text-slate-400">Categorias</h3>
               <div className="space-y-2">
                 <button 
-                  onClick={() => setSelectedCategory(null)}
-                  className={`w-full text-left px-5 py-3 rounded-[20px] text-xs font-black uppercase tracking-widest transition-all ${!selectedCategory ? 'bg-primary/10 text-primary' : 'text-slate-900 hover:bg-slate-50'}`}
+                  onClick={() => onTabChange?.('novidades')}
+                  className={`w-full text-left px-5 py-3 rounded-[20px] text-xs font-black uppercase tracking-widest transition-all flex items-center gap-3 ${filterType === 'new' ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20' : 'text-slate-900 hover:bg-slate-50'}`}
+                >
+                  <Plus size={14} strokeWidth={3} className={filterType === 'new' ? 'text-white' : 'text-amber-500'} />
+                  Novidades
+                </button>
+                <button 
+                  onClick={() => onTabChange?.('reposicao')}
+                  className={`w-full text-left px-5 py-3 rounded-[20px] text-xs font-black uppercase tracking-widest transition-all flex items-center gap-3 ${filterType === 'back' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'text-slate-900 hover:bg-slate-50'}`}
+                >
+                  <CheckCircle2 size={14} strokeWidth={3} className={filterType === 'back' ? 'text-white' : 'text-emerald-500'} />
+                  Reposição
+                </button>
+
+                <div className="h-px bg-slate-100 my-4 mx-4" />
+
+                <button 
+                  onClick={() => {
+                    onTabChange?.('catalog');
+                    setSelectedCategory(null);
+                  }}
+                  className={`w-full text-left px-5 py-3 rounded-[20px] text-xs font-black uppercase tracking-widest transition-all ${filterType === 'all' && !selectedCategory ? 'bg-primary/10 text-primary' : 'text-slate-900 hover:bg-slate-50'}`}
                 >
                   Todas
                 </button>
                 {[...visibleCategories].sort((a, b) => (a.order_index || 0) - (b.order_index || 0)).map(cat => (
                   <button 
                     key={cat.id}
-                    onClick={() => setSelectedCategory(cat.id)}
-                    className={`w-full text-left px-5 py-3 rounded-[20px] text-xs font-black uppercase tracking-widest transition-all ${selectedCategory === cat.id ? 'bg-primary/10 text-primary' : 'text-slate-900 hover:bg-slate-50'}`}
+                    onClick={() => {
+                      onTabChange?.('catalog');
+                      setSelectedCategory(cat.id);
+                    }}
+                    className={`w-full text-left px-5 py-3 rounded-[20px] text-xs font-black uppercase tracking-widest transition-all ${filterType === 'all' && selectedCategory === cat.id ? 'bg-primary/10 text-primary' : 'text-slate-900 hover:bg-slate-50'}`}
                   >
                     {cat.nome}
                   </button>

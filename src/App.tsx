@@ -352,7 +352,7 @@ export default function App() {
             const isBoxDiscount = item.has_box_discount && !item.venda_somente_box && item.quantity >= (item.qtd_box || 0);
             const unitPrice = item.venda_somente_box 
               ? item.preco_box * marginMultiplier
-              : (isBoxDiscount ? item.preco_box * marginMultiplier : item.preco_unitario * marginMultiplier);
+              : (isBoxDiscount ? (item.preco_box / (item.qtd_box || 1)) * marginMultiplier : item.preco_unitario * marginMultiplier);
             
             return {
               order_id: order.id,
@@ -2931,7 +2931,11 @@ const ProductCard = memo(({ product, onAdd, onEdit, role, onZoom, isInCart, ...p
           <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mb-3">SKU: {product.sku}</p>
           
           {!isEsgotado && (
-            <p className="text-lg md:text-xl font-black text-[#C21863] tracking-tight">R$ {(product.preco_unitario || 0).toFixed(2)}</p>
+            <p className="text-lg md:text-xl font-black text-[#C21863] tracking-tight">
+              R$ {(product.venda_somente_box && product.preco_box && product.qtd_box 
+                ? (product.preco_box / product.qtd_box) 
+                : (product.preco_unitario || 0)).toFixed(2)}
+            </p>
           )}
         </div>
 

@@ -7,8 +7,8 @@ export function formatWhatsAppMessage(items: CartItem[], clientName?: string, br
   const lines = items.map((item, index) => {
     const isBoxDiscount = item.has_box_discount && !item.venda_somente_box && item.quantity >= (item.qtd_box || 0);
     const unitPrice = item.venda_somente_box 
-      ? item.preco_box
-      : (isBoxDiscount ? item.preco_box : item.preco_unitario);
+      ? (item.preco_box || 0)
+      : (isBoxDiscount ? ((item.preco_box || 0) / (item.qtd_box || 1)) : (item.preco_unitario || 0));
     
     return `${index + 1}. ${item.quantity} / ${item.sku} / ${item.nome} / ${unitPrice.toFixed(2).replace('.', ',')} / ${(item.quantity * unitPrice).toFixed(2).replace('.', ',')}`;
   });
@@ -16,8 +16,8 @@ export function formatWhatsAppMessage(items: CartItem[], clientName?: string, br
   const total = items.reduce((acc, item) => {
     const isBoxDiscount = item.has_box_discount && !item.venda_somente_box && item.quantity >= (item.qtd_box || 0);
     const unitPrice = item.venda_somente_box 
-      ? item.preco_box
-      : (isBoxDiscount ? item.preco_box : item.preco_unitario);
+      ? (item.preco_box || 0)
+      : (isBoxDiscount ? ((item.preco_box || 0) / (item.qtd_box || 1)) : (item.preco_unitario || 0));
     return acc + (item.quantity * unitPrice);
   }, 0);
   

@@ -414,7 +414,11 @@ const ProductItem = memo(({
             <div className="space-y-0.5">
               <p className="text-[7px] font-black text-slate-300 uppercase tracking-wider">Preço Unitário</p>
               {!isEsgotado ? (
-                <p className="text-lg font-black text-slate-900 tracking-tighter">R$ {product.preco_unitario.toFixed(2)}</p>
+                <p className="text-lg font-black text-slate-900 tracking-tighter">
+                  R$ {(product.venda_somente_box && product.preco_box && product.qtd_box 
+                    ? (product.preco_box / product.qtd_box) 
+                    : (product.preco_unitario || 0)).toFixed(2)}
+                </p>
               ) : (
                 <p className="text-lg font-black text-slate-200 tracking-tighter">--</p>
               )}

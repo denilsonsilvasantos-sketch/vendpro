@@ -95,7 +95,7 @@ export default function CartScreen({
                   const isBoxDiscount = item.has_box_discount && !item.venda_somente_box && item.quantity >= (item.qtd_box || 0);
                   const unitPrice = item.venda_somente_box
                     ? (item.preco_box || 0)
-                    : (isBoxDiscount ? (item.preco_box || 0) : (item.preco_unitario || 0));
+                    : (isBoxDiscount ? ((item.preco_box || 0) / (item.qtd_box || 1)) : (item.preco_unitario || 0));
                   const subtotal = unitPrice * item.quantity;
 
                   return (
@@ -322,7 +322,7 @@ export default function CartScreen({
                 const isBoxDiscount = item.has_box_discount && !item.venda_somente_box && item.quantity >= (item.qtd_box || 0);
                 const unitPrice = item.venda_somente_box 
                   ? (item.preco_box || 0)
-                  : (isBoxDiscount ? (item.preco_box || 0) : (item.preco_unitario || 0));
+                  : (isBoxDiscount ? ((item.preco_box || 0) / (item.qtd_box || 1)) : (item.preco_unitario || 0));
                 const subtotal = unitPrice * item.quantity;
 
                 return (

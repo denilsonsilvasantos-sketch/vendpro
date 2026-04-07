@@ -59,7 +59,7 @@ export function useCart(brandId?: string | null, userId?: string | null) {
   const addToCart = (product: Product, quantity: number, selected_variation?: Record<string, string>) => {
     const bId = product.brand_id || 'default';
     
-    if (product.multiplo_venda && quantity % product.multiplo_venda !== 0) {
+    if (!product.venda_somente_box && product.multiplo_venda && quantity % product.multiplo_venda !== 0) {
       alert(`Este produto só pode ser vendido em múltiplos de ${product.multiplo_venda}`);
       return;
     }
@@ -133,9 +133,11 @@ export function useCart(brandId?: string | null, userId?: string | null) {
     let price = item.preco_unitario;
     
     if (item.venda_somente_box) {
+      // Para "Somente Box", a quantidade no carrinho representa o número de BOXES
       price = item.preco_box || 0;
     } else if (item.has_box_discount && item.quantity >= (item.qtd_box || 0) && (item.qtd_box || 0) > 0) {
-      price = item.preco_box || 0;
+      // Para desconto de box (venda fracionada permitida), o preço unitário diminui
+      price = (item.preco_box && item.qtd_box) ? (item.preco_box / item.qtd_box) : (item.preco_unitario || 0);
     }
     
     return acc + (item.quantity * price);

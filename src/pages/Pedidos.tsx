@@ -80,9 +80,9 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
     return () => clearTimeout(timer);
   }, [newSku, companyId, selectedOrder?.brand_id]);
 
-  async function fetchOrders() {
+  async function fetchOrders(silent = false) {
     if (!supabase || companyId === null) return;
-    setLoading(true);
+    if (!silent) setLoading(true);
     console.log('fetchOrders - role:', role, 'user.id:', user?.id, 'companyId:', companyId);
 
     let query = supabase
@@ -138,7 +138,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
     const { data: brandsData } = await supabase.from('brands').select('*').eq('company_id', companyId).order('name');
     setBrands(brandsData || []);
     
-    setLoading(false);
+    if (!silent) setLoading(false);
   }
 
   async function fetchAbcCurve(orderIds: string[]) {
@@ -162,7 +162,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
     if (!supabase || companyId === null) return;
     const channel = supabase
       .channel('orders-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `company_id=eq.${companyId}` }, fetchOrders)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `company_id=eq.${companyId}` }, () => fetchOrders(true))
       .subscribe();
     return () => { if (supabase && channel) supabase.removeChannel(channel); };
   }, [companyId, role, user?.id]);

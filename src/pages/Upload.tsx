@@ -384,8 +384,15 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
             processedSkus.push(sku);
             const { data: existing } = await supabase.from('products').select('id, nome, preco_unitario, imagem, sku').eq('company_id', companyId).eq('brand_id', selectedBrandId).ilike('sku', sku).maybeSingle();
             let pendingStatus = 'none';
-            const parsedPrecoUnitario = parseNumber(extracted.preco_unitario, 0);
+            let parsedPrecoUnitario = parseNumber(extracted.preco_unitario, 0);
             const parsedPrecoBox = parseNumber(extracted.preco_box, 0);
+            const parsedQtdBox = parseNumber(extracted.qtd_box, 1);
+
+            // Regra: Se for venda somente box, o preço unitário é o preço box dividido pela quantidade
+            if (!!extracted.venda_somente_box && parsedPrecoBox > 0 && parsedQtdBox > 0) {
+              parsedPrecoUnitario = parsedPrecoBox / parsedQtdBox;
+            }
+
             if (existing && catalogType === 'replenishment' && (existing.preco_unitario || 0) !== parsedPrecoUnitario) {
               const m = margin > 0 ? (1 + margin / 100) : 1;
               setPriceChanges(prev => [...prev, { sku, old: (existing.preco_unitario || 0) * m, new: parsedPrecoUnitario * m }]);

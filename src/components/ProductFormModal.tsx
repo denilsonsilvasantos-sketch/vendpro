@@ -168,6 +168,15 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
     }
   };
 
+  useEffect(() => {
+    if (formData.venda_somente_box && (formData.preco_box || 0) > 0 && (formData.qtd_box || 0) > 0) {
+      const calculatedUnit = (formData.preco_box || 0) / (formData.qtd_box || 1);
+      if (formData.preco_unitario !== calculatedUnit) {
+        setFormData(prev => ({ ...prev, preco_unitario: calculatedUnit }));
+      }
+    }
+  }, [formData.venda_somente_box, formData.preco_box, formData.qtd_box]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!supabase) return;
@@ -440,7 +449,15 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
                   <label className="text-[9px] font-black text-slate-400 uppercase tracking-[2px] ml-2">Preço Unitário</label>
                   <div className="relative group">
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 font-black text-[10px]">R$</span>
-                    <input type="number" step="0.01" className="w-full pl-10 pr-4 py-4 bg-slate-50/50 border border-slate-100 rounded-[6px] focus:ring-4 focus:ring-primary/5 focus:border-primary/30 outline-none transition-all font-black text-[12px] text-slate-900 shadow-inner" value={formData.preco_unitario || 0} onChange={e => setFormData({...formData, preco_unitario: parseFloat(e.target.value)})} required />
+                    <input 
+                      type="number" 
+                      step="0.01" 
+                      className={`w-full pl-10 pr-4 py-4 bg-slate-50/50 border border-slate-100 rounded-[6px] focus:ring-4 focus:ring-primary/5 focus:border-primary/30 outline-none transition-all font-black text-[12px] text-slate-900 shadow-inner ${formData.venda_somente_box ? 'opacity-70 cursor-not-allowed' : ''}`} 
+                      value={formData.preco_unitario || 0} 
+                      onChange={e => setFormData({...formData, preco_unitario: parseFloat(e.target.value)})} 
+                      required 
+                      readOnly={formData.venda_somente_box}
+                    />
                   </div>
                 </div>
                 <div className="space-y-2">

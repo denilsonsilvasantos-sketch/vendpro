@@ -102,6 +102,7 @@ export interface Product {
   margin_percentage?: number;
   created_at?: string;
   is_new?: boolean;
+  is_back_in_stock?: boolean;
   new_until?: string;
   back_in_stock_until?: string;
   tipo_variacao?: 'grade' | 'escolha_livre' | 'variedades';

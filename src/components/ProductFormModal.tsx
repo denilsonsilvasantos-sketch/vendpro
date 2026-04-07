@@ -599,7 +599,15 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
                 )}
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-2">
+                <label className="flex items-center gap-2 cursor-pointer group bg-slate-50/50 p-2.5 rounded-[6px] border border-slate-100 hover:border-primary/20 transition-all">
+                  <div className={`w-5 h-5 rounded-[4px] border-2 flex items-center justify-center transition-all shrink-0 ${formData.is_new ? 'bg-amber-500 border-amber-500 shadow-lg shadow-amber-500/20' : 'border-slate-200 group-hover:border-amber-500/50'}`}>
+                    {formData.is_new && <Check size={12} strokeWidth={4} className="text-white" />}
+                  </div>
+                  <input type="checkbox" className="hidden" checked={formData.is_new || false} onChange={e => setFormData({...formData, is_new: e.target.checked})} />
+                  <span className="text-[9px] font-black text-slate-600 uppercase tracking-tight leading-none">Novo</span>
+                </label>
+
                 <label className="flex items-center gap-2 cursor-pointer group bg-slate-50/50 p-2.5 rounded-[6px] border border-slate-100 hover:border-primary/20 transition-all">
                   <div className={`w-5 h-5 rounded-[4px] border-2 flex items-center justify-center transition-all shrink-0 ${formData.venda_somente_box ? 'bg-primary border-primary shadow-lg shadow-primary/20' : 'border-slate-200 group-hover:border-primary/50'}`}>
                     {formData.venda_somente_box && <Check size={12} strokeWidth={4} className="text-white" />}

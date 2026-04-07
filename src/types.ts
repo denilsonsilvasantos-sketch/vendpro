@@ -101,6 +101,9 @@ export interface Product {
   brand_nome?: string;
   margin_percentage?: number;
   created_at?: string;
+  is_new?: boolean;
+  new_until?: string;
+  back_in_stock_until?: string;
   tipo_variacao?: 'grade' | 'escolha_livre' | 'variedades';
   variacoes_disponiveis?: {
     nome: string; // e.g., "Cor", "Tamanho"

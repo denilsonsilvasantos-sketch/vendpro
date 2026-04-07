@@ -972,6 +972,8 @@ export default function App() {
 
               <nav className="space-y-1.5 flex-1 overflow-y-auto pr-2 custom-scrollbar">
                 <SidebarItem icon={<LayoutGrid size={16}/>} label="Catálogo" active={activeTab === 'catalog'} onClick={() => { setActiveTab('catalog'); setIsSidebarOpen(false); }} />
+                <SidebarItem icon={<Plus size={16} className="text-amber-500" />} label="Novidades" active={activeTab === 'novidades'} onClick={() => { setActiveTab('novidades'); setIsSidebarOpen(false); }} />
+                <SidebarItem icon={<CheckCircle2 size={16} className="text-emerald-500" />} label="Reposição" active={activeTab === 'reposicao'} onClick={() => { setActiveTab('reposicao'); setIsSidebarOpen(false); }} />
                 
                 {effectiveRole !== 'customer' && (
                   <>
@@ -1080,6 +1082,50 @@ export default function App() {
               setSelectedCategory={setSelectedCategory}
               carts={carts}
               onGoToCart={() => setIsCartOpen(true)}
+            />
+          )}
+
+          {activeTab === 'novidades' && (
+            <CatalogScreen 
+              products={products} 
+              categories={categories} 
+              brands={brands}
+              onAddToCart={handleAddToCart} 
+              onEdit={setEditingProduct} 
+              role={effectiveRole} 
+              onZoom={onZoom}
+              banners={banners}
+              user={user}
+              company={company}
+              selectedBrand={selectedBrand}
+              setSelectedBrand={setSelectedBrand}
+              selectedCategory={selectedCategory}
+              setSelectedCategory={setSelectedCategory}
+              carts={carts}
+              onGoToCart={() => setIsCartOpen(true)}
+              filterType="new"
+            />
+          )}
+
+          {activeTab === 'reposicao' && (
+            <CatalogScreen 
+              products={products} 
+              categories={categories} 
+              brands={brands}
+              onAddToCart={handleAddToCart} 
+              onEdit={setEditingProduct} 
+              role={effectiveRole} 
+              onZoom={onZoom}
+              banners={banners}
+              user={user}
+              company={company}
+              selectedBrand={selectedBrand}
+              setSelectedBrand={setSelectedBrand}
+              selectedCategory={selectedCategory}
+              setSelectedCategory={setSelectedCategory}
+              carts={carts}
+              onGoToCart={() => setIsCartOpen(true)}
+              filterType="back"
             />
           )}
         
@@ -2130,7 +2176,8 @@ function CatalogScreen({
   selectedCategory,
   setSelectedCategory,
   carts,
-  onGoToCart
+  onGoToCart,
+  filterType = 'all'
 }: { 
   products: Product[], 
   categories: Category[], 
@@ -2147,7 +2194,8 @@ function CatalogScreen({
   selectedCategory: string | null,
   setSelectedCategory: (id: string | null) => void,
   carts: { [brandId: string]: CartItem[] },
-  onGoToCart: () => void
+  onGoToCart: () => void,
+  filterType?: 'all' | 'new' | 'back'
 }) {
   const [search, setSearch] = useState('');
   const [itemsPerPage, setItemsPerPage] = useState(24);
@@ -2273,11 +2321,28 @@ function CatalogScreen({
   };
 
   const filtered = useMemo(() => {
+    const now = new Date();
+
     return products.filter(p => {
       // Ocultar produtos esgotados no catálogo para otimizar carregamento e experiência
-      // Consideramos esgotado se o status for 'esgotado' (case-insensitive) ou se o estoque for 0
       const isEsgotado = p.status_estoque?.toLowerCase() === 'esgotado' || p.estoque === 0;
-      if (isEsgotado) return false;
+      
+      // Se for filtro de Novidades ou Reposição, mostramos mesmo se estiver esgotado? 
+      // O usuário disse: "caso acabe antes dos 7 dias vai para o esgotado"
+      // Isso implica que ele ainda pode estar na lista mas marcado como esgotado.
+      // Mas geralmente é melhor ocultar se o usuário não pediu especificamente para ver esgotados nessas páginas.
+      // Vamos manter a lógica de ocultar esgotados se não for admin/vendedor?
+      // Na verdade, vamos permitir ver esgotados nessas abas se o usuário quiser, mas por padrão ocultamos.
+      if (isEsgotado && filterType === 'all') return false;
+
+      // Filtro por tipo (Novidades / Reposição)
+      if (filterType === 'new') {
+        if (!p.is_new || !p.new_until) return false;
+        if (new Date(p.new_until) < now) return false;
+      } else if (filterType === 'back') {
+        if (!p.back_in_stock_until) return false;
+        if (new Date(p.back_in_stock_until) < now) return false;
+      }
 
       const searchLower = search.trim().toLowerCase();
       if (!searchLower) return (selectedCategory ? p.category_id === selectedCategory : true) && (selectedBrand ? p.brand_id === selectedBrand : true);
@@ -2298,6 +2363,13 @@ function CatalogScreen({
       const matchesBrand = selectedBrand ? p.brand_id === selectedBrand : true;
       return matchesSearch && matchesCategory && matchesBrand;
     }).sort((a, b) => {
+      // Se for Novidades ou Reposição, ordenar por data de criação (mais recentes primeiro)
+      if (filterType !== 'all') {
+        const dateA = new Date(a.created_at || 0).getTime();
+        const dateB = new Date(b.created_at || 0).getTime();
+        return dateB - dateA;
+      }
+
       const isEsgotadoA = a.status_estoque === 'esgotado';
       const isEsgotadoB = b.status_estoque === 'esgotado';
 
@@ -2464,6 +2536,22 @@ function CatalogScreen({
       </div>
 
       <div className="max-w-6xl xl:max-w-7xl mx-auto px-4 md:px-8 py-12">
+        {filterType !== 'all' && (
+          <div className="mb-10 flex items-center gap-4">
+            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-inner ${filterType === 'new' ? 'bg-amber-100 text-amber-600' : 'bg-emerald-100 text-emerald-600'}`}>
+              {filterType === 'new' ? <Plus size={28} strokeWidth={3} /> : <CheckCircle2 size={28} strokeWidth={3} />}
+            </div>
+            <div>
+              <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tight">
+                {filterType === 'new' ? 'Novidades' : 'Reposição'}
+              </h2>
+              <p className="text-slate-500 font-medium text-sm">
+                {filterType === 'new' ? 'Confira os últimos lançamentos adicionados ao catálogo.' : 'Itens que acabaram de voltar ao estoque!'}
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Search Bar */}
         <div className="mb-8 max-w-2xl">
           <div className="relative group">
@@ -2923,6 +3011,14 @@ const ProductCard = memo(({ product, onAdd, onEdit, role, onZoom, isInCart, ...p
             {isEsgotado && <span className="bg-slate-900 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-widest">ESGOTADO</span>}
             {!isEsgotado && (product.is_last_units || product.status_estoque === 'ultimas') && <span className="bg-rose-500 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-widest">ÚLTIMAS UNIDADES</span>}
             {product.venda_somente_box && <span className="bg-amber-500 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-widest">SOMENTE NO BOX</span>}
+            
+            {/* Novos Selos */}
+            {!isEsgotado && product.is_new && product.new_until && new Date(product.new_until) > new Date() && (
+              <span className="bg-amber-400 text-slate-900 text-[9px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-widest border border-amber-500/20">NOVIDADE</span>
+            )}
+            {!isEsgotado && product.back_in_stock_until && new Date(product.back_in_stock_until) > new Date() && (
+              <span className="bg-emerald-500 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-widest border border-emerald-600/20">VOLTEI!</span>
+            )}
           </div>
         </div>
         

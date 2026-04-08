@@ -690,9 +690,10 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
                             <input 
                               type="number" 
                               step="0.01"
-                              className="w-full pl-8 pr-3 py-2.5 bg-white border border-amber-200 rounded-lg text-xs font-black text-amber-900 outline-none focus:ring-2 focus:ring-amber-500/20"
+                              className={`w-full pl-8 pr-3 py-2.5 bg-white border border-amber-200 rounded-lg text-xs font-black text-amber-900 outline-none focus:ring-2 focus:ring-amber-500/20 ${formData.venda_somente_box ? 'opacity-70 cursor-not-allowed' : ''}`}
                               value={formData.promo_price_unit || 0}
                               onChange={e => setFormData({...formData, promo_price_unit: parseFloat(e.target.value)})}
+                              readOnly={formData.venda_somente_box}
                             />
                           </div>
                         </div>

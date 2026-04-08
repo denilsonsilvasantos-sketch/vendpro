@@ -100,12 +100,12 @@ export default function CartScreen({
                     const isBoxDiscount = !item.venda_somente_box && item.quantity >= (item.promo_box_qty || 0);
                     unitPrice = item.venda_somente_box
                       ? (item.promo_price_box || 0)
-                      : (isBoxDiscount ? (item.promo_price_box || 0) : (item.promo_price_unit || 0));
+                      : (isBoxDiscount ? ((item.promo_price_box || 0) / (item.promo_box_qty || 1)) : (item.promo_price_unit || 0));
                   } else {
                     const isBoxDiscount = item.has_box_discount && !item.venda_somente_box && item.quantity >= (item.qtd_box || 0);
                     unitPrice = item.venda_somente_box
                       ? (item.preco_box || 0)
-                      : (isBoxDiscount ? (item.preco_box || 0) : (item.preco_unitario || 0));
+                      : (isBoxDiscount ? ((item.preco_box || 0) / (item.qtd_box || 1)) : (item.preco_unitario || 0));
                   }
                   
                   const subtotal = unitPrice * item.quantity;
@@ -347,12 +347,12 @@ export default function CartScreen({
                   isBoxDiscount = !item.venda_somente_box && item.quantity >= (item.promo_box_qty || 0);
                   unitPrice = item.venda_somente_box 
                     ? (item.promo_price_box || 0)
-                    : (isBoxDiscount ? (item.promo_price_box || 0) : (item.promo_price_unit || 0));
+                    : (isBoxDiscount ? ((item.promo_price_box || 0) / (item.promo_box_qty || 1)) : (item.promo_price_unit || 0));
                 } else {
                   isBoxDiscount = item.has_box_discount && !item.venda_somente_box && item.quantity >= (item.qtd_box || 0);
                   unitPrice = item.venda_somente_box 
                     ? (item.preco_box || 0)
-                    : (isBoxDiscount ? (item.preco_box || 0) : (item.preco_unitario || 0));
+                    : (isBoxDiscount ? ((item.preco_box || 0) / (item.qtd_box || 1)) : (item.preco_unitario || 0));
                 }
                 
                 const subtotal = unitPrice * item.quantity;

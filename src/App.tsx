@@ -1328,8 +1328,8 @@ function CompanyInfoModal({ company, onClose }: { company: any, onClose: () => v
   );
 }
 function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, companies?: any[], sellers?: any[]) => void }) {
-  const [view, setView] = useState<'role' | 'seller-code' | 'customer-form' | 'customer-login' | 'company-login' | 'company-register'>('role');
-  const [loginType, setLoginType] = useState<'seller' | 'customer' | 'admin' | 'company' | null>(null);
+  const [view, setView] = useState<'role' | 'seller-code' | 'customer-form' | 'customer-login' | 'company-login' | 'company-register'>('seller-code');
+  const [loginType, setLoginType] = useState<'seller' | 'customer' | 'admin' | 'company' | null>('customer');
   const [sellerCode, setSellerCode] = useState('');
   const [sellerPassword, setSellerPassword] = useState('');
   const [showSellerPassword, setShowSellerPassword] = useState(false);
@@ -1769,8 +1769,8 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
 
         {!createdCustomer && view === 'role' && (
           <div className="space-y-4">
-            <p className="text-xs font-black text-slate-400 uppercase tracking-widest text-center">Como deseja entrar?</p>
-            <div className="grid grid-cols-3 gap-3">
+            <p className="text-xs font-black text-slate-400 uppercase tracking-widest text-center">Portal do Colaborador</p>
+            <div className="grid grid-cols-2 gap-3">
               {[
                 {
                   label: 'Empresa',
@@ -1803,21 +1803,6 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
                   ),
                   action: () => { setLoginType('seller'); setView('seller-code'); }
                 },
-                {
-                  label: 'Cliente',
-                  desc: 'Ver catálogo',
-                  color: '#C21863',
-                  bg: '#FDF0F6',
-                  svg: (
-                    <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-                      <circle cx="14" cy="9" r="5" fill="#C21863" opacity="0.2"/>
-                      <circle cx="14" cy="9" r="3" fill="#C21863"/>
-                      <path d="M5 24c0-5 4-8 9-8s9 3 9 8" stroke="#C21863" strokeWidth="2.5" strokeLinecap="round" fill="none"/>
-                      <path d="M19 18l3 3-3 3" stroke="#C21863" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity="0.6"/>
-                    </svg>
-                  ),
-                  action: () => { setLoginType('customer'); setView('seller-code'); }
-                },
               ].map(opt => (
                 <button key={opt.label} onClick={opt.action}
                   className="rounded-xl py-4 px-2 text-center transition-all cursor-pointer hover:-translate-y-0.5 hover:shadow-md border border-transparent"
@@ -1831,12 +1816,20 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
                 </button>
               ))}
             </div>
-            <button 
-              onClick={() => { setLoginType('admin'); setView('seller-code'); }}
-              className="w-full py-2 text-[10px] font-bold text-slate-300 uppercase tracking-widest hover:text-primary transition-colors"
-            >
-              Acesso Administrativo
-            </button>
+            <div className="flex flex-col gap-2">
+              <button 
+                onClick={() => { setLoginType('admin'); setView('seller-code'); }}
+                className="w-full py-2 text-[10px] font-bold text-slate-300 uppercase tracking-widest hover:text-primary transition-colors"
+              >
+                Acesso Administrativo
+              </button>
+              <button 
+                onClick={() => { setLoginType('customer'); setView('seller-code'); }}
+                className="w-full py-2 text-[10px] font-bold text-primary uppercase tracking-widest hover:underline transition-colors"
+              >
+                ← Voltar para Cliente
+              </button>
+            </div>
           </div>
         )}
 
@@ -1914,11 +1907,16 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
             </button>
             <div className="flex flex-col items-center gap-2 pt-1">
               {loginType === 'customer' && (
-                <button onClick={() => setView('customer-login')} className="text-[10px] font-bold text-primary hover:underline">Já sou cadastrado</button>
+                <>
+                  <button onClick={() => setView('customer-login')} className="text-[10px] font-bold text-primary hover:underline">Já sou cadastrado</button>
+                  <button onClick={() => setView('role')} className="text-[10px] font-bold text-slate-300 hover:text-primary transition-colors mt-4">Portal do Colaborador</button>
+                </>
               )}
               <div className="flex items-center justify-between w-full">
                 <button onClick={() => setShowForgotCode(true)} className="text-[10px] font-bold text-slate-400 hover:underline">Esqueci meu código</button>
-                <button onClick={() => setView('role')} className="text-[10px] font-bold text-slate-300 hover:text-primary transition-colors">← Voltar</button>
+                {loginType !== 'customer' && (
+                  <button onClick={() => setView('role')} className="text-[10px] font-bold text-slate-300 hover:text-primary transition-colors">← Voltar</button>
+                )}
               </div>
             </div>
           </div>
@@ -1943,7 +1941,7 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
             <button onClick={handleCustomerLogin} className="w-full py-2.5 bg-gradient-to-r from-[#e91e8c] to-[#7c3aed] text-white rounded-lg font-black text-xs uppercase tracking-wide shadow-lg hover:-translate-y-0.5 transition-all mt-1">Entrar</button>
             <div className="flex items-center justify-between pt-1">
               <button onClick={() => setView('seller-code')} className="text-[10px] font-bold text-slate-400 hover:text-primary transition-colors">Novo cadastro</button>
-              <button onClick={() => setView('role')} className="text-[10px] font-bold text-slate-300 hover:text-primary transition-colors">← Voltar</button>
+              <button onClick={() => setView('role')} className="text-[10px] font-bold text-slate-300 hover:text-primary transition-colors">Portal do Colaborador</button>
             </div>
           </div>
         )}

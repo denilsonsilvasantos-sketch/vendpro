@@ -105,6 +105,11 @@ export interface Product {
   is_back_in_stock?: boolean;
   new_until?: string;
   back_in_stock_until?: string;
+  is_promo?: boolean;
+  promo_price_unit?: number;
+  promo_price_box?: number;
+  promo_box_qty?: number;
+  promo_until?: string;
   tipo_variacao?: 'grade' | 'escolha_livre' | 'variedades';
   variacoes_disponiveis?: {
     nome: string; // e.g., "Cor", "Tamanho"

@@ -130,14 +130,25 @@ export function useCart(brandId?: string | null, userId?: string | null) {
   };
 
   const total = useMemo(() => cart.reduce((acc, item) => {
-    let price = item.preco_unitario;
+    const isPromoActive = item.is_promo && (!item.promo_until || new Date(item.promo_until) > new Date());
     
-    if (item.venda_somente_box) {
-      // Para "Somente Box", a quantidade no carrinho representa o número de BOXES
-      price = item.preco_box || 0;
-    } else if (item.has_box_discount && item.quantity >= (item.qtd_box || 0) && (item.qtd_box || 0) > 0) {
-      // Para desconto de box (venda fracionada permitida), o preço unitário diminui
-      price = (item.preco_box && item.qtd_box) ? (item.preco_box / item.qtd_box) : (item.preco_unitario || 0);
+    let price;
+    if (isPromoActive) {
+      if (item.venda_somente_box) {
+        price = item.promo_price_box || 0;
+      } else if (item.quantity >= (item.promo_box_qty || 0) && (item.promo_box_qty || 0) > 0) {
+        price = (item.promo_price_box && item.promo_box_qty) ? (item.promo_price_box / item.promo_box_qty) : (item.promo_price_unit || 0);
+      } else {
+        price = item.promo_price_unit || 0;
+      }
+    } else {
+      if (item.venda_somente_box) {
+        price = item.preco_box || 0;
+      } else if (item.has_box_discount && item.quantity >= (item.qtd_box || 0) && (item.qtd_box || 0) > 0) {
+        price = (item.preco_box && item.qtd_box) ? (item.preco_box / item.qtd_box) : (item.preco_unitario || 0);
+      } else {
+        price = item.preco_unitario;
+      }
     }
     
     return acc + (item.quantity * price);

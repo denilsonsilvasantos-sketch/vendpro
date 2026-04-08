@@ -93,10 +93,21 @@ export default function CartScreen({
               <AnimatePresence mode="popLayout">
                 {cart.map((item, index) => {
                   const step = item.venda_somente_box ? 1 : (item.multiplo_venda || 1);
-                  const isBoxDiscount = item.has_box_discount && !item.venda_somente_box && item.quantity >= (item.qtd_box || 0);
-                  const unitPrice = item.venda_somente_box
-                    ? (item.preco_box || 0)
-                    : (isBoxDiscount ? ((item.preco_box || 0) / (item.qtd_box || 1)) : (item.preco_unitario || 0));
+                  const isPromoActive = item.is_promo && (!item.promo_until || new Date(item.promo_until) > new Date());
+                  
+                  let unitPrice;
+                  if (isPromoActive) {
+                    const isBoxDiscount = !item.venda_somente_box && item.quantity >= (item.promo_box_qty || 0);
+                    unitPrice = item.venda_somente_box
+                      ? (item.promo_price_box || 0)
+                      : (isBoxDiscount ? ((item.promo_price_box || 0) / (item.promo_box_qty || 1)) : (item.promo_price_unit || 0));
+                  } else {
+                    const isBoxDiscount = item.has_box_discount && !item.venda_somente_box && item.quantity >= (item.qtd_box || 0);
+                    unitPrice = item.venda_somente_box
+                      ? (item.preco_box || 0)
+                      : (isBoxDiscount ? ((item.preco_box || 0) / (item.qtd_box || 1)) : (item.preco_unitario || 0));
+                  }
+                  
                   const subtotal = unitPrice * item.quantity;
 
                   return (
@@ -327,10 +338,23 @@ export default function CartScreen({
             <AnimatePresence mode="popLayout">
               {cart.map((item, index) => {
                 const step = item.venda_somente_box ? 1 : (item.multiplo_venda || 1);
-                const isBoxDiscount = item.has_box_discount && !item.venda_somente_box && item.quantity >= (item.qtd_box || 0);
-                const unitPrice = item.venda_somente_box 
-                  ? (item.preco_box || 0)
-                  : (isBoxDiscount ? ((item.preco_box || 0) / (item.qtd_box || 1)) : (item.preco_unitario || 0));
+                const isPromoActive = item.is_promo && (!item.promo_until || new Date(item.promo_until) > new Date());
+                
+                let unitPrice;
+                let isBoxDiscount;
+                
+                if (isPromoActive) {
+                  isBoxDiscount = !item.venda_somente_box && item.quantity >= (item.promo_box_qty || 0);
+                  unitPrice = item.venda_somente_box 
+                    ? (item.promo_price_box || 0)
+                    : (isBoxDiscount ? ((item.promo_price_box || 0) / (item.promo_box_qty || 1)) : (item.promo_price_unit || 0));
+                } else {
+                  isBoxDiscount = item.has_box_discount && !item.venda_somente_box && item.quantity >= (item.qtd_box || 0);
+                  unitPrice = item.venda_somente_box 
+                    ? (item.preco_box || 0)
+                    : (isBoxDiscount ? ((item.preco_box || 0) / (item.qtd_box || 1)) : (item.preco_unitario || 0));
+                }
+                
                 const subtotal = unitPrice * item.quantity;
 
                 return (
@@ -346,7 +370,8 @@ export default function CartScreen({
                     <div className="flex-1 space-y-2">
                       <div className="flex items-center gap-2">
                         <span className="text-[9px] font-black text-slate-400 uppercase tracking-[2px] bg-slate-50 px-3 py-1 rounded-full border border-slate-100 shadow-inner">SKU: {item.sku}</span>
-                        {isBoxDiscount && <span className="text-[9px] font-black text-amber-600 uppercase tracking-[2px] bg-amber-50 px-3 py-1 rounded-full border border-amber-100 shadow-inner">DESCONTO BOX</span>}
+                        {isBoxDiscount && <span className="text-[9px] font-black text-amber-600 uppercase tracking-[2px] bg-amber-50 px-3 py-1 rounded-full border border-amber-100 shadow-inner">{isPromoActive ? 'PROMO BOX' : 'DESCONTO BOX'}</span>}
+                        {isPromoActive && !isBoxDiscount && <span className="text-[9px] font-black text-amber-600 uppercase tracking-[2px] bg-amber-50 px-3 py-1 rounded-full border border-amber-100 shadow-inner">PROMOÇÃO</span>}
                       </div>
                       <h3 className="font-black text-slate-800 text-sm tracking-tight uppercase leading-tight">{item.nome}</h3>
                       {item.selected_variation && Object.entries(item.selected_variation).length > 0 && (

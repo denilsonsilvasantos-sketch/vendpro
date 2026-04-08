@@ -20,6 +20,10 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
     venda_somente_box: false,
     has_box_discount: false,
     is_last_units: false,
+    is_promo: false,
+    promo_price_unit: 0,
+    promo_price_box: 0,
+    promo_box_qty: 0,
     multiplo_venda: 1,
     imagem: '',
     imagens: [],
@@ -647,7 +651,98 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
                   <input type="checkbox" className="hidden" checked={formData.status_estoque === 'esgotado'} onChange={e => setFormData({...formData, status_estoque: e.target.checked ? 'esgotado' : 'normal'})} />
                   <span className="text-[9px] font-black text-slate-600 uppercase tracking-tight leading-none">Esgotado</span>
                 </label>
+
+                <label className="flex items-center gap-2 cursor-pointer group bg-slate-50/50 p-2.5 rounded-[6px] border border-slate-100 hover:border-amber-500/20 transition-all">
+                  <div className={`w-5 h-5 rounded-[4px] border-2 flex items-center justify-center transition-all shrink-0 ${formData.is_promo ? 'bg-amber-500 border-amber-500 shadow-lg shadow-amber-500/20' : 'border-slate-200 group-hover:border-amber-500/50'}`}>
+                    {formData.is_promo && <Check size={12} strokeWidth={4} className="text-white" />}
+                  </div>
+                  <input type="checkbox" className="hidden" checked={formData.is_promo || false} onChange={e => setFormData({...formData, is_promo: e.target.checked})} />
+                  <span className="text-[9px] font-black text-slate-600 uppercase tracking-tight leading-none">Promoção</span>
+                </label>
               </div>
+
+              <AnimatePresence>
+                {formData.is_promo && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="p-4 bg-amber-50/50 border border-amber-100 rounded-xl space-y-4 mt-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-1.5 h-4 bg-amber-500 rounded-full" />
+                        <h4 className="text-[10px] font-black text-amber-700 uppercase tracking-widest">Configurações da Promoção</h4>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div className="space-y-1.5">
+                          <label className="text-[8px] font-black text-amber-600 uppercase tracking-widest ml-1">Preço Promo Unit.</label>
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-amber-300 font-black text-[9px]">R$</span>
+                            <input 
+                              type="number" 
+                              step="0.01"
+                              className="w-full pl-8 pr-3 py-2.5 bg-white border border-amber-200 rounded-lg text-xs font-black text-amber-900 outline-none focus:ring-2 focus:ring-amber-500/20"
+                              value={formData.promo_price_unit || 0}
+                              onChange={e => setFormData({...formData, promo_price_unit: parseFloat(e.target.value)})}
+                            />
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-1.5">
+                          <label className="text-[8px] font-black text-amber-600 uppercase tracking-widest ml-1">Preço Promo Box</label>
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-amber-300 font-black text-[9px]">R$</span>
+                            <input 
+                              type="number" 
+                              step="0.01"
+                              className="w-full pl-8 pr-3 py-2.5 bg-white border border-amber-200 rounded-lg text-xs font-black text-amber-900 outline-none focus:ring-2 focus:ring-amber-500/20"
+                              value={formData.promo_price_box || 0}
+                              onChange={e => setFormData({...formData, promo_price_box: parseFloat(e.target.value)})}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="text-[8px] font-black text-amber-600 uppercase tracking-widest ml-1">Qtd Box Promo</label>
+                          <input 
+                            type="number" 
+                            className="w-full px-3 py-2.5 bg-white border border-amber-200 rounded-lg text-xs font-black text-amber-900 outline-none focus:ring-2 focus:ring-amber-500/20 text-center"
+                            value={formData.promo_box_qty || 0}
+                            onChange={e => setFormData({...formData, promo_box_qty: parseInt(e.target.value)})}
+                          />
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="text-[8px] font-black text-amber-600 uppercase tracking-widest ml-1">Duração (Dias)</label>
+                          <div className="relative">
+                            <input 
+                              type="number" 
+                              className="w-full px-3 py-2.5 bg-white border border-amber-200 rounded-lg text-xs font-black text-amber-900 outline-none focus:ring-2 focus:ring-amber-500/20 text-center"
+                              placeholder="0 = Indefinido"
+                              onChange={e => {
+                                const days = parseInt(e.target.value);
+                                if (days > 0) {
+                                  const date = new Date();
+                                  date.setDate(date.getDate() + days);
+                                  setFormData({...formData, promo_until: date.toISOString()});
+                                } else {
+                                  setFormData({...formData, promo_until: undefined});
+                                }
+                              }}
+                            />
+                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[8px] font-black text-amber-300 uppercase">Dias</span>
+                          </div>
+                        </div>
+                      </div>
+                      <p className="text-[8px] text-amber-600/60 italic font-medium">
+                        * O preço promocional aparecerá em destaque no catálogo. Se a duração for definida, a promoção expirará automaticamente.
+                      </p>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
 

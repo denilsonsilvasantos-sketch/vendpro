@@ -2367,6 +2367,15 @@ function CatalogScreen({
       const matchesBrand = selectedBrand ? p.brand_id === selectedBrand : true;
       return matchesSearch && matchesCategory && matchesBrand;
     }).sort((a, b) => {
+      const now = new Date();
+      
+      // Prioridade para Promoções
+      const isPromoA = a.is_promo && (!a.promo_until || new Date(a.promo_until) > now);
+      const isPromoB = b.is_promo && (!b.promo_until || new Date(b.promo_until) > now);
+      
+      if (isPromoA && !isPromoB) return -1;
+      if (!isPromoA && isPromoB) return 1;
+
       // Se for Novidades ou Reposição, ordenar por data de criação (mais recentes primeiro)
       if (filterType !== 'all') {
         const dateA = new Date(a.created_at || 0).getTime();
@@ -2944,6 +2953,20 @@ const ProductCard = memo(({ product, onAdd, onEdit, role, onZoom, isInCart, ...p
   const [isHovering, setIsHovering] = useState(false);
   const isEsgotado = product.status_estoque?.toLowerCase() === 'esgotado' || product.estoque === 0;
 
+  const isPromoActive = product.is_promo && (!product.promo_until || new Date(product.promo_until) > new Date());
+  
+  const currentPrice = isPromoActive 
+    ? (product.venda_somente_box && product.promo_price_box && product.promo_box_qty 
+        ? (product.promo_price_box / product.promo_box_qty) 
+        : (product.promo_price_unit || 0))
+    : (product.venda_somente_box && product.preco_box && product.qtd_box 
+        ? (product.preco_box / product.qtd_box) 
+        : (product.preco_unitario || 0));
+
+  const originalPrice = (product.venda_somente_box && product.preco_box && product.qtd_box 
+    ? (product.preco_box / product.qtd_box) 
+    : (product.preco_unitario || 0));
+
   const images = product.imagens && product.imagens.length > 0 ? product.imagens : [product.imagem || `https://picsum.photos/seed/${product.sku}/400/400`];
 
   useEffect(() => {
@@ -3038,6 +3061,7 @@ const ProductCard = memo(({ product, onAdd, onEdit, role, onZoom, isInCart, ...p
             {isEsgotado && <span className="bg-slate-900 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-widest">ESGOTADO</span>}
             {!isEsgotado && (product.is_last_units || product.status_estoque === 'ultimas') && <span className="bg-rose-500 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-widest">ÚLTIMAS UNIDADES</span>}
             {product.venda_somente_box && <span className="bg-amber-500 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-widest">SOMENTE NO BOX</span>}
+            {isPromoActive && <span className="bg-amber-500 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-widest border border-amber-600/20">PROMOÇÃO</span>}
             
             {/* Novos Selos */}
             {!isEsgotado && product.is_new && product.new_until && new Date(product.new_until) > new Date() && (
@@ -3054,11 +3078,16 @@ const ProductCard = memo(({ product, onAdd, onEdit, role, onZoom, isInCart, ...p
           <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mb-3">SKU: {product.sku}</p>
           
           {!isEsgotado && (
-            <p className="text-lg md:text-xl font-black text-[#C21863] tracking-tight">
-              R$ {(product.venda_somente_box && product.preco_box && product.qtd_box 
-                ? (product.preco_box / product.qtd_box) 
-                : (product.preco_unitario || 0)).toFixed(2)}
-            </p>
+            <div className="flex flex-col items-center">
+              {isPromoActive && (
+                <p className="text-[10px] font-black text-slate-300 line-through tracking-tight">
+                  R$ {originalPrice.toFixed(2)}
+                </p>
+              )}
+              <p className="text-lg md:text-xl font-black text-[#C21863] tracking-tight">
+                R$ {currentPrice.toFixed(2)}
+              </p>
+            </div>
           )}
         </div>
 
@@ -3085,9 +3114,11 @@ const ProductCard = memo(({ product, onAdd, onEdit, role, onZoom, isInCart, ...p
 
         {(product.has_box_discount || product.venda_somente_box) && !isEsgotado && (
           <div className="mb-4 p-2.5 bg-rose-50 border border-rose-200 rounded-2xl text-center flex flex-col items-center justify-center">
-            <span className="text-base font-black text-rose-700 tracking-tight">R$ {(product.preco_box || 0).toFixed(2)}</span>
+            <span className="text-base font-black text-rose-700 tracking-tight">
+              R$ {(isPromoActive ? (product.promo_price_box || 0) : (product.preco_box || 0)).toFixed(2)}
+            </span>
             <p className="text-[9px] uppercase font-black text-rose-600 tracking-widest mt-0.5">
-              {product.venda_somente_box ? 'SOMENTE NO BOX:' : 'A PARTIR DE:'} {product.qtd_box} UN
+              {product.venda_somente_box ? 'SOMENTE NO BOX:' : 'A PARTIR DE:'} {isPromoActive ? product.promo_box_qty : product.qtd_box} UN
             </p>
           </div>
         )}

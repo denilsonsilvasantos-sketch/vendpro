@@ -90,54 +90,6 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
     }
   };
 
-  const handleUrlUpload = async () => {
-    const url = formData.imagem;
-    if (!url || !url.startsWith('http')) {
-      alert('Por favor, insira um link válido (começando com http ou https).');
-      return;
-    }
-    
-    // Se já for do Cloudinary, não precisa subir de novo
-    if (url.includes('cloudinary.com')) {
-      alert('Esta imagem já está no Cloudinary.');
-      return;
-    }
-
-    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
-    const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
-
-    if (!cloudName || !uploadPreset) {
-      alert('Configurações do Cloudinary não encontradas.');
-      return;
-    }
-
-    setIsUploading(true);
-    const formDataUpload = new FormData();
-    formDataUpload.append('file', url);
-    formDataUpload.append('upload_preset', uploadPreset);
-
-    try {
-      const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
-        method: 'POST',
-        body: formDataUpload,
-      });
-      const data = await response.json();
-      if (data.secure_url) {
-        setFormData(prev => ({ 
-          ...prev, 
-          imagem: data.secure_url, 
-          imagens: prev.imagens?.includes(data.secure_url) ? prev.imagens : [data.secure_url, ...(prev.imagens || [])] 
-        }));
-        alert('Imagem importada com sucesso para o Cloudinary!');
-      }
-    } catch (error) {
-      console.error('Erro no upload por URL:', error);
-      alert('Erro ao processar o link da imagem. Verifique se o link é público e direto para uma imagem.');
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
   const handleRemoveBackground = async () => {
     if (!formData.imagem) return;
     
@@ -444,29 +396,16 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
 
               <div className="space-y-2">
                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-[2px] ml-2">URL da Imagem</label>
-                <div className="flex gap-2">
-                  <div className="relative group flex-1">
-                    <LinkIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-primary transition-colors" size={16} strokeWidth={2.5} />
-                    <input 
-                      type="text" 
-                      className="w-full pl-12 pr-4 py-3 bg-slate-50/50 border border-slate-100 rounded-[6px] text-[12px] outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary/30 transition-all font-bold text-slate-700 placeholder:text-slate-300 shadow-inner"
-                      placeholder="Cole um link aqui..."
-                      value={formData.imagem || ''}
-                      onChange={e => setFormData({...formData, imagem: e.target.value})}
-                    />
-                  </div>
-                  <button 
-                    type="button"
-                    onClick={handleUrlUpload}
-                    disabled={isUploading || !formData.imagem || !formData.imagem.startsWith('http') || formData.imagem.includes('cloudinary.com')}
-                    className="bg-primary text-white px-4 rounded-[6px] shadow-lg shadow-primary/20 hover:scale-105 transition-all active:scale-95 disabled:opacity-30 disabled:hover:scale-100 flex items-center justify-center gap-2"
-                    title="Importar para Cloudinary"
-                  >
-                    {isUploading ? <Loader2 className="animate-spin" size={16} /> : <Wand2 size={16} />}
-                    <span className="text-[9px] font-black uppercase tracking-widest hidden sm:inline">Otimizar</span>
-                  </button>
+                <div className="relative group">
+                  <LinkIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-primary transition-colors" size={16} strokeWidth={2.5} />
+                  <input 
+                    type="text" 
+                    className="w-full pl-12 pr-4 py-3 bg-slate-50/50 border border-slate-100 rounded-[6px] text-[12px] outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary/30 transition-all font-bold text-slate-700 placeholder:text-slate-300 shadow-inner"
+                    placeholder="https://..."
+                    value={formData.imagem || ''}
+                    onChange={e => setFormData({...formData, imagem: e.target.value})}
+                  />
                 </div>
-                <p className="text-[8px] text-slate-400 italic ml-2">* Cole o link e clique em Otimizar para salvar no Cloudinary.</p>
               </div>
             </div>
 

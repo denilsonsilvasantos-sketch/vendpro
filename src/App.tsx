@@ -296,7 +296,7 @@ export default function App() {
     addToCart(product, quantity, selected_variation);
   };
 
-  const handleSendOrder = async (manualClientName?: string, paymentMethod?: string, selectedCustomerId?: string, selectedSellerId?: string) => {
+  const handleSendOrder = async (manualClientName?: string, paymentMethod?: string, selectedCustomerId?: string, selectedSellerId?: string, notes?: string) => {
     let whatsappNumber = '';
     
     if (role === 'customer' && user) {
@@ -336,7 +336,8 @@ export default function App() {
             status: 'pending',
             whatsapp_sent: true,
             client_name: clientName,
-            payment_method: paymentMethod || null
+            payment_method: paymentMethod || null,
+            observacoes: notes || null
           };
 
           const { data: order, error: orderError } = await supabase
@@ -380,7 +381,7 @@ export default function App() {
       }
 
       const currentBrand = brands.find(b => b.id === selectedBrand);
-      const message = formatWhatsAppMessage(cart, clientName, currentBrand?.name);
+      const message = formatWhatsAppMessage(cart, clientName, currentBrand?.name, notes);
       const whatsappUrl = `https://wa.me/${whatsappNumber.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
       window.open(whatsappUrl, '_blank');
       clearCart();
@@ -1203,8 +1204,8 @@ export default function App() {
                   total={total}
                   onUpdateQuantity={(id, q, v) => updateQuantity(id, q, undefined, v)}
                   onRemove={(id, v) => removeFromCart(id, undefined, v)}
-                  onSendOrder={(clientName, paymentMethod, customerId, sellerId) => {
-                    handleSendOrder(clientName, paymentMethod, customerId, sellerId);
+                  onSendOrder={(clientName, paymentMethod, customerId, sellerId, notes) => {
+                    handleSendOrder(clientName, paymentMethod, customerId, sellerId, notes);
                     setIsCartOpen(false);
                   }}
                   selectedBrand={selectedBrand}

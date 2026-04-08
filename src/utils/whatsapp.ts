@@ -1,6 +1,6 @@
 import { CartItem } from '../types';
 
-export function formatWhatsAppMessage(items: CartItem[], clientName?: string, brandName?: string): string {
+export function formatWhatsAppMessage(items: CartItem[], clientName?: string, brandName?: string, notes?: string): string {
   const itemCount = items.length;
   const productCount = items.reduce((acc, item) => acc + item.quantity, 0);
 
@@ -30,6 +30,10 @@ export function formatWhatsAppMessage(items: CartItem[], clientName?: string, br
   }
   message += `\nItens: ${itemCount} | Produtos: ${productCount}\n`;
   message += `\n${lines.join('\n')}\n\nSubtotal: R$ ${total.toFixed(2).replace('.', ',')}\nDesconto: R$ 0,00\nTotal Líquido: R$ ${total.toFixed(2).replace('.', ',')}`;
+  
+  if (notes && notes.trim()) {
+    message += `\n\nObservações:\n${notes.trim()}`;
+  }
   
   return message;
 }

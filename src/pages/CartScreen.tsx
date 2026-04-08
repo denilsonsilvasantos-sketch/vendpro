@@ -20,7 +20,7 @@ export default function CartScreen({
   total: number, 
   onUpdateQuantity: (id: string, q: number, v?: Record<string, string>) => void, 
   onRemove: (id: string, v?: Record<string, string>) => void, 
-  onSendOrder: (clientName?: string, paymentMethod?: string, customerId?: string, sellerId?: string) => void,
+  onSendOrder: (clientName?: string, paymentMethod?: string, customerId?: string, sellerId?: string, notes?: string) => void,
   selectedBrand: string | null,
   brands: Brand[],
   role: UserRole,
@@ -30,6 +30,7 @@ export default function CartScreen({
 }) {
   const [clientName, setClientName] = React.useState('');
   const [paymentMethod, setPaymentMethod] = React.useState('');
+  const [notes, setNotes] = React.useState('');
   const [selectedCustomerId, setSelectedCustomerId] = React.useState<string>('');
   const [selectedSellerId, setSelectedSellerId] = React.useState<string>('');
   const [customerSearch, setCustomerSearch] = React.useState('');
@@ -250,6 +251,13 @@ export default function CartScreen({
                 placeholder="Forma de pagamento (ex: PIX, Boleto...)"
                 className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-primary/40"
               />
+              <textarea
+                value={notes}
+                onChange={e => setNotes(e.target.value)}
+                placeholder="Observações do pedido..."
+                rows={2}
+                className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-primary/40 resize-none"
+              />
               <div className="flex items-center justify-between pt-1">
                 <div>
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
@@ -267,7 +275,7 @@ export default function CartScreen({
                       alert('Por favor, selecione um vendedor antes de finalizar.');
                       return;
                     }
-                    onSendOrder(clientName, paymentMethod, selectedCustomerId, selectedSellerId);
+                    onSendOrder(clientName, paymentMethod, selectedCustomerId, selectedSellerId, notes);
                   }}
                   className="px-6 py-3 text-white font-black text-xs uppercase tracking-wide rounded-xl shadow-lg hover:-translate-y-0.5 transition-all active:scale-95 flex items-center gap-2"
                   style={{ background: 'linear-gradient(135deg, #C21863, #E8257A)' }}
@@ -508,6 +516,20 @@ export default function CartScreen({
                       className="w-full p-6 bg-white/5 border border-white/10 rounded-[10px] font-black text-lg text-white placeholder:text-white/10 focus:ring-2 focus:ring-primary outline-none transition-all shadow-inner"
                     />
                   </div>
+
+                  <div className="space-y-3">
+                    <label className="flex items-center gap-3 text-[10px] font-black uppercase tracking-[2px] text-white/40">
+                      <ReceiptText size={16} className="text-primary" />
+                      Observações
+                    </label>
+                    <textarea 
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      placeholder="Alguma observação específica para este pedido?"
+                      rows={3}
+                      className="w-full p-6 bg-white/5 border border-white/10 rounded-[10px] font-black text-lg text-white placeholder:text-white/10 focus:ring-2 focus:ring-primary outline-none transition-all shadow-inner resize-none"
+                    />
+                  </div>
                   
                   <div className="flex items-center gap-6 p-8 bg-white/5 rounded-[14px] border border-white/10 backdrop-blur-md shadow-inner">
                     <div className="w-16 h-16 bg-primary/20 rounded-[10px] flex items-center justify-center text-primary shadow-lg">
@@ -524,7 +546,7 @@ export default function CartScreen({
 
                 <div className="w-full lg:w-auto">
                   <button 
-                    onClick={() => onSendOrder(clientName, paymentMethod, selectedCustomerId, selectedSellerId)} 
+                    onClick={() => onSendOrder(clientName, paymentMethod, selectedCustomerId, selectedSellerId, notes)} 
                     className="w-full lg:w-auto px-16 py-6 bg-primary text-white rounded-[10px] font-black uppercase tracking-widest text-xs shadow-2xl shadow-primary/40 hover:-translate-y-2 transition-all active:translate-y-0 flex items-center justify-center gap-4 group"
                   >
                     Finalizar Pedido

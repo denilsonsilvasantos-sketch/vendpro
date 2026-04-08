@@ -137,7 +137,7 @@ export function useCart(brandId?: string | null, userId?: string | null) {
       if (item.venda_somente_box) {
         price = item.promo_price_box || 0;
       } else if (item.quantity >= (item.promo_box_qty || 0) && (item.promo_box_qty || 0) > 0) {
-        price = (item.promo_price_box || 0) / (item.promo_box_qty || 1);
+        price = item.promo_price_box || 0;
       } else {
         price = item.promo_price_unit || 0;
       }
@@ -145,7 +145,7 @@ export function useCart(brandId?: string | null, userId?: string | null) {
       if (item.venda_somente_box) {
         price = item.preco_box || 0;
       } else if (item.has_box_discount && item.quantity >= (item.qtd_box || 0) && (item.qtd_box || 0) > 0) {
-        price = (item.preco_box || 0) / (item.qtd_box || 1);
+        price = item.preco_box || 0;
       } else {
         price = item.preco_unitario || 0;
       }

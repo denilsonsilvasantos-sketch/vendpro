@@ -2956,12 +2956,8 @@ const ProductCard = memo(({ product, onAdd, onEdit, role, onZoom, isInCart, ...p
   const isPromoActive = product.is_promo && (!product.promo_until || new Date(product.promo_until) > new Date());
   
   const currentPrice = isPromoActive 
-    ? (product.venda_somente_box && product.promo_price_box && product.promo_box_qty 
-        ? (product.promo_price_box / product.promo_box_qty) 
-        : (product.promo_price_unit || 0))
-    : (product.venda_somente_box && product.preco_box && product.qtd_box 
-        ? (product.preco_box / product.qtd_box) 
-        : (product.preco_unitario || 0));
+    ? (product.promo_price_unit || 0)
+    : (product.preco_unitario || 0);
 
   const originalPrice = (product.venda_somente_box && product.preco_box && product.qtd_box 
     ? (product.preco_box / product.qtd_box) 

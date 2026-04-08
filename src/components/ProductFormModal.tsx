@@ -179,7 +179,14 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
         setFormData(prev => ({ ...prev, preco_unitario: calculatedUnit }));
       }
     }
-  }, [formData.venda_somente_box, formData.preco_box, formData.qtd_box]);
+    
+    if (formData.venda_somente_box && formData.is_promo && (formData.promo_price_box || 0) > 0 && (formData.promo_box_qty || 0) > 0) {
+      const calculatedPromoUnit = (formData.promo_price_box || 0) / (formData.promo_box_qty || 1);
+      if (formData.promo_price_unit !== calculatedPromoUnit) {
+        setFormData(prev => ({ ...prev, promo_price_unit: calculatedPromoUnit }));
+      }
+    }
+  }, [formData.venda_somente_box, formData.preco_box, formData.qtd_box, formData.is_promo, formData.promo_price_box, formData.promo_box_qty]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

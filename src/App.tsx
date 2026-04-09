@@ -224,7 +224,7 @@ export default function App() {
       console.error("Erro ao processar parâmetro de vínculo:", err);
     }
   }, []);
-  const [activeTab, setActiveTab] = useState('catalog');
+  const [activeTab, setActiveTab] = useState('novidades');
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -382,7 +382,7 @@ export default function App() {
       const whatsappUrl = `https://wa.me/${whatsappNumber.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
       window.open(whatsappUrl, '_blank');
       clearCart();
-      setActiveTab('catalog');
+      setActiveTab('novidades');
     } else {
       alert('Número de WhatsApp não encontrado para enviar o pedido.');
     }
@@ -625,7 +625,7 @@ export default function App() {
     localStorage.setItem('vendpro_user_id', userData.id);
     localStorage.setItem('vendpro_available_companies', JSON.stringify(companies));
     localStorage.setItem('vendpro_sellers', JSON.stringify(sellers));
-    setActiveTab('catalog');
+    setActiveTab(selectedRole === 'customer' ? 'novidades' : 'dashboard');
   };
 
   const handleLogout = async () => {
@@ -969,7 +969,7 @@ export default function App() {
               </div>
 
               <nav className="space-y-1.5 flex-1 overflow-y-auto pr-2 custom-scrollbar">
-                <SidebarItem icon={<LayoutGrid size={16}/>} label="Catálogo" active={activeTab === 'catalog'} onClick={() => { setActiveTab('catalog'); setIsSidebarOpen(false); }} />
+                <SidebarItem icon={<LayoutGrid size={16}/>} label="Catálogo" active={activeTab === 'catalog' || activeTab === 'novidades' || activeTab === 'reposicao'} onClick={() => { setActiveTab('novidades'); setIsSidebarOpen(false); }} />
                 
                 {effectiveRole !== 'customer' && (
                   <>
@@ -1003,7 +1003,7 @@ export default function App() {
                     active={false} 
                     onClick={() => { 
                       setViewMode('customer'); 
-                      setActiveTab('catalog');
+                      setActiveTab('novidades');
                       setIsSidebarOpen(false); 
                     }} 
                   />

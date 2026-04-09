@@ -224,7 +224,7 @@ export default function App() {
       console.error("Erro ao processar parâmetro de vínculo:", err);
     }
   }, []);
-  const [activeTab, setActiveTab] = useState('novidades');
+  const [activeTab, setActiveTab] = useState('catalog');
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -382,7 +382,7 @@ export default function App() {
       const whatsappUrl = `https://wa.me/${whatsappNumber.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
       window.open(whatsappUrl, '_blank');
       clearCart();
-      setActiveTab('novidades');
+      setActiveTab('catalog');
     } else {
       alert('Número de WhatsApp não encontrado para enviar o pedido.');
     }
@@ -625,7 +625,7 @@ export default function App() {
     localStorage.setItem('vendpro_user_id', userData.id);
     localStorage.setItem('vendpro_available_companies', JSON.stringify(companies));
     localStorage.setItem('vendpro_sellers', JSON.stringify(sellers));
-    setActiveTab(selectedRole === 'customer' ? 'novidades' : 'dashboard');
+    setActiveTab(selectedRole === 'customer' ? 'catalog' : 'dashboard');
   };
 
   const handleLogout = async () => {
@@ -969,7 +969,7 @@ export default function App() {
               </div>
 
               <nav className="space-y-1.5 flex-1 overflow-y-auto pr-2 custom-scrollbar">
-                <SidebarItem icon={<LayoutGrid size={16}/>} label="Catálogo" active={activeTab === 'catalog' || activeTab === 'novidades' || activeTab === 'reposicao'} onClick={() => { setActiveTab('novidades'); setIsSidebarOpen(false); }} />
+                <SidebarItem icon={<LayoutGrid size={16}/>} label="Catálogo" active={activeTab === 'catalog' || activeTab === 'novidades' || activeTab === 'reposicao'} onClick={() => { setActiveTab('catalog'); setIsSidebarOpen(false); }} />
                 
                 {effectiveRole !== 'customer' && (
                   <>
@@ -1003,7 +1003,7 @@ export default function App() {
                     active={false} 
                     onClick={() => { 
                       setViewMode('customer'); 
-                      setActiveTab('novidades');
+                      setActiveTab('catalog');
                       setIsSidebarOpen(false); 
                     }} 
                   />
@@ -2364,6 +2364,18 @@ function CatalogScreen({
     }).sort((a, b) => {
       const now = new Date();
       
+      // Prioridade para Novidades
+      const isNewA = a.is_new && a.new_until && new Date(a.new_until) > now;
+      const isNewB = b.is_new && b.new_until && new Date(b.new_until) > now;
+      if (isNewA && !isNewB) return -1;
+      if (!isNewA && isNewB) return 1;
+
+      // Prioridade para Reposição
+      const isBackA = a.back_in_stock_until && new Date(a.back_in_stock_until) > now;
+      const isBackB = b.back_in_stock_until && new Date(b.back_in_stock_until) > now;
+      if (isBackA && !isBackB) return -1;
+      if (!isBackA && isBackB) return 1;
+
       // Prioridade para Promoções
       const isPromoA = a.is_promo && (!a.promo_until || new Date(a.promo_until) > now);
       const isPromoB = b.is_promo && (!b.promo_until || new Date(b.promo_until) > now);
@@ -2371,7 +2383,7 @@ function CatalogScreen({
       if (isPromoA && !isPromoB) return -1;
       if (!isPromoA && isPromoB) return 1;
 
-      // Se for Novidades ou Reposição, ordenar por data de criação (mais recentes primeiro)
+      // Se for Novidades ou Reposição (abas específicas), ordenar por data de criação (mais recentes primeiro)
       if (filterType !== 'all') {
         const dateA = new Date(a.created_at || 0).getTime();
         const dateB = new Date(b.created_at || 0).getTime();

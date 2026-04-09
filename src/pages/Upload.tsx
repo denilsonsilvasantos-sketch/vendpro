@@ -169,8 +169,8 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
 
   const removeFile = (index: number) => setUploadedFiles(prev => prev.filter((_, i) => i !== index));
 
-  const extractFromHtml = (html: string): { sku: string, qtd: number, nome?: string, preco?: number }[] => {
-    const results: { sku: string, qtd: number, nome?: string, preco?: number }[] = [];
+  const extractFromHtml = (html: string): any[] => {
+    const results: any[] = [];
     // Regex para capturar SKU e Quantidade do formato Pluggar
     // SKU: <p class="bold font-size-14 pull-right"> SKU: 10582</p>
     // QTD: <p class="font-size-12"> <i class="fas fa-play-circle text-success mr-2"></i> Disponível: 25</p>
@@ -181,16 +181,40 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
       const skuMatch = block.match(/SKU:\s*([A-Z0-9-]+)/i);
       const qtdMatch = block.match(/Disponível:\s*(\d+)/i);
       // Nome: Geralmente em um link ou span antes do SKU
-      const nomeMatch = block.match(/<a[^>]*>([^<]+)<\/a>/i) || block.match(/<span[^>]*class=["']product-name["'][^>]*>([^<]+)<\/span>/i);
-      // Preço: R$ 1.234,56
-      const precoMatch = block.match(/R\$\s*([\d.,]+)/i);
+      const nomeMatch = block.match(/<p[^>]*class=["']bold font-size-14 pull-left["'][^>]*>([^<]+)<\/p>/i) || 
+                        block.match(/<a[^>]*>([^<]+)<\/a>/i) || 
+                        block.match(/<span[^>]*class=["']product-name["'][^>]*>([^<]+)<\/span>/i);
+      
+      const unidadeMatch = block.match(/Unidade:\s*([A-Z]+)/i);
+      
+      // Preço Padrão (Unitário)
+      const precoPadraoMatch = block.match(/Padrão<\/p>\s*<p[^>]*>\s*R\$\s*([\d.,]+)/i) || block.match(/R\$\s*([\d.,]+)/i);
+      
+      // TABELA 4 (Desconto no Box ou Preço do Box)
+      const precoTabela4Match = block.match(/TABELA 4<\/p>\s*<p[^>]*>\s*R\$\s*([\d.,]+)/i);
       
       if (skuMatch && qtdMatch) {
+        const sku = skuMatch[1].trim().toUpperCase();
+        const nome = nomeMatch ? nomeMatch[1].trim() : '';
+        const unidade = unidadeMatch ? unidadeMatch[1].trim().toUpperCase() : 'UN';
+        const precoPadrao = precoPadraoMatch ? parseNumber(precoPadraoMatch[1]) : undefined;
+        const precoTabela4 = precoTabela4Match ? parseNumber(precoTabela4Match[1]) : undefined;
+        
+        // Extrai Qtd Box do nome (ex: BX C/12 ou (Emb C/12))
+        const qtdBoxMatch = nome.match(/BX\s*C\/(\d+)/i) || 
+                           nome.match(/C\/(\d+)/i) || 
+                           nome.match(/Emb\s*C\/(\d+)/i) ||
+                           nome.match(/(\d+)\s*un/i);
+        const qtdBox = qtdBoxMatch ? parseInt(qtdBoxMatch[1], 10) : 1;
+
         results.push({
-          sku: skuMatch[1].trim().toUpperCase(),
+          sku,
           qtd: parseInt(qtdMatch[1], 10),
-          nome: nomeMatch ? nomeMatch[1].trim() : undefined,
-          preco: precoMatch ? parseNumber(precoMatch[1]) : undefined
+          nome,
+          unidade,
+          precoPadrao,
+          precoTabela4,
+          qtdBox
         });
       }
     });
@@ -228,7 +252,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
 
       const file = uploadedFiles[0].file;
       const fileName = file.name.toLowerCase();
-      let syncData: { sku: string, qtd: number, nome?: string, preco?: number }[] = [];
+      let syncData: any[] = [];
 
       if (fileName.endsWith('.html') || fileName.endsWith('.htm')) {
         const text = await file.text();
@@ -241,14 +265,23 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
           const skuKey = Object.keys(row).find(k => /sku|codigo|cod|ref|referencia/i.test(k));
           const qtdKey = Object.keys(row).find(k => /quantidade|qtd|estoque|stock|qnt|disponivel/i.test(k));
           const nomeKey = Object.keys(row).find(k => /nome|produto|descrição|description/i.test(k));
-          const precoKey = Object.keys(row).find(k => /preço|preco|valor|price|unitario/i.test(k));
+          const precoKey = Object.keys(row).find(k => /preço|preco|valor|price|unitario|padrao/i.test(k));
+          const precoBoxKey = Object.keys(row).find(k => /box|tabela 4|tabela4/i.test(k));
+          const unidadeKey = Object.keys(row).find(k => /unidade|un|tipo/i.test(k));
+
           if (skuKey) {
             const sku = String(row[skuKey]).trim().toUpperCase();
+            const nome = nomeKey ? String(row[nomeKey]).trim() : '';
+            const qtdBoxMatch = nome.match(/BX\s*C\/(\d+)/i) || nome.match(/C\/(\d+)/i) || nome.match(/Emb\s*C\/(\d+)/i);
+            
             if (sku) syncData.push({ 
               sku, 
               qtd: parseNumber(qtdKey ? row[qtdKey] : 0, 0),
-              nome: nomeKey ? String(row[nomeKey]).trim() : undefined,
-              preco: precoKey ? parseNumber(row[precoKey]) : undefined
+              nome: nome || undefined,
+              precoPadrao: precoKey ? parseNumber(row[precoKey]) : undefined,
+              precoTabela4: precoBoxKey ? parseNumber(row[precoBoxKey]) : undefined,
+              unidade: unidadeKey ? String(row[unidadeKey]).trim().toUpperCase() : 'UN',
+              qtdBox: qtdBoxMatch ? parseInt(qtdBoxMatch[1], 10) : 1
             });
           }
         });
@@ -256,12 +289,12 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
 
       if (syncData.length === 0) throw new Error('Não foi possível identificar produtos no arquivo.');
       
-      const { data: existingProducts } = await supabase.from('products').select('id, sku, nome, status_estoque, estoque, preco_unitario').eq('company_id', companyId).eq('brand_id', selectedBrandId);
+      const { data: existingProducts } = await supabase.from('products').select('id, sku, nome, status_estoque, estoque, preco_unitario, preco_box, venda_somente_box, has_box_discount, qtd_box').eq('company_id', companyId).eq('brand_id', selectedBrandId);
       if (!existingProducts) throw new Error('Erro ao buscar produtos.');
       
       const existingMap = new Map(existingProducts.map(p => [p.sku.toUpperCase().trim(), p]));
       const fileSkus = new Set(syncData.map(d => d.sku));
-      const updates: { id: string, status_estoque: string, estoque: number, nome?: string, preco_unitario?: number }[] = [];
+      const updates: any[] = [];
       const unregistered: { sku: string, qtd: number }[] = [];
       const newOutOfStock: { sku: string, nome: string }[] = [];
       const newLastUnits: { sku: string, nome: string }[] = [];
@@ -272,13 +305,41 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
           const newStatus = d.qtd === 0 ? 'esgotado' : d.qtd < 10 ? 'ultimas' : 'normal';
           
           const nameChanged = d.nome && d.nome !== existing.nome;
-          const priceChanged = d.preco !== undefined && d.preco !== existing.preco_unitario;
+          
+          // Lógica de Preço e Flags
+          let precoUnitario = d.precoPadrao;
+          let precoBox = d.precoTabela4 !== undefined ? d.precoTabela4 : existing.preco_box;
+          let vendaSomenteBox = d.unidade === 'BX';
+          let hasBoxDiscount = d.precoTabela4 !== undefined && d.unidade === 'UN';
+          
+          // Se for venda somente box, o preço padrão do arquivo é o preço do box
+          if (vendaSomenteBox) {
+            precoBox = d.precoPadrao;
+            // O preço unitário no banco deve ser o preço do box dividido pela quantidade
+            if (precoBox !== undefined) {
+              precoUnitario = precoBox / (d.qtdBox || 1);
+            }
+          }
 
-          // Atualiza se o status mudou OU se a quantidade numérica mudou OU se nome/preço mudaram
-          if (existing.status_estoque !== newStatus || existing.estoque !== d.qtd || nameChanged || priceChanged) {
-            const updateObj: any = { id: existing.id, status_estoque: newStatus, estoque: d.qtd };
+          const priceChanged = (precoUnitario !== undefined && Math.abs(precoUnitario - (existing.preco_unitario || 0)) > 0.001) || 
+                               (precoBox !== undefined && Math.abs(precoBox - (existing.preco_box || 0)) > 0.001);
+          
+          const flagsChanged = vendaSomenteBox !== existing.venda_somente_box || 
+                               hasBoxDiscount !== existing.has_box_discount ||
+                               (d.qtdBox !== undefined && d.qtdBox !== existing.qtd_box);
+
+          if (existing.status_estoque !== newStatus || existing.estoque !== d.qtd || nameChanged || priceChanged || flagsChanged) {
+            const updateObj: any = { 
+              id: existing.id, 
+              status_estoque: newStatus, 
+              estoque: d.qtd,
+              venda_somente_box: vendaSomenteBox,
+              has_box_discount: hasBoxDiscount,
+              qtd_box: d.qtdBox || existing.qtd_box
+            };
             if (nameChanged) updateObj.nome = d.nome;
-            if (priceChanged) updateObj.preco_unitario = d.preco;
+            if (precoUnitario !== undefined) updateObj.preco_unitario = precoUnitario;
+            if (precoBox !== undefined) updateObj.preco_box = precoBox;
             
             updates.push(updateObj);
             if (newStatus === 'esgotado') newOutOfStock.push({ sku: existing.sku, nome: existing.nome });

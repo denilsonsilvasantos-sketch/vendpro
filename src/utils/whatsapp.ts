@@ -1,38 +1,53 @@
 import { CartItem } from '../types';
+import { getCartItemPrice } from './prices';
 
 export function formatWhatsAppMessage(items: CartItem[], clientName?: string, brandName?: string, notes?: string): string {
   const itemCount = items.length;
   const productCount = items.reduce((acc, item) => acc + item.quantity, 0);
 
-  const lines = items.map((item, index) => {
-    const isBoxDiscount = item.has_box_discount && !item.venda_somente_box && item.quantity >= (item.qtd_box || 0);
-    const unitPrice = item.venda_somente_box 
-      ? (item.preco_box || 0)
-      : (isBoxDiscount ? ((item.preco_box || 0) / (item.qtd_box || 1)) : (item.preco_unitario || 0));
-    
-    return `${index + 1}. ${item.quantity} / ${item.sku} / ${item.nome} / ${unitPrice.toFixed(2).replace('.', ',')} / ${(item.quantity * unitPrice).toFixed(2).replace('.', ',')}`;
-  });
-  
   const total = items.reduce((acc, item) => {
-    const isBoxDiscount = item.has_box_discount && !item.venda_somente_box && item.quantity >= (item.qtd_box || 0);
-    const unitPrice = item.venda_somente_box 
-      ? (item.preco_box || 0)
-      : (isBoxDiscount ? ((item.preco_box || 0) / (item.qtd_box || 1)) : (item.preco_unitario || 0));
+    const unitPrice = getCartItemPrice(item);
     return acc + (item.quantity * unitPrice);
   }, 0);
+
+  const lines = items.map((item, index) => {
+    const unitPrice = getCartItemPrice(item);
+    const subtotal = item.quantity * unitPrice;
+    
+    let line = `*${index + 1}. ${item.nome}*\n`;
+    line += `   SKU: ${item.sku} | Qtd: ${item.quantity}\n`;
+    line += `   Preço: R$ ${unitPrice.toFixed(2).replace('.', ',')} | Sub: *R$ ${subtotal.toFixed(2).replace('.', ',')}*`;
+    
+    if (item.selected_variation && Object.keys(item.selected_variation).length > 0) {
+      const vars = Object.entries(item.selected_variation)
+        .map(([k, v]) => `${k}: ${v}`)
+        .join(', ');
+      line += `\n   _${vars}_`;
+    }
+    
+    return line;
+  });
   
-  let message = `Pedido realizado\n`;
+  let message = `🛍️ *PEDIDO REALIZADO*\n`;
+  message += `--------------------------\n`;
   if (brandName) {
-    message += `Marca: ${brandName}\n`;
+    message += `*Marca:* ${brandName}\n`;
   }
   if (clientName) {
-    message += `${clientName}\n`;
+    message += `*Cliente:* ${clientName}\n`;
   }
-  message += `\nItens: ${itemCount} | Produtos: ${productCount}\n`;
-  message += `\n${lines.join('\n')}\n\nSubtotal: R$ ${total.toFixed(2).replace('.', ',')}\nDesconto: R$ 0,00\nTotal Líquido: R$ ${total.toFixed(2).replace('.', ',')}`;
+  message += `--------------------------\n\n`;
+  
+  message += `📊 *Resumo:* ${itemCount} itens | ${productCount} produtos\n\n`;
+  
+  message += lines.join('\n\n');
+  
+  message += `\n\n--------------------------\n`;
+  message += `💰 *TOTAL: R$ ${total.toFixed(2).replace('.', ',')}*\n`;
+  message += `--------------------------`;
   
   if (notes && notes.trim()) {
-    message += `\n\nObservações:\n${notes.trim()}`;
+    message += `\n\n📝 *Observações:*\n${notes.trim()}`;
   }
   
   return message;

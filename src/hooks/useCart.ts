@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { CartItem, Product } from '../types';
+import { getCartItemPrice } from '../utils/prices';
 
 export function useCart(brandId?: string | null, userId?: string | null) {
   const [carts, setCarts] = useState<{ [brandId: string]: CartItem[] }>({});
@@ -130,27 +131,7 @@ export function useCart(brandId?: string | null, userId?: string | null) {
   };
 
   const total = useMemo(() => cart.reduce((acc, item) => {
-    const isPromoActive = item.is_promo && (!item.promo_until || new Date(item.promo_until) > new Date());
-    
-    let price;
-    if (isPromoActive) {
-      if (item.venda_somente_box) {
-        price = item.promo_price_box || 0;
-      } else if (item.quantity >= (item.promo_box_qty || 0) && (item.promo_box_qty || 0) > 0) {
-        price = item.promo_price_box || 0;
-      } else {
-        price = item.promo_price_unit || 0;
-      }
-    } else {
-      if (item.venda_somente_box) {
-        price = item.preco_box || 0;
-      } else if (item.has_box_discount && item.quantity >= (item.qtd_box || 0) && (item.qtd_box || 0) > 0) {
-        price = item.preco_box || 0;
-      } else {
-        price = item.preco_unitario || 0;
-      }
-    }
-    
+    const price = getCartItemPrice(item);
     return acc + (item.quantity * price);
   }, 0), [cart]);
 

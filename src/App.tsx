@@ -54,6 +54,7 @@ import { Badge } from './components/Badge';
 import CartScreen from './pages/CartScreen';
 import Banner from './components/Banner';
 import { formatWhatsAppMessage } from './utils/whatsapp';
+import { getCartItemPrice } from './utils/prices';
 import { getBanners, getTopBarMessages } from './services/bannerService';
 
 // Lazy load heavy pages — só carrega quando o usuário navega até elas
@@ -349,11 +350,7 @@ export default function App() {
           if (orderError) throw orderError;
 
           const orderItems = cart.map(item => {
-            const marginMultiplier = 1 + (item.margin_percentage || 0) / 100;
-            const isBoxDiscount = item.has_box_discount && !item.venda_somente_box && item.quantity >= (item.qtd_box || 0);
-            const unitPrice = item.venda_somente_box 
-              ? item.preco_box * marginMultiplier
-              : (isBoxDiscount ? (item.preco_box / (item.qtd_box || 1)) * marginMultiplier : item.preco_unitario * marginMultiplier);
+            const unitPrice = getCartItemPrice(item);
             
             return {
               order_id: order.id,

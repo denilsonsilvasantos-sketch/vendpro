@@ -1,5 +1,6 @@
 import React from 'react';
 import { CartItem, Brand, UserRole, Customer, Seller } from '../types';
+import { getCartItemPrice } from '../utils/prices';
 import { Plus, Minus, Trash2, ShoppingBag, User as UserIcon, ReceiptText, CreditCard, Search, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -95,19 +96,7 @@ export default function CartScreen({
                   const step = item.venda_somente_box ? 1 : (item.multiplo_venda || 1);
                   const isPromoActive = item.is_promo && (!item.promo_until || new Date(item.promo_until) > new Date());
                   
-                  let unitPrice;
-                  if (isPromoActive) {
-                    const isBoxDiscount = !item.venda_somente_box && item.quantity >= (item.promo_box_qty || 0);
-                    unitPrice = item.venda_somente_box
-                      ? (item.promo_price_box || 0)
-                      : (isBoxDiscount ? (item.promo_price_box || 0) : (item.promo_price_unit || 0));
-                  } else {
-                    const isBoxDiscount = item.has_box_discount && !item.venda_somente_box && item.quantity >= (item.qtd_box || 0);
-                    unitPrice = item.venda_somente_box
-                      ? (item.preco_box || 0)
-                      : (isBoxDiscount ? (item.preco_box || 0) : (item.preco_unitario || 0));
-                  }
-                  
+                  const unitPrice = getCartItemPrice(item);
                   const subtotal = unitPrice * item.quantity;
 
                   return (
@@ -340,20 +329,10 @@ export default function CartScreen({
                 const step = item.venda_somente_box ? 1 : (item.multiplo_venda || 1);
                 const isPromoActive = item.is_promo && (!item.promo_until || new Date(item.promo_until) > new Date());
                 
-                let unitPrice;
-                let isBoxDiscount;
-                
-                if (isPromoActive) {
-                  isBoxDiscount = !item.venda_somente_box && item.quantity >= (item.promo_box_qty || 0);
-                  unitPrice = item.venda_somente_box 
-                    ? (item.promo_price_box || 0)
-                    : (isBoxDiscount ? (item.promo_price_box || 0) : (item.promo_price_unit || 0));
-                } else {
-                  isBoxDiscount = item.has_box_discount && !item.venda_somente_box && item.quantity >= (item.qtd_box || 0);
-                  unitPrice = item.venda_somente_box 
-                    ? (item.preco_box || 0)
-                    : (isBoxDiscount ? (item.preco_box || 0) : (item.preco_unitario || 0));
-                }
+                const unitPrice = getCartItemPrice(item);
+                const isBoxDiscount = isPromoActive 
+                  ? (!item.venda_somente_box && item.quantity >= (item.promo_box_qty || 0))
+                  : (item.has_box_discount && !item.venda_somente_box && item.quantity >= (item.qtd_box || 0));
                 
                 const subtotal = unitPrice * item.quantity;
 

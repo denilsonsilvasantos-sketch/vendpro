@@ -3,6 +3,8 @@ import { supabase } from '../integrations/supabaseClient';
 import { X, Eye, ShoppingBag, TrendingUp, AlertTriangle, PackageSearch, Calendar, CreditCard, Filter, Trash2, AlertCircle, Search, Send, Edit2, Check, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
+import { getCartItemPrice } from '../utils/prices';
+
 function formatDate(dateStr: string) {
   if (!dateStr) return '—';
   const d = new Date(dateStr);
@@ -279,10 +281,17 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
         .single();
 
       const margin = brand?.margin_percentage || 0;
+      const marginMultiplier = 1 + margin / 100;
       
-      // Use preco_box if it's box-only sale, otherwise use preco_unitario
-      const basePrice = product.venda_somente_box ? (product.preco_box || 0) : (product.preco_unitario || 0);
-      const precoUnitario = basePrice * (1 + margin / 100);
+      // Prepare product object with margin applied to base prices (matching productService logic)
+      const productWithMargin = {
+        ...product,
+        preco_unitario: (product.preco_unitario || 0) * marginMultiplier,
+        preco_box: (product.preco_box || 0) * marginMultiplier,
+        quantity: newQuantity
+      };
+      
+      const precoUnitario = getCartItemPrice(productWithMargin as any);
       const subtotalItem = precoUnitario * newQuantity;
 
       // 3. Insert into order_items

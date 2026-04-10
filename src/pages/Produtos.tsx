@@ -2,8 +2,9 @@ import React, { useEffect, useState, useMemo, memo } from 'react';
 import { supabase } from '../integrations/supabaseClient';
 import { Product, Brand, Category } from '../types';
 import { getProducts } from '../services/productService';
-import { Package, Edit, Trash2, Plus, Search, Filter, Tag, AlertCircle, CheckCircle2, Loader2, ChevronDown, X, ZoomIn, Info, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Package, Edit, Trash2, Plus, Search, Filter, Tag, AlertCircle, CheckCircle2, Loader2, ChevronDown, X, ZoomIn, Info, ChevronLeft, ChevronRight, Upload } from 'lucide-react';
 import ProductFormModal from '../components/ProductFormModal';
+import BulkImageUploadModal from '../components/BulkImageUploadModal';
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function Produtos({ companyId, onRefresh }: { companyId: string | null, onRefresh?: () => void }) {
@@ -12,6 +13,7 @@ export default function Produtos({ companyId, onRefresh }: { companyId: string |
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [zoomImages, setZoomImages] = useState<string[]>([]);
   const [zoomIndex, setZoomIndex] = useState(0);
   const [editingProduct, setEditingProduct] = useState<Product | undefined>();
@@ -120,25 +122,33 @@ export default function Produtos({ companyId, onRefresh }: { companyId: string |
 
   return (
     <div className="p-4 md:p-6 lg:p-8 max-w-6xl xl:max-w-7xl mx-auto space-y-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="space-y-1">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary border border-primary/20 shadow-inner">
-              <Package size={24} strokeWidth={2.5} />
-            </div>
-            <div>
-              <h1 className="text-base font-black text-slate-900 tracking-tight uppercase">Catálogo de Produtos</h1>
-              <p className="text-xs text-slate-400 font-medium">Gerencie o inventário e preços de forma centralizada</p>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="space-y-1">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary border border-primary/20 shadow-inner">
+                <Package size={24} strokeWidth={2.5} />
+              </div>
+              <div>
+                <h1 className="text-base font-black text-slate-900 tracking-tight uppercase">Catálogo de Produtos</h1>
+                <p className="text-xs text-slate-400 font-medium">Gerencie o inventário e preços de forma centralizada</p>
+              </div>
             </div>
           </div>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button 
+              onClick={() => setIsBulkModalOpen(true)} 
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-white border border-slate-200 px-5 py-3 text-xs font-black uppercase tracking-[0.18em] text-slate-600 shadow-sm hover:bg-slate-50 hover:-translate-y-0.5 active:translate-y-0 transition-all w-full md:w-auto"
+            >
+              <Upload size={18} strokeWidth={3} /> Vincular Fotos por SKU
+            </button>
+            <button 
+              onClick={() => { setEditingProduct(undefined); setIsModalOpen(true); }} 
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-5 py-3 text-xs font-black uppercase tracking-[0.18em] text-white shadow-lg shadow-primary/30 hover:bg-primary/90 hover:-translate-y-0.5 active:translate-y-0 transition-all w-full md:w-auto"
+            >
+              <Plus size={18} strokeWidth={3} /> Novo Produto
+            </button>
+          </div>
         </div>
-        <button 
-          onClick={() => { setEditingProduct(undefined); setIsModalOpen(true); }} 
-          className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-5 py-3 text-xs font-black uppercase tracking-[0.18em] text-white shadow-lg shadow-primary/30 hover:bg-primary/90 hover:-translate-y-0.5 active:translate-y-0 transition-all w-full md:w-auto"
-        >
-          <Plus size={18} strokeWidth={3} /> Novo Produto
-        </button>
-      </div>
 
       <div className="flex flex-col lg:flex-row gap-4 p-4 bg-white rounded-[32px] border border-slate-100 shadow-sm neumorphic-shadow">
         <div className="relative flex-1 group">
@@ -252,6 +262,18 @@ export default function Produtos({ companyId, onRefresh }: { companyId: string |
             onSave={() => { fetchData(); setIsModalOpen(false); if (onRefresh) onRefresh(); }} 
             product={editingProduct}
             companyId={companyId}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isBulkModalOpen && (
+          <BulkImageUploadModal 
+            onClose={() => setIsBulkModalOpen(false)} 
+            onComplete={() => { fetchData(); setIsBulkModalOpen(false); if (onRefresh) onRefresh(); }} 
+            companyId={companyId}
+            brands={brands}
+            categories={categories}
           />
         )}
       </AnimatePresence>

@@ -98,7 +98,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
 
     let query = supabase
       .from('orders')
-      .select('*, customer:customer_id(nome, nome_empresa, whatsapp)')
+      .select('*, customer:customers!customer_id(nome, nome_empresa, whatsapp)')
       .eq('company_id', companyId)
       .order('created_at', { ascending: false });
 
@@ -249,7 +249,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
       .from('orders')
       .update(updateData)
       .eq('id', orderId)
-      .select('*, customer:customer_id(nome, nome_empresa, whatsapp)')
+      .select('*, customer:customers!customer_id(nome, nome_empresa, whatsapp)')
       .single();
 
     if (error) { 

@@ -1219,13 +1219,13 @@ export default function App() {
       </AnimatePresence>
 
       {/* Footer LGPD */}
-      <footer className="text-center py-2.5 border-t border-slate-100 bg-white/60">
-        <div className="flex items-center justify-center gap-3">
-          <button onClick={() => window.open('/politica-de-privacidade.html', '_blank')} className="text-[10px] text-slate-400 hover:text-primary transition-colors font-medium">Política de Privacidade</button>
-          <span className="text-slate-200 text-xs">·</span>
-          <button onClick={() => window.open('/lgpd.html', '_blank')} className="text-[10px] text-slate-400 hover:text-primary transition-colors font-medium">LGPD</button>
-          <span className="text-slate-200 text-xs">·</span>
-          <span className="text-[10px] text-slate-300">VendPro © {new Date().getFullYear()}</span>
+      <footer className="text-center py-4 border-t border-slate-100 bg-white/80">
+        <div className="flex items-center justify-center gap-4">
+          <button onClick={() => window.open('/politica-de-privacidade.html', '_blank')} className="text-[11px] text-slate-500 hover:text-primary transition-colors font-semibold">Política de Privacidade</button>
+          <span className="text-slate-300 text-xs">·</span>
+          <button onClick={() => window.open('/lgpd.html', '_blank')} className="text-[11px] text-slate-500 hover:text-primary transition-colors font-semibold">LGPD</button>
+          <span className="text-slate-300 text-xs">·</span>
+          <span className="text-[11px] text-slate-400 font-medium">VendPro © {new Date().getFullYear()}</span>
         </div>
       </footer>
 
@@ -2146,10 +2146,12 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
         </div>{/* end body */}
 
         {/* LGPD footer */}
-        <div className="flex items-center justify-center gap-4 mt-4 pt-4 border-t border-slate-100">
-          <button onClick={() => window.open('/politica-de-privacidade.html', '_blank')} className="text-xs text-slate-500 hover:text-primary transition-colors font-semibold underline underline-offset-2">Política de Privacidade</button>
+        <div className="flex items-center justify-center gap-4 mt-6 pt-4 border-t border-slate-100">
+          <button onClick={() => window.open('/politica-de-privacidade.html', '_blank')} className="text-[11px] text-slate-500 hover:text-primary transition-colors font-semibold">Política de Privacidade</button>
           <span className="text-slate-300">·</span>
-          <button onClick={() => window.open('/lgpd.html', '_blank')} className="text-xs text-slate-500 hover:text-primary transition-colors font-semibold underline underline-offset-2">LGPD</button>
+          <button onClick={() => window.open('/lgpd.html', '_blank')} className="text-[11px] text-slate-500 hover:text-primary transition-colors font-semibold">LGPD</button>
+          <span className="text-slate-300">·</span>
+          <span className="text-[11px] text-slate-400 font-medium">VendPro © {new Date().getFullYear()}</span>
         </div>
 
       </motion.div>

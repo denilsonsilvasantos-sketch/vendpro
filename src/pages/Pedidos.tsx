@@ -232,13 +232,39 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
 
   const handleCustomerChange = async (orderId: string, newCustomerId: string) => {
     if (!supabase || !newCustomerId) return;
-    const { error } = await supabase.from('orders').update({ customer_id: newCustomerId }).eq('id', orderId);
-    if (error) { alert('Erro ao atualizar cliente.'); return; }
     
     const newCustomer = customers.find(c => c.id === newCustomerId);
     
-    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, customer_id: newCustomerId, customer: newCustomer } : o));
-    if (selectedOrder?.id === orderId) setSelectedOrder((prev: any) => ({ ...prev, customer_id: newCustomerId, customer: newCustomer }));
+    const updateData: any = { 
+      customer_id: newCustomerId,
+      client_name: newCustomer?.nome || ''
+    };
+
+    // Se for vendedor, garante que o pedido esteja vinculado a ele para evitar problemas de RLS
+    if (role === 'seller' && user?.id) {
+      updateData.seller_id = user.id;
+    }
+
+    const { data, error } = await supabase
+      .from('orders')
+      .update(updateData)
+      .eq('id', orderId)
+      .select('*, customer:customer_id(nome, nome_empresa, whatsapp)')
+      .single();
+
+    if (error) { 
+      console.error('Erro ao atualizar cliente:', error);
+      alert('Erro ao atualizar cliente: ' + error.message); 
+      return; 
+    }
+
+    if (!data) {
+      alert('Não foi possível atualizar o pedido. Verifique suas permissões.');
+      return;
+    }
+    
+    setOrders(prev => prev.map(o => o.id === orderId ? data : o));
+    if (selectedOrder?.id === orderId) setSelectedOrder(data);
     setEditingCustomer(false);
   };
 

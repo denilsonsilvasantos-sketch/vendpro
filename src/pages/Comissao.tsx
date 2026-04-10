@@ -64,10 +64,19 @@ function StatCard({ icon, label, value, sub, color, delay = 0 }: StatCardProps) 
   );
 }
 
+interface BrandCommissionStats {
+  brandId: string;
+  brandName: string;
+  totalValue: number;
+  commission: number;
+  ordersCount: number;
+}
+
 export default function Comissao({ companyId, role, user }: { companyId: string | null; role?: string | null; user?: any }) {
   const [sellers, setSellers] = useState<SellerStats[]>([]);
   const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([]);
   const [sellerMonthly, setSellerMonthly] = useState<MonthlyData[]>([]);
+  const [brandCommissions, setBrandCommissions] = useState<BrandCommissionStats[]>([]);
   const [myStats, setMyStats] = useState<SellerStats | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -166,14 +175,18 @@ export default function Comissao({ companyId, role, user }: { companyId: string 
     if (!supabase || !companyId || !user?.id) return;
     setLoading(true);
     try {
-      const [{ data: sellerInfo }, { data: orders }] = await Promise.all([
+      const [{ data: sellerInfo }, { data: orders }, { data: brands }] = await Promise.all([
         supabase.from('sellers').select('id, nome, comissao, comissao_por_marca').eq('id', user.id).single(),
         supabase.from('orders')
           .select('brand_id, total, status, created_at')
           .eq('company_id', companyId)
           .eq('seller_id', user.id)
           .neq('status', 'cancelled'),
+        supabase.from('brands').select('id, name').eq('company_id', companyId)
       ]);
+
+      const brandNames: Record<string, string> = {};
+      (brands || []).forEach(b => brandNames[b.id] = b.name);
 
       const comissaoGlobal = Number(sellerInfo?.comissao || 0);
       const comissaoPorMarca: Record<string, number> = sellerInfo?.comissao_por_marca || {};
@@ -181,19 +194,31 @@ export default function Comissao({ companyId, role, user }: { companyId: string 
       let comissao_prevista = 0, comissao_real = 0;
 
       const byMonth: Record<string, { pedidos: number; valor: number; comissao: number }> = {};
+      const byBrand: Record<string, { totalValue: number; commission: number; ordersCount: number }> = {};
 
       (orders || []).forEach((o: any) => {
         const taxa = comissaoPorMarca[o.brand_id] !== undefined
           ? comissaoPorMarca[o.brand_id]
           : comissaoGlobal;
+        
         total_pedidos += 1;
         valor_total += Number(o.total || 0);
         comissao_prevista += (Number(o.total || 0) * taxa) / 100;
+
+        if (!byBrand[o.brand_id]) {
+          byBrand[o.brand_id] = { totalValue: 0, commission: 0, ordersCount: 0 };
+        }
+        
         if (o.status === 'finished') {
           pedidos_finalizados += 1;
           valor_finalizado += Number(o.total || 0);
           comissao_real += (Number(o.total || 0) * taxa) / 100;
+
+          byBrand[o.brand_id].totalValue += Number(o.total || 0);
+          byBrand[o.brand_id].commission += (Number(o.total || 0) * taxa) / 100;
+          byBrand[o.brand_id].ordersCount += 1;
         }
+
         const m = o.created_at?.slice(0, 7);
         if (m) {
           if (!byMonth[m]) byMonth[m] = { pedidos: 0, valor: 0, comissao: 0 };
@@ -216,6 +241,14 @@ export default function Comissao({ companyId, role, user }: { companyId: string 
         comissao_prevista,
         comissao_real,
       });
+
+      const brandStats = Object.entries(byBrand).map(([brandId, data]) => ({
+        brandId,
+        brandName: brandNames[brandId] || 'Marca Desconhecida',
+        ...data
+      })).sort((a, b) => b.commission - a.commission);
+
+      setBrandCommissions(brandStats);
 
       const monthly = Object.entries(byMonth)
         .sort(([a], [b]) => a.localeCompare(b))
@@ -276,6 +309,36 @@ export default function Comissao({ companyId, role, user }: { companyId: string 
 
         {sellerMonthly.length > 0 && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-4 lg:col-span-2">
+              <h3 className="text-sm font-black text-slate-700 uppercase tracking-wide">Comissões por Marca</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {brandCommissions.map((bc, i) => (
+                  <motion.div 
+                    key={bc.brandId}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: i * 0.05 }}
+                    className="p-4 rounded-xl border border-slate-100 bg-slate-50/30 space-y-2"
+                  >
+                    <div className="flex justify-between items-start">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{bc.brandName}</span>
+                      <span className="text-[10px] font-bold text-primary bg-primary/5 px-2 py-0.5 rounded-full">{bc.ordersCount} pedidos</span>
+                    </div>
+                    <div className="flex justify-between items-end">
+                      <div>
+                        <p className="text-[9px] text-slate-400 font-bold uppercase">Volume</p>
+                        <p className="text-sm font-bold text-slate-700">{formatCurrency(bc.totalValue)}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[9px] text-primary font-bold uppercase">Comissão</p>
+                        <p className="text-lg font-black text-primary">{formatCurrency(bc.commission)}</p>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-4">
               <h3 className="text-sm font-black text-slate-700 uppercase tracking-wide">Evolução de Pedidos</h3>
               <ResponsiveContainer width="100%" height={220}>

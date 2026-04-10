@@ -30,17 +30,17 @@ export default function Dashboard({ companyId, role, user, banners }: { companyI
       let orderQuery = supabase.from('orders').select('*', { count: 'exact', head: true }).eq('company_id', companyId);
       if (role === 'seller' && user?.id) orderQuery = orderQuery.eq('seller_id', user.id);
       const { count: orderCount } = await orderQuery;
-      let revenueQuery = supabase.from('orders').select('id, total').eq('company_id', companyId);
+      let revenueQuery = supabase.from('orders').select('id, total, brand:brands!brand_id (name)').eq('company_id', companyId);
       if (role === 'seller' && user?.id) revenueQuery = revenueQuery.eq('seller_id', user.id);
       const { data: orders } = await revenueQuery;
       const totalRevenue = orders?.reduce((acc, order) => acc + (order.total || 0), 0) || 0;
-      const orderIds = orders?.map(o => o.id) || [];
-      let orderItemsQuery = supabase.from('order_items').select('subtotal, product:products!product_id (brand:brands!brand_id (name))');
-      if (orderIds.length > 0) orderItemsQuery = orderItemsQuery.in('order_id', orderIds);
-      else orderItemsQuery = orderItemsQuery.eq('order_id', 'none');
-      const { data: orderItems } = await orderItemsQuery;
+      
       const brandMap: Record<string, number> = {};
-      orderItems?.forEach((item: any) => { const n = item.product?.brand?.name || 'Sem Marca'; brandMap[n] = (brandMap[n] || 0) + (item.subtotal || 0); });
+      orders?.forEach((order: any) => { 
+        const n = order.brand?.name || 'Sem Marca'; 
+        brandMap[n] = (brandMap[n] || 0) + (order.total || 0); 
+      });
+
       setStats({ products: productCount || 0, customers: customerCount || 0, orders: orderCount || 0, revenue: totalRevenue });
       setBrandRevenue(Object.entries(brandMap).map(([name, value]) => ({ name, value })));
       setLoading(false);

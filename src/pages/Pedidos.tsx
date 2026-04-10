@@ -95,7 +95,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
 
     let query = supabase
       .from('orders')
-      .select('*, customer:customer_id(nome, whatsapp)')
+      .select('*, customer:customer_id(nome, nome_empresa, whatsapp)')
       .eq('company_id', companyId)
       .order('created_at', { ascending: false });
 
@@ -800,7 +800,12 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
               <tr className="bg-slate-50/50 border-b border-slate-100">
                 {isSelectionMode && <th className="p-6 text-left w-10"></th>}
                 <th className="p-6 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400">ID</th>
-                {role !== 'customer' && <th className="p-6 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400">Cliente</th>}
+                {role !== 'customer' && (
+                  <>
+                    <th className="p-6 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400">Empresa</th>
+                    <th className="p-6 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400">Responsável</th>
+                  </>
+                )}
                 <th className="p-6 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400">Marca</th>
                 <th className="p-6 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400 hidden sm:table-cell">Data</th>
                 <th className="p-6 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400">Total</th>
@@ -826,11 +831,18 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                     <span className="font-mono text-xs font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-lg">#{filteredOrders.length - index}</span>
                   </td>
                   {role !== 'customer' && (
-                    <td className="p-6">
-                      <button onClick={() => openOrderDetails(order)} className="font-bold text-slate-800 hover:text-primary transition-colors text-left">
-                        {order.customer?.nome || order.client_name || 'N/A'}
-                      </button>
-                    </td>
+                    <>
+                      <td className="p-6">
+                        <button onClick={() => openOrderDetails(order)} className="font-bold text-slate-800 hover:text-primary transition-colors text-left uppercase">
+                          {order.customer?.nome_empresa || '—'}
+                        </button>
+                      </td>
+                      <td className="p-6">
+                        <span className="text-xs font-bold text-slate-600 uppercase">
+                          {order.customer?.nome || order.client_name || '—'}
+                        </span>
+                      </td>
+                    </>
                   )}
                   <td className="p-6">
                     <span className="text-xs font-bold text-slate-600 uppercase tracking-tight">
@@ -862,15 +874,11 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                         <option value="pending">Pendente</option>
                         <option value="typed">Digitado</option>
                         <option value="finished">Finalizado</option>
-                        <option value="cancelled">Cancelado</option>
                       </select>
                     )}
                   </td>
                   <td className="p-6 text-right">
                     <div className="flex items-center justify-end gap-1">
-                      <button onClick={() => openOrderDetails(order)} className="p-2 text-slate-400 hover:text-primary hover:bg-primary/5 rounded-xl transition-all">
-                        <Eye size={18} />
-                      </button>
                       {canEditOrder && (
                         <button 
                           onClick={() => setShowDeleteConfirm(order.id)} 
@@ -1196,72 +1204,75 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
 
                       <div className="space-y-2">
                         <AnimatePresence>
-                          {orderItems.length > 0 ? orderItems.map(item => (
+                          {orderItems.length > 0 ? orderItems.map((item, idx) => (
                             <motion.div key={item.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }}
                               className="flex items-center justify-between p-4 bg-white rounded-2xl border border-slate-100 hover:border-primary/20 transition-all group">
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-xs font-mono font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded">{item.sku}</span>
-                                  <h5 className="font-bold text-slate-800 text-sm">{item.nome}</h5>
-                                </div>
-                                {item.variacoes && Object.entries(item.variacoes as Record<string, string>).length > 0 && (
-                                  <div className="flex flex-wrap gap-1 mt-1">
-                                    {Object.entries(item.variacoes as Record<string, string>).map(([key, value]) => (
-                                      <span key={key} className="text-[8px] bg-slate-50 text-slate-500 px-1.5 py-0.5 rounded font-bold uppercase border border-slate-100">
-                                        {key}: {value}
-                                      </span>
-                                    ))}
+                              <div className="flex-1 flex items-center gap-4">
+                                <span className="text-[10px] font-black text-slate-300 w-4">{idx + 1}.</span>
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs font-mono font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded">{item.sku}</span>
+                                    <h5 className="font-bold text-slate-800 text-sm">{item.nome}</h5>
                                   </div>
-                                )}
-                                {editingItemId === item.id ? (
-                                  <div className="flex flex-col gap-2 mt-2">
-                                    <div className="flex items-center gap-2">
-                                      <div className="flex flex-col">
-                                        <label className="text-[8px] font-bold text-slate-400 uppercase">Qtd</label>
-                                        <input 
-                                          type="number"
-                                          value={tempQuantity}
-                                          onChange={e => setTempQuantity(Number(e.target.value))}
-                                          className="w-16 px-2 py-1 border border-slate-200 rounded-lg text-xs font-bold bg-white focus:outline-none focus:border-primary"
-                                        />
-                                      </div>
-                                      <div className="flex flex-col">
-                                        <label className="text-[8px] font-bold text-slate-400 uppercase">Preço Unit.</label>
-                                        <input 
-                                          type="number"
-                                          step="0.01"
-                                          value={tempPrice}
-                                          onChange={e => setTempPrice(Number(e.target.value))}
-                                          className="w-24 px-2 py-1 border border-slate-200 rounded-lg text-xs font-bold bg-white focus:outline-none focus:border-primary"
-                                        />
-                                      </div>
-                                      <div className="flex items-end gap-1 pb-0.5">
-                                        <button onClick={() => handleUpdateItem(item, tempQuantity, tempPrice)} className="p-1.5 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-all">
-                                          <Check size={12} />
-                                        </button>
-                                        <button onClick={() => setEditingItemId(null)} className="p-1.5 bg-slate-200 text-slate-500 rounded-lg hover:bg-slate-300 transition-all">
-                                          <X size={12} />
-                                        </button>
+                                  {item.variacoes && Object.entries(item.variacoes as Record<string, string>).length > 0 && (
+                                    <div className="flex flex-wrap gap-1 mt-1">
+                                      {Object.entries(item.variacoes as Record<string, string>).map(([key, value]) => (
+                                        <span key={key} className="text-[8px] bg-slate-50 text-slate-500 px-1.5 py-0.5 rounded font-bold uppercase border border-slate-100">
+                                          {key}: {value}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  )}
+                                  {editingItemId === item.id ? (
+                                    <div className="flex flex-col gap-2 mt-2">
+                                      <div className="flex items-center gap-2">
+                                        <div className="flex flex-col">
+                                          <label className="text-[8px] font-bold text-slate-400 uppercase">Qtd</label>
+                                          <input 
+                                            type="number"
+                                            value={tempQuantity}
+                                            onChange={e => setTempQuantity(Number(e.target.value))}
+                                            className="w-16 px-2 py-1 border border-slate-200 rounded-lg text-xs font-bold bg-white focus:outline-none focus:border-primary"
+                                          />
+                                        </div>
+                                        <div className="flex flex-col">
+                                          <label className="text-[8px] font-bold text-slate-400 uppercase">Preço Unit.</label>
+                                          <input 
+                                            type="number"
+                                            step="0.01"
+                                            value={tempPrice}
+                                            onChange={e => setTempPrice(Number(e.target.value))}
+                                            className="w-24 px-2 py-1 border border-slate-200 rounded-lg text-xs font-bold bg-white focus:outline-none focus:border-primary"
+                                          />
+                                        </div>
+                                        <div className="flex items-end gap-1 pb-0.5">
+                                          <button onClick={() => handleUpdateItem(item, tempQuantity, tempPrice)} className="p-1.5 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-all">
+                                            <Check size={12} />
+                                          </button>
+                                          <button onClick={() => setEditingItemId(null)} className="p-1.5 bg-slate-200 text-slate-500 rounded-lg hover:bg-slate-300 transition-all">
+                                            <X size={12} />
+                                          </button>
+                                        </div>
                                       </div>
                                     </div>
-                                  </div>
-                                ) : (
-                                  <div className="flex items-center gap-2 mt-1">
-                                    <p className="text-xs text-slate-400">{item.quantidade} x R$ {Number(item.preco_unitario).toFixed(2)}</p>
-                                    {canEditOrder && (
-                                      <button 
-                                        onClick={() => { 
-                                          setEditingItemId(item.id); 
-                                          setTempQuantity(item.quantidade);
-                                          setTempPrice(Number(item.preco_unitario));
-                                        }}
-                                        className="text-primary hover:text-primary/80 transition-colors"
-                                      >
-                                        <Edit2 size={12} />
-                                      </button>
-                                    )}
-                                  </div>
-                                )}
+                                  ) : (
+                                    <div className="flex items-center gap-2 mt-1">
+                                      <p className="text-xs text-slate-400">{item.quantidade} x R$ {Number(item.preco_unitario).toFixed(2)}</p>
+                                      {canEditOrder && (
+                                        <button 
+                                          onClick={() => { 
+                                            setEditingItemId(item.id); 
+                                            setTempQuantity(item.quantidade);
+                                            setTempPrice(Number(item.preco_unitario));
+                                          }}
+                                          className="text-primary hover:text-primary/80 transition-colors"
+                                        >
+                                          <Edit2 size={12} />
+                                        </button>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                               <div className="flex items-center gap-3">
                                 <p className="font-black text-slate-900">R$ {Number(item.subtotal).toFixed(2)}</p>

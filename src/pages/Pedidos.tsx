@@ -98,7 +98,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
 
     let query = supabase
       .from('orders')
-      .select('*, customer:customers!customer_id(nome, nome_empresa, whatsapp)')
+      .select('*')
       .eq('company_id', companyId)
       .order('created_at', { ascending: false });
 
@@ -112,46 +112,37 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
       query = query.eq('customer_id', user.id);
     }
 
-    const { data, error } = await query;
-    console.log('fetchOrders - Dados recebidos:', data);
+    const { data: ordersData, error: ordersError } = await query;
     
-    if (error) {
-      console.error('Erro na consulta de pedidos:', error);
-      // Tenta uma consulta ultra-simples se a primeira falhar
-      let simpleQuery = supabase
-        .from('orders')
-        .select('*')
-        .eq('company_id', companyId);
-      
-      if (role === 'seller' && user?.id) {
-        simpleQuery = simpleQuery.eq('seller_id', user.id);
-      } else if (role === 'customer' && user?.id) {
-        simpleQuery = simpleQuery.eq('customer_id', user.id);
-      }
+    if (ordersError) {
+      console.error('Erro na consulta de pedidos:', ordersError);
+      setLoading(false);
+      return;
+    }
 
-      const { data: simpleData, error: simpleError } = await simpleQuery
-        .order('created_at', { ascending: false });
-      
-      if (simpleError) {
-        console.error('Erro na consulta simples:', simpleError);
-      } else {
-        setOrders(simpleData || []);
-      }
-    } else {
-      console.log('Pedidos encontrados:', data?.length || 0);
-      setOrders(data || []);
-      if (role === 'customer' && data && data.length > 0) {
-        fetchAbcCurve(data.map((o: any) => o.id));
-      }
+    // Fetch customers for this company to merge with orders
+    const { data: customersData } = await supabase
+      .from('customers')
+      .select('id, nome, nome_empresa, whatsapp')
+      .eq('company_id', companyId);
+    
+    setCustomers(customersData || []);
+
+    // Merge orders with customer data
+    const mergedOrders = (ordersData || []).map(order => {
+      const customer = (customersData || []).find(c => c.id === order.customer_id);
+      return { ...order, customer };
+    });
+
+    setOrders(mergedOrders);
+    
+    if (role === 'customer' && mergedOrders.length > 0) {
+      fetchAbcCurve(mergedOrders.map((o: any) => o.id));
     }
 
     // Fetch brands for filtering
     const { data: brandsData } = await supabase.from('brands').select('*').eq('company_id', companyId).order('name');
     setBrands(brandsData || []);
-
-    // Fetch customers for editing order
-    const { data: customersData } = await supabase.from('customers').select('id, nome, nome_empresa').eq('company_id', companyId).order('nome_empresa');
-    setCustomers(customersData || []);
     
     if (!silent) setLoading(false);
   }
@@ -249,7 +240,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
       .from('orders')
       .update(updateData)
       .eq('id', orderId)
-      .select('*, customer:customers!customer_id(nome, nome_empresa, whatsapp)')
+      .select()
       .single();
 
     if (error) { 
@@ -263,8 +254,9 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
       return;
     }
     
-    setOrders(prev => prev.map(o => o.id === orderId ? data : o));
-    if (selectedOrder?.id === orderId) setSelectedOrder(data);
+    const fullData = { ...data, customer: newCustomer };
+    setOrders(prev => prev.map(o => o.id === orderId ? fullData : o));
+    if (selectedOrder?.id === orderId) setSelectedOrder(fullData);
     setEditingCustomer(false);
   };
 

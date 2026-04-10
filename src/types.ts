@@ -110,6 +110,8 @@ export interface Product {
   promo_price_box?: number;
   promo_box_qty?: number;
   promo_until?: string;
+  promo_sellers?: string[];
+  promo_customers?: string[];
   tipo_variacao?: 'grade' | 'escolha_livre' | 'variedades';
   variacoes_disponiveis?: {
     nome: string; // e.g., "Cor", "Tamanho"

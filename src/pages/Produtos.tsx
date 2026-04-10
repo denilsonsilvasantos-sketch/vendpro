@@ -362,6 +362,11 @@ const ProductItem = memo(({
     return () => clearInterval(interval);
   }, [isHovering, images.length]);
 
+  const isPromoActive = product.is_promo && (!product.promo_until || new Date(product.promo_until) > new Date());
+  const currentPrice = isPromoActive ? (product.promo_price_unit || 0) : (product.venda_somente_box && product.preco_box && product.qtd_box 
+    ? (product.preco_box / product.qtd_box) 
+    : (product.preco_unitario || 0));
+
   return (
     <motion.div 
       layout
@@ -414,11 +419,18 @@ const ProductItem = memo(({
             <div className="space-y-0.5">
               <p className="text-[7px] font-black text-slate-300 uppercase tracking-wider">Preço Unitário</p>
               {!isEsgotado ? (
-                <p className="text-lg font-black text-slate-900 tracking-tighter">
-                  R$ {(product.venda_somente_box && product.preco_box && product.qtd_box 
-                    ? (product.preco_box / product.qtd_box) 
-                    : (product.preco_unitario || 0)).toFixed(2)}
-                </p>
+                <div className="flex flex-col">
+                  {isPromoActive && (
+                    <span className="text-[8px] font-black text-rose-500 line-through opacity-50">
+                      R$ {(product.venda_somente_box && product.preco_box && product.qtd_box 
+                        ? (product.preco_box / product.qtd_box) 
+                        : (product.preco_unitario || 0)).toFixed(2)}
+                    </span>
+                  )}
+                  <p className={`text-lg font-black tracking-tighter ${isPromoActive ? 'text-rose-600' : 'text-slate-900'}`}>
+                    R$ {currentPrice.toFixed(2)}
+                  </p>
+                </div>
               ) : (
                 <p className="text-lg font-black text-slate-200 tracking-tighter">--</p>
               )}

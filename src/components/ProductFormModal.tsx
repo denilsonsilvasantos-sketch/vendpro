@@ -24,6 +24,8 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
     promo_price_unit: 0,
     promo_price_box: 0,
     promo_box_qty: 0,
+    promo_sellers: [],
+    promo_customers: [],
     multiplo_venda: 1,
     imagem: '',
     imagens: [],
@@ -32,6 +34,8 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
   });
   const [brands, setBrands] = useState<Brand[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [allSellers, setAllSellers] = useState<any[]>([]);
+  const [allCustomers, setAllCustomers] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [zoomImage, setZoomImage] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -44,6 +48,12 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
       const { data: bData } = await supabase.from('brands').select('*').eq('company_id', companyId).order('name');
       setBrands(bData || []);
       
+      const { data: sData } = await supabase.from('sellers').select('id, nome').eq('company_id', companyId).eq('ativo', true).order('nome');
+      setAllSellers(sData || []);
+
+      const { data: cstData } = await supabase.from('customers').select('id, nome, nome_empresa').eq('company_id', companyId).eq('ativo', true).order('nome');
+      setAllCustomers(cstData || []);
+
       if (formData.brand_id) {
         const { data: cData } = await supabase.from('categories').select('*').eq('brand_id', formData.brand_id).order('nome');
         setCategories(cData || []);
@@ -682,6 +692,64 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
                         <h4 className="text-[10px] font-black text-amber-700 uppercase tracking-widest">Configurações da Promoção</h4>
                       </div>
                       
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                          <label className="text-[9px] font-black text-amber-600 uppercase tracking-[2px] ml-2">Vendedores Específicos</label>
+                          <div className="p-3 bg-white border border-amber-100 rounded-xl max-h-32 overflow-y-auto space-y-2 custom-scrollbar">
+                            <p className="text-[8px] text-slate-400 italic mb-2">Se nenhum for selecionado, a promoção vale para todos.</p>
+                            {allSellers.map(s => (
+                              <label key={s.id} className="flex items-center gap-2 cursor-pointer group">
+                                <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${formData.promo_sellers?.includes(s.id) ? 'bg-amber-500 border-amber-500' : 'border-slate-200'}`}>
+                                  {formData.promo_sellers?.includes(s.id) && <Check size={10} strokeWidth={4} className="text-white" />}
+                                </div>
+                                <input 
+                                  type="checkbox" 
+                                  className="hidden" 
+                                  checked={formData.promo_sellers?.includes(s.id) || false} 
+                                  onChange={e => {
+                                    const current = formData.promo_sellers || [];
+                                    if (e.target.checked) {
+                                      setFormData({ ...formData, promo_sellers: [...current, s.id] });
+                                    } else {
+                                      setFormData({ ...formData, promo_sellers: current.filter(id => id !== s.id) });
+                                    }
+                                  }}
+                                />
+                                <span className="text-[10px] font-bold text-slate-600">{s.nome}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-[9px] font-black text-amber-600 uppercase tracking-[2px] ml-2">Clientes Específicos</label>
+                          <div className="p-3 bg-white border border-amber-100 rounded-xl max-h-32 overflow-y-auto space-y-2 custom-scrollbar">
+                            <p className="text-[8px] text-slate-400 italic mb-2">Se nenhum for selecionado, a promoção vale para todos.</p>
+                            {allCustomers.map(c => (
+                              <label key={c.id} className="flex items-center gap-2 cursor-pointer group">
+                                <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${formData.promo_customers?.includes(c.id) ? 'bg-amber-500 border-amber-500' : 'border-slate-200'}`}>
+                                  {formData.promo_customers?.includes(c.id) && <Check size={10} strokeWidth={4} className="text-white" />}
+                                </div>
+                                <input 
+                                  type="checkbox" 
+                                  className="hidden" 
+                                  checked={formData.promo_customers?.includes(c.id) || false} 
+                                  onChange={e => {
+                                    const current = formData.promo_customers || [];
+                                    if (e.target.checked) {
+                                      setFormData({ ...formData, promo_customers: [...current, c.id] });
+                                    } else {
+                                      setFormData({ ...formData, promo_customers: current.filter(id => id !== c.id) });
+                                    }
+                                  }}
+                                />
+                                <span className="text-[10px] font-bold text-slate-600">{c.nome_empresa || c.nome}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
                       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div className="space-y-1.5">
                           <label className="text-[8px] font-black text-amber-600 uppercase tracking-widest ml-1">Preço Promo Unit.</label>

@@ -2738,6 +2738,7 @@ function CatalogScreen({
                       onAdd={onAddToCart} 
                       onEdit={onEdit} 
                       role={role} 
+                      userId={user?.id}
                       onZoom={onZoom}
                       isInCart={isInCart}
                     />
@@ -2951,7 +2952,7 @@ function VarietiesModal({
   );
 }
 
-const ProductCard = memo(({ product, onAdd, onEdit, role, onZoom, isInCart, ...props }: { product: Product, onAdd: (p: Product, q: number, v?: Record<string, string>) => void, onEdit: (p: Product) => void, role: UserRole, onZoom: (imgs: string[], index: number) => void, isInCart?: boolean, [key: string]: any }) => {
+const ProductCard = memo(({ product, onAdd, onEdit, role, userId, onZoom, isInCart, ...props }: { product: Product, onAdd: (p: Product, q: number, v?: Record<string, string>) => void, onEdit: (p: Product) => void, role: UserRole, userId?: string, onZoom: (imgs: string[], index: number) => void, isInCart?: boolean, [key: string]: any }) => {
   const [qty, setQty] = useState(product.venda_somente_box ? 1 : (product.multiplo_venda || 1));
   const [selectedVariations, setSelectedVariations] = useState<Record<string, string>>({});
   const [showVarieties, setShowVarieties] = useState(false);
@@ -2960,7 +2961,30 @@ const ProductCard = memo(({ product, onAdd, onEdit, role, onZoom, isInCart, ...p
   const [isHovering, setIsHovering] = useState(false);
   const isEsgotado = product.status_estoque?.toLowerCase() === 'esgotado' || product.estoque === 0;
 
-  const isPromoActive = product.is_promo && (!product.promo_until || new Date(product.promo_until) > new Date());
+  const isPromoActive = useMemo(() => {
+    if (!product.is_promo) return false;
+    if (product.promo_until && new Date(product.promo_until) < new Date()) return false;
+    
+    // Se for admin, vê sempre a promo
+    if (role === 'company') return true;
+
+    const hasSellerRestriction = product.promo_sellers && product.promo_sellers.length > 0;
+    const hasCustomerRestriction = product.promo_customers && product.promo_customers.length > 0;
+
+    if (!hasSellerRestriction && !hasCustomerRestriction) return true;
+
+    if (role === 'seller' && userId) {
+      if (hasSellerRestriction) return product.promo_sellers!.includes(userId);
+      return true; // Se só tem restrição de cliente, vendedor vê (ou vice-versa? Geralmente se não restringiu vendedor, ele vê)
+    }
+
+    if (role === 'customer' && userId) {
+      if (hasCustomerRestriction) return product.promo_customers!.includes(userId);
+      return true;
+    }
+
+    return false;
+  }, [product.is_promo, product.promo_until, product.promo_sellers, product.promo_customers, role, userId]);
   
   const currentPrice = isPromoActive 
     ? (product.promo_price_unit || 0)

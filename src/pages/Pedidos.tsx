@@ -26,6 +26,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
   const [itemsError, setItemsError] = useState<string | null>(null);
   const [abcCurve, setAbcCurve] = useState<any[]>([]);
   const [brands, setBrands] = useState<any[]>([]);
+  const [customers, setCustomers] = useState<any[]>([]);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
@@ -47,6 +48,8 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
   const [editingPayment, setEditingPayment] = useState(false);
   const [tempPaymentMethod, setTempPaymentMethod] = useState('');
   const [editingDiscount, setEditingDiscount] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState(false);
+  const [tempCustomerId, setTempCustomerId] = useState('');
   const [tempDiscountValue, setTempDiscountValue] = useState(0);
   const [tempDiscountType, setTempDiscountType] = useState<'fixed' | 'percentage'>('fixed');
 
@@ -145,6 +148,10 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
     // Fetch brands for filtering
     const { data: brandsData } = await supabase.from('brands').select('*').eq('company_id', companyId).order('name');
     setBrands(brandsData || []);
+
+    // Fetch customers for editing order
+    const { data: customersData } = await supabase.from('customers').select('id, nome, nome_empresa').eq('company_id', companyId).order('nome_empresa');
+    setCustomers(customersData || []);
     
     if (!silent) setLoading(false);
   }
@@ -221,6 +228,18 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
     setOrders(prev => prev.map(o => o.id === orderId ? { ...o, payment_method: newMethod } : o));
     if (selectedOrder?.id === orderId) setSelectedOrder((prev: any) => ({ ...prev, payment_method: newMethod }));
     setEditingPayment(false);
+  };
+
+  const handleCustomerChange = async (orderId: string, newCustomerId: string) => {
+    if (!supabase || !newCustomerId) return;
+    const { error } = await supabase.from('orders').update({ customer_id: newCustomerId }).eq('id', orderId);
+    if (error) { alert('Erro ao atualizar cliente.'); return; }
+    
+    const newCustomer = customers.find(c => c.id === newCustomerId);
+    
+    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, customer_id: newCustomerId, customer: newCustomer } : o));
+    if (selectedOrder?.id === orderId) setSelectedOrder((prev: any) => ({ ...prev, customer_id: newCustomerId, customer: newCustomer }));
+    setEditingCustomer(false);
   };
 
   const handleDiscountChange = async (orderId: string, value: number, type: 'fixed' | 'percentage') => {
@@ -394,6 +413,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
     setRemovedItems([]);
     setEditingDiscount(false);
     setEditingPayment(false);
+    setEditingCustomer(false);
     setTempDiscountValue(order.discount_value || 0);
     setTempDiscountType(order.discount_type || 'fixed');
     if (!supabase) { setItemsError('Conexão indisponível.'); setLoadingItems(false); return; }
@@ -983,13 +1003,61 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
               className="bg-white w-full max-w-2xl rounded-[32px] shadow-2xl relative z-10 overflow-hidden flex flex-col max-h-[90vh]">
 
               <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-                <div>
-                  <h3 className="text-2xl font-black text-slate-900 tracking-tight">Detalhes do Pedido</h3>
-                  <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">
-                    {selectedOrder.customer?.nome || selectedOrder.client_name}
-                  </p>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-2xl font-black text-slate-900 tracking-tight">Detalhes do Pedido</h3>
+                    {canEditOrder && !editingCustomer && (
+                      <button 
+                        onClick={() => {
+                          setTempCustomerId(selectedOrder.customer_id);
+                          setEditingCustomer(true);
+                        }}
+                        className="p-1.5 text-slate-400 hover:text-primary hover:bg-white rounded-lg transition-all shadow-sm border border-transparent hover:border-slate-100"
+                      >
+                        <Edit2 size={14} />
+                      </button>
+                    )}
+                  </div>
+                  
+                  {editingCustomer ? (
+                    <div className="flex items-center gap-2 mt-2 max-w-md">
+                      <select
+                        value={tempCustomerId}
+                        onChange={e => setTempCustomerId(e.target.value)}
+                        className="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-primary/20 outline-none"
+                      >
+                        <option value="">Selecionar Empresa</option>
+                        {customers.map(c => (
+                          <option key={c.id} value={c.id}>
+                            {c.nome_empresa || c.nome}
+                          </option>
+                        ))}
+                      </select>
+                      <button 
+                        onClick={() => handleCustomerChange(selectedOrder.id, tempCustomerId)}
+                        className="p-2 bg-emerald-500 text-white rounded-xl hover:bg-emerald-600 transition-all"
+                      >
+                        <Check size={16} />
+                      </button>
+                      <button 
+                        onClick={() => setEditingCustomer(false)}
+                        className="p-2 bg-slate-200 text-slate-500 rounded-xl hover:bg-slate-300 transition-all"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="mt-1">
+                      <p className="text-primary font-black text-sm uppercase tracking-tight">
+                        {selectedOrder.customer?.nome_empresa || 'Empresa não definida'}
+                      </p>
+                      <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">
+                        Responsável: {selectedOrder.customer?.nome || selectedOrder.client_name || '—'}
+                      </p>
+                    </div>
+                  )}
                 </div>
-                <button onClick={() => { setSelectedOrder(null); setEditingPayment(false); }} className="p-3 bg-white text-slate-400 hover:text-rose-500 rounded-2xl shadow-sm border border-slate-100 transition-all">
+                <button onClick={() => { setSelectedOrder(null); setEditingPayment(false); setEditingCustomer(false); }} className="p-3 bg-white text-slate-400 hover:text-rose-500 rounded-2xl shadow-sm border border-slate-100 transition-all ml-4">
                   <X size={20} />
                 </button>
               </div>

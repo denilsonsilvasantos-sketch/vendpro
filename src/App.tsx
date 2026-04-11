@@ -15,6 +15,7 @@ import {
   Tag,
   AlertTriangle,
   AlertCircle,
+  Database,
   LogOut,
   ChevronRight,
   ChevronLeft,
@@ -68,6 +69,7 @@ const Marcas = lazy(() => import('./pages/Marcas'));
 const Upload = lazy(() => import('./pages/Upload'));
 const Vendedores = lazy(() => import('./pages/Vendedores'));
 const BannerManager = lazy(() => import('./pages/BannerManager'));
+const AdminMasterCatalog = lazy(() => import('./pages/AdminMasterCatalog'));
 import ProductFormModal from './components/ProductFormModal';
 const Pendencias = lazy(() => import('./pages/Pendencias'));
 
@@ -983,6 +985,9 @@ export default function App() {
                         <SidebarItem icon={<AlertTriangle size={16}/>} label="Pendências" active={activeTab === 'pendencias'} onClick={() => { setActiveTab('pendencias'); setIsSidebarOpen(false); }} />
                         <SidebarItem icon={<Tag size={16}/>} label="Marcas" active={activeTab === 'marcas'} onClick={() => { setActiveTab('marcas'); setIsSidebarOpen(false); }} />
                         <SidebarItem icon={<Users size={16}/>} label="Vendedores" active={activeTab === 'vendedores'} onClick={() => { setActiveTab('vendedores'); setIsSidebarOpen(false); }} />
+                        {user?.email === 'denilson.silva.santos@gmail.com' && (
+                          <SidebarItem icon={<Database size={16} />} label="Catálogo Mestre" active={activeTab === 'master-catalog'} onClick={() => { setActiveTab('master-catalog'); setIsSidebarOpen(false); }} />
+                        )}
                       </>
                     )}
                     
@@ -1134,6 +1139,7 @@ export default function App() {
             {activeTab === 'banners' && role === 'company' && <BannerManager companyId={activeCompanyId!} />}
             {activeTab === 'produtos' && <Produtos companyId={activeCompanyId} onRefresh={loadData} />}
             {activeTab === 'upload' && <Upload companyId={activeCompanyId} onRefresh={loadData} />}
+            {activeTab === 'master-catalog' && user?.email === 'denilson.silva.santos@gmail.com' && <AdminMasterCatalog />}
             {activeTab === 'pendencias' && <Pendencias companyId={activeCompanyId} onRefresh={loadData} />}
             {activeTab === 'marcas' && <Marcas companyId={activeCompanyId} />}
             {activeTab === 'vendedores' && <Vendedores companyId={activeCompanyId} />}

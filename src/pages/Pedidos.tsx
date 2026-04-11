@@ -871,7 +871,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                   {role !== 'customer' && (
                     <>
                       <td className="p-6">
-                        <button onClick={() => openOrderDetails(order)} className="font-bold text-slate-800 hover:text-primary transition-colors text-left uppercase">
+                        <button onClick={() => openOrderDetails(order)} className="text-xs font-bold text-slate-800 hover:text-primary transition-colors text-left uppercase">
                           {order.customer?.nome_empresa || '—'}
                         </button>
                       </td>
@@ -1066,7 +1066,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                     </div>
                   ) : (
                     <div className="mt-1">
-                      <p className="text-primary font-black text-sm uppercase tracking-tight">
+                      <p className="text-primary font-black text-xs uppercase tracking-tight">
                         {selectedOrder.customer?.nome_empresa || 'Empresa não definida'}
                       </p>
                       <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">

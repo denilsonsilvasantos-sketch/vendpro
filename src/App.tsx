@@ -974,7 +974,7 @@ export default function App() {
               </div>
 
               <nav className="space-y-1.5 flex-1 overflow-y-auto pr-2 custom-scrollbar">
-                <SidebarItem icon={<LayoutGrid size={16}/>} label="Catálogo" active={activeTab === 'catalog' || activeTab === 'novidades' || activeTab === 'reposicao'} onClick={() => { setActiveTab('catalog'); setIsSidebarOpen(false); }} />
+                {!isMaster && <SidebarItem icon={<LayoutGrid size={16}/>} label="Catálogo" active={activeTab === 'catalog' || activeTab === 'novidades' || activeTab === 'reposicao'} onClick={() => { setActiveTab('catalog'); setIsSidebarOpen(false); }} />}
                 
                 {effectiveRole !== 'customer' && (
                   <>
@@ -1012,7 +1012,7 @@ export default function App() {
                   <SidebarItem icon={<FileText size={16}/>} label="Meus Pedidos" active={activeTab === 'pedidos'} onClick={() => { setActiveTab('pedidos'); setIsSidebarOpen(false); }} />
                 )}
                     
-                {role !== 'seller' && role !== 'customer' && (
+                {role !== 'seller' && role !== 'customer' && !isMaster && (
                   <SidebarItem 
                     icon={<User size={16}/>} 
                     label="Visão do Cliente" 

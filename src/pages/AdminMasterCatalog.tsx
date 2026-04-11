@@ -29,7 +29,7 @@ export default function AdminMasterCatalog() {
     setLoading(true);
     
     const [compRes, statsRes] = await Promise.all([
-      supabase.from('companies').select('*').order('nome'),
+      supabase.from('companies').select('*').neq('id', '273c5bbc-631b-44dc-b286-1b07de720222').order('nome'),
       supabase.from('master_products').select('id', { count: 'exact', head: true })
     ]);
 

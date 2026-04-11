@@ -14,6 +14,12 @@ import { supabase } from '../integrations/supabaseClient';
 
 export default function AdminUsage() {
   const [usageData, setUsageData] = useState<any[]>([]);
+  const [summary, setSummary] = useState({
+    totalCompanies: 0,
+    uniqueProducts: 0,
+    sharedProducts: 0,
+    grandTotal: 0
+  });
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -26,10 +32,11 @@ export default function AdminUsage() {
     setLoading(true);
 
     try {
-      // 1. Buscar todas as empresas
+      // 1. Buscar todas as empresas (exceto Matriz)
       const { data: companies } = await supabase
         .from('companies')
         .select('*')
+        .neq('id', '273c5bbc-631b-44dc-b286-1b07de720222')
         .order('nome');
 
       if (!companies) return;
@@ -38,22 +45,39 @@ export default function AdminUsage() {
       const dataWithCounts = await Promise.all(companies.map(async (company) => {
         const client = supabase!;
         const [prodRes, custRes, brandRes, catRes] = await Promise.all([
-          client.from('products').select('id', { count: 'exact', head: true }).eq('company_id', company.id),
+          client.from('products').select('id, master_product_id').eq('company_id', company.id),
           client.from('customers').select('id', { count: 'exact', head: true }).eq('company_id', company.id),
           client.from('brands').select('id', { count: 'exact', head: true }).eq('company_id', company.id),
           client.from('categories').select('id', { count: 'exact', head: true }).eq('company_id', company.id)
         ]);
 
+        const products = prodRes.data || [];
+        const sharedCount = products.filter(p => p.master_product_id).length;
+        const uniqueCount = products.length - sharedCount;
+
         return {
           ...company,
           counts: {
-            products: prodRes.count || 0,
+            products: products.length,
+            shared: sharedCount,
+            unique: uniqueCount,
             customers: custRes.count || 0,
             brands: brandRes.count || 0,
             categories: catRes.count || 0
           }
         };
       }));
+
+      // 3. Calcular Totais Gerais
+      const totalUnique = dataWithCounts.reduce((acc, curr) => acc + curr.counts.unique, 0);
+      const { count: masterCount } = await supabase.from('master_products').select('id', { count: 'exact', head: true });
+      
+      setSummary({
+        totalCompanies: dataWithCounts.length,
+        uniqueProducts: totalUnique,
+        sharedProducts: masterCount || 0,
+        grandTotal: (masterCount || 0) + totalUnique
+      });
 
       setUsageData(dataWithCounts);
     } catch (error) {
@@ -101,6 +125,26 @@ export default function AdminUsage() {
         </div>
       </div>
 
+      {/* Summary Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
+          <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Empresas Ativas</div>
+          <div className="text-2xl font-black text-slate-900">{summary.totalCompanies}</div>
+        </div>
+        <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
+          <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Produtos Matriz</div>
+          <div className="text-2xl font-black text-primary">{summary.sharedProducts}</div>
+        </div>
+        <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
+          <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Produtos Únicos</div>
+          <div className="text-2xl font-black text-slate-900">{summary.uniqueProducts}</div>
+        </div>
+        <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
+          <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Ecossistema</div>
+          <div className="text-2xl font-black text-slate-900">{summary.grandTotal}</div>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredData.map((item) => (
           <motion.div 
@@ -124,12 +168,24 @@ export default function AdminUsage() {
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                <div className="flex items-center gap-2 text-slate-400 mb-1">
-                  <Package size={12} />
-                  <span className="text-[9px] font-black uppercase tracking-widest">Produtos</span>
+              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 col-span-2">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2 text-slate-400">
+                    <Package size={12} />
+                    <span className="text-[9px] font-black uppercase tracking-widest">Produtos Totais</span>
+                  </div>
+                  <span className="text-sm font-black text-slate-900">{item.counts.products}</span>
                 </div>
-                <div className="text-lg font-black text-slate-800">{item.counts.products}</div>
+                <div className="flex gap-2">
+                  <div className="flex-1 bg-white rounded-lg p-2 border border-slate-100">
+                    <div className="text-[8px] font-bold text-slate-400 uppercase">Matriz</div>
+                    <div className="text-xs font-black text-primary">{item.counts.shared}</div>
+                  </div>
+                  <div className="flex-1 bg-white rounded-lg p-2 border border-slate-100">
+                    <div className="text-[8px] font-bold text-slate-400 uppercase">Próprios</div>
+                    <div className="text-xs font-black text-slate-700">{item.counts.unique}</div>
+                  </div>
+                </div>
               </div>
 
               <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
@@ -146,14 +202,6 @@ export default function AdminUsage() {
                   <span className="text-[9px] font-black uppercase tracking-widest">Marcas</span>
                 </div>
                 <div className="text-lg font-black text-slate-800">{item.counts.brands}</div>
-              </div>
-
-              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                <div className="flex items-center gap-2 text-slate-400 mb-1">
-                  <LayoutGrid size={12} />
-                  <span className="text-[9px] font-black uppercase tracking-widest">Categorias</span>
-                </div>
-                <div className="text-lg font-black text-slate-800">{item.counts.categories}</div>
               </div>
             </div>
           </motion.div>

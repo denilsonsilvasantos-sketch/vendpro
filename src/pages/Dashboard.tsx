@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../integrations/supabaseClient';
 import { Card } from '../components/Card';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { Package, Users, ShoppingCart, TrendingUp, Building2, Tag } from 'lucide-react';
+import { Package, Users, ShoppingCart, TrendingUp, Building2, Tag, LayoutGrid } from 'lucide-react';
 import Banner from '../components/Banner';
 import { UserRole, BannerData } from '../types';
 
@@ -112,10 +112,9 @@ export default function Dashboard({ companyId, role, user, banners }: { companyI
         {isMaster ? (
           <>
             {[
-              { title: 'Empresas', value: stats.companies, icon: <Building2 size={14} />, color: 'text-primary' },
-              { title: 'Produtos', value: stats.products, icon: <Package size={14} />, color: 'text-blue-500' },
+              { title: 'Produtos Matriz', value: stats.products, icon: <Package size={14} />, color: 'text-primary' },
               { title: 'Marcas', value: stats.brands, icon: <Tag size={14} />, color: 'text-amber-500' },
-              { title: 'Clientes', value: stats.customers, icon: <Users size={14} />, color: 'text-emerald-500' },
+              { title: 'Categorias', value: stats.categories, icon: <LayoutGrid size={14} />, color: 'text-blue-500' },
             ].map(s => (
               <div key={s.title} className="bg-white rounded-xl border border-slate-100 shadow-sm p-3">
                 <div className="flex items-center justify-between mb-2">
@@ -153,10 +152,9 @@ export default function Dashboard({ companyId, role, user, banners }: { companyI
           <div className="h-48">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={isMaster ? [
-                { name: 'Empresas', value: stats.companies },
-                { name: 'Produtos', value: stats.products },
+                { name: 'Produtos Matriz', value: stats.products },
                 { name: 'Marcas', value: stats.brands },
-                { name: 'Clientes', value: stats.customers }
+                { name: 'Categorias', value: stats.categories }
               ] : [
                 { name: 'Produtos', value: stats.products },
                 { name: 'Clientes', value: stats.customers },

@@ -60,7 +60,7 @@ export default function AdminMasterCatalog() {
             <Database size={24} strokeWidth={2.5} />
           </div>
           <div>
-            <h1 className="text-base font-black text-slate-900 tracking-tight uppercase">Gestão de Catálogo Mestre</h1>
+            <h1 className="text-base font-black text-slate-900 tracking-tight uppercase">Gestão VendPro Matriz</h1>
             <p className="text-xs text-slate-400 font-medium">Centralize produtos e economize espaço no banco de dados</p>
           </div>
         </div>
@@ -68,7 +68,7 @@ export default function AdminMasterCatalog() {
         <div className="bg-white px-4 py-2 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3">
           <Package size={16} className="text-primary" />
           <div className="text-right">
-            <div className="text-[10px] font-black text-slate-400 uppercase leading-none">Total Mestre</div>
+            <div className="text-[10px] font-black text-slate-400 uppercase leading-none">Total Matriz</div>
             <div className="text-sm font-black text-slate-900">{masterStats.total}</div>
           </div>
         </div>
@@ -89,7 +89,7 @@ export default function AdminMasterCatalog() {
 
       <div className="bg-white rounded-[32px] shadow-xl shadow-slate-200/50 overflow-hidden border border-slate-100">
         <div className="p-6 border-b border-slate-50 bg-slate-50/30">
-          <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Empresas para Migração</h2>
+          <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Empresas para Sincronização Matriz</h2>
         </div>
         
         <div className="divide-y divide-slate-50">
@@ -117,12 +117,12 @@ export default function AdminMasterCatalog() {
                 {processingId === company.id ? (
                   <>
                     <RefreshCw size={14} className="animate-spin" />
-                    Migrando...
+                    Sincronizando...
                   </>
                 ) : (
                   <>
                     <RefreshCw size={14} />
-                    Migrar para Mestre
+                    Sincronizar com Matriz
                   </>
                 )}
               </button>
@@ -134,12 +134,12 @@ export default function AdminMasterCatalog() {
       <div className="bg-amber-50 border border-amber-100 p-6 rounded-[32px] space-y-3">
         <div className="flex items-center gap-2 text-amber-700">
           <Info size={18} />
-          <h3 className="text-xs font-black uppercase tracking-widest">Aviso Importante</h3>
+          <h3 className="text-xs font-black uppercase tracking-widest">Aviso de Sincronização</h3>
         </div>
         <p className="text-xs text-amber-800 leading-relaxed">
-          A migração identifica produtos pelo <strong>SKU + Nome da Marca</strong>. 
-          Se duas empresas tiverem o mesmo SKU mas nomes de marcas diferentes (ex: "Marca X" vs "MARCA X"), 
-          o sistema criará dois registros mestre. Certifique-se de que os nomes das marcas estão padronizados para máxima economia de espaço.
+          A sincronização vincula os produtos das empresas ao catálogo oficial da <strong>VendPro Matriz</strong>. 
+          Isso economiza espaço e garante que as fotos e nomes sejam padronizados. 
+          Os preços e estoques de cada empresa permanecem privados e inalterados.
         </p>
       </div>
     </div>

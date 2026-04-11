@@ -985,9 +985,9 @@ export default function App() {
                         <SidebarItem icon={<AlertTriangle size={16}/>} label="Pendências" active={activeTab === 'pendencias'} onClick={() => { setActiveTab('pendencias'); setIsSidebarOpen(false); }} />
                         <SidebarItem icon={<Tag size={16}/>} label="Marcas" active={activeTab === 'marcas'} onClick={() => { setActiveTab('marcas'); setIsSidebarOpen(false); }} />
                         <SidebarItem icon={<Users size={16}/>} label="Vendedores" active={activeTab === 'vendedores'} onClick={() => { setActiveTab('vendedores'); setIsSidebarOpen(false); }} />
-                        {user?.email === 'denilson.silva.santos@gmail.com' && (
-                          <SidebarItem icon={<Database size={16} />} label="Catálogo Mestre" active={activeTab === 'master-catalog'} onClick={() => { setActiveTab('master-catalog'); setIsSidebarOpen(false); }} />
-                        )}
+                  {user?.email === 'denilson.silva.santos@gmail.com' && (
+                    <SidebarItem icon={<Database size={16} />} label="VendPro Matriz" active={activeTab === 'master-catalog'} onClick={() => { setActiveTab('master-catalog'); setIsSidebarOpen(false); }} />
+                  )}
                       </>
                     )}
                     

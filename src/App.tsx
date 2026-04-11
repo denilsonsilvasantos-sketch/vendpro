@@ -228,7 +228,10 @@ export default function App() {
       console.error("Erro ao processar parâmetro de vínculo:", err);
     }
   }, []);
-  const [activeTab, setActiveTab] = useState('catalog');
+  const [activeTab, setActiveTab] = useState(() => {
+    const savedCompanyId = localStorage.getItem('vendpro_active_company_id');
+    return savedCompanyId === '273c5bbc-631b-44dc-b286-1b07de720222' ? 'dashboard' : 'catalog';
+  });
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -293,6 +296,14 @@ export default function App() {
   }
 
   const isMaster = activeCompanyId === '273c5bbc-631b-44dc-b286-1b07de720222';
+
+  // Redirecionar Matriz para Dashboard se estiver no Catálogo (que foi removido para ela)
+  useEffect(() => {
+    if (isMaster && activeTab === 'catalog') {
+      setActiveTab('dashboard');
+    }
+  }, [isMaster, activeTab]);
+
   const effectiveRole = isMaster ? 'company' : (viewMode === 'customer' ? 'customer' : role);
 
   const handleAddToCart = (product: Product, quantity: number, selected_variation?: Record<string, string>) => {

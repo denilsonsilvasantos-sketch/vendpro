@@ -9,7 +9,7 @@ export async function getProducts(companyId: string): Promise<Product[]> {
 
   // Busca produtos, marcas e categorias separadamente para garantir a margem mesmo sem join configurado
   const [productsRes, brandsRes, categoriesRes] = await Promise.all([
-    supabase.from("products").select("*").eq("company_id", companyId).order("nome").limit(5000),
+    supabase.from("products").select("*, master_product:master_products(*)").eq("company_id", companyId).order("nome").limit(5000),
     supabase.from("brands").select("id, name, margin_percentage").eq("company_id", companyId),
     supabase.from("categories").select("id, nome").eq("company_id", companyId)
   ]);
@@ -31,6 +31,15 @@ export async function getProducts(companyId: string): Promise<Product[]> {
     const category = categoriesMap.get(item.category_id);
     const margin = brand?.margin_percentage || 0;
     
+    // Prioriza dados do catálogo mestre se disponíveis
+    const master = item.master_product;
+    const nome = master?.nome || item.nome;
+    const imagem = master?.imagem || item.imagem;
+    const imagens = master?.imagens || item.imagens;
+    const descricao = master?.descricao || item.descricao;
+    const tipo_variacao = master?.tipo_variacao || item.tipo_variacao;
+    const variacoes_disponiveis = master?.variacoes_disponiveis || item.variacoes_disponiveis;
+
     const finalPrice = margin > 0 
       ? item.preco_unitario * (1 + margin / 100) 
       : item.preco_unitario;
@@ -41,6 +50,12 @@ export async function getProducts(companyId: string): Promise<Product[]> {
 
     return {
       ...item,
+      nome,
+      imagem,
+      imagens,
+      descricao,
+      tipo_variacao,
+      variacoes_disponiveis,
       base_price: item.preco_unitario,
       base_box_price: item.preco_box,
       preco_unitario: finalPrice,

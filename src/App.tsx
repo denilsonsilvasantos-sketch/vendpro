@@ -15,6 +15,7 @@ import {
   Tag,
   AlertTriangle,
   AlertCircle,
+  BarChart3,
   Database,
   LogOut,
   ChevronRight,
@@ -71,6 +72,8 @@ const Vendedores = lazy(() => import('./pages/Vendedores'));
 const BannerManager = lazy(() => import('./pages/BannerManager'));
 import ProductFormModal from './components/ProductFormModal';
 const Pendencias = lazy(() => import('./pages/Pendencias'));
+const AdminMasterCatalog = lazy(() => import('./pages/AdminMasterCatalog'));
+const AdminUsage = lazy(() => import('./pages/AdminUsage'));
 
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-[300px]">
@@ -289,7 +292,8 @@ export default function App() {
     if (ok) { setPushSubscribed(true); setPushPromptDismissed(true); localStorage.setItem('vendpro_push_dismissed', '1'); }
   }
 
-  const effectiveRole = viewMode === 'customer' ? 'customer' : role;
+  const isMaster = activeCompanyId === '273c5bbc-631b-44dc-b286-1b07de720222';
+  const effectiveRole = isMaster ? 'company' : (viewMode === 'customer' ? 'customer' : role);
 
   const handleAddToCart = (product: Product, quantity: number, selected_variation?: Record<string, string>) => {
     if (cart.length === 0) {
@@ -978,18 +982,29 @@ export default function App() {
                     
                     {role !== 'seller' && (
                       <>
-                        <SidebarItem icon={<Layout size={16}/>} label="Banners" active={activeTab === 'banners'} onClick={() => { setActiveTab('banners'); setIsSidebarOpen(false); }} />
+                        {!isMaster && <SidebarItem icon={<Layout size={16}/>} label="Banners" active={activeTab === 'banners'} onClick={() => { setActiveTab('banners'); setIsSidebarOpen(false); }} />}
                         <SidebarItem icon={<Package size={16}/>} label="Produtos" active={activeTab === 'produtos'} onClick={() => { setActiveTab('produtos'); setIsSidebarOpen(false); }} />
                         <SidebarItem icon={<UploadIcon size={16}/>} label="Upload" active={activeTab === 'upload'} onClick={() => { setActiveTab('upload'); setIsSidebarOpen(false); }} />
                         <SidebarItem icon={<AlertTriangle size={16}/>} label="Pendências" active={activeTab === 'pendencias'} onClick={() => { setActiveTab('pendencias'); setIsSidebarOpen(false); }} />
                         <SidebarItem icon={<Tag size={16}/>} label="Marcas" active={activeTab === 'marcas'} onClick={() => { setActiveTab('marcas'); setIsSidebarOpen(false); }} />
-                        <SidebarItem icon={<Users size={16}/>} label="Vendedores" active={activeTab === 'vendedores'} onClick={() => { setActiveTab('vendedores'); setIsSidebarOpen(false); }} />
+                        {!isMaster && <SidebarItem icon={<Users size={16}/>} label="Vendedores" active={activeTab === 'vendedores'} onClick={() => { setActiveTab('vendedores'); setIsSidebarOpen(false); }} />}
+                        
+                        {isMaster && (
+                          <>
+                            <SidebarItem icon={<Database size={16} />} label="VendPro Matriz" active={activeTab === 'master-catalog'} onClick={() => { setActiveTab('master-catalog'); setIsSidebarOpen(false); }} />
+                            <SidebarItem icon={<BarChart3 size={16} />} label="Consumo Empresas" active={activeTab === 'usage'} onClick={() => { setActiveTab('usage'); setIsSidebarOpen(false); }} />
+                          </>
+                        )}
                       </>
                     )}
                     
-                    <SidebarItem icon={<Users size={16}/>} label="Clientes" active={activeTab === 'clientes'} onClick={() => { setActiveTab('clientes'); setIsSidebarOpen(false); }} />
-                    <SidebarItem icon={<FileText size={16}/>} label="Pedidos" active={activeTab === 'pedidos'} onClick={() => { setActiveTab('pedidos'); setIsSidebarOpen(false); }} />
-                    <SidebarItem icon={<DollarSign size={16}/>} label="Comissões" active={activeTab === 'comissoes'} onClick={() => { setActiveTab('comissoes'); setIsSidebarOpen(false); }} />
+                    {!isMaster && (
+                      <>
+                        <SidebarItem icon={<Users size={16}/>} label="Clientes" active={activeTab === 'clientes'} onClick={() => { setActiveTab('clientes'); setIsSidebarOpen(false); }} />
+                        <SidebarItem icon={<FileText size={16}/>} label="Pedidos" active={activeTab === 'pedidos'} onClick={() => { setActiveTab('pedidos'); setIsSidebarOpen(false); }} />
+                        <SidebarItem icon={<DollarSign size={16}/>} label="Comissões" active={activeTab === 'comissoes'} onClick={() => { setActiveTab('comissoes'); setIsSidebarOpen(false); }} />
+                      </>
+                    )}
                   </>
                 )}
 
@@ -1135,6 +1150,8 @@ export default function App() {
             {activeTab === 'banners' && role === 'company' && <BannerManager companyId={activeCompanyId!} />}
             {activeTab === 'produtos' && <Produtos companyId={activeCompanyId} onRefresh={loadData} />}
             {activeTab === 'upload' && <Upload companyId={activeCompanyId} onRefresh={loadData} />}
+            {activeTab === 'master-catalog' && isMaster && <AdminMasterCatalog />}
+            {activeTab === 'usage' && isMaster && <AdminUsage />}
             {activeTab === 'pendencias' && <Pendencias companyId={activeCompanyId} onRefresh={loadData} />}
             {activeTab === 'marcas' && <Marcas companyId={activeCompanyId} />}
             {activeTab === 'vendedores' && <Vendedores companyId={activeCompanyId} />}

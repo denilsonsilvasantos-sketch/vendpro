@@ -22,7 +22,6 @@ import {
   Plus,
   Minus,
   Trash2,
-  Building2,
   FileText,
   Menu,
   X,
@@ -70,8 +69,6 @@ const Marcas = lazy(() => import('./pages/Marcas'));
 const Upload = lazy(() => import('./pages/Upload'));
 const Vendedores = lazy(() => import('./pages/Vendedores'));
 const BannerManager = lazy(() => import('./pages/BannerManager'));
-const AdminMasterCatalog = lazy(() => import('./pages/AdminMasterCatalog'));
-const AdminCompanies = lazy(() => import('./pages/AdminCompanies'));
 import ProductFormModal from './components/ProductFormModal';
 const Pendencias = lazy(() => import('./pages/Pendencias'));
 
@@ -973,54 +970,44 @@ export default function App() {
               </div>
 
               <nav className="space-y-1.5 flex-1 overflow-y-auto pr-2 custom-scrollbar">
-                {user?.email === 'denilson.silva.santos@gmail.com' ? (
+                <SidebarItem icon={<LayoutGrid size={16}/>} label="Catálogo" active={activeTab === 'catalog' || activeTab === 'novidades' || activeTab === 'reposicao'} onClick={() => { setActiveTab('catalog'); setIsSidebarOpen(false); }} />
+                
+                {effectiveRole !== 'customer' && (
                   <>
                     <SidebarItem icon={<LayoutGrid size={16}/>} label="Dashboard" active={activeTab === 'dashboard'} onClick={() => { setActiveTab('dashboard'); setIsSidebarOpen(false); }} />
-                    <SidebarItem icon={<Database size={16} />} label="VendPro Matriz" active={activeTab === 'master-catalog'} onClick={() => { setActiveTab('master-catalog'); setIsSidebarOpen(false); }} />
-                    <SidebarItem icon={<Building2 size={16} />} label="Empresas" active={activeTab === 'admin-companies'} onClick={() => { setActiveTab('admin-companies'); setIsSidebarOpen(false); }} />
-                  </>
-                ) : (
-                  <>
-                    <SidebarItem icon={<LayoutGrid size={16}/>} label="Catálogo" active={activeTab === 'catalog' || activeTab === 'novidades' || activeTab === 'reposicao'} onClick={() => { setActiveTab('catalog'); setIsSidebarOpen(false); }} />
                     
-                    {effectiveRole !== 'customer' && (
+                    {role !== 'seller' && (
                       <>
-                        <SidebarItem icon={<LayoutGrid size={16}/>} label="Dashboard" active={activeTab === 'dashboard'} onClick={() => { setActiveTab('dashboard'); setIsSidebarOpen(false); }} />
-                        
-                        {role !== 'seller' && (
-                          <>
-                            <SidebarItem icon={<Layout size={16}/>} label="Banners" active={activeTab === 'banners'} onClick={() => { setActiveTab('banners'); setIsSidebarOpen(false); }} />
-                            <SidebarItem icon={<Package size={16}/>} label="Produtos" active={activeTab === 'produtos'} onClick={() => { setActiveTab('produtos'); setIsSidebarOpen(false); }} />
-                            <SidebarItem icon={<UploadIcon size={16}/>} label="Upload" active={activeTab === 'upload'} onClick={() => { setActiveTab('upload'); setIsSidebarOpen(false); }} />
-                            <SidebarItem icon={<AlertTriangle size={16}/>} label="Pendências" active={activeTab === 'pendencias'} onClick={() => { setActiveTab('pendencias'); setIsSidebarOpen(false); }} />
-                            <SidebarItem icon={<Tag size={16}/>} label="Marcas" active={activeTab === 'marcas'} onClick={() => { setActiveTab('marcas'); setIsSidebarOpen(false); }} />
-                            <SidebarItem icon={<Users size={16}/>} label="Vendedores" active={activeTab === 'vendedores'} onClick={() => { setActiveTab('vendedores'); setIsSidebarOpen(false); }} />
-                          </>
-                        )}
-                        
-                        <SidebarItem icon={<Users size={16}/>} label="Clientes" active={activeTab === 'clientes'} onClick={() => { setActiveTab('clientes'); setIsSidebarOpen(false); }} />
-                        <SidebarItem icon={<FileText size={16}/>} label="Pedidos" active={activeTab === 'pedidos'} onClick={() => { setActiveTab('pedidos'); setIsSidebarOpen(false); }} />
-                        <SidebarItem icon={<DollarSign size={16}/>} label="Comissões" active={activeTab === 'comissoes'} onClick={() => { setActiveTab('comissoes'); setIsSidebarOpen(false); }} />
+                        <SidebarItem icon={<Layout size={16}/>} label="Banners" active={activeTab === 'banners'} onClick={() => { setActiveTab('banners'); setIsSidebarOpen(false); }} />
+                        <SidebarItem icon={<Package size={16}/>} label="Produtos" active={activeTab === 'produtos'} onClick={() => { setActiveTab('produtos'); setIsSidebarOpen(false); }} />
+                        <SidebarItem icon={<UploadIcon size={16}/>} label="Upload" active={activeTab === 'upload'} onClick={() => { setActiveTab('upload'); setIsSidebarOpen(false); }} />
+                        <SidebarItem icon={<AlertTriangle size={16}/>} label="Pendências" active={activeTab === 'pendencias'} onClick={() => { setActiveTab('pendencias'); setIsSidebarOpen(false); }} />
+                        <SidebarItem icon={<Tag size={16}/>} label="Marcas" active={activeTab === 'marcas'} onClick={() => { setActiveTab('marcas'); setIsSidebarOpen(false); }} />
+                        <SidebarItem icon={<Users size={16}/>} label="Vendedores" active={activeTab === 'vendedores'} onClick={() => { setActiveTab('vendedores'); setIsSidebarOpen(false); }} />
                       </>
                     )}
-
-                    {effectiveRole === 'customer' && (
-                      <SidebarItem icon={<FileText size={16}/>} label="Meus Pedidos" active={activeTab === 'pedidos'} onClick={() => { setActiveTab('pedidos'); setIsSidebarOpen(false); }} />
-                    )}
-                        
-                    {role !== 'seller' && role !== 'customer' && (
-                      <SidebarItem 
-                        icon={<User size={16}/>} 
-                        label="Visão do Cliente" 
-                        active={false} 
-                        onClick={() => { 
-                          setViewMode('customer'); 
-                          setActiveTab('catalog');
-                          setIsSidebarOpen(false); 
-                        }} 
-                      />
-                    )}
+                    
+                    <SidebarItem icon={<Users size={16}/>} label="Clientes" active={activeTab === 'clientes'} onClick={() => { setActiveTab('clientes'); setIsSidebarOpen(false); }} />
+                    <SidebarItem icon={<FileText size={16}/>} label="Pedidos" active={activeTab === 'pedidos'} onClick={() => { setActiveTab('pedidos'); setIsSidebarOpen(false); }} />
+                    <SidebarItem icon={<DollarSign size={16}/>} label="Comissões" active={activeTab === 'comissoes'} onClick={() => { setActiveTab('comissoes'); setIsSidebarOpen(false); }} />
                   </>
+                )}
+
+                {effectiveRole === 'customer' && (
+                  <SidebarItem icon={<FileText size={16}/>} label="Meus Pedidos" active={activeTab === 'pedidos'} onClick={() => { setActiveTab('pedidos'); setIsSidebarOpen(false); }} />
+                )}
+                    
+                {role !== 'seller' && role !== 'customer' && (
+                  <SidebarItem 
+                    icon={<User size={16}/>} 
+                    label="Visão do Cliente" 
+                    active={false} 
+                    onClick={() => { 
+                      setViewMode('customer'); 
+                      setActiveTab('catalog');
+                      setIsSidebarOpen(false); 
+                    }} 
+                  />
                 )}
 
                 <div className="h-px bg-slate-100 my-6 mx-2" />
@@ -1148,8 +1135,6 @@ export default function App() {
             {activeTab === 'banners' && role === 'company' && <BannerManager companyId={activeCompanyId!} />}
             {activeTab === 'produtos' && <Produtos companyId={activeCompanyId} onRefresh={loadData} />}
             {activeTab === 'upload' && <Upload companyId={activeCompanyId} onRefresh={loadData} />}
-            {activeTab === 'master-catalog' && user?.email === 'denilson.silva.santos@gmail.com' && <AdminMasterCatalog />}
-            {activeTab === 'admin-companies' && user?.email === 'denilson.silva.santos@gmail.com' && <AdminCompanies />}
             {activeTab === 'pendencias' && <Pendencias companyId={activeCompanyId} onRefresh={loadData} />}
             {activeTab === 'marcas' && <Marcas companyId={activeCompanyId} />}
             {activeTab === 'vendedores' && <Vendedores companyId={activeCompanyId} />}

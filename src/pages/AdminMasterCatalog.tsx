@@ -17,6 +17,7 @@ export default function AdminMasterCatalog() {
   const [companies, setCompanies] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState<{ type: 'success' | 'error', message: string } | null>(null);
   const [masterStats, setMasterStats] = useState({ total: 0 });
 
@@ -41,9 +42,10 @@ export default function AdminMasterCatalog() {
 
   async function handleMigrate(companyId: string) {
     setProcessingId(companyId);
+    setProgress(0);
     setStatus(null);
     
-    const result = await migrateProductsToMaster(companyId);
+    const result = await migrateProductsToMaster(companyId, (p) => setProgress(p));
     
     setStatus({
       type: result.success ? 'success' : 'error',
@@ -51,6 +53,7 @@ export default function AdminMasterCatalog() {
     });
     
     setProcessingId(null);
+    setProgress(0);
     loadData();
   }
 
@@ -115,27 +118,39 @@ export default function AdminMasterCatalog() {
                 </div>
               </div>
               
-              <button
-                onClick={() => handleMigrate(company.id)}
-                disabled={processingId !== null}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                  processingId === company.id 
-                    ? 'bg-slate-100 text-slate-400' 
-                    : 'bg-primary/10 text-primary hover:bg-primary hover:text-white'
-                }`}
-              >
-                {processingId === company.id ? (
-                  <>
-                    <RefreshCw size={14} className="animate-spin" />
-                    Sincronizando...
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw size={14} />
-                    Sincronizar com Matriz
-                  </>
+              <div className="flex flex-col items-end gap-2">
+                {processingId === company.id && (
+                  <div className="w-32 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                    <motion.div 
+                      initial={{ width: 0 }}
+                      animate={{ width: `${progress}%` }}
+                      className="h-full bg-primary"
+                    />
+                  </div>
                 )}
-              </button>
+                
+                <button
+                  onClick={() => handleMigrate(company.id)}
+                  disabled={processingId !== null}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                    processingId === company.id 
+                      ? 'bg-slate-100 text-slate-400' 
+                      : 'bg-primary/10 text-primary hover:bg-primary hover:text-white'
+                  }`}
+                >
+                  {processingId === company.id ? (
+                    <>
+                      <RefreshCw size={14} className="animate-spin" />
+                      {progress}% Sincronizando...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw size={14} />
+                      Sincronizar com Matriz
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           ))}
         </div>

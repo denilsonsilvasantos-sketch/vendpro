@@ -1,6 +1,6 @@
 import { supabase } from "../integrations/supabaseClient";
 
-export async function migrateProductsToMaster(companyId: string) {
+export async function migrateProductsToMaster(companyId: string, onProgress?: (percent: number) => void) {
   if (!supabase) return { success: false, message: "Supabase não inicializado" };
 
   try {
@@ -22,10 +22,17 @@ export async function migrateProductsToMaster(companyId: string) {
     const brandsMap = new Map(brands?.map(b => [b.id, b.name]) || []);
 
     let migratedCount = 0;
+    const total = products.length;
 
-    for (const product of products) {
+    for (let i = 0; i < products.length; i++) {
+      const product = products[i];
       const brandName = brandsMap.get(product.brand_id) || 'Sem Marca';
       
+      // Reportar progresso
+      if (onProgress) {
+        onProgress(Math.round(((i + 1) / total) * 100));
+      }
+
       // 3. Verificar se já existe no mestre (pelo SKU + Marca)
       let { data: masterProduct } = await supabase
         .from('master_products')
@@ -53,6 +60,7 @@ export async function migrateProductsToMaster(companyId: string) {
         
         if (insertError) {
           console.error(`Erro ao criar mestre para SKU ${product.sku}:`, insertError);
+          // Não paramos o loop, mas o erro será logado
           continue;
         }
         masterProduct = newMaster;
@@ -60,15 +68,20 @@ export async function migrateProductsToMaster(companyId: string) {
 
       // 5. Vincular o produto da empresa ao mestre
       if (masterProduct) {
-        await supabase
+        const { error: updateError } = await supabase
           .from('products')
           .update({ master_product_id: masterProduct.id })
           .eq('id', product.id);
-        migratedCount++;
+        
+        if (updateError) {
+          console.error(`Erro ao vincular produto ${product.id} ao mestre:`, updateError);
+        } else {
+          migratedCount++;
+        }
       }
     }
 
-    return { success: true, message: `${migratedCount} produtos sincronizados com a Matriz.` };
+    return { success: true, message: `${migratedCount} de ${total} produtos sincronizados com a Matriz.` };
   } catch (error: any) {
     console.error("Erro na migração:", error);
     return { success: false, message: error.message };

@@ -40,6 +40,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
   const [includeLastUnits, setIncludeLastUnits] = useState(true);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -142,8 +143,14 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
     return isNaN(n) ? fallback : n;
   };
 
-  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement> | React.DragEvent) => {
+    let files: FileList | null = null;
+    if ('files' in event.target && event.target.files) {
+      files = event.target.files;
+    } else if ('dataTransfer' in event && event.dataTransfer.files) {
+      files = event.dataTransfer.files;
+    }
+
     if (!files || files.length === 0) return;
     const newFiles: { file: File, pages: { base64: string, mimeType: string }[] }[] = [];
     for (let i = 0; i < files.length; i++) {
@@ -165,6 +172,21 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
     }
     setUploadedFiles(prev => [...prev, ...newFiles]);
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (!isUploading) setIsDragging(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (!isUploading) handleFileSelect(e);
   };
 
   const removeFile = (index: number) => setUploadedFiles(prev => prev.filter((_, i) => i !== index));
@@ -1013,8 +1035,17 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
           </div>
 
           {/* Drop zone */}
-          <div onClick={() => !isUploading && fileInputRef.current?.click()}
-            className={`border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center text-center transition-all cursor-pointer ${isUploading ? 'border-slate-100 bg-slate-50 opacity-50 cursor-not-allowed' : 'border-slate-200 bg-white hover:border-primary hover:bg-primary/5'}`}>
+          <div 
+            onClick={() => !isUploading && fileInputRef.current?.click()}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            className={`border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center text-center transition-all cursor-pointer ${
+              isUploading ? 'border-slate-100 bg-slate-50 opacity-50 cursor-not-allowed' : 
+              isDragging ? 'border-primary bg-primary/5 scale-[0.98]' :
+              'border-slate-200 bg-white hover:border-primary hover:bg-primary/5'
+            }`}
+          >
             <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept={uploadMode === 'stock' ? '.xlsx,.xls,.html,.htm' : '.pdf,image/*,.csv,.xlsx,.xls'} multiple={uploadMode === 'catalog'} className="hidden" />
             <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center mb-3">
               <Upload size={20} className="text-primary" strokeWidth={2.5} />

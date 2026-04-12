@@ -7,6 +7,38 @@ export async function getProducts(companyId: string): Promise<Product[]> {
     return [];
   }
 
+  const isMaster = companyId === '273c5bbc-631b-44dc-b286-1b07de720222';
+
+  // Se for Master, busca direto do Catálogo Mestre para gestão
+  if (isMaster) {
+    const { data: masterProducts, error: masterError } = await supabase
+      .from('master_products')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (masterError) {
+      console.error("Erro ao buscar produtos mestre:", masterError);
+      return [];
+    }
+
+    return (masterProducts || []).map(mp => ({
+      ...mp,
+      id: mp.id,
+      company_id: companyId,
+      brand_id: undefined,
+      brand_nome: mp.brand_name,
+      categoria_nome: mp.category_name,
+      preco_unitario: 0,
+      preco_box: 0,
+      qtd_box: 1,
+      venda_somente_box: false,
+      has_box_discount: false,
+      is_last_units: false,
+      status_estoque: 'normal',
+      sync_to_master: true
+    } as any));
+  }
+
   // Busca produtos, marcas e categorias separadamente para garantir a margem mesmo sem join configurado
   const [productsRes, brandsRes, categoriesRes] = await Promise.all([
     supabase.from("products").select("*, master_product:master_products(*)").eq("company_id", companyId).order("nome").limit(5000),

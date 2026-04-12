@@ -463,7 +463,6 @@ const ProductItem = memo(({
         <div className="space-y-1.5">
           <div className="flex items-center gap-1.5">
             <span className="text-[7px] font-black text-primary uppercase tracking-wider bg-primary/5 px-1.5 py-0.5 rounded border border-primary/10">{brand?.name}</span>
-            <span className="text-[7px] font-black text-slate-400 uppercase tracking-wider">{category?.nome}</span>
           </div>
           <h3 className="font-black text-slate-900 text-[11px] leading-tight group-hover:text-primary transition-colors line-clamp-2 uppercase tracking-tight h-8 flex items-center">{product.nome}</h3>
           <div className="flex items-center gap-1.5">

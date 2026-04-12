@@ -11,21 +11,26 @@ export async function getProducts(companyId: string): Promise<Product[]> {
 
   // Se for Master, busca direto do Catálogo Mestre para gestão
   if (isMaster) {
-    const { data: masterProducts, error: masterError } = await supabase
-      .from('master_products')
-      .select('*')
-      .order('created_at', { ascending: false });
+    const [masterRes, brandsRes, categoriesRes] = await Promise.all([
+      supabase.from('master_products').select('*').order('created_at', { ascending: false }),
+      supabase.from('brands').select('id, name').eq('company_id', companyId),
+      supabase.from('categories').select('id, nome').eq('company_id', companyId)
+    ]);
 
-    if (masterError) {
-      console.error("Erro ao buscar produtos mestre:", masterError);
+    if (masterRes.error) {
+      console.error("Erro ao buscar produtos mestre:", masterRes.error);
       return [];
     }
 
-    return (masterProducts || []).map(mp => ({
+    const brandsMap = new Map(brandsRes.data?.map(b => [b.name, b.id]) || []);
+    const categoriesMap = new Map(categoriesRes.data?.map(c => [c.nome, c.id]) || []);
+
+    return (masterRes.data || []).map(mp => ({
       ...mp,
       id: mp.id,
       company_id: companyId,
-      brand_id: undefined,
+      brand_id: brandsMap.get(mp.brand_name),
+      category_id: categoriesMap.get(mp.category_name),
       brand_nome: mp.brand_name,
       categoria_nome: mp.category_name,
       preco_unitario: 0,

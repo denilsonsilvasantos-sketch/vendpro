@@ -9,7 +9,7 @@ DECLARE
     r RECORD;
 BEGIN
     FOR r IN (
-        SELECT nome, company_id, brand_id, MIN(id) as master_id 
+        SELECT nome, company_id, brand_id, MIN(id::text)::uuid as master_id 
         FROM categories 
         GROUP BY nome, company_id, brand_id 
         HAVING COUNT(*) > 1

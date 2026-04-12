@@ -483,7 +483,7 @@ const ProductItem = memo(({
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className="text-[7px] font-black text-primary uppercase tracking-wider bg-primary/5 px-1.5 py-0.5 rounded border border-primary/10">{brand?.name}</span>
             {product.categoria_nome && (
-              <span className="text-[7px] font-black text-slate-400 uppercase tracking-wider bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100">{product.categoria_nome}</span>
+              <span className="text-[7px] font-black text-slate-600 uppercase tracking-wider bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">{product.categoria_nome}</span>
             )}
           </div>
           <h3 className="font-black text-slate-900 text-[11px] leading-tight group-hover:text-primary transition-colors line-clamp-2 uppercase tracking-tight h-8 flex items-center">{product.nome}</h3>

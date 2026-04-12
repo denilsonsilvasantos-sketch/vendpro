@@ -3133,7 +3133,7 @@ const ProductCard = memo(({ product, onAdd, onEdit, role, userId, onZoom, isInCa
         
         <div className="text-center mb-4">
           {product.categoria_nome && (
-            <p className="text-[8px] font-black text-primary/60 uppercase tracking-[0.2em] mb-1">{product.categoria_nome}</p>
+            <p className="text-[9px] font-black text-primary uppercase tracking-[0.15em] mb-1.5 opacity-80">{product.categoria_nome}</p>
           )}
           <h3 className="font-black text-slate-800 text-[11px] md:text-xs leading-tight mb-2 min-h-[2.5rem] flex items-center justify-center uppercase tracking-tight">{product.nome}</h3>
           <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mb-3">SKU: {product.sku}</p>

@@ -42,6 +42,7 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
   const [isUploading, setIsUploading] = useState(false);
   const [isRemovingBackground, setIsRemovingBackground] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isMaster = companyId === '273c5bbc-631b-44dc-b286-1b07de720222';
 
   useEffect(() => {
     async function fetchData() {

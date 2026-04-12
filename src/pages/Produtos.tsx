@@ -25,6 +25,7 @@ export default function Produtos({ companyId, onRefresh }: { companyId: string |
   const [currentPage, setCurrentPage] = useState(1);
   const gridRef = React.useRef<HTMLDivElement>(null);
   const itemsPerPage = 20;
+  const isMaster = companyId === '273c5bbc-631b-44dc-b286-1b07de720222';
 
   async function fetchData() {
     if (!supabase || !companyId) return;

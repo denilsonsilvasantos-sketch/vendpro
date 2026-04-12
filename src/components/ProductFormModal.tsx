@@ -26,6 +26,7 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
     promo_box_qty: 0,
     promo_sellers: [],
     promo_customers: [],
+    sync_to_master: companyId === '273c5bbc-631b-44dc-b286-1b07de720222',
     multiplo_venda: 1,
     imagem: '',
     imagens: [],
@@ -208,6 +209,7 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
     setLoading(true);
     
     const skuToSave = formData.sku?.trim().toUpperCase();
+    const isMaster = companyId === '273c5bbc-631b-44dc-b286-1b07de720222';
     
     // Check for duplicate SKU within the same brand
     if (skuToSave && formData.brand_id) {
@@ -240,6 +242,61 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
     
     try {
       let error;
+      let masterProductId = formData.master_product_id;
+
+      // Sincronização com o Catálogo Mestre
+      const { data: brandData } = await supabase.from('brands').select('name').eq('id', formData.brand_id).single();
+      const brandName = brandData?.name || 'Sem Marca';
+      const { data: catData } = await supabase.from('categories').select('nome').eq('id', formData.category_id).single();
+      const categoryName = catData?.nome || 'Sem Categoria';
+
+      // 1. Sempre verificar se já existe no mestre para vincular (Silencioso para o cliente)
+      const { data: existingMaster } = await supabase
+        .from('master_products')
+        .select('id')
+        .eq('sku', skuToSave)
+        .eq('brand_name', brandName)
+        .maybeSingle();
+
+      if (existingMaster) {
+        masterProductId = existingMaster.id;
+        // Atualizar mestre apenas se for o Master editando
+        if (isMaster) {
+          await supabase.from('master_products').update({
+            nome: formData.nome,
+            descricao: formData.descricao,
+            imagem: formData.imagem,
+            imagens: formData.imagens,
+            category_name: categoryName,
+            tipo_variacao: formData.tipo_variacao,
+            variacoes_disponiveis: formData.variacoes_disponiveis
+          }).eq('id', existingMaster.id);
+        }
+      } else if (formData.sync_to_master || isMaster) {
+        // Criar no mestre apenas se solicitado ou se for Master
+        const { data: newMaster, error: masterError } = await supabase
+          .from('master_products')
+          .insert([{
+            sku: skuToSave,
+            brand_name: brandName,
+            category_name: categoryName,
+            nome: formData.nome,
+            descricao: formData.descricao,
+            imagem: formData.imagem,
+            imagens: formData.imagens,
+            tipo_variacao: formData.tipo_variacao,
+            variacoes_disponiveis: formData.variacoes_disponiveis
+          }])
+          .select('id')
+          .single();
+        
+        if (!masterError && newMaster) {
+          masterProductId = newMaster.id;
+        }
+      }
+
+      const finalDataToSave = { ...dataToSave, master_product_id: masterProductId };
+
       if (product) {
         const { 
           id, 
@@ -250,8 +307,9 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
           brand, 
           margin_percentage,
           categoria_nome,
+          master_product,
           ...updateData 
-        } = dataToSave as any;
+        } = finalDataToSave as any;
         const { error: updateError } = await supabase.from('products').update(updateData).eq('id', product.id);
         error = updateError;
       } else {
@@ -262,8 +320,9 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
           brand, 
           margin_percentage,
           categoria_nome,
+          master_product,
           ...insertData 
-        } = dataToSave as any;
+        } = finalDataToSave as any;
         const { error: insertError } = await supabase.from('products').insert([insertData]);
         error = insertError;
       }
@@ -676,6 +735,16 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
                   <input type="checkbox" className="hidden" checked={formData.is_promo || false} onChange={e => setFormData({...formData, is_promo: e.target.checked})} />
                   <span className="text-[9px] font-black text-slate-600 uppercase tracking-tight leading-none">Promoção</span>
                 </label>
+
+                {isMaster && (
+                  <label className="flex items-center gap-2 cursor-pointer group bg-primary/5 p-2.5 rounded-[6px] border border-primary/10 hover:border-primary/30 transition-all">
+                    <div className={`w-5 h-5 rounded-[4px] border-2 flex items-center justify-center transition-all shrink-0 ${formData.sync_to_master ? 'bg-primary border-primary shadow-lg shadow-primary/20' : 'border-slate-200 group-hover:border-primary/50'}`}>
+                      {formData.sync_to_master && <Check size={12} strokeWidth={4} className="text-white" />}
+                    </div>
+                    <input type="checkbox" className="hidden" checked={formData.sync_to_master || false} onChange={e => setFormData({...formData, sync_to_master: e.target.checked})} />
+                    <span className="text-[9px] font-black text-primary uppercase tracking-tight leading-none">Sincronizar Mestre</span>
+                  </label>
+                )}
               </div>
 
               <AnimatePresence>

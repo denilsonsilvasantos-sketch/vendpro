@@ -113,6 +113,7 @@ export interface Product {
   promo_until?: string;
   promo_sellers?: string[];
   promo_customers?: string[];
+  sync_to_master?: boolean;
   tipo_variacao?: 'grade' | 'escolha_livre' | 'variedades';
   variacoes_disponiveis?: {
     nome: string; // e.g., "Cor", "Tamanho"

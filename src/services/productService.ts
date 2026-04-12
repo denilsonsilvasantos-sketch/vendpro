@@ -66,3 +66,20 @@ export async function getProducts(companyId: string): Promise<Product[]> {
     };
   });
 }
+
+export async function searchMasterProducts(query: string): Promise<any[]> {
+  if (!supabase) return [];
+  
+  const { data, error } = await supabase
+    .from('master_products')
+    .select('*')
+    .or(`sku.ilike.%${query}%,nome.ilike.%${query}%`)
+    .limit(20);
+    
+  if (error) {
+    console.error("Erro ao buscar no mestre:", error);
+    return [];
+  }
+  
+  return data || [];
+}

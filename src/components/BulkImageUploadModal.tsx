@@ -31,8 +31,15 @@ export default function BulkImageUploadModal({
   const [isProcessing, setIsProcessing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileSelection = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFiles = Array.from(e.target.files || []);
+  const handleFileSelection = (e: React.ChangeEvent<HTMLInputElement> | React.DragEvent) => {
+    let selectedFiles: File[] = [];
+    if ('files' in e.target && e.target.files) {
+      selectedFiles = Array.from(e.target.files);
+    } else if ('dataTransfer' in e && e.dataTransfer.files) {
+      selectedFiles = Array.from(e.dataTransfer.files);
+    }
+
+    if (selectedFiles.length === 0) return;
     setFiles(selectedFiles);
     
     const initialResults: BulkUploadResult[] = selectedFiles.map(file => {
@@ -45,6 +52,23 @@ export default function BulkImageUploadModal({
       };
     });
     setResults(initialResults);
+  };
+
+  const [isDragging, setIsDragging] = useState(false);
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    handleFileSelection(e);
   };
 
   const processUploads = async () => {
@@ -211,7 +235,13 @@ export default function BulkImageUploadModal({
           <div className="space-y-4">
             <div 
               onClick={() => !isProcessing && fileInputRef.current?.click()}
-              className={`border-2 border-dashed rounded-[32px] p-12 flex flex-col items-center justify-center gap-4 transition-all cursor-pointer ${files.length > 0 ? 'bg-primary/5 border-primary/30' : 'bg-slate-50 border-slate-200 hover:border-primary/30 hover:bg-primary/5'}`}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              className={`border-2 border-dashed rounded-[32px] p-12 flex flex-col items-center justify-center gap-4 transition-all cursor-pointer ${
+                isDragging ? 'border-primary bg-primary/5 scale-[0.98]' : 
+                files.length > 0 ? 'bg-primary/5 border-primary/30' : 'bg-slate-50 border-slate-200 hover:border-primary/30 hover:bg-primary/5'
+              }`}
             >
               <div className={`w-16 h-16 rounded-3xl flex items-center justify-center shadow-sm ${files.length > 0 ? 'bg-primary text-white' : 'bg-white text-slate-300'}`}>
                 <ImageIcon size={32} />

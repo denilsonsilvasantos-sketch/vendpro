@@ -41,6 +41,7 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
   const [zoomImage, setZoomImage] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isRemovingBackground, setIsRemovingBackground] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isMaster = companyId === '273c5bbc-631b-44dc-b286-1b07de720222';
 
@@ -64,8 +65,15 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
     fetchData();
   }, [companyId, formData.brand_id]);
 
-  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement> | React.DragEvent) => {
+    let file: File | undefined;
+    
+    if ('files' in event.target && event.target.files) {
+      file = event.target.files[0];
+    } else if ('dataTransfer' in event && event.dataTransfer.files) {
+      file = event.dataTransfer.files[0];
+    }
+
     if (!file) return;
 
     const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
@@ -100,6 +108,21 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
     } finally {
       setIsUploading(false);
     }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    handleImageUpload(e);
   };
 
   const handleRemoveBackground = async () => {
@@ -375,8 +398,13 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
             <div className="space-y-6">
               <div className="relative group">
                 <div 
-                  className="aspect-square bg-slate-50 rounded-[10px] flex items-center justify-center overflow-hidden border border-slate-100 shadow-inner cursor-zoom-in group-hover:border-primary/20 transition-colors"
+                  className={`aspect-square rounded-[10px] flex items-center justify-center overflow-hidden border-2 transition-all cursor-zoom-in group-hover:border-primary/20 relative ${
+                    isDragging ? 'border-primary bg-primary/5 scale-[0.98]' : 'bg-slate-50 border-slate-100 shadow-inner'
+                  }`}
                   onClick={() => formData.imagem && setZoomImage(formData.imagem)}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
                 >
                   {formData.imagem ? (
                     <img src={formData.imagem} alt="Produto" className="w-full h-full object-contain p-4 bg-white transition-transform duration-500 group-hover:scale-110" />

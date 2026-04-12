@@ -14,7 +14,7 @@ export async function getProducts(companyId: string): Promise<Product[]> {
     const [masterRes, brandsRes, categoriesRes] = await Promise.all([
       supabase.from('master_products').select('*').order('created_at', { ascending: false }),
       supabase.from('brands').select('id, name').eq('company_id', companyId),
-      supabase.from('categories').select('id, nome').eq('company_id', companyId)
+      supabase.from('categories').select('id, nome, brand_id').eq('company_id', companyId)
     ]);
 
     if (masterRes.error) {
@@ -23,25 +23,30 @@ export async function getProducts(companyId: string): Promise<Product[]> {
     }
 
     const brandsMap = new Map(brandsRes.data?.map(b => [b.name, b.id]) || []);
-    const categoriesMap = new Map(categoriesRes.data?.map(c => [c.nome, c.id]) || []);
+    const categoriesMap = new Map(categoriesRes.data?.map(c => [`${c.brand_id}_${c.nome}`, c.id]) || []);
 
-    return (masterRes.data || []).map(mp => ({
-      ...mp,
-      id: mp.id,
-      company_id: companyId,
-      brand_id: brandsMap.get(mp.brand_name),
-      category_id: categoriesMap.get(mp.category_name),
-      brand_nome: mp.brand_name,
-      categoria_nome: mp.category_name,
-      preco_unitario: 0,
-      preco_box: 0,
-      qtd_box: 1,
-      venda_somente_box: false,
-      has_box_discount: false,
-      is_last_units: false,
-      status_estoque: 'normal',
-      sync_to_master: true
-    } as any));
+    return (masterRes.data || []).map(mp => {
+      const brandId = brandsMap.get(mp.brand_name);
+      const categoryId = brandId ? categoriesMap.get(`${brandId}_${mp.category_name}`) : null;
+
+      return {
+        ...mp,
+        id: mp.id,
+        company_id: companyId,
+        brand_id: brandId,
+        category_id: categoryId,
+        brand_nome: mp.brand_name,
+        categoria_nome: mp.category_name,
+        preco_unitario: 0,
+        preco_box: 0,
+        qtd_box: 1,
+        venda_somente_box: false,
+        has_box_discount: false,
+        is_last_units: false,
+        status_estoque: 'normal',
+        sync_to_master: true
+      } as any;
+    });
   }
 
   // Busca produtos, marcas e categorias separadamente para garantir a margem mesmo sem join configurado

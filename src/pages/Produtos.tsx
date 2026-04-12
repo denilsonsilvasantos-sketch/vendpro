@@ -53,6 +53,15 @@ export default function Produtos({ companyId, onRefresh }: { companyId: string |
     if (onRefresh) onRefresh();
   };
 
+  const filteredCategories = useMemo(() => {
+    if (filterBrand) {
+      return categories.filter(c => c.brand_id === filterBrand);
+    }
+    // Se nenhuma marca selecionada, mostrar nomes únicos de categorias
+    const uniqueNames = Array.from(new Set(categories.map(c => c.nome)));
+    return uniqueNames.map(name => ({ id: name, nome: name } as Category));
+  }, [categories, filterBrand]);
+
   const filteredProducts = useMemo(() => {
     return products.filter(p => {
       const searchLower = searchTerm.trim().toLowerCase();
@@ -61,7 +70,19 @@ export default function Produtos({ companyId, onRefresh }: { companyId: string |
                            p.sku.toLowerCase().includes(searchLower) ||
                            varietySkus.some(vSku => vSku.includes(searchLower));
       const matchesBrand = filterBrand ? p.brand_id === filterBrand : true;
-      const matchesCategory = filterCategory ? String(p.category_id) === String(filterCategory) : true;
+      
+      let matchesCategory = true;
+      if (filterCategory) {
+        if (filterBrand) {
+          // Se tem marca, filtra pelo ID exato da categoria
+          matchesCategory = String(p.category_id) === String(filterCategory);
+        } else {
+          // Se não tem marca, filtra pelo NOME da categoria
+          const cat = categories.find(c => c.id === p.category_id);
+          matchesCategory = cat?.nome === filterCategory;
+        }
+      }
+      
       return matchesSearch && matchesBrand && matchesCategory;
     }).sort((a, b) => {
       const isEsgotadoA = a.status_estoque === 'esgotado';
@@ -212,9 +233,7 @@ export default function Produtos({ companyId, onRefresh }: { companyId: string |
             onChange={e => setFilterCategory(e.target.value || null)}
           >
             <option value="">Todas as Categorias</option>
-            {categories
-              .filter(c => !filterBrand || c.brand_id === filterBrand)
-              .map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+            {filteredCategories.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
           </select>
           <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={16} />
         </div>

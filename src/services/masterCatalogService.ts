@@ -38,6 +38,7 @@ export async function migrateProductsToMaster(companyId: string, onProgress?: (p
 
       // 3. Garantir que a Marca e Categoria existam na empresa MATRIZ
       // Isso permite que o usuário MASTER gerencie essas entidades
+      let matrizBrandId: string | null = null;
       if (brandName !== 'Sem Marca') {
         const { data: existingBrand } = await supabase
           .from('brands')
@@ -47,20 +48,33 @@ export async function migrateProductsToMaster(companyId: string, onProgress?: (p
           .maybeSingle();
         
         if (!existingBrand) {
-          await supabase.from('brands').insert([{ company_id: MATRIZ_ID, name: brandName }]);
+          const { data: newBrand } = await supabase
+            .from('brands')
+            .insert([{ company_id: MATRIZ_ID, name: brandName }])
+            .select('id')
+            .single();
+          matrizBrandId = newBrand?.id || null;
+        } else {
+          matrizBrandId = existingBrand.id;
         }
       }
 
-      if (categoryName !== 'Sem Categoria') {
+      if (categoryName !== 'Sem Categoria' && matrizBrandId) {
         const { data: existingCat } = await supabase
           .from('categories')
           .select('id')
           .eq('company_id', MATRIZ_ID)
+          .eq('brand_id', matrizBrandId)
           .eq('nome', categoryName)
           .maybeSingle();
         
         if (!existingCat) {
-          await supabase.from('categories').insert([{ company_id: MATRIZ_ID, nome: categoryName }]);
+          await supabase.from('categories').insert([{ 
+            company_id: MATRIZ_ID, 
+            brand_id: matrizBrandId,
+            nome: categoryName,
+            ativo: true
+          }]);
         }
       }
 

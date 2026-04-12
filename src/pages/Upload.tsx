@@ -541,6 +541,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
                 .insert([{
                   sku,
                   brand_name: brandName,
+                  category_name: categoriaId ? categories.find(c => c.id === categoriaId)?.nome : (extracted.category_name || 'Geral'),
                   nome: productData.nome,
                   descricao: extracted.descricao || null,
                   imagem: (existing as any)?.imagem || null,

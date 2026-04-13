@@ -72,7 +72,6 @@ const Vendedores = lazy(() => import('./pages/Vendedores'));
 const BannerManager = lazy(() => import('./pages/BannerManager'));
 import ProductFormModal from './components/ProductFormModal';
 const Pendencias = lazy(() => import('./pages/Pendencias'));
-const AdminMasterCatalog = lazy(() => import('./pages/AdminMasterCatalog'));
 const AdminUsage = lazy(() => import('./pages/AdminUsage'));
 
 const PageLoader = () => (
@@ -228,10 +227,7 @@ export default function App() {
       console.error("Erro ao processar parâmetro de vínculo:", err);
     }
   }, []);
-  const [activeTab, setActiveTab] = useState(() => {
-    const savedCompanyId = localStorage.getItem('vendpro_active_company_id');
-    return savedCompanyId === '273c5bbc-631b-44dc-b286-1b07de720222' ? 'dashboard' : 'catalog';
-  });
+  const [activeTab, setActiveTab] = useState('catalog');
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -304,7 +300,7 @@ export default function App() {
     }
   }, [isMaster, activeTab]);
 
-  const effectiveRole = isMaster ? 'company' : (viewMode === 'customer' ? 'customer' : role);
+  const effectiveRole = viewMode === 'customer' ? 'customer' : role;
 
   const handleAddToCart = (product: Product, quantity: number, selected_variation?: Record<string, string>) => {
     if (cart.length === 0) {
@@ -1161,7 +1157,6 @@ export default function App() {
             {activeTab === 'banners' && role === 'company' && <BannerManager companyId={activeCompanyId!} />}
             {activeTab === 'produtos' && <Produtos companyId={activeCompanyId} onRefresh={loadData} />}
             {activeTab === 'upload' && <Upload companyId={activeCompanyId} onRefresh={loadData} />}
-            {activeTab === 'master-catalog' && isMaster && <AdminMasterCatalog />}
             {activeTab === 'usage' && isMaster && <AdminUsage />}
             {activeTab === 'pendencias' && <Pendencias companyId={activeCompanyId} onRefresh={loadData} />}
             {activeTab === 'marcas' && <Marcas companyId={activeCompanyId} />}

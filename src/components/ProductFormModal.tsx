@@ -237,38 +237,18 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
     
     // Check for duplicate SKU within the same brand
     if (skuToSave && formData.brand_id) {
-      const brand = brands.find(b => b.id === formData.brand_id);
-      const brandName = brand?.name;
+      const { data: existingSku } = await supabase
+        .from('products')
+        .select('id, nome')
+        .eq('company_id', companyId)
+        .eq('brand_id', formData.brand_id)
+        .eq('sku', skuToSave)
+        .maybeSingle();
 
-      if (isMaster && brandName) {
-        // Na Matriz, validamos contra o Catálogo Mestre
-        const { data: existingMaster } = await supabase
-          .from('master_products')
-          .select('id, nome')
-          .eq('sku', skuToSave)
-          .eq('brand_name', brandName)
-          .maybeSingle();
-
-        if (existingMaster && (!product || existingMaster.id !== product.id)) {
-          alert(`Já existe um produto no MESTRE com este SKU (${skuToSave}) nesta marca: ${existingMaster.nome}`);
-          setLoading(false);
-          return;
-        }
-      } else {
-        // Em outras empresas, validamos contra a tabela local de produtos
-        const { data: existingSku } = await supabase
-          .from('products')
-          .select('id, nome')
-          .eq('company_id', companyId)
-          .eq('brand_id', formData.brand_id)
-          .eq('sku', skuToSave)
-          .maybeSingle();
-
-        if (existingSku && (!product || existingSku.id !== product.id)) {
-          alert(`Já existe um produto com este SKU (${skuToSave}) nesta marca: ${existingSku.nome}`);
-          setLoading(false);
-          return;
-        }
+      if (existingSku && (!product || existingSku.id !== product.id)) {
+        alert(`Já existe um produto com este SKU (${skuToSave}) nesta marca: ${existingSku.nome}`);
+        setLoading(false);
+        return;
       }
     }
 
@@ -286,68 +266,7 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
     
     try {
       let error;
-      let masterProductId = formData.master_product_id;
-
-      // Sincronização com o Catálogo Mestre
-      const { data: brandData } = await supabase.from('brands').select('name').eq('id', formData.brand_id).single();
-      const brandName = brandData?.name || 'Sem Marca';
-      const { data: catData } = await supabase.from('categories').select('nome').eq('id', formData.category_id).single();
-      const categoryName = catData?.nome || 'Sem Categoria';
-
-      // 1. Sempre verificar se já existe no mestre para vincular (Silencioso para o cliente)
-      const { data: existingMaster } = await supabase
-        .from('master_products')
-        .select('id')
-        .eq('sku', skuToSave)
-        .eq('brand_name', brandName)
-        .maybeSingle();
-
-      if (existingMaster) {
-        masterProductId = existingMaster.id;
-        // Atualizar mestre apenas se for o Master editando
-        if (isMaster) {
-          console.log("Atualizando Catálogo Mestre...");
-          const { error: masterUpdateError } = await supabase.from('master_products').update({
-            nome: formData.nome,
-            descricao: formData.descricao,
-            imagem: formData.imagem,
-            imagens: formData.imagens,
-            category_name: categoryName,
-            tipo_variacao: formData.tipo_variacao,
-            variacoes_disponiveis: formData.variacoes_disponiveis
-          }).eq('id', existingMaster.id);
-          
-          if (masterUpdateError) {
-            console.error("Erro ao atualizar mestre:", masterUpdateError);
-            alert("Aviso: O produto local foi salvo, mas houve um erro ao atualizar o Catálogo Mestre: " + masterUpdateError.message);
-          } else {
-            console.log("Catálogo Mestre atualizado com sucesso.");
-          }
-        }
-      } else if (formData.sync_to_master || isMaster) {
-        // Criar no mestre apenas se solicitado ou se for Master
-        const { data: newMaster, error: masterError } = await supabase
-          .from('master_products')
-          .insert([{
-            sku: skuToSave,
-            brand_name: brandName,
-            category_name: categoryName,
-            nome: formData.nome,
-            descricao: formData.descricao,
-            imagem: formData.imagem,
-            imagens: formData.imagens,
-            tipo_variacao: formData.tipo_variacao,
-            variacoes_disponiveis: formData.variacoes_disponiveis
-          }])
-          .select('id')
-          .single();
-        
-        if (!masterError && newMaster) {
-          masterProductId = newMaster.id;
-        }
-      }
-
-      const finalDataToSave = { ...dataToSave, master_product_id: masterProductId };
+      const finalDataToSave = dataToSave;
 
       if (product) {
         const { 
@@ -359,28 +278,10 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
           brand, 
           margin_percentage,
           categoria_nome,
-          master_product,
-          brand_name,
-          category_name,
           ...updateData 
         } = finalDataToSave as any;
-        
-        // Se for Matriz, o ID do produto é o ID do master_products
-        // Precisamos atualizar a tabela products usando o master_product_id ou encontrar o ID local
-        if (isMaster) {
-          const { error: updateError } = await supabase
-            .from('products')
-            .update(updateData)
-            .eq('master_product_id', product.id)
-            .eq('company_id', companyId);
-          error = updateError;
-        } else {
-          const { error: updateError } = await supabase
-            .from('products')
-            .update(updateData)
-            .eq('id', product.id);
-          error = updateError;
-        }
+        const { error: updateError } = await supabase.from('products').update(updateData).eq('id', product.id);
+        error = updateError;
       } else {
         const { 
           base_price, 
@@ -389,9 +290,6 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
           brand, 
           margin_percentage,
           categoria_nome,
-          master_product,
-          brand_name,
-          category_name,
           ...insertData 
         } = finalDataToSave as any;
         const { error: insertError } = await supabase.from('products').insert([insertData]);

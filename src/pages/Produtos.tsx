@@ -5,7 +5,6 @@ import { getProducts } from '../services/productService';
 import { Package, Edit, Trash2, Plus, Search, Filter, Tag, AlertCircle, CheckCircle2, Loader2, ChevronDown, X, ZoomIn, Info, ChevronLeft, ChevronRight, Upload } from 'lucide-react';
 import ProductFormModal from '../components/ProductFormModal';
 import BulkImageUploadModal from '../components/BulkImageUploadModal';
-import MasterSearchModal from '../components/MasterSearchModal';
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function Produtos({ companyId, onRefresh }: { companyId: string | null, onRefresh?: () => void }) {
@@ -15,7 +14,6 @@ export default function Produtos({ companyId, onRefresh }: { companyId: string |
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
-  const [isMasterSearchOpen, setIsMasterSearchOpen] = useState(false);
   const [zoomImages, setZoomImages] = useState<string[]>([]);
   const [zoomIndex, setZoomIndex] = useState(0);
   const [editingProduct, setEditingProduct] = useState<Product | undefined>();
@@ -133,22 +131,6 @@ export default function Produtos({ companyId, onRefresh }: { companyId: string |
     }
   }, [currentPage]);
 
-  const handleMasterSelect = (masterProduct: any) => {
-    setEditingProduct({
-      ...masterProduct,
-      id: undefined, // Novo produto local
-      master_product_id: masterProduct.id,
-      company_id: companyId || '',
-      preco_unitario: 0,
-      preco_box: 0,
-      qtd_box: 1,
-      sync_to_master: true,
-      status_estoque: 'normal'
-    } as any);
-    setIsMasterSearchOpen(false);
-    setIsModalOpen(true);
-  };
-
   if (loading && products.length === 0) {
     return (
       <div className="p-8 flex flex-col items-center justify-center min-h-[400px] gap-6 animate-pulse">
@@ -175,14 +157,6 @@ export default function Produtos({ companyId, onRefresh }: { companyId: string |
             </div>
           </div>
           <div className="flex flex-col sm:flex-row gap-3">
-            {isMaster && (
-              <button 
-                onClick={() => setIsMasterSearchOpen(true)} 
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-white border border-primary/20 px-5 py-3 text-xs font-black uppercase tracking-[0.18em] text-primary shadow-sm hover:bg-primary/5 hover:-translate-y-0.5 active:translate-y-0 transition-all w-full md:w-auto"
-              >
-                <Search size={18} strokeWidth={3} /> Buscar no Mestre
-              </button>
-            )}
             <button 
               onClick={() => setIsBulkModalOpen(true)} 
               className="inline-flex items-center justify-center gap-2 rounded-full bg-white border border-slate-200 px-5 py-3 text-xs font-black uppercase tracking-[0.18em] text-slate-600 shadow-sm hover:bg-slate-50 hover:-translate-y-0.5 active:translate-y-0 transition-all w-full md:w-auto"
@@ -298,15 +272,6 @@ export default function Produtos({ companyId, onRefresh }: { companyId: string |
               </div>
             )}
           </div>
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {isMasterSearchOpen && (
-          <MasterSearchModal 
-            onClose={() => setIsMasterSearchOpen(false)} 
-            onSelect={handleMasterSelect}
-          />
         )}
       </AnimatePresence>
 

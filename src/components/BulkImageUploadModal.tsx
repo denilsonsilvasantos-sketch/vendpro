@@ -98,56 +98,25 @@ export default function BulkImageUploadModal({
 
       try {
         console.log(`Processando arquivo: ${file.name}, SKU extraído: ${sku}`);
-        const isMaster = companyId === '273c5bbc-631b-44dc-b286-1b07de720222';
-        const brand = brands.find(b => b.id === selectedBrand);
         
         // 1. Find the product
-        let product: any = null;
-        let productId: string | null = null;
-        let currentImagens: string[] = [];
-
-        if (isMaster && brand) {
-          console.log(`Empresa Matriz detectada. Buscando em master_products para SKU ${sku} e marca ${brand.name}...`);
-          const { data: masterProduct, error: masterFindError } = await supabase
-            .from('master_products')
-            .select('id, imagens')
-            .eq('sku', sku)
-            .eq('brand_name', brand.name)
-            .maybeSingle();
-          
-          if (masterProduct) {
-            product = masterProduct;
-            productId = masterProduct.id;
-            currentImagens = masterProduct.imagens || [];
-          }
+        console.log(`Buscando na tabela local de produtos para SKU ${sku}...`);
+        let query = supabase
+          .from('products')
+          .select('id, imagens, sku')
+          .eq('company_id', companyId)
+          .eq('brand_id', selectedBrand)
+          .eq('sku', sku);
+        
+        if (selectedCategory) {
+          query = query.eq('category_id', selectedCategory);
         }
 
-        // Se não for master ou não encontrou no mestre, busca na tabela local de produtos
-        if (!product) {
-          console.log(`Buscando na tabela local de produtos para SKU ${sku}...`);
-          let query = supabase
-            .from('products')
-            .select('id, imagens, sku')
-            .eq('company_id', companyId)
-            .eq('brand_id', selectedBrand)
-            .eq('sku', sku);
-          
-          if (selectedCategory) {
-            query = query.eq('category_id', selectedCategory);
-          }
+        const { data: product, error: findError } = await query.maybeSingle();
 
-          const { data: localProduct, error: findError } = await query.maybeSingle();
-
-          if (findError) {
-            console.error(`Erro ao buscar produto local para SKU ${sku}:`, findError);
-            throw findError;
-          }
-
-          if (localProduct) {
-            product = localProduct;
-            productId = localProduct.id;
-            currentImagens = localProduct.imagens || [];
-          }
+        if (findError) {
+          console.error(`Erro ao buscar produto local para SKU ${sku}:`, findError);
+          throw findError;
         }
 
         if (!product) {
@@ -181,51 +150,22 @@ export default function BulkImageUploadModal({
         console.log(`Upload concluído: ${imageUrl}`);
 
         // 3. Update product in Supabase
+        const currentImagens = product.imagens || [];
         const newImagens = currentImagens.includes(imageUrl) 
           ? currentImagens 
           : [imageUrl, ...currentImagens];
 
-        if (isMaster && brand) {
-          console.log(`Atualizando master_products para SKU ${sku}...`);
-          const { error: masterUpdateError } = await supabase
-            .from('master_products')
-            .update({
-              imagem: imageUrl,
-              imagens: newImagens
-            })
-            .eq('sku', sku)
-            .eq('brand_name', brand.name);
-          
-          if (masterUpdateError) {
-            console.error(`Erro ao atualizar master_products:`, masterUpdateError);
-          }
-        }
-
-        // Também tenta atualizar na tabela local se o produto veio de lá ou se queremos manter sincronizado
-        // Para a Matriz, o "id" que temos pode ser do master_products ou do products local.
-        // Se buscamos no master_products primeiro, o productId é do master_products.
-        // Mas a Matriz também pode ter o produto na tabela local.
-        
-        // Vamos buscar o produto local pelo SKU para garantir a atualização local também
-        const { data: localProd } = await supabase
+        console.log(`Atualizando produto local ${product.id}...`);
+        const { error: updateError } = await supabase
           .from('products')
-          .select('id')
-          .eq('company_id', companyId)
-          .eq('brand_id', selectedBrand)
-          .eq('sku', sku)
-          .maybeSingle();
+          .update({ 
+            imagem: imageUrl,
+            imagens: newImagens,
+            imagem_pendente: false
+          })
+          .eq('id', product.id);
 
-        if (localProd) {
-          console.log(`Atualizando produto local ${localProd.id}...`);
-          await supabase
-            .from('products')
-            .update({ 
-              imagem: imageUrl,
-              imagens: newImagens,
-              imagem_pendente: false
-            })
-            .eq('id', localProd.id);
-        }
+        if (updateError) throw updateError;
 
         updatedResults[i].status = 'success';
         updatedResults[i].message = 'Vinculado com sucesso!';

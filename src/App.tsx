@@ -228,6 +228,49 @@ export default function App() {
     }
   }, []);
   const [activeTab, setActiveTab] = useState('catalog');
+  const [search, setSearch] = useState('');
+  const [isListening, setIsListening] = useState(false);
+  const [isAnalyzingPhoto, setIsAnalyzingPhoto] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const startVoiceSearch = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert('Seu navegador não suporta busca por voz.');
+      return;
+    }
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'pt-BR';
+    recognition.onstart = () => setIsListening(true);
+    recognition.onend = () => setIsListening(false);
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      setSearch(transcript);
+    };
+    recognition.start();
+  };
+
+  const handlePhotoSearch = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsAnalyzingPhoto(true);
+    try {
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64 = (reader.result as string).split(',')[1];
+        const keywords = await searchProductByImage(base64, file.type);
+        if (keywords) {
+          setSearch(keywords);
+        }
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsAnalyzingPhoto(false);
+    }
+  };
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -837,8 +880,8 @@ export default function App() {
       <TopBar messages={topBarMessages} />
 
       {/* Header */}
-      <header className="glass-effect px-4 md:px-8 py-4 sticky top-0 z-40 flex items-center justify-between shadow-sm">
-        <div className="flex items-center gap-4">
+      <header className="glass-effect px-4 md:px-8 py-4 sticky top-0 z-40 flex items-center justify-between shadow-sm gap-4">
+        <div className="flex items-center gap-4 shrink-0">
           <button onClick={() => setIsSidebarOpen(true)} className="p-2 -ml-2 text-slate-600 hover:text-primary transition-colors">
             <Menu size={24} />
           </button>
@@ -851,7 +894,7 @@ export default function App() {
               </div>
             )}
             
-            <div className="hidden sm:block">
+            <div className="hidden lg:block">
               {availableCompanies.length > 1 ? (
                 <select 
                   value={activeCompanyId || ''} 
@@ -869,7 +912,46 @@ export default function App() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 md:gap-6">
+        {/* Search Bar in Header */}
+        <div className="flex-1 max-w-xl hidden md:block">
+          <div className="relative group">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <Search className="h-4 w-4 text-slate-400 group-focus-within:text-primary transition-colors" />
+            </div>
+            <input
+              type="text"
+              placeholder="Buscar produtos..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="block w-full pl-10 pr-24 py-2.5 bg-slate-50 border border-slate-100 rounded-full text-xs font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary/40 transition-all shadow-inner"
+            />
+            <div className="absolute inset-y-0 right-1 flex items-center gap-0.5">
+              <button
+                onClick={startVoiceSearch}
+                className={`p-2 rounded-full transition-all ${isListening ? 'bg-rose-500 text-white animate-pulse' : 'text-slate-400 hover:bg-slate-100 hover:text-primary'}`}
+                title="Busca por voz"
+              >
+                <Mic size={16} />
+              </button>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className={`p-2 rounded-full transition-all ${isAnalyzingPhoto ? 'bg-primary text-white animate-spin' : 'text-slate-400 hover:bg-slate-100 hover:text-primary'}`}
+                title="Busca por foto"
+              >
+                {isAnalyzingPhoto ? <Loader2 size={16} /> : <Camera size={16} />}
+              </button>
+            </div>
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              className="hidden" 
+              accept="image/*" 
+              onChange={handlePhotoSearch} 
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 md:gap-6 shrink-0">
           <div className="flex items-center gap-2 md:gap-4">
             {(role === 'seller' || role === 'company') && (
               <button
@@ -1102,6 +1184,13 @@ export default function App() {
               carts={carts}
               onGoToCart={() => setIsCartOpen(true)}
               onTabChange={setActiveTab}
+              search={search}
+              setSearch={setSearch}
+              startVoiceSearch={startVoiceSearch}
+              handlePhotoSearch={handlePhotoSearch}
+              isListening={isListening}
+              isAnalyzingPhoto={isAnalyzingPhoto}
+              fileInputRef={fileInputRef}
             />
           )}
 
@@ -1125,6 +1214,13 @@ export default function App() {
               onGoToCart={() => setIsCartOpen(true)}
               filterType="new"
               onTabChange={setActiveTab}
+              search={search}
+              setSearch={setSearch}
+              startVoiceSearch={startVoiceSearch}
+              handlePhotoSearch={handlePhotoSearch}
+              isListening={isListening}
+              isAnalyzingPhoto={isAnalyzingPhoto}
+              fileInputRef={fileInputRef}
             />
           )}
 
@@ -1148,6 +1244,13 @@ export default function App() {
               onGoToCart={() => setIsCartOpen(true)}
               filterType="back"
               onTabChange={setActiveTab}
+              search={search}
+              setSearch={setSearch}
+              startVoiceSearch={startVoiceSearch}
+              handlePhotoSearch={handlePhotoSearch}
+              isListening={isListening}
+              isAnalyzingPhoto={isAnalyzingPhoto}
+              fileInputRef={fileInputRef}
             />
           )}
         
@@ -1155,7 +1258,7 @@ export default function App() {
           <Suspense fallback={<PageLoader />}>
             {activeTab === 'dashboard' && <Dashboard companyId={activeCompanyId} role={role} user={user} banners={banners} />}
             {activeTab === 'banners' && role === 'company' && <BannerManager companyId={activeCompanyId!} />}
-            {activeTab === 'produtos' && <Produtos companyId={activeCompanyId} onRefresh={loadData} />}
+            {activeTab === 'produtos' && <Produtos companyId={activeCompanyId} onRefresh={loadData} searchTerm={search} />}
             {activeTab === 'upload' && <Upload companyId={activeCompanyId} onRefresh={loadData} />}
             {activeTab === 'usage' && isMaster && <AdminUsage />}
             {activeTab === 'pendencias' && <Pendencias companyId={activeCompanyId} onRefresh={loadData} />}
@@ -2201,7 +2304,14 @@ function CatalogScreen({
   carts,
   onGoToCart,
   filterType = 'all',
-  onTabChange
+  onTabChange,
+  search,
+  setSearch,
+  startVoiceSearch,
+  handlePhotoSearch,
+  isListening,
+  isAnalyzingPhoto,
+  fileInputRef
 }: { 
   products: Product[], 
   categories: Category[], 
@@ -2220,9 +2330,15 @@ function CatalogScreen({
   carts: { [brandId: string]: CartItem[] },
   onGoToCart: () => void,
   filterType?: 'all' | 'new' | 'back',
-  onTabChange?: (tab: string) => void
+  onTabChange?: (tab: string) => void,
+  search: string,
+  setSearch: (val: string) => void,
+  startVoiceSearch: () => void,
+  handlePhotoSearch: (e: React.ChangeEvent<HTMLInputElement>) => void,
+  isListening: boolean,
+  isAnalyzingPhoto: boolean,
+  fileInputRef: React.RefObject<HTMLInputElement | null>
 }) {
-  const [search, setSearch] = useState('');
   const [isAdding, setIsAdding] = useState<string | null>(null);
   const [itemsPerPage, setItemsPerPage] = useState(24);
   const [currentPage, setCurrentPage] = useState(1);
@@ -2230,48 +2346,6 @@ function CatalogScreen({
   const gridRef = useRef<HTMLDivElement>(null);
   const [showSwitchWarning, setShowSwitchWarning] = useState(false);
   const [showLogisticsWarning, setShowLogisticsWarning] = useState(false);
-  const [isListening, setIsListening] = useState(false);
-  const [isAnalyzingPhoto, setIsAnalyzingPhoto] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const startVoiceSearch = () => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      alert('Seu navegador não suporta busca por voz.');
-      return;
-    }
-    const recognition = new SpeechRecognition();
-    recognition.lang = 'pt-BR';
-    recognition.onstart = () => setIsListening(true);
-    recognition.onend = () => setIsListening(false);
-    recognition.onresult = (event: any) => {
-      const transcript = event.results[0][0].transcript;
-      setSearch(transcript);
-    };
-    recognition.start();
-  };
-
-  const handlePhotoSearch = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setIsAnalyzingPhoto(true);
-    try {
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const base64 = (reader.result as string).split(',')[1];
-        const keywords = await searchProductByImage(base64, file.type);
-        if (keywords) {
-          setSearch(keywords);
-        }
-      };
-      reader.readAsDataURL(file);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setIsAnalyzingPhoto(false);
-    }
-  };
   const [pendingBrandId, setPendingBrandId] = useState<string | null>(null);
   const [acknowledgedBrands, setAcknowledgedBrands] = useState<Set<string>>(() => {
     const saved = localStorage.getItem('vendpro_acknowledged_brands');
@@ -2599,45 +2673,36 @@ function CatalogScreen({
           </div>
         )}
 
-        {/* Search Bar & Category Bar (Fixed Container) */}
-        <div className="sticky top-[88px] z-[100] bg-slate-50/80 backdrop-blur-xl border-b border-slate-200/50 -mx-4 md:-mx-8 px-4 md:px-8 py-6 mb-8 shadow-sm">
+        {/* Search Bar & Category Bar (Fixed Container) - REMOVED Search, kept Brands but not sticky */}
+        <div className="mb-8">
           <div className="max-w-6xl xl:max-w-7xl mx-auto space-y-6">
-            {/* Search Bar */}
-            <div className="max-w-2xl">
+            {/* Mobile Search Bar (Visible only on small screens) */}
+            <div className="md:hidden">
               <div className="relative group">
-                <div className="absolute inset-y-0 left-0 pl-6 flex items-center pointer-events-none">
-                  <Search className="h-5 w-5 text-slate-400 group-focus-within:text-primary transition-colors" />
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <Search className="h-4 w-4 text-slate-400 group-focus-within:text-primary transition-colors" />
                 </div>
                 <input
                   type="text"
-                  placeholder="Buscar produtos (Nome ou SKU)..."
+                  placeholder="Buscar produtos..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="block w-full pl-14 pr-32 py-4 bg-white border border-slate-100 rounded-[24px] text-sm font-black uppercase tracking-widest text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-8 focus:ring-primary/5 focus:border-primary/40 transition-all shadow-xl shadow-slate-200/50"
+                  className="block w-full pl-10 pr-24 py-3 bg-white border border-slate-100 rounded-2xl text-sm font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary/40 transition-all shadow-sm"
                 />
-                <div className="absolute inset-y-0 right-2 flex items-center gap-1">
+                <div className="absolute inset-y-0 right-1 flex items-center gap-0.5">
                   <button
                     onClick={startVoiceSearch}
-                    className={`p-3 rounded-full transition-all ${isListening ? 'bg-rose-500 text-white animate-pulse' : 'text-slate-400 hover:bg-slate-50 hover:text-primary'}`}
-                    title="Busca por voz"
+                    className={`p-2 rounded-full transition-all ${isListening ? 'bg-rose-500 text-white animate-pulse' : 'text-slate-400 hover:bg-slate-100 hover:text-primary'}`}
                   >
-                    <Mic size={20} />
+                    <Mic size={16} />
                   </button>
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className={`p-3 rounded-full transition-all ${isAnalyzingPhoto ? 'bg-primary text-white animate-spin' : 'text-slate-400 hover:bg-slate-50 hover:text-primary'}`}
-                    title="Busca por foto"
+                    className={`p-2 rounded-full transition-all ${isAnalyzingPhoto ? 'bg-primary text-white animate-spin' : 'text-slate-400 hover:bg-slate-100 hover:text-primary'}`}
                   >
-                    {isAnalyzingPhoto ? <Loader2 size={20} /> : <Camera size={20} />}
+                    {isAnalyzingPhoto ? <Loader2 size={16} /> : <Camera size={16} />}
                   </button>
                 </div>
-                <input 
-                  type="file" 
-                  ref={fileInputRef} 
-                  className="hidden" 
-                  accept="image/*" 
-                  onChange={handlePhotoSearch} 
-                />
               </div>
             </div>
 

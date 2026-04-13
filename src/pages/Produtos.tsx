@@ -7,7 +7,7 @@ import ProductFormModal from '../components/ProductFormModal';
 import BulkImageUploadModal from '../components/BulkImageUploadModal';
 import { motion, AnimatePresence } from 'motion/react';
 
-export default function Produtos({ companyId, onRefresh }: { companyId: string | null, onRefresh?: () => void }) {
+export default function Produtos({ companyId, onRefresh, searchTerm: externalSearchTerm }: { companyId: string | null, onRefresh?: () => void, searchTerm?: string }) {
   const [products, setProducts] = useState<Product[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -17,7 +17,11 @@ export default function Produtos({ companyId, onRefresh }: { companyId: string |
   const [zoomImages, setZoomImages] = useState<string[]>([]);
   const [zoomIndex, setZoomIndex] = useState(0);
   const [editingProduct, setEditingProduct] = useState<Product | undefined>();
-  const [searchTerm, setSearchTerm] = useState('');
+  const [internalSearchTerm, setInternalSearchTerm] = useState('');
+  
+  const searchTerm = externalSearchTerm !== undefined ? externalSearchTerm : internalSearchTerm;
+  const setSearchTerm = externalSearchTerm !== undefined ? () => {} : setInternalSearchTerm;
+
   const [filterBrand, setFilterBrand] = useState<string | null>(null);
   const [filterCategory, setFilterCategory] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -173,16 +177,31 @@ export default function Produtos({ companyId, onRefresh }: { companyId: string |
         </div>
 
       <div className="flex flex-col lg:flex-row gap-4 p-4 bg-white rounded-[32px] border border-slate-100 shadow-sm neumorphic-shadow">
-        <div className="relative flex-1 group">
-          <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors" size={18} />
-          <input 
-            type="text" 
-            placeholder="Buscar por nome ou SKU..."
-            className="w-full pl-12 pr-6 py-3 bg-slate-50/50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary/30 transition-all font-bold text-slate-900 placeholder:text-slate-400 text-sm"
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-          />
-        </div>
+        {!externalSearchTerm && (
+          <div className="relative flex-1 group">
+            <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors" size={18} />
+            <input 
+              type="text" 
+              placeholder="Buscar por nome ou SKU..."
+              className="w-full pl-12 pr-6 py-3 bg-slate-50/50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary/30 transition-all font-bold text-slate-900 placeholder:text-slate-400 text-sm"
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+            />
+          </div>
+        )}
+        
+        {externalSearchTerm && (
+          <div className="md:hidden relative flex-1 group">
+            <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors" size={18} />
+            <input 
+              type="text" 
+              placeholder="Buscar por nome ou SKU..."
+              className="w-full pl-12 pr-6 py-3 bg-slate-50/50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary/30 transition-all font-bold text-slate-900 placeholder:text-slate-400 text-sm"
+              value={searchTerm}
+              onChange={e => setInternalSearchTerm(e.target.value)}
+            />
+          </div>
+        )}
         <div className="relative min-w-[200px] group">
           <Filter className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors" size={16} />
           <select 

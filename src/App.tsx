@@ -3138,10 +3138,7 @@ const ProductCard = memo(({ product, onAdd, onEdit, role, userId, onZoom, isInCa
   };
 
   const isSelectionComplete = () => {
-    if (product.tipo_variacao === 'variedades') return true;
-    if (product.tipo_variacao !== 'escolha_livre') return true;
-    if (!product.variacoes_disponiveis) return true;
-    return product.variacoes_disponiveis.every(v => selectedVariations[v.nome]);
+    return true;
   };
 
   const handleVarietyQtyChange = (sku: string, value: number) => {
@@ -3235,27 +3232,6 @@ const ProductCard = memo(({ product, onAdd, onEdit, role, userId, onZoom, isInCa
           )}
         </div>
 
-        {!isEsgotado && product.tipo_variacao === 'escolha_livre' && product.variacoes_disponiveis && (
-          <div className="mb-4 space-y-3">
-            {product.variacoes_disponiveis.map(v => (
-              <div key={v.nome} className="space-y-1.5">
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{v.nome}</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {v.opcoes.map(opt => (
-                    <button
-                      key={opt}
-                      onClick={() => handleVariationChange(v.nome, opt)}
-                      className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${selectedVariations[v.nome] === opt ? 'bg-primary text-white border-primary shadow-md' : 'bg-white text-slate-500 border-slate-100 hover:border-primary/30'}`}
-                    >
-                      {opt}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
         {(product.has_box_discount || product.venda_somente_box) && !isEsgotado && (
           <div className="mb-4 p-2.5 bg-rose-50 border border-rose-200 rounded-2xl text-center flex flex-col items-center justify-center">
             <span className="text-base font-black text-rose-700 tracking-tight">
@@ -3286,10 +3262,6 @@ const ProductCard = memo(({ product, onAdd, onEdit, role, userId, onZoom, isInCa
             onClick={() => {
               if (product.tipo_variacao === 'variedades') {
                 setShowVarieties(true);
-                return;
-              }
-              if (!isSelectionComplete()) {
-                alert('Por favor, selecione todas as variações.');
                 return;
               }
               onAdd(product, qty, selectedVariations);

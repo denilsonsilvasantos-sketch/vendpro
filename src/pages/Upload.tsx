@@ -534,6 +534,19 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
 
             if (masterProduct) {
               productData.master_product_id = masterProduct.id;
+              // Se for a Matriz, atualiza os dados no mestre também
+              if (companyId === '273c5bbc-631b-44dc-b286-1b07de720222') {
+                await supabase
+                  .from('master_products')
+                  .update({
+                    nome: productData.nome,
+                    descricao: extracted.descricao || null,
+                    category_name: categoriaId ? categories.find(c => c.id === categoriaId)?.nome : (extracted.category_name || 'Geral'),
+                    tipo_variacao: productData.tipo_variacao,
+                    variacoes_disponiveis: productData.variacoes_disponiveis
+                  })
+                  .eq('id', masterProduct.id);
+              }
             } else {
               // Cria no mestre se não existir
               const { data: newMaster } = await supabase

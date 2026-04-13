@@ -153,6 +153,22 @@ export default function BulkImageUploadModal({
 
         if (updateError) throw updateError;
 
+        // 4. If Master company, also update master_products
+        const isMaster = companyId === '273c5bbc-631b-44dc-b286-1b07de720222';
+        if (isMaster) {
+          const brand = brands.find(b => b.id === selectedBrand);
+          if (brand) {
+            await supabase
+              .from('master_products')
+              .update({
+                imagem: imageUrl,
+                imagens: newImagens
+              })
+              .eq('sku', sku)
+              .eq('brand_name', brand.name);
+          }
+        }
+
         updatedResults[i].status = 'success';
         updatedResults[i].message = 'Vinculado com sucesso!';
       } catch (error: any) {

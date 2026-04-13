@@ -44,29 +44,26 @@ export async function classifyCategory(productName: string, categories: { id: st
 export async function extractProductsFromMedia(base64Data: string, mimeType: string, categories?: { id: string, nome: string }[]) {
   const categoriesList = categories?.map(c => c.nome).join(', ') || '';
   
-  const prompt = `Analise este catálogo (pode ser uma imagem, PDF ou planilha) e extraia ABSOLUTAMENTE TODOS os produtos visíveis. 
-  Não pule nenhum item. Se houver tabelas, percorra cada linha. Se houver várias páginas, extraia de todas.
+  const prompt = `Analise este catálogo e extraia ABSOLUTAMENTE TODOS os produtos. 
+  Não pule nenhum item. Se houver tabelas, percorra cada linha.
   
-  Para cada produto, identifique com precisão:
-  - nome: Nome completo do produto (MUITO IMPORTANTE)
-  - sku: Código, SKU ou Referência (se houver). Se não houver, deixe em branco.
+  Para cada produto, identifique:
+  - nome: Nome completo (NÃO inclua o nome da marca ou categoria no nome do produto)
+  - sku: Código ou SKU
   - preco_unitario: Preço por unidade (ex: 10,50). Se for SOMENTE BOX, este valor deve ser o preco_box dividido pela qtd_box.
-  - preco_box: Preço da caixa fechada (se houver). Extraia exatamente o valor que estiver no arquivo.
-  - qtd_box: Quantidade de itens na caixa (ex: 12). Extraia exatamente o que estiver no arquivo.
-  - venda_somente_box: true se o produto só for vendido em caixa fechada
-  - has_box_discount: true se houver desconto para compra em caixa
-  - status_estoque: Tente identificar se está esgotado ou com poucas unidades. Use: "normal", "baixo", "ultimas" ou "esgotado".
-  - tipo_variacao: 'grade' (múltiplos fixos), 'escolha_livre' (cliente escolhe cor/tamanho) ou 'variedades' (lista de SKUs diferentes para o mesmo produto).
-  - variacoes_disponiveis: Se 'escolha_livre', array de objetos {nome: string, opcoes: string[]}.
-  - variacoes_flat: Se 'variedades', array de objetos {sku: string, nome: string, esgotado: boolean}.
-  ${categories ? `- category_name: Escolha a categoria mais adequada APENAS entre estas: [${categoriesList}]. Se não encontrar uma correspondência exata, deixe em branco.` : ''}
+  - preco_box: Preço da caixa fechada (se houver)
+  - qtd_box: Quantidade na caixa (ex: 12)
+  - venda_somente_box: boolean
+  - has_box_discount: boolean
+  - status_estoque: "normal", "baixo", "ultimas" ou "esgotado"
+  - tipo_variacao: 'grade', 'escolha_livre' ou 'variedades'
+  - variacoes_disponiveis: Se 'escolha_livre', array {nome, opcoes[]}
+  - variacoes_flat: Se 'variedades', array {sku, nome}
+  ${categories ? `- category_name: Escolha entre [${categoriesList}]` : ''}
 
-  IMPORTANTE: 
-  1. Extraia TODOS os produtos. Se a lista for longa, continue extraindo até o fim.
-  2. Se o preço estiver em formato brasileiro (R$ 1.234,56), mantenha a precisão decimal.
-  3. Se houver descrições longas, resuma-as para economizar espaço no JSON.
+  IMPORTANTE: Seja conciso nas descrições. Extraia TODOS os produtos.
   
-  Retorne os dados em formato JSON seguindo este esquema rigoroso:
+  Retorne APENAS o JSON no formato:
   {
     "products": [
       {
@@ -79,20 +76,10 @@ export async function extractProductsFromMedia(base64Data: string, mimeType: str
         "venda_somente_box": boolean,
         "has_box_discount": boolean,
         "is_last_units": boolean,
-        "status_estoque": "normal | baixo | ultimas | esgotado",
-        "tipo_variacao": "grade | escolha_livre | variedades",
-        "variacoes_disponiveis": [
-          {
-            "nome": "string",
-            "opcoes": ["string"]
-          }
-        ],
-        "variacoes_flat": [
-          {
-            "sku": "string",
-            "nome": "string"
-          }
-        ]${categories ? ',\n        "category_name": "string"' : ''}
+        "status_estoque": "string",
+        "tipo_variacao": "string",
+        "variacoes_disponiveis": [],
+        "variacoes_flat": []${categories ? ',\n        "category_name": "string"' : ''}
       }
     ]
   }`;
@@ -149,17 +136,25 @@ export async function extractProductsFromMedia(base64Data: string, mimeType: str
         if (jsonText.includes('"products": [')) {
           try {
             let partialJson = jsonText.split('"products": [')[1];
-            // Tentar fechar o array e o objeto
-            // Encontrar o último objeto completo
+            
+            // Se terminou no meio de uma chave ou valor, tenta limpar o final
+            // Encontrar o último objeto que parece completo (termina com })
             const lastObjectEnd = partialJson.lastIndexOf('}');
             if (lastObjectEnd !== -1) {
-              partialJson = '[' + partialJson.substring(0, lastObjectEnd + 1) + ']';
-              const recovered = JSON.parse(partialJson);
+              // Cortar até o último objeto completo
+              let cleanedPartial = partialJson.substring(0, lastObjectEnd + 1);
+              
+              // Garantir que todos os objetos anteriores estão fechados ou remover o último se estiver quebrado
+              // Se o último } não for precedido por um objeto válido, pode ser arriscado, 
+              // mas geralmente o Gemini trunca no meio de um campo.
+              
+              const recoveredJson = '[' + cleanedPartial + ']';
+              const recovered = JSON.parse(recoveredJson);
               console.log(`Recuperados ${recovered.length} produtos de JSON truncado.`);
               return recovered;
             }
           } catch (e) {
-            console.error("Falha ao recuperar JSON truncado");
+            console.error("Falha ao recuperar JSON truncado:", e);
           }
         }
         

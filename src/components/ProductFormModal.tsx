@@ -237,18 +237,38 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
     
     // Check for duplicate SKU within the same brand
     if (skuToSave && formData.brand_id) {
-      const { data: existingSku } = await supabase
-        .from('products')
-        .select('id, nome')
-        .eq('company_id', companyId)
-        .eq('brand_id', formData.brand_id)
-        .eq('sku', skuToSave)
-        .maybeSingle();
+      const brand = brands.find(b => b.id === formData.brand_id);
+      const brandName = brand?.name;
 
-      if (existingSku && (!product || existingSku.id !== product.id)) {
-        alert(`Já existe um produto com este SKU (${skuToSave}) nesta marca: ${existingSku.nome}`);
-        setLoading(false);
-        return;
+      if (isMaster && brandName) {
+        // Na Matriz, validamos contra o Catálogo Mestre
+        const { data: existingMaster } = await supabase
+          .from('master_products')
+          .select('id, nome')
+          .eq('sku', skuToSave)
+          .eq('brand_name', brandName)
+          .maybeSingle();
+
+        if (existingMaster && (!product || existingMaster.id !== product.id)) {
+          alert(`Já existe um produto no MESTRE com este SKU (${skuToSave}) nesta marca: ${existingMaster.nome}`);
+          setLoading(false);
+          return;
+        }
+      } else {
+        // Em outras empresas, validamos contra a tabela local de produtos
+        const { data: existingSku } = await supabase
+          .from('products')
+          .select('id, nome')
+          .eq('company_id', companyId)
+          .eq('brand_id', formData.brand_id)
+          .eq('sku', skuToSave)
+          .maybeSingle();
+
+        if (existingSku && (!product || existingSku.id !== product.id)) {
+          alert(`Já existe um produto com este SKU (${skuToSave}) nesta marca: ${existingSku.nome}`);
+          setLoading(false);
+          return;
+        }
       }
     }
 
@@ -334,8 +354,23 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
           master_product,
           ...updateData 
         } = finalDataToSave as any;
-        const { error: updateError } = await supabase.from('products').update(updateData).eq('id', product.id);
-        error = updateError;
+        
+        // Se for Matriz, o ID do produto é o ID do master_products
+        // Precisamos atualizar a tabela products usando o master_product_id ou encontrar o ID local
+        if (isMaster) {
+          const { error: updateError } = await supabase
+            .from('products')
+            .update(updateData)
+            .eq('master_product_id', product.id)
+            .eq('company_id', companyId);
+          error = updateError;
+        } else {
+          const { error: updateError } = await supabase
+            .from('products')
+            .update(updateData)
+            .eq('id', product.id);
+          error = updateError;
+        }
       } else {
         const { 
           base_price, 

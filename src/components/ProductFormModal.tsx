@@ -352,6 +352,8 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
           margin_percentage,
           categoria_nome,
           master_product,
+          brand_name,
+          category_name,
           ...updateData 
         } = finalDataToSave as any;
         
@@ -380,6 +382,8 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
           margin_percentage,
           categoria_nome,
           master_product,
+          brand_name,
+          category_name,
           ...insertData 
         } = finalDataToSave as any;
         const { error: insertError } = await supabase.from('products').insert([insertData]);

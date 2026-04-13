@@ -70,7 +70,6 @@ export interface Product {
   company_id: string;
   category_id?: string;
   brand_id?: string;
-  master_product_id?: string;
   sku: string;
   nome: string;
   descricao?: string;
@@ -113,27 +112,12 @@ export interface Product {
   promo_until?: string;
   promo_sellers?: string[];
   promo_customers?: string[];
-  sync_to_master?: boolean;
   tipo_variacao?: 'grade' | 'escolha_livre' | 'variedades';
   variacoes_disponiveis?: {
     nome: string; // e.g., "Cor", "Tamanho"
     opcoes: string[]; // e.g., ["Azul", "Vermelho"], ["P", "M", "G"]
   }[];
   variacoes_flat?: { sku: string; nome: string; esgotado?: boolean }[];
-  master_product?: MasterProduct;
-}
-
-export interface MasterProduct {
-  id: string;
-  sku: string;
-  brand_name: string;
-  nome: string;
-  descricao?: string;
-  imagem?: string;
-  imagens?: string[];
-  tipo_variacao?: string;
-  variacoes_disponiveis?: any;
-  created_at?: string;
 }
 
 export interface CartItem extends Product {

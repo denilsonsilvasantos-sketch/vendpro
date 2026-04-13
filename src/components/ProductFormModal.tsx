@@ -26,7 +26,6 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
     promo_box_qty: 0,
     promo_sellers: [],
     promo_customers: [],
-    sync_to_master: companyId === '273c5bbc-631b-44dc-b286-1b07de720222',
     multiplo_venda: 1,
     imagem: '',
     imagens: [],
@@ -278,6 +277,9 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
           brand, 
           margin_percentage,
           categoria_nome,
+          sync_to_master,
+          master_product_id,
+          master_product,
           ...updateData 
         } = finalDataToSave as any;
         const { error: updateError } = await supabase.from('products').update(updateData).eq('id', product.id);
@@ -290,6 +292,9 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
           brand, 
           margin_percentage,
           categoria_nome,
+          sync_to_master,
+          master_product_id,
+          master_product,
           ...insertData 
         } = finalDataToSave as any;
         const { error: insertError } = await supabase.from('products').insert([insertData]);
@@ -709,16 +714,6 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
                   <input type="checkbox" className="hidden" checked={formData.is_promo || false} onChange={e => setFormData({...formData, is_promo: e.target.checked})} />
                   <span className="text-[9px] font-black text-slate-600 uppercase tracking-tight leading-none">Promoção</span>
                 </label>
-
-                {isMaster && (
-                  <label className="flex items-center gap-2 cursor-pointer group bg-primary/5 p-2.5 rounded-[6px] border border-primary/10 hover:border-primary/30 transition-all">
-                    <div className={`w-5 h-5 rounded-[4px] border-2 flex items-center justify-center transition-all shrink-0 ${formData.sync_to_master ? 'bg-primary border-primary shadow-lg shadow-primary/20' : 'border-slate-200 group-hover:border-primary/50'}`}>
-                      {formData.sync_to_master && <Check size={12} strokeWidth={4} className="text-white" />}
-                    </div>
-                    <input type="checkbox" className="hidden" checked={formData.sync_to_master || false} onChange={e => setFormData({...formData, sync_to_master: e.target.checked})} />
-                    <span className="text-[9px] font-black text-primary uppercase tracking-tight leading-none">Sincronizar Mestre</span>
-                  </label>
-                )}
               </div>
 
               <AnimatePresence>

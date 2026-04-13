@@ -51,7 +51,3 @@ export async function getProducts(companyId: string): Promise<Product[]> {
     };
   });
 }
-
-export async function searchMasterProducts(query: string): Promise<any[]> {
-  return [];
-}

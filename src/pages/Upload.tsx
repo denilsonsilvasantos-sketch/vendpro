@@ -520,56 +520,6 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
               variacoes_flat: extracted.variacoes_flat || null
             };
 
-            // Lógica de Catálogo Mestre (Matriz)
-            const brand = brands.find(b => b.id === selectedBrandId);
-            const brandName = brand?.name || 'Sem Marca';
-
-            // Verifica se já existe no mestre
-            const { data: masterProduct } = await supabase
-              .from('master_products')
-              .select('id')
-              .eq('sku', sku)
-              .eq('brand_name', brandName)
-              .maybeSingle();
-
-            if (masterProduct) {
-              productData.master_product_id = masterProduct.id;
-              // Se for a Matriz, atualiza os dados no mestre também
-              if (companyId === '273c5bbc-631b-44dc-b286-1b07de720222') {
-                await supabase
-                  .from('master_products')
-                  .update({
-                    nome: productData.nome,
-                    descricao: extracted.descricao || null,
-                    category_name: categoriaId ? categories.find(c => c.id === categoriaId)?.nome : (extracted.category_name || 'Geral'),
-                    tipo_variacao: productData.tipo_variacao,
-                    variacoes_disponiveis: productData.variacoes_disponiveis
-                  })
-                  .eq('id', masterProduct.id);
-              }
-            } else {
-              // Cria no mestre se não existir
-              const { data: newMaster } = await supabase
-                .from('master_products')
-                .insert([{
-                  sku,
-                  brand_name: brandName,
-                  category_name: categoriaId ? categories.find(c => c.id === categoriaId)?.nome : (extracted.category_name || 'Geral'),
-                  nome: productData.nome,
-                  descricao: extracted.descricao || null,
-                  imagem: (existing as any)?.imagem || null,
-                  imagens: (existing as any)?.imagens || null,
-                  tipo_variacao: productData.tipo_variacao,
-                  variacoes_disponiveis: productData.variacoes_disponiveis
-                }])
-                .select('id')
-                .single();
-              
-              if (newMaster) {
-                productData.master_product_id = newMaster.id;
-              }
-            }
-
             if (existing?.imagem) productData.imagem = existing.imagem;
             
             let result;

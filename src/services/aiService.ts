@@ -56,8 +56,7 @@ export async function extractProductsFromMedia(base64Data: string, mimeType: str
   - venda_somente_box: boolean
   - has_box_discount: boolean
   - status_estoque: "normal", "baixo", "ultimas" ou "esgotado"
-  - tipo_variacao: 'grade', 'escolha_livre' ou 'variedades' (Use 'variedades' se cada opção tiver seu próprio SKU. Use 'escolha_livre' se for o mesmo SKU para todas as opções. Se forem produtos totalmente distintos com SKUs diferentes, NÃO agrupe como variação).
-  - variacoes_disponiveis: Se 'escolha_livre', array {nome, opcoes[]}
+  - tipo_variacao: 'variedades' (Use 'variedades' se o produto tiver variações como tamanhos P, M, G. Cada variação DEVE ter seu próprio SKU. Se forem produtos totalmente distintos com SKUs diferentes, NÃO agrupe como variação).
   - variacoes_flat: Se 'variedades', array {sku, nome}
   ${categories ? `- category_name: Escolha entre [${categoriesList}]` : ''}
 

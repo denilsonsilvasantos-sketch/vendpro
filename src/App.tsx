@@ -2600,7 +2600,7 @@ function CatalogScreen({
         )}
 
         {/* Search Bar & Category Bar (Fixed Container) */}
-        <div className="sticky top-0 z-[100] bg-slate-50/80 backdrop-blur-xl border-b border-slate-200/50 -mx-4 md:-mx-8 px-4 md:px-8 py-6 mb-8 shadow-sm">
+        <div className="sticky top-[88px] z-[100] bg-slate-50/80 backdrop-blur-xl border-b border-slate-200/50 -mx-4 md:-mx-8 px-4 md:px-8 py-6 mb-8 shadow-sm">
           <div className="max-w-6xl xl:max-w-7xl mx-auto space-y-6">
             {/* Search Bar */}
             <div className="max-w-2xl">

@@ -499,6 +499,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
               const foundCat = categories.find(c => c.nome.toLowerCase() === extracted.category_name.toLowerCase());
               if (foundCat) categoriaId = foundCat.id;
             }
+            const isPDF = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
             const productData: any = { 
               company_id: companyId, 
               brand_id: selectedBrandId, 
@@ -508,7 +509,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
               preco_box: parsedPrecoBox, 
               qtd_box: parseNumber(extracted.qtd_box, 1), 
               venda_somente_box: !!extracted.venda_somente_box, 
-              has_box_discount: !!extracted.has_box_discount, 
+              has_box_discount: isPDF ? !!extracted.has_box_discount : false, 
               is_last_units: !!extracted.is_last_units, 
               multiplo_venda: 1, 
               status_estoque: statusEstoque, 

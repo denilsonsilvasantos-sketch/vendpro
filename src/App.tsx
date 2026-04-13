@@ -2223,6 +2223,7 @@ function CatalogScreen({
   onTabChange?: (tab: string) => void
 }) {
   const [search, setSearch] = useState('');
+  const [isAdding, setIsAdding] = useState<string | null>(null);
   const [itemsPerPage, setItemsPerPage] = useState(24);
   const [currentPage, setCurrentPage] = useState(1);
   const [showConditions, setShowConditions] = useState(false);
@@ -2598,56 +2599,63 @@ function CatalogScreen({
           </div>
         )}
 
-        {/* Search Bar */}
-        <div className="mb-8 max-w-2xl">
-          <div className="relative group">
-            <div className="absolute inset-y-0 left-0 pl-6 flex items-center pointer-events-none">
-              <Search className="h-5 w-5 text-slate-400 group-focus-within:text-primary transition-colors" />
+        {/* Search Bar & Category Bar (Fixed Container) */}
+        <div className="sticky top-0 z-[100] bg-slate-50/80 backdrop-blur-xl border-b border-slate-200/50 -mx-4 md:-mx-8 px-4 md:px-8 py-6 mb-8 shadow-sm">
+          <div className="max-w-6xl xl:max-w-7xl mx-auto space-y-6">
+            {/* Search Bar */}
+            <div className="max-w-2xl">
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-6 flex items-center pointer-events-none">
+                  <Search className="h-5 w-5 text-slate-400 group-focus-within:text-primary transition-colors" />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Buscar produtos (Nome ou SKU)..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="block w-full pl-14 pr-32 py-4 bg-white border border-slate-100 rounded-[24px] text-sm font-black uppercase tracking-widest text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-8 focus:ring-primary/5 focus:border-primary/40 transition-all shadow-xl shadow-slate-200/50"
+                />
+                <div className="absolute inset-y-0 right-2 flex items-center gap-1">
+                  <button
+                    onClick={startVoiceSearch}
+                    className={`p-3 rounded-full transition-all ${isListening ? 'bg-rose-500 text-white animate-pulse' : 'text-slate-400 hover:bg-slate-50 hover:text-primary'}`}
+                    title="Busca por voz"
+                  >
+                    <Mic size={20} />
+                  </button>
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className={`p-3 rounded-full transition-all ${isAnalyzingPhoto ? 'bg-primary text-white animate-spin' : 'text-slate-400 hover:bg-slate-50 hover:text-primary'}`}
+                    title="Busca por foto"
+                  >
+                    {isAnalyzingPhoto ? <Loader2 size={20} /> : <Camera size={20} />}
+                  </button>
+                </div>
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  className="hidden" 
+                  accept="image/*" 
+                  onChange={handlePhotoSearch} 
+                />
+              </div>
             </div>
-            <input
-              type="text"
-              placeholder="Buscar produtos (Nome ou SKU)..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="block w-full pl-14 pr-32 py-4 bg-white border border-slate-100 rounded-[24px] text-sm font-black uppercase tracking-widest text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-8 focus:ring-primary/5 focus:border-primary/40 transition-all shadow-xl shadow-slate-200/50"
-            />
-            <div className="absolute inset-y-0 right-2 flex items-center gap-1">
-              <button
-                onClick={startVoiceSearch}
-                className={`p-3 rounded-full transition-all ${isListening ? 'bg-rose-500 text-white animate-pulse' : 'text-slate-400 hover:bg-slate-50 hover:text-primary'}`}
-                title="Busca por voz"
-              >
-                <Mic size={20} />
-              </button>
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className={`p-3 rounded-full transition-all ${isAnalyzingPhoto ? 'bg-primary text-white animate-spin' : 'text-slate-400 hover:bg-slate-50 hover:text-primary'}`}
-                title="Busca por foto"
-              >
-                {isAnalyzingPhoto ? <Loader2 size={20} /> : <Camera size={20} />}
-              </button>
-            </div>
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              className="hidden" 
-              accept="image/*" 
-              onChange={handlePhotoSearch} 
-            />
-          </div>
-        </div>
 
-        {/* Category Bar */}
-        <div className="flex items-center gap-4 mb-12 overflow-x-auto pb-4 custom-scrollbar">
+            {/* Brand Bar */}
+            <div className="flex items-center gap-4 overflow-x-auto pb-2 custom-scrollbar">
               {brands.map(brand => (
-                <button 
+                <motion.button 
                   key={brand.id}
+                  whileHover={{ scale: 1.05, y: -2 }}
+                  whileTap={{ scale: 0.95 }}
                   onClick={() => handleBrandChange(brand.id)}
                   className={`px-8 py-3 rounded-full text-xs font-black uppercase tracking-widest whitespace-nowrap transition-all ${selectedBrand === brand.id ? 'pink-gradient text-white shadow-lg shadow-primary/20' : 'bg-white text-slate-900 hover:bg-slate-50 shadow-sm rounded-full border border-slate-100'}`}
                 >
                   {brand.name}
-                </button>
+                </motion.button>
               ))}
+            </div>
+          </div>
         </div>
 
         <div className="flex flex-col lg:flex-row gap-12">
@@ -2656,24 +2664,30 @@ function CatalogScreen({
             <div>
               <h3 className="text-[10px] font-black uppercase tracking-[0.2em] mb-6 text-slate-400">Categorias</h3>
               <div className="space-y-2">
-                <button 
+                <motion.button 
+                  whileHover={{ scale: 1.02, x: 5 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={() => onTabChange?.('novidades')}
                   className={`w-full text-left px-5 py-3 rounded-[20px] text-xs font-black uppercase tracking-widest transition-all flex items-center gap-3 ${filterType === 'new' ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20' : 'text-slate-900 hover:bg-slate-50'}`}
                 >
                   <Plus size={14} strokeWidth={3} className={filterType === 'new' ? 'text-white' : 'text-amber-500'} />
                   Novidades
-                </button>
-                <button 
+                </motion.button>
+                <motion.button 
+                  whileHover={{ scale: 1.02, x: 5 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={() => onTabChange?.('reposicao')}
                   className={`w-full text-left px-5 py-3 rounded-[20px] text-xs font-black uppercase tracking-widest transition-all flex items-center gap-3 ${filterType === 'back' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'text-slate-900 hover:bg-slate-50'}`}
                 >
                   <CheckCircle2 size={14} strokeWidth={3} className={filterType === 'back' ? 'text-white' : 'text-emerald-500'} />
                   Reposição
-                </button>
+                </motion.button>
 
                 <div className="h-px bg-slate-100 my-4 mx-4" />
 
-                <button 
+                <motion.button 
+                  whileHover={{ scale: 1.02, x: 5 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={() => {
                     onTabChange?.('catalog');
                     setSelectedCategory(null);
@@ -2681,10 +2695,12 @@ function CatalogScreen({
                   className={`w-full text-left px-5 py-3 rounded-[20px] text-xs font-black uppercase tracking-widest transition-all ${filterType === 'all' && !selectedCategory ? 'bg-primary/10 text-primary' : 'text-slate-900 hover:bg-slate-50'}`}
                 >
                   Todas
-                </button>
+                </motion.button>
                 {[...visibleCategories].sort((a, b) => (a.order_index || 0) - (b.order_index || 0)).map(cat => (
-                  <button 
+                  <motion.button 
                     key={cat.id}
+                    whileHover={{ scale: 1.02, x: 5 }}
+                    whileTap={{ scale: 0.98 }}
                     onClick={() => {
                       onTabChange?.('catalog');
                       setSelectedCategory(cat.id);
@@ -2692,7 +2708,7 @@ function CatalogScreen({
                     className={`w-full text-left px-5 py-3 rounded-[20px] text-xs font-black uppercase tracking-widest transition-all ${filterType === 'all' && selectedCategory === cat.id ? 'bg-primary/10 text-primary' : 'text-slate-900 hover:bg-slate-50'}`}
                   >
                     {cat.nome}
-                  </button>
+                  </motion.button>
                 ))}
               </div>
             </div>
@@ -2761,12 +2777,19 @@ function CatalogScreen({
                     <ProductCard 
                       key={p.id} 
                       product={p} 
-                      onAdd={onAddToCart} 
+                      onAdd={(prod, q, v) => {
+                        setIsAdding(prod.id);
+                        setTimeout(() => {
+                          onAddToCart(prod, q, v);
+                          setIsAdding(null);
+                        }, 600);
+                      }} 
                       onEdit={onEdit} 
                       role={role} 
                       userId={user?.id}
                       onZoom={onZoom}
                       isInCart={isInCart}
+                      isAdding={isAdding === p.id}
                     />
                   );
                 })}
@@ -2978,7 +3001,7 @@ function VarietiesModal({
   );
 }
 
-const ProductCard = memo(({ product, onAdd, onEdit, role, userId, onZoom, isInCart, ...props }: { product: Product, onAdd: (p: Product, q: number, v?: Record<string, string>) => void, onEdit: (p: Product) => void, role: UserRole, userId?: string, onZoom: (imgs: string[], index: number) => void, isInCart?: boolean, [key: string]: any }) => {
+const ProductCard = memo(({ product, onAdd, onEdit, role, userId, onZoom, isInCart, isAdding, ...props }: { product: Product, onAdd: (p: Product, q: number, v?: Record<string, string>) => void, onEdit: (p: Product) => void, role: UserRole, userId?: string, onZoom: (imgs: string[], index: number) => void, isInCart?: boolean, isAdding?: boolean, [key: string]: any }) => {
   const [qty, setQty] = useState(product.venda_somente_box ? 1 : (product.multiplo_venda || 1));
   const [selectedVariations, setSelectedVariations] = useState<Record<string, string>>({});
   const [showVarieties, setShowVarieties] = useState(false);
@@ -3206,12 +3229,35 @@ const ProductCard = memo(({ product, onAdd, onEdit, role, userId, onZoom, isInCa
               }
               onAdd(product, qty, selectedVariations);
             }} 
-            disabled={isEsgotado}
-            className="w-full py-4 text-white rounded-[20px] font-black uppercase tracking-widest text-[10px] shadow-lg hover:scale-[0.98] active:scale-95 disabled:opacity-50 transition-all"
+            disabled={isEsgotado || isAdding}
+            className="w-full py-4 text-white rounded-[20px] font-black uppercase tracking-widest text-[10px] shadow-lg hover:scale-[0.98] active:scale-95 disabled:opacity-50 transition-all relative overflow-hidden"
             style={{ background: 'linear-gradient(135deg, #C21863, #E8257A)' }}
           >
-            <ShoppingCart size={14} className="inline-block mr-2" />
-            {product.tipo_variacao === 'variedades' ? 'Escolher Variedades' : 'Adicionar'}
+            <AnimatePresence mode="wait">
+              {isAdding ? (
+                <motion.div
+                  key="adding"
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: -20, opacity: 0 }}
+                  className="flex items-center justify-center gap-2"
+                >
+                  <Loader2 size={14} className="animate-spin" />
+                  <span>Adicionando...</span>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="idle"
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: -20, opacity: 0 }}
+                  className="flex items-center justify-center gap-2"
+                >
+                  <ShoppingCart size={14} />
+                  <span>{product.tipo_variacao === 'variedades' ? 'Escolher Variedades' : 'Adicionar'}</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </button>
         </div>
       </Card>

@@ -546,24 +546,49 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
                   <span className="text-[11px] font-black text-slate-600 uppercase tracking-widest">Vender em Múltiplos</span>
                 </label>
 
-                <label className="flex items-center gap-3 cursor-pointer group">
-                  <div className={`w-6 h-6 rounded-[6px] border-2 flex items-center justify-center transition-all ${formData.tipo_variacao === 'variedades' ? 'bg-primary border-primary shadow-lg shadow-primary/20' : 'border-slate-200 group-hover:border-primary/50'}`}>
-                    {formData.tipo_variacao === 'variedades' && <Check size={14} strokeWidth={4} className="text-white" />}
-                  </div>
-                  <input 
-                    type="checkbox" 
-                    className="sr-only" 
-                    checked={formData.tipo_variacao === 'variedades'} 
-                    onChange={e => {
-                      if (e.target.checked) {
-                        setFormData({...formData, tipo_variacao: 'variedades'});
-                      } else {
-                        setFormData({...formData, tipo_variacao: undefined, variacoes_flat: []});
-                      }
-                    }} 
-                  />
-                  <span className="text-[11px] font-black text-slate-600 uppercase tracking-widest">Variedades</span>
-                </label>
+                <div className="flex flex-wrap gap-4">
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <div className={`w-6 h-6 rounded-[6px] border-2 flex items-center justify-center transition-all ${!formData.tipo_variacao ? 'bg-slate-800 border-slate-800 shadow-lg shadow-slate-800/20' : 'border-slate-200 group-hover:border-slate-800/50'}`}>
+                      {!formData.tipo_variacao && <Check size={14} strokeWidth={4} className="text-white" />}
+                    </div>
+                    <input 
+                      type="radio" 
+                      name="tipo_variacao"
+                      className="sr-only" 
+                      checked={!formData.tipo_variacao} 
+                      onChange={() => setFormData({...formData, tipo_variacao: undefined, variacoes_flat: [], variacoes_disponiveis: []})} 
+                    />
+                    <span className="text-[11px] font-black text-slate-600 uppercase tracking-widest">Nenhuma</span>
+                  </label>
+
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <div className={`w-6 h-6 rounded-[6px] border-2 flex items-center justify-center transition-all ${formData.tipo_variacao === 'variedades' ? 'bg-primary border-primary shadow-lg shadow-primary/20' : 'border-slate-200 group-hover:border-primary/50'}`}>
+                      {formData.tipo_variacao === 'variedades' && <Check size={14} strokeWidth={4} className="text-white" />}
+                    </div>
+                    <input 
+                      type="radio" 
+                      name="tipo_variacao"
+                      className="sr-only" 
+                      checked={formData.tipo_variacao === 'variedades'} 
+                      onChange={() => setFormData({...formData, tipo_variacao: 'variedades', variacoes_disponiveis: []})} 
+                    />
+                    <span className="text-[11px] font-black text-slate-600 uppercase tracking-widest">Variedades (Grade)</span>
+                  </label>
+
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <div className={`w-6 h-6 rounded-[6px] border-2 flex items-center justify-center transition-all ${formData.tipo_variacao === 'escolha_livre' ? 'bg-primary border-primary shadow-lg shadow-primary/20' : 'border-slate-200 group-hover:border-primary/50'}`}>
+                      {formData.tipo_variacao === 'escolha_livre' && <Check size={14} strokeWidth={4} className="text-white" />}
+                    </div>
+                    <input 
+                      type="radio" 
+                      name="tipo_variacao"
+                      className="sr-only" 
+                      checked={formData.tipo_variacao === 'escolha_livre'} 
+                      onChange={() => setFormData({...formData, tipo_variacao: 'escolha_livre', variacoes_flat: []})} 
+                    />
+                    <span className="text-[11px] font-black text-slate-600 uppercase tracking-widest">Escolha Livre (Tamanho/Cor)</span>
+                  </label>
+                </div>
 
                 {formData.multiplo_venda && formData.multiplo_venda > 1 && (
                   <div className="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-[6px] border border-slate-100 shadow-inner">
@@ -578,6 +603,72 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
                   </div>
                 )}
 
+                {formData.tipo_variacao === 'escolha_livre' && (
+                  <div className="space-y-4 bg-slate-50 p-4 rounded-xl border border-slate-100 shadow-inner">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Atributos (ex: Tamanho, Cor)</p>
+                      <button 
+                        type="button" 
+                        onClick={() => {
+                          const current = formData.variacoes_disponiveis || [];
+                          setFormData({
+                            ...formData, 
+                            variacoes_disponiveis: [...current, { nome: '', opcoes: [] }]
+                          });
+                        }}
+                        className="text-[9px] font-black text-primary uppercase tracking-widest flex items-center gap-1 hover:underline"
+                      >
+                        <Plus size={10} /> Adicionar Atributo
+                      </button>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      {(formData.variacoes_disponiveis || []).map((v, idx) => (
+                        <div key={idx} className="p-4 bg-white rounded-2xl border border-slate-100 space-y-3">
+                          <div className="flex gap-3 items-center">
+                            <input 
+                              placeholder="Nome (ex: Tamanho)" 
+                              className="flex-1 p-2 bg-slate-50 border border-slate-200 rounded-md text-[10px] font-black uppercase tracking-widest outline-none focus:border-primary/30"
+                              value={v.nome}
+                              onChange={e => {
+                                const newList = [...(formData.variacoes_disponiveis || [])];
+                                newList[idx] = { ...newList[idx], nome: e.target.value };
+                                setFormData({ ...formData, variacoes_disponiveis: newList });
+                              }}
+                            />
+                            <button 
+                              type="button"
+                              onClick={() => {
+                                const newList = (formData.variacoes_disponiveis || []).filter((_, i) => i !== idx);
+                                setFormData({ ...formData, variacoes_disponiveis: newList });
+                              }}
+                              className="p-2 text-slate-300 hover:text-rose-500 transition-colors"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Opções (separadas por vírgula)</p>
+                            <input 
+                              placeholder="ex: P, M, G, GG" 
+                              className="w-full p-2 bg-slate-50 border border-slate-200 rounded-md text-[10px] font-bold outline-none focus:border-primary/30"
+                              value={v.opcoes.join(', ')}
+                              onChange={e => {
+                                const newList = [...(formData.variacoes_disponiveis || [])];
+                                newList[idx] = { ...newList[idx], opcoes: e.target.value.split(',').map(s => s.trim()).filter(Boolean) };
+                                setFormData({ ...formData, variacoes_disponiveis: newList });
+                              }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                      {(formData.variacoes_disponiveis || []).length === 0 && (
+                        <p className="text-[9px] text-slate-400 text-center py-2 italic">Nenhum atributo adicionado.</p>
+                      )}
+                    </div>
+                  </div>
+                )}
                 {formData.tipo_variacao === 'variedades' && (
                   <div className="space-y-4 bg-slate-50 p-4 rounded-xl border border-slate-100 shadow-inner">
                     <div className="flex items-center justify-between mb-2">

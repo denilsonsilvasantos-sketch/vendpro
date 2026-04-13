@@ -96,11 +96,11 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
       });
       const data = await response.json();
       if (data.secure_url) {
-        if (!formData.imagem) {
-          setFormData(prev => ({ ...prev, imagem: data.secure_url, imagens: [data.secure_url, ...(prev.imagens || [])] }));
-        } else {
-          setFormData(prev => ({ ...prev, imagens: [...(prev.imagens || []), data.secure_url] }));
-        }
+        setFormData(prev => ({ 
+          ...prev, 
+          imagem: data.secure_url, 
+          imagens: [data.secure_url, ...(prev.imagens || [])] 
+        }));
       }
     } catch (error) {
       console.error('Erro no upload:', error);
@@ -306,7 +306,8 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
         masterProductId = existingMaster.id;
         // Atualizar mestre apenas se for o Master editando
         if (isMaster) {
-          await supabase.from('master_products').update({
+          console.log("Atualizando Catálogo Mestre...");
+          const { error: masterUpdateError } = await supabase.from('master_products').update({
             nome: formData.nome,
             descricao: formData.descricao,
             imagem: formData.imagem,
@@ -315,6 +316,13 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
             tipo_variacao: formData.tipo_variacao,
             variacoes_disponiveis: formData.variacoes_disponiveis
           }).eq('id', existingMaster.id);
+          
+          if (masterUpdateError) {
+            console.error("Erro ao atualizar mestre:", masterUpdateError);
+            alert("Aviso: O produto local foi salvo, mas houve um erro ao atualizar o Catálogo Mestre: " + masterUpdateError.message);
+          } else {
+            console.log("Catálogo Mestre atualizado com sucesso.");
+          }
         }
       } else if (formData.sync_to_master || isMaster) {
         // Criar no mestre apenas se solicitado ou se for Master

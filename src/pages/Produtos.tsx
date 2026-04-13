@@ -324,7 +324,7 @@ export default function Produtos({ companyId, onRefresh }: { companyId: string |
       <AnimatePresence>
         {isBulkModalOpen && (
           <BulkImageUploadModal 
-            onClose={() => setIsBulkModalOpen(false)} 
+            onClose={() => { fetchData(); setIsBulkModalOpen(false); if (onRefresh) onRefresh(); }} 
             onComplete={() => { fetchData(); setIsBulkModalOpen(false); if (onRefresh) onRefresh(); }} 
             companyId={companyId}
             brands={brands}

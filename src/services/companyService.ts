@@ -84,18 +84,30 @@ export async function loginCompany(identifier: string, senha?: string) {
     });
 
     if (signInError) {
-      // If sign in fails, try to sign up (first time login)
-      await supabase.auth.signUp({
-        email: authEmail,
-        password: company.senha,
-        options: {
-          data: {
-            role: 'company',
-            company_id: company.id,
-            nome: company.nome
+      console.warn("Sign in failed, checking if user needs to be created:", signInError.message);
+      // Only try to sign up if the error is specifically about user not found
+      // or if we want to ensure the user exists for RLS.
+      // Note: Supabase doesn't always return a clear "user not found" error code for security.
+      if (signInError.message.includes('Invalid login credentials') || signInError.status === 400) {
+        try {
+          const { error: signUpError } = await supabase.auth.signUp({
+            email: authEmail,
+            password: company.senha,
+            options: {
+              data: {
+                role: 'company',
+                company_id: company.id,
+                nome: company.nome
+              }
+            }
+          });
+          if (signUpError) {
+            console.error("Erro ao tentar registrar no Auth durante login:", signUpError.message);
           }
+        } catch (err) {
+          console.error("Exceção ao tentar registrar no Auth durante login:", err);
         }
-      });
+      }
     }
   }
 

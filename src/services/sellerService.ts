@@ -61,18 +61,27 @@ export async function validateSellerCode(code: string, senha?: string, type: 'se
     });
 
     if (signInError) {
-      // If sign in fails, try to sign up (first time login)
-      await supabase.auth.signUp({
-        email,
-        password: authPassword,
-        options: {
-          data: {
-            role: 'seller',
-            company_id: seller.company_id,
-            seller_id: seller.id
+      console.warn("Sign in failed for seller, checking if user needs to be created:", signInError.message);
+      if (signInError.message.includes('Invalid login credentials') || signInError.status === 400) {
+        try {
+          const { error: signUpError } = await supabase.auth.signUp({
+            email,
+            password: authPassword,
+            options: {
+              data: {
+                role: 'seller',
+                company_id: seller.company_id,
+                seller_id: seller.id
+              }
+            }
+          });
+          if (signUpError) {
+            console.error("Erro ao tentar registrar vendedor no Auth durante login:", signUpError.message);
           }
+        } catch (err) {
+          console.error("Exceção ao tentar registrar vendedor no Auth durante login:", err);
         }
-      });
+      }
     }
   }
 

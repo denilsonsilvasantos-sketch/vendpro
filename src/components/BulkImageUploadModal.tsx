@@ -97,26 +97,68 @@ export default function BulkImageUploadModal({
       setResults([...updatedResults]);
 
       try {
-        // 1. Find the product
-        let query = supabase
-          .from('products')
-          .select('id, imagens')
-          .eq('company_id', companyId)
-          .eq('brand_id', selectedBrand)
-          .eq('sku', sku);
+        console.log(`Processando arquivo: ${file.name}, SKU extraído: ${sku}`);
+        const isMaster = companyId === '273c5bbc-631b-44dc-b286-1b07de720222';
+        const brand = brands.find(b => b.id === selectedBrand);
         
-        if (selectedCategory) {
-          query = query.eq('category_id', selectedCategory);
+        // 1. Find the product
+        let product: any = null;
+        let productId: string | null = null;
+        let currentImagens: string[] = [];
+
+        if (isMaster && brand) {
+          console.log(`Empresa Matriz detectada. Buscando em master_products para SKU ${sku} e marca ${brand.name}...`);
+          const { data: masterProduct, error: masterFindError } = await supabase
+            .from('master_products')
+            .select('id, imagens')
+            .eq('sku', sku)
+            .eq('brand_name', brand.name)
+            .maybeSingle();
+          
+          if (masterProduct) {
+            product = masterProduct;
+            productId = masterProduct.id;
+            currentImagens = masterProduct.imagens || [];
+          }
         }
 
-        const { data: product, error: findError } = await query.maybeSingle();
+        // Se não for master ou não encontrou no mestre, busca na tabela local de produtos
+        if (!product) {
+          console.log(`Buscando na tabela local de produtos para SKU ${sku}...`);
+          let query = supabase
+            .from('products')
+            .select('id, imagens, sku')
+            .eq('company_id', companyId)
+            .eq('brand_id', selectedBrand)
+            .eq('sku', sku);
+          
+          if (selectedCategory) {
+            query = query.eq('category_id', selectedCategory);
+          }
 
-        if (findError || !product) {
+          const { data: localProduct, error: findError } = await query.maybeSingle();
+
+          if (findError) {
+            console.error(`Erro ao buscar produto local para SKU ${sku}:`, findError);
+            throw findError;
+          }
+
+          if (localProduct) {
+            product = localProduct;
+            productId = localProduct.id;
+            currentImagens = localProduct.imagens || [];
+          }
+        }
+
+        if (!product) {
+          console.warn(`Produto não encontrado para SKU ${sku} na marca selecionada.`);
           updatedResults[i].status = 'error';
           updatedResults[i].message = 'Produto não encontrado com este SKU nesta marca.';
           setResults([...updatedResults]);
           continue;
         }
+
+        console.log(`Produto identificado. Iniciando upload para Cloudinary...`);
 
         // 2. Upload to Cloudinary
         const formData = new FormData();
@@ -131,46 +173,63 @@ export default function BulkImageUploadModal({
         const data = await response.json();
         
         if (!data.secure_url) {
+          console.error('Erro na resposta do Cloudinary:', data);
           throw new Error('Falha no upload para Cloudinary');
         }
 
         const imageUrl = data.secure_url;
+        console.log(`Upload concluído: ${imageUrl}`);
 
         // 3. Update product in Supabase
-        const currentImagens = product.imagens || [];
         const newImagens = currentImagens.includes(imageUrl) 
           ? currentImagens 
           : [imageUrl, ...currentImagens];
 
-        const { error: updateError } = await supabase
-          .from('products')
-          .update({ 
-            imagem: imageUrl,
-            imagens: newImagens,
-            imagem_pendente: false
-          })
-          .eq('id', product.id);
-
-        if (updateError) throw updateError;
-
-        // 4. If Master company, also update master_products
-        const isMaster = companyId === '273c5bbc-631b-44dc-b286-1b07de720222';
-        if (isMaster) {
-          const brand = brands.find(b => b.id === selectedBrand);
-          if (brand) {
-            await supabase
-              .from('master_products')
-              .update({
-                imagem: imageUrl,
-                imagens: newImagens
-              })
-              .eq('sku', sku)
-              .eq('brand_name', brand.name);
+        if (isMaster && brand) {
+          console.log(`Atualizando master_products para SKU ${sku}...`);
+          const { error: masterUpdateError } = await supabase
+            .from('master_products')
+            .update({
+              imagem: imageUrl,
+              imagens: newImagens
+            })
+            .eq('sku', sku)
+            .eq('brand_name', brand.name);
+          
+          if (masterUpdateError) {
+            console.error(`Erro ao atualizar master_products:`, masterUpdateError);
           }
+        }
+
+        // Também tenta atualizar na tabela local se o produto veio de lá ou se queremos manter sincronizado
+        // Para a Matriz, o "id" que temos pode ser do master_products ou do products local.
+        // Se buscamos no master_products primeiro, o productId é do master_products.
+        // Mas a Matriz também pode ter o produto na tabela local.
+        
+        // Vamos buscar o produto local pelo SKU para garantir a atualização local também
+        const { data: localProd } = await supabase
+          .from('products')
+          .select('id')
+          .eq('company_id', companyId)
+          .eq('brand_id', selectedBrand)
+          .eq('sku', sku)
+          .maybeSingle();
+
+        if (localProd) {
+          console.log(`Atualizando produto local ${localProd.id}...`);
+          await supabase
+            .from('products')
+            .update({ 
+              imagem: imageUrl,
+              imagens: newImagens,
+              imagem_pendente: false
+            })
+            .eq('id', localProd.id);
         }
 
         updatedResults[i].status = 'success';
         updatedResults[i].message = 'Vinculado com sucesso!';
+        console.log(`Processamento concluído com sucesso para ${file.name}`);
       } catch (error: any) {
         console.error(`Erro ao processar ${file.name}:`, error);
         updatedResults[i].status = 'error';

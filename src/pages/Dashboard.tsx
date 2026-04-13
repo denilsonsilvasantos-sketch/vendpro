@@ -149,8 +149,8 @@ export default function Dashboard({ companyId, role, user, banners }: { companyI
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
           <h2 className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-4">Visão Geral</h2>
-          <div className="h-48">
-            <ResponsiveContainer width="100%" height="100%">
+          <div className="h-48 w-full">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
               <BarChart data={isMaster ? [
                 { name: 'Produtos Matriz', value: stats.products },
                 { name: 'Marcas', value: stats.brands },
@@ -175,11 +175,11 @@ export default function Dashboard({ companyId, role, user, banners }: { companyI
         {!isMaster && (
           <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
             <h2 className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-4">Faturamento por Marca</h2>
-            <div className="h-48">
+            <div className="h-48 w-full">
               {brandRevenue.length === 0 ? (
                 <div className="h-full flex items-center justify-center text-slate-300 text-xs">Nenhum pedido ainda</div>
               ) : (
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                   <BarChart data={brandRevenue} layout="vertical">
                     <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
                     <XAxis type="number" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 9, fontWeight: 700 }} />

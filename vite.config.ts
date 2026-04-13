@@ -18,7 +18,7 @@ export default defineConfig(({mode}) => {
         injectManifest: {
           maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         },
-        includeAssets: ['favicon.ico', 'pwa-192x192.png', 'pwa-512x512.png', 'LOGO_VENDPRO.png'],
+        includeAssets: ['favicon.ico', 'pwa-192x192.png', 'pwa-512x512.png'],
         manifest: {
           name: 'VendPro',
           short_name: 'VendPro',

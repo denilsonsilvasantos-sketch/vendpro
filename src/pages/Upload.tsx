@@ -324,7 +324,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
       for (const d of syncData) {
         const existing = existingMap.get(d.sku);
         if (existing) {
-          const newStatus = d.qtd === 0 ? 'esgotado' : d.qtd < 10 ? 'ultimas' : 'normal';
+          const newStatus = d.qtd === 0 ? 'esgotado' : 'normal';
           
           const nameChanged = d.nome && d.nome !== existing.nome;
           
@@ -365,7 +365,6 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
             
             updates.push(updateObj);
             if (newStatus === 'esgotado') newOutOfStock.push({ sku: existing.sku, nome: existing.nome });
-            else if (newStatus === 'ultimas') newLastUnits.push({ sku: existing.sku, nome: existing.nome });
           }
         } else unregistered.push(d);
       }
@@ -389,7 +388,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
           setProgress(Math.round(((i + Math.min(batchSize, updates.length - i)) / updates.length) * 100));
         }
       }
-      setUnregisteredSkus(unregistered); setOutOfStockSkus(newOutOfStock); setLastUnitsSkus(newLastUnits);
+      setUnregisteredSkus(unregistered); setOutOfStockSkus(newOutOfStock);
       if (unregistered.length > 0) setShowUnregisteredAlert(true); else setShowSyncReport(true);
       setIsUploading(false); setUploadedFiles([]);
       setStatus({ type: 'success', message: `Sincronização concluída! ${updates.length} produtos atualizados.` });
@@ -486,7 +485,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
             
             // Se a IA marcou como últimas unidades, garante que o status reflita isso
             if (extracted.is_last_units && statusEstoque === 'normal') {
-              statusEstoque = 'ultimas';
+              // Mantemos o status como normal, mas o is_last_units já está sendo salvo como true abaixo
             }
             
             // Se o estoque for 0, garante que o status seja esgotado
@@ -609,7 +608,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
         productQuery = productQuery.neq('status_estoque', 'esgotado');
       }
       if (!includeLastUnits) {
-        productQuery = productQuery.neq('status_estoque', 'ultimas');
+        productQuery = productQuery.eq('is_last_units', false);
       }
 
       const [productsRes, brandsRes, categoriesRes] = await Promise.all([
@@ -784,7 +783,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
             }
 
             // Status Badge
-            if (p.status_estoque === 'esgotado' || p.status_estoque === 'ultimas') {
+            if (p.status_estoque === 'esgotado' || p.is_last_units) {
               const statusText = p.status_estoque === 'esgotado' ? 'ESGOTADO' : 'ÚLTIMAS';
               const badgeColor = p.status_estoque === 'esgotado' ? [244, 63, 94] : [245, 158, 11];
               doc.setFillColor(badgeColor[0], badgeColor[1], badgeColor[2]);

@@ -3174,7 +3174,7 @@ const ProductCard = memo(({ product, onAdd, onEdit, role, userId, onZoom, isInCa
           </AnimatePresence>
           <div className="absolute top-3 w-full flex flex-col gap-1 items-center">
             {isEsgotado && <span className="bg-slate-900 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-widest">ESGOTADO</span>}
-            {!isEsgotado && (product.is_last_units || product.status_estoque === 'ultimas') && <span className="bg-rose-500 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-widest">ÚLTIMAS UNIDADES</span>}
+            {!isEsgotado && product.is_last_units && <span className="bg-rose-500 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-widest">ÚLTIMAS UNIDADES</span>}
             {product.venda_somente_box && <span className="bg-amber-500 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-widest">SOMENTE NO BOX</span>}
             {isPromoActive && <span className="bg-amber-500 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-widest border border-amber-600/20">PROMOÇÃO</span>}
             

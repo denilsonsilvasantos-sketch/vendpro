@@ -452,7 +452,7 @@ const ProductItem = memo(({
         </AnimatePresence>
         <div className="absolute top-2 right-2 flex flex-col gap-1.5 items-end z-10">
           {isEsgotado && <span className="bg-slate-900 text-white text-[7px] font-black px-1.5 py-0.5 rounded shadow-xl uppercase tracking-wider border border-white/10">Esgotado</span>}
-          {!isEsgotado && (product.is_last_units || product.status_estoque === 'ultimas') && <span className="bg-rose-500 text-white text-[7px] font-black px-1.5 py-0.5 rounded shadow-xl uppercase tracking-wider border border-white/10">Últimas</span>}
+          {!isEsgotado && product.is_last_units && <span className="bg-rose-500 text-white text-[7px] font-black px-1.5 py-0.5 rounded shadow-xl uppercase tracking-wider border border-white/10">Últimas</span>}
           {product.venda_somente_box && <span className="bg-amber-500 text-white text-[7px] font-black px-1.5 py-0.5 rounded shadow-xl uppercase tracking-wider border border-white/10">Somente Box</span>}
           
           {!isEsgotado && product.is_new && product.new_until && new Date(product.new_until) > new Date() ? (

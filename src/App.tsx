@@ -913,7 +913,7 @@ export default function App() {
         </div>
 
         {/* Search Bar in Header */}
-        <div className="flex-1 max-w-xl hidden md:block">
+        <div className="flex-1 max-w-xl">
           <div className="relative group">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
               <Search className="h-4 w-4 text-slate-400 group-focus-within:text-primary transition-colors" />
@@ -2459,17 +2459,25 @@ function CatalogScreen({
     }).sort((a, b) => {
       const now = new Date();
       
-      // Prioridade para Novidades
+      // Prioridade para Novidades (Ordenados por data de criação)
       const isNewA = a.is_new && a.new_until && new Date(a.new_until) > now;
       const isNewB = b.is_new && b.new_until && new Date(b.new_until) > now;
-      if (isNewA && !isNewB) return -1;
-      if (!isNewA && isNewB) return 1;
+      if (isNewA || isNewB) {
+        if (isNewA && !isNewB) return -1;
+        if (!isNewA && isNewB) return 1;
+        // Se ambos são novos, o mais recente primeiro
+        return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+      }
 
-      // Prioridade para Reposição
+      // Prioridade para Reposição (Ordenados por data de criação/atualização)
       const isBackA = a.back_in_stock_until && new Date(a.back_in_stock_until) > now;
       const isBackB = b.back_in_stock_until && new Date(b.back_in_stock_until) > now;
-      if (isBackA && !isBackB) return -1;
-      if (!isBackA && isBackB) return 1;
+      if (isBackA || isBackB) {
+        if (isBackA && !isBackB) return -1;
+        if (!isBackA && isBackB) return 1;
+        // Se ambos são reposição, o mais recente primeiro
+        return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+      }
 
       // Prioridade para Promoções
       const isPromoA = a.is_promo && (!a.promo_until || new Date(a.promo_until) > now);
@@ -2667,39 +2675,9 @@ function CatalogScreen({
           </div>
         )}
 
-        {/* Search Bar & Category Bar (Fixed Container) - REMOVED Search, kept Brands but not sticky */}
+        {/* Category Bar (Fixed Container) - REMOVED Search, kept Brands but not sticky */}
         <div className="mb-8">
           <div className="max-w-6xl xl:max-w-7xl mx-auto space-y-6">
-            {/* Mobile Search Bar (Visible only on small screens) */}
-            <div className="md:hidden">
-              <div className="relative group">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Search className="h-4 w-4 text-slate-400 group-focus-within:text-primary transition-colors" />
-                </div>
-                <input
-                  type="text"
-                  placeholder="Buscar produtos..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="block w-full pl-10 pr-24 py-3 bg-white border border-slate-100 rounded-2xl text-sm font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary/40 transition-all shadow-sm"
-                />
-                <div className="absolute inset-y-0 right-1 flex items-center gap-0.5">
-                  <button
-                    onClick={startVoiceSearch}
-                    className={`p-2 rounded-full transition-all ${isListening ? 'bg-rose-500 text-white animate-pulse' : 'text-slate-400 hover:bg-slate-100 hover:text-primary'}`}
-                  >
-                    <Mic size={16} />
-                  </button>
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className={`p-2 rounded-full transition-all ${isAnalyzingPhoto ? 'bg-primary text-white animate-spin' : 'text-slate-400 hover:bg-slate-100 hover:text-primary'}`}
-                  >
-                    {isAnalyzingPhoto ? <Loader2 size={16} /> : <Camera size={16} />}
-                  </button>
-                </div>
-              </div>
-            </div>
-
             {/* Brand Bar */}
             <div className="flex items-center gap-4 overflow-x-auto pb-2 custom-scrollbar">
               {brands.map(brand => (
@@ -3195,13 +3173,12 @@ const ProductCard = memo(({ product, onAdd, onEdit, role, userId, onZoom, isInCa
             {product.venda_somente_box && <span className="bg-amber-500 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-widest">SOMENTE NO BOX</span>}
             {isPromoActive && <span className="bg-amber-500 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-widest border border-amber-600/20">PROMOÇÃO</span>}
             
-            {/* Novos Selos */}
-            {!isEsgotado && product.is_new && product.new_until && new Date(product.new_until) > new Date() && (
+            {/* Novos Selos (Exclusivos) */}
+            {!isEsgotado && product.is_new && product.new_until && new Date(product.new_until) > new Date() ? (
               <span className="bg-amber-400 text-slate-900 text-[9px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-widest border border-amber-500/20">NOVIDADE</span>
-            )}
-            {!isEsgotado && product.back_in_stock_until && new Date(product.back_in_stock_until) > new Date() && (
+            ) : !isEsgotado && product.back_in_stock_until && new Date(product.back_in_stock_until) > new Date() ? (
               <span className="bg-emerald-500 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-widest border border-emerald-600/20">VOLTEI!</span>
-            )}
+            ) : null}
           </div>
         </div>
         

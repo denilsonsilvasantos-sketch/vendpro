@@ -87,6 +87,26 @@ export default function Produtos({ companyId, onRefresh, searchTerm: externalSea
       
       return matchesSearch && matchesBrand && matchesCategory;
     }).sort((a, b) => {
+      const now = new Date();
+      
+      // Prioridade para Novidades (Ordenados por data de criação)
+      const isNewA = a.is_new && a.new_until && new Date(a.new_until) > now;
+      const isNewB = b.is_new && b.new_until && new Date(b.new_until) > now;
+      if (isNewA || isNewB) {
+        if (isNewA && !isNewB) return -1;
+        if (!isNewA && isNewB) return 1;
+        return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+      }
+
+      // Prioridade para Reposição (Ordenados por data de criação/atualização)
+      const isBackA = a.back_in_stock_until && new Date(a.back_in_stock_until) > now;
+      const isBackB = b.back_in_stock_until && new Date(b.back_in_stock_until) > now;
+      if (isBackA || isBackB) {
+        if (isBackA && !isBackB) return -1;
+        if (!isBackA && isBackB) return 1;
+        return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+      }
+
       const isEsgotadoA = a.status_estoque === 'esgotado';
       const isEsgotadoB = b.status_estoque === 'esgotado';
 
@@ -177,31 +197,6 @@ export default function Produtos({ companyId, onRefresh, searchTerm: externalSea
         </div>
 
       <div className="flex flex-col lg:flex-row gap-4 p-4 bg-white rounded-[32px] border border-slate-100 shadow-sm neumorphic-shadow">
-        {!externalSearchTerm && (
-          <div className="relative flex-1 group">
-            <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors" size={18} />
-            <input 
-              type="text" 
-              placeholder="Buscar por nome ou SKU..."
-              className="w-full pl-12 pr-6 py-3 bg-slate-50/50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary/30 transition-all font-bold text-slate-900 placeholder:text-slate-400 text-sm"
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-            />
-          </div>
-        )}
-        
-        {externalSearchTerm && (
-          <div className="md:hidden relative flex-1 group">
-            <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors" size={18} />
-            <input 
-              type="text" 
-              placeholder="Buscar por nome ou SKU..."
-              className="w-full pl-12 pr-6 py-3 bg-slate-50/50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary/30 transition-all font-bold text-slate-900 placeholder:text-slate-400 text-sm"
-              value={searchTerm}
-              onChange={e => setInternalSearchTerm(e.target.value)}
-            />
-          </div>
-        )}
         <div className="relative min-w-[200px] group">
           <Filter className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors" size={16} />
           <select 
@@ -459,6 +454,12 @@ const ProductItem = memo(({
           {isEsgotado && <span className="bg-slate-900 text-white text-[7px] font-black px-1.5 py-0.5 rounded shadow-xl uppercase tracking-wider border border-white/10">Esgotado</span>}
           {!isEsgotado && (product.is_last_units || product.status_estoque === 'ultimas') && <span className="bg-rose-500 text-white text-[7px] font-black px-1.5 py-0.5 rounded shadow-xl uppercase tracking-wider border border-white/10">Últimas</span>}
           {product.venda_somente_box && <span className="bg-amber-500 text-white text-[7px] font-black px-1.5 py-0.5 rounded shadow-xl uppercase tracking-wider border border-white/10">Somente Box</span>}
+          
+          {!isEsgotado && product.is_new && product.new_until && new Date(product.new_until) > new Date() ? (
+            <span className="bg-amber-400 text-slate-900 text-[7px] font-black px-1.5 py-0.5 rounded shadow-xl uppercase tracking-wider border border-white/10">Novidade</span>
+          ) : !isEsgotado && product.back_in_stock_until && new Date(product.back_in_stock_until) > new Date() ? (
+            <span className="bg-emerald-500 text-white text-[7px] font-black px-1.5 py-0.5 rounded shadow-xl uppercase tracking-wider border border-white/10">Voltei!</span>
+          ) : null}
         </div>
       </div>
       

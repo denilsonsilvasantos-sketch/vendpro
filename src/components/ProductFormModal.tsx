@@ -659,7 +659,23 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
                   <div className={`w-5 h-5 rounded-[4px] border-2 flex items-center justify-center transition-all shrink-0 ${formData.is_new ? 'bg-amber-500 border-amber-500 shadow-lg shadow-amber-500/20' : 'border-slate-200 group-hover:border-amber-500/50'}`}>
                     {formData.is_new && <Check size={12} strokeWidth={4} className="text-white" />}
                   </div>
-                  <input type="checkbox" className="hidden" checked={formData.is_new || false} onChange={e => setFormData({...formData, is_new: e.target.checked})} />
+                  <input 
+                    type="checkbox" 
+                    className="hidden" 
+                    checked={formData.is_new || false} 
+                    onChange={e => {
+                      const isChecked = e.target.checked;
+                      const now = new Date();
+                      const until = new Date(now.setDate(now.getDate() + 7)).toISOString();
+                      setFormData({
+                        ...formData, 
+                        is_new: isChecked,
+                        new_until: isChecked ? until : undefined,
+                        is_back_in_stock: isChecked ? false : formData.is_back_in_stock,
+                        back_in_stock_until: isChecked ? undefined : formData.back_in_stock_until
+                      });
+                    }} 
+                  />
                   <span className="text-[9px] font-black text-slate-600 uppercase tracking-tight leading-none">Novo</span>
                 </label>
 
@@ -667,7 +683,23 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
                   <div className={`w-5 h-5 rounded-[4px] border-2 flex items-center justify-center transition-all shrink-0 ${formData.is_back_in_stock ? 'bg-emerald-500 border-emerald-500 shadow-lg shadow-emerald-500/20' : 'border-slate-200 group-hover:border-emerald-500/50'}`}>
                     {formData.is_back_in_stock && <Check size={12} strokeWidth={4} className="text-white" />}
                   </div>
-                  <input type="checkbox" className="hidden" checked={formData.is_back_in_stock || false} onChange={e => setFormData({...formData, is_back_in_stock: e.target.checked})} />
+                  <input 
+                    type="checkbox" 
+                    className="hidden" 
+                    checked={formData.is_back_in_stock || false} 
+                    onChange={e => {
+                      const isChecked = e.target.checked;
+                      const now = new Date();
+                      const until = new Date(now.setDate(now.getDate() + 7)).toISOString();
+                      setFormData({
+                        ...formData, 
+                        is_back_in_stock: isChecked,
+                        back_in_stock_until: isChecked ? until : undefined,
+                        is_new: isChecked ? false : formData.is_new,
+                        new_until: isChecked ? undefined : formData.new_until
+                      });
+                    }} 
+                  />
                   <span className="text-[9px] font-black text-slate-600 uppercase tracking-tight leading-none">Reposição</span>
                 </label>
 

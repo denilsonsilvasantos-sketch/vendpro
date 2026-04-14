@@ -2979,6 +2979,11 @@ function VarietiesModal({
             <div className="min-w-0">
               <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight line-clamp-1">{product.nome}</h3>
               <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Escolha as variedades</p>
+              {product.multiplo_venda && product.multiplo_venda > 1 && (
+                <p className="text-[9px] font-black text-primary uppercase tracking-widest mt-0.5">
+                  Venda em múltiplos de {product.multiplo_venda}
+                </p>
+              )}
             </div>
           </div>
           <button onClick={onClose} className="w-10 h-10 flex items-center justify-center rounded-full bg-white border border-slate-100 text-slate-400 hover:text-rose-500 transition-all shadow-sm">
@@ -3216,7 +3221,13 @@ const ProductCard = memo(({ product, onAdd, onEdit, role, userId, onZoom, isInCa
 
         <div className="mt-auto flex flex-col items-center gap-3">
           {product.tipo_variacao !== 'variedades' && (
-            <div className="flex items-center bg-slate-50 rounded-[20px] p-1.5 w-full justify-between shadow-inner border border-slate-100">
+            <>
+              {product.multiplo_venda && product.multiplo_venda > 1 && (
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest -mb-1">
+                  Venda em múltiplos de {product.multiplo_venda}
+                </p>
+              )}
+              <div className="flex items-center bg-slate-50 rounded-[20px] p-1.5 w-full justify-between shadow-inner border border-slate-100">
               <button onClick={handleSubQty} disabled={isEsgotado} className="p-2 text-slate-400 hover:bg-white hover:text-primary rounded-xl disabled:opacity-50 transition-all shadow-sm"><Minus size={14}/></button>
               <input 
                 type="number"
@@ -3227,6 +3238,7 @@ const ProductCard = memo(({ product, onAdd, onEdit, role, userId, onZoom, isInCa
               />
               <button onClick={handleAddQty} disabled={isEsgotado} className="p-2 text-slate-400 hover:bg-white hover:text-primary rounded-xl disabled:opacity-50 transition-all shadow-sm"><Plus size={14}/></button>
             </div>
+          </>
           )}
           
           <button 

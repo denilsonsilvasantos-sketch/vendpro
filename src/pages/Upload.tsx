@@ -510,6 +510,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
                                    parsedPrecoBox > 0 && 
                                    Math.abs(parsedPrecoBox - parsedPrecoUnitario) > 0.01;
 
+            const hasVariations = Array.isArray(extracted.variacoes_flat) && extracted.variacoes_flat.length > 0;
             const productData: any = { 
               company_id: companyId, 
               brand_id: selectedBrandId, 
@@ -526,9 +527,9 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
               category_id: categoriaId, 
               categoria_pendente: !categoriaId, 
               imagem_pendente: existing ? !existing.imagem : true, 
-              tipo_variacao: extracted.tipo_variacao || null, 
-              variacoes_disponiveis: extracted.variacoes_disponiveis || null,
-              variacoes_flat: extracted.variacoes_flat || null
+              tipo_variacao: hasVariations ? (extracted.tipo_variacao || 'variedades') : null, 
+              variacoes_disponiveis: hasVariations ? (extracted.variacoes_disponiveis || null) : null,
+              variacoes_flat: hasVariations ? extracted.variacoes_flat : null
             };
 
             if (existing?.imagem) productData.imagem = existing.imagem;

@@ -56,8 +56,8 @@ export async function extractProductsFromMedia(base64Data: string, mimeType: str
   - venda_somente_box: boolean
   - has_box_discount: boolean (True somente se o preco_box for menor que preco_unitario * qtd_box. Se forem iguais ou preco_box for 0, retorne false)
   - status_estoque: "normal", "baixo", "ultimas" ou "esgotado"
-  - tipo_variacao: 'variedades' (Use 'variedades' se o produto tiver variações como tamanhos P, M, G. Cada variação DEVE ter seu próprio SKU. Se forem produtos totalmente distintos com SKUs diferentes, NÃO agrupe como variação).
-  - variacoes_flat: Se 'variedades', array {sku, nome}
+  - tipo_variacao: 'variedades' (Use 'variedades' SOMENTE se o produto tiver variações explícitas como tamanhos P, M, G ou cores diferentes no mesmo anúncio. Cada variação DEVE ter seu próprio SKU. Se o produto for único e não tiver uma lista de variações, deixe null).
+  - variacoes_flat: Se 'variedades', array {sku, nome}. Se não houver variações explícitas, retorne um array vazio [].
   ${categories ? `- category_name: Escolha entre [${categoriesList}]` : ''}
 
   IMPORTANTE: Seja conciso nas descrições. Extraia TODOS os produtos.

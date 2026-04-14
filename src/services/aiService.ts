@@ -54,7 +54,7 @@ export async function extractProductsFromMedia(base64Data: string, mimeType: str
   - preco_box: Preço da caixa fechada (se houver)
   - qtd_box: Quantidade na caixa (ex: 12)
   - venda_somente_box: boolean
-  - has_box_discount: boolean
+  - has_box_discount: boolean (True somente se o preco_box for menor que preco_unitario * qtd_box. Se forem iguais ou preco_box for 0, retorne false)
   - status_estoque: "normal", "baixo", "ultimas" ou "esgotado"
   - tipo_variacao: 'variedades' (Use 'variedades' se o produto tiver variações como tamanhos P, M, G. Cada variação DEVE ter seu próprio SKU. Se forem produtos totalmente distintos com SKUs diferentes, NÃO agrupe como variação).
   - variacoes_flat: Se 'variedades', array {sku, nome}

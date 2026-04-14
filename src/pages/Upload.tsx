@@ -311,7 +311,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
 
       if (syncData.length === 0) throw new Error('Não foi possível identificar produtos no arquivo.');
       
-      const { data: existingProducts } = await supabase.from('products').select('id, sku, nome, status_estoque, estoque, preco_unitario, preco_box, venda_somente_box, has_box_discount, qtd_box').eq('company_id', companyId).eq('brand_id', selectedBrandId);
+      const { data: existingProducts } = await supabase.from('products').select('id, sku, nome, status_estoque, estoque, preco_unitario, preco_box, venda_somente_box, has_box_discount, is_last_units, qtd_box').eq('company_id', companyId).eq('brand_id', selectedBrandId);
       if (!existingProducts) throw new Error('Erro ao buscar produtos.');
       
       const existingMap = new Map(existingProducts.map(p => [p.sku.toUpperCase().trim(), p]));
@@ -324,7 +324,8 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
       for (const d of syncData) {
         const existing = existingMap.get(d.sku);
         if (existing) {
-          const newStatus = d.qtd === 0 ? 'esgotado' : 'normal';
+          const newStatus = d.qtd === 0 ? 'esgotado' : d.qtd < 10 ? 'ultimas' : 'normal';
+          const isLastUnits = d.qtd > 0 && d.qtd < 10;
           
           const nameChanged = d.nome && d.nome !== existing.nome;
           
@@ -332,7 +333,10 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
           let precoUnitario = d.precoPadrao;
           let precoBox = d.precoTabela4 !== undefined ? d.precoTabela4 : existing.preco_box;
           let vendaSomenteBox = d.unidade === 'BX';
-          let hasBoxDiscount = d.precoTabela4 !== undefined && d.unidade === 'UN';
+          let hasBoxDiscount = d.precoTabela4 !== undefined && 
+                               d.unidade === 'UN' && 
+                               d.precoTabela4 > 0 && 
+                               Math.abs(d.precoTabela4 - (precoUnitario || 0)) > 0.01;
           
           // Se for venda somente box, o preço padrão do arquivo é o preço do box
           if (vendaSomenteBox) {
@@ -348,6 +352,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
           
           const flagsChanged = vendaSomenteBox !== existing.venda_somente_box || 
                                hasBoxDiscount !== existing.has_box_discount ||
+                               isLastUnits !== existing.is_last_units ||
                                (d.qtdBox !== undefined && d.qtdBox !== existing.qtd_box);
 
           if (existing.status_estoque !== newStatus || existing.estoque !== d.qtd || nameChanged || priceChanged || flagsChanged) {
@@ -357,6 +362,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
               estoque: d.qtd,
               venda_somente_box: vendaSomenteBox,
               has_box_discount: hasBoxDiscount,
+              is_last_units: isLastUnits,
               qtd_box: d.qtdBox || existing.qtd_box
             };
             if (nameChanged) updateObj.nome = d.nome;
@@ -365,6 +371,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
             
             updates.push(updateObj);
             if (newStatus === 'esgotado') newOutOfStock.push({ sku: existing.sku, nome: existing.nome });
+            else if (newStatus === 'ultimas') newLastUnits.push({ sku: existing.sku, nome: existing.nome });
           }
         } else unregistered.push(d);
       }
@@ -388,7 +395,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
           setProgress(Math.round(((i + Math.min(batchSize, updates.length - i)) / updates.length) * 100));
         }
       }
-      setUnregisteredSkus(unregistered); setOutOfStockSkus(newOutOfStock);
+      setUnregisteredSkus(unregistered); setOutOfStockSkus(newOutOfStock); setLastUnitsSkus(newLastUnits);
       if (unregistered.length > 0) setShowUnregisteredAlert(true); else setShowSyncReport(true);
       setIsUploading(false); setUploadedFiles([]);
       setStatus({ type: 'success', message: `Sincronização concluída! ${updates.length} produtos atualizados.` });
@@ -483,9 +490,9 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
             const validStatus = ['normal', 'baixo', 'ultimas', 'esgotado'];
             let statusEstoque = validStatus.includes(extracted.status_estoque) ? extracted.status_estoque : 'normal';
             
-            // Se a IA marcou como últimas unidades, garante que o status reflita isso
-            if (extracted.is_last_units && statusEstoque === 'normal') {
-              // Mantemos o status como normal, mas o is_last_units já está sendo salvo como true abaixo
+            // Se a IA marcou como últimas unidades ou estoque < 10, garante que o status reflita isso
+            if ((extracted.is_last_units || (extracted.estoque > 0 && extracted.estoque < 10)) && statusEstoque === 'normal') {
+              statusEstoque = 'ultimas';
             }
             
             // Se o estoque for 0, garante que o status seja esgotado
@@ -499,6 +506,10 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
               if (foundCat) categoriaId = foundCat.id;
             }
             const isPDF = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+            const hasBoxDiscount = (isPDF ? !!extracted.has_box_discount : false) && 
+                                   parsedPrecoBox > 0 && 
+                                   Math.abs(parsedPrecoBox - parsedPrecoUnitario) > 0.01;
+
             const productData: any = { 
               company_id: companyId, 
               brand_id: selectedBrandId, 
@@ -508,8 +519,8 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
               preco_box: parsedPrecoBox, 
               qtd_box: parseNumber(extracted.qtd_box, 1), 
               venda_somente_box: !!extracted.venda_somente_box, 
-              has_box_discount: isPDF ? !!extracted.has_box_discount : false, 
-              is_last_units: !!extracted.is_last_units, 
+              has_box_discount: hasBoxDiscount, 
+              is_last_units: statusEstoque === 'ultimas', 
               multiplo_venda: 1, 
               status_estoque: statusEstoque, 
               category_id: categoriaId, 

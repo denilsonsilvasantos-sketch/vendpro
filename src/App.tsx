@@ -2427,13 +2427,7 @@ function CatalogScreen({
       // Ocultar produtos esgotados no catálogo para otimizar carregamento e experiência
       const isEsgotado = p.status_estoque?.toLowerCase() === 'esgotado' || p.estoque === 0;
       
-      // Se for filtro de Novidades ou Reposição, mostramos mesmo se estiver esgotado? 
-      // O usuário disse: "caso acabe antes dos 7 dias vai para o esgotado"
-      // Isso implica que ele ainda pode estar na lista mas marcado como esgotado.
-      // Mas geralmente é melhor ocultar se o usuário não pediu especificamente para ver esgotados nessas páginas.
-      // Vamos manter a lógica de ocultar esgotados se não for admin/vendedor?
-      // Na verdade, vamos permitir ver esgotados nessas abas se o usuário quiser, mas por padrão ocultamos.
-      if (isEsgotado && filterType === 'all') return false;
+      if (isEsgotado) return false;
 
       // Filtro por tipo (Novidades / Reposição)
       if (filterType === 'new') {

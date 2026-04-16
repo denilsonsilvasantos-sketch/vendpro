@@ -723,7 +723,19 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
                   <div className={`w-5 h-5 rounded-[4px] border-2 flex items-center justify-center transition-all shrink-0 ${formData.is_last_units ? 'bg-rose-500 border-rose-500 shadow-lg shadow-rose-500/20' : 'border-slate-200 group-hover:border-rose-500/50'}`}>
                     {formData.is_last_units && <Check size={12} strokeWidth={4} className="text-white" />}
                   </div>
-                  <input type="checkbox" className="hidden" checked={formData.is_last_units} onChange={e => setFormData({...formData, is_last_units: e.target.checked})} />
+                  <input 
+                    type="checkbox" 
+                    className="hidden" 
+                    checked={formData.is_last_units || false} 
+                    onChange={e => {
+                      const isChecked = e.target.checked;
+                      setFormData({
+                        ...formData, 
+                        is_last_units: isChecked,
+                        status_estoque: isChecked ? 'normal' : formData.status_estoque
+                      });
+                    }} 
+                  />
                   <span className="text-[9px] font-black text-slate-600 uppercase tracking-tight leading-none">Últimas</span>
                 </label>
 
@@ -731,7 +743,19 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
                   <div className={`w-5 h-5 rounded-[4px] border-2 flex items-center justify-center transition-all shrink-0 ${formData.status_estoque === 'esgotado' ? 'bg-slate-800 border-slate-800 shadow-lg shadow-slate-800/20' : 'border-slate-200 group-hover:border-slate-800/50'}`}>
                     {formData.status_estoque === 'esgotado' && <Check size={12} strokeWidth={4} className="text-white" />}
                   </div>
-                  <input type="checkbox" className="hidden" checked={formData.status_estoque === 'esgotado'} onChange={e => setFormData({...formData, status_estoque: e.target.checked ? 'esgotado' : 'normal'})} />
+                  <input 
+                    type="checkbox" 
+                    className="hidden" 
+                    checked={formData.status_estoque === 'esgotado'} 
+                    onChange={e => {
+                      const isChecked = e.target.checked;
+                      setFormData({
+                        ...formData, 
+                        status_estoque: isChecked ? 'esgotado' : 'normal',
+                        is_last_units: isChecked ? false : formData.is_last_units
+                      });
+                    }} 
+                  />
                   <span className="text-[9px] font-black text-slate-600 uppercase tracking-tight leading-none">Esgotado</span>
                 </label>
 

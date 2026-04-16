@@ -2425,7 +2425,7 @@ function CatalogScreen({
 
     return products.filter(p => {
       // Ocultar produtos esgotados no catálogo para otimizar carregamento e experiência
-      const isEsgotado = p.status_estoque?.toLowerCase() === 'esgotado' || p.estoque === 0;
+      const isEsgotado = p.status_estoque?.toLowerCase() === 'esgotado';
       
       if (isEsgotado) return false;
 
@@ -3050,7 +3050,7 @@ const ProductCard = memo(({ product, onAdd, onEdit, role, userId, onZoom, isInCa
   const [varietiesQty, setVarietiesQty] = useState<Record<string, number>>({});
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
-  const isEsgotado = product.status_estoque?.toLowerCase() === 'esgotado' || product.estoque === 0;
+  const isEsgotado = product.status_estoque?.toLowerCase() === 'esgotado';
 
   const isPromoActive = useMemo(() => {
     if (!product.is_promo) return false;

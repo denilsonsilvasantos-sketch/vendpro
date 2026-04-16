@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import { supabase } from '../integrations/supabaseClient';
 import { Customer, UserRole } from '../types';
-import { Edit, Trash2, Plus, Share2, Copy, MessageCircle, Check, QrCode, Users, Search, Phone, Building2, UserCircle2, FileSpreadsheet, AlertCircle, CheckCircle2, User as UserIcon } from 'lucide-react';
+import { Edit, Trash2, Plus, Share2, Copy, MessageCircle, Check, QrCode, Users, Search, Phone, Building2, UserCircle2, FileSpreadsheet, AlertCircle, CheckCircle2, User as UserIcon, Download } from 'lucide-react';
 import CustomerFormModal from '../components/CustomerFormModal';
 import { motion, AnimatePresence } from 'motion/react';
 import { QRCodeSVG } from 'qrcode.react';
@@ -125,6 +125,24 @@ export default function Clientes({ companyId, role, user }: { companyId: string 
 
   useEffect(() => { fetchCustomers(); }, [companyId, role, user?.id]);
 
+  const handleExportExcel = () => {
+    if (customers.length === 0) return;
+    
+    const dataToExport = customers.map(c => ({
+      'Nome/Contato': c.nome,
+      'Empresa/Razão Social': c.nome_empresa || '',
+      'CNPJ/CPF': c.cnpj || '',
+      'WhatsApp': c.whatsapp || '',
+      'Cidade': c.cidade || '',
+      'Ativo': c.ativo ? 'Sim' : 'Não'
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(dataToExport);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Clientes');
+    XLSX.writeFile(wb, `Lista_Clientes_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.xlsx`);
+  };
+
   const handleDelete = async (id: string) => {
     if (!supabase) return;
     // Removido confirm para evitar problemas em iframe e seguir diretrizes
@@ -172,13 +190,22 @@ export default function Clientes({ companyId, role, user }: { companyId: string 
         <button onClick={() => { setEditingCustomer(undefined); setIsModalOpen(true); }} className="bg-primary text-white px-4 py-2 rounded-lg font-bold text-xs flex items-center gap-2 shadow-md shadow-primary/20 hover:-translate-y-0.5 transition-all">
           <Plus size={14} strokeWidth={3} /> Novo Cliente
         </button>
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          className="bg-emerald-500 text-white px-4 py-2 rounded-lg font-bold text-xs flex items-center gap-2 shadow-md shadow-emerald-200 hover:-translate-y-0.5 transition-all"
-          title="Importar clientes por planilha Excel"
-        >
-          <FileSpreadsheet size={14} strokeWidth={2.5} /> Excel
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleExportExcel}
+            className="bg-white text-emerald-600 border border-emerald-200 px-4 py-2 rounded-lg font-bold text-xs flex items-center gap-2 shadow-sm hover:bg-emerald-50 transition-all"
+            title="Exportar clientes para Excel (Serve como modelo)"
+          >
+            <Download size={14} strokeWidth={2.5} /> Baixar Lista
+          </button>
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="bg-emerald-500 text-white px-4 py-2 rounded-lg font-bold text-xs flex items-center gap-2 shadow-md shadow-emerald-200 hover:-translate-y-0.5 transition-all"
+            title="Importar clientes por planilha Excel"
+          >
+            <FileSpreadsheet size={14} strokeWidth={2.5} /> Importar
+          </button>
+        </div>
         <input
           ref={fileInputRef}
           type="file"

@@ -1,9 +1,12 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { supabase } from '../integrations/supabaseClient';
-import { X, Eye, ShoppingBag, TrendingUp, AlertTriangle, PackageSearch, Calendar, CreditCard, Filter, Trash2, AlertCircle, Search, Send, Edit2, Check, Plus } from 'lucide-react';
+import { X, Eye, ShoppingBag, TrendingUp, AlertTriangle, PackageSearch, Calendar, CreditCard, Filter, Trash2, AlertCircle, Search, Send, Edit2, Check, Plus, FileSpreadsheet } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 import { getCartItemPrice } from '../utils/prices';
+
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 function formatDate(dateStr: string) {
   if (!dateStr) return '—';
@@ -58,6 +61,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
   const [newSku, setNewSku] = useState('');
   const [newQuantity, setNewQuantity] = useState(1);
   const [isAddingItem, setIsAddingItem] = useState(false);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [addingItemLoading, setAddingItemLoading] = useState(false);
   const [foundProductName, setFoundProductName] = useState<string | null>(null);
   const [searchingSku, setSearchingSku] = useState(false);
@@ -681,6 +685,152 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
     }
   };
 
+  const handleDownloadPDF = async (order: any) => {
+    if (!order || !orderItems.length || !supabase) return;
+    setIsGeneratingPDF(true);
+
+    try {
+      const doc = new jsPDF() as any;
+      const margin = 14;
+      let currentY = 15;
+
+      // 1. Fetch Company Data
+      const { data: company } = await supabase.from('companies').select('*').eq('id', companyId).single();
+
+      // Header - logo
+      if (company?.logo_url) {
+        try {
+          const img = new Image();
+          img.crossOrigin = "anonymous"; // Tentativa de evitar problemas de CORS
+          img.src = company.logo_url;
+          await new Promise((resolve) => {
+            img.onload = resolve;
+            img.onerror = resolve;
+          });
+          // Redimensionar mantendo proporção (largura fixa 30)
+          const ratio = img.height / img.width;
+          doc.addImage(img, 'PNG', margin, currentY, 30, 30 * ratio);
+        } catch (e) {
+          console.error('Error adding logo to PDF', e);
+        }
+      }
+
+      // 2. Company Info
+      doc.setFontSize(10);
+      doc.setTextColor(100, 116, 139); // slate-500
+      doc.text(company?.nome || 'Minha Empresa', 50, currentY + 5);
+      doc.setFontSize(8);
+      if (company?.cnpj) doc.text(`CNPJ: ${company.cnpj}`, 50, currentY + 10);
+      if (company?.telefone) doc.text(`TEL: ${company.telefone}`, 50, currentY + 14);
+
+      // Order Title
+      doc.setFontSize(16);
+      doc.setTextColor(30, 41, 59); // slate-800
+      doc.text(`PEDIDO #${order.id.slice(-6).toUpperCase()}`, 196, currentY + 5, { align: 'right' });
+      doc.setFontSize(8);
+      doc.setTextColor(100, 116, 139);
+      doc.text(`DATA: ${formatDate(order.created_at)}`, 196, currentY + 10, { align: 'right' });
+      doc.text(`MARCA: ${getBrandName(order.brand_id)}`, 196, currentY + 14, { align: 'right' });
+
+      currentY += 25;
+
+      // 3. Customer Info Section
+      doc.setDrawColor(241, 245, 249); // slate-100
+      doc.setFillColor(248, 250, 252); // slate-50
+      doc.roundedRect(margin, currentY, 182, 22, 2, 2, 'FD');
+      
+      doc.setFontSize(8);
+      doc.setTextColor(100, 116, 139);
+      doc.text('DADOS DO CLIENTE', margin + 5, currentY + 6);
+      
+      doc.setFontSize(10);
+      doc.setTextColor(30, 41, 59);
+      doc.text(order.customer?.nome_empresa || order.customer?.nome || order.client_name || 'N/A', margin + 5, currentY + 12);
+      
+      doc.setFontSize(8);
+      doc.setTextColor(100, 116, 139);
+      if (order.customer?.cnpj) doc.text(`CNPJ: ${order.customer.cnpj}`, margin + 5, currentY + 17);
+      if (order.customer?.whatsapp) doc.text(`TEL: ${order.customer.whatsapp}`, 100, currentY + 17);
+      if (order.customer?.cidade) doc.text(`CIDADE: ${order.customer.cidade}`, margin + 5, currentY + 21);
+      
+      currentY += 28;
+
+      // 4. Items Table
+      autoTable(doc, {
+        startY: currentY,
+        head: [['CÓD/SKU', 'DESCRIÇÃO DO PRODUTO', { content: 'QNT', styles: { halign: 'center' } }, { content: 'VALOR UN.', styles: { halign: 'right' } }, { content: 'TOTAL', styles: { halign: 'right' } }]],
+        body: orderItems.map(item => [
+          item.sku,
+          item.nome,
+          { content: item.quantidade, styles: { halign: 'center' } },
+          { content: `R$ ${Number(item.preco_unitario || 0).toFixed(2)}`, styles: { halign: 'right' } },
+          { content: `R$ ${Number(item.subtotal || 0).toFixed(2)}`, styles: { halign: 'right' } }
+        ]),
+        styles: {
+          fontSize: 8,
+          cellPadding: 3,
+          font: 'helvetica',
+        },
+        headStyles: {
+          fillColor: [30, 41, 59], // slate-800
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+        },
+        alternateRowStyles: {
+          fillColor: [248, 250, 252], // slate-50
+        },
+        margin: { left: margin, right: margin },
+      });
+
+      // 5. Summary Section
+      const finalY = (doc as any).lastAutoTable.finalY + 10;
+      const summaryWidth = 70;
+      const summaryX = 130;
+
+      doc.setFontSize(9);
+      doc.setTextColor(100, 116, 139);
+      doc.text('Subtotal:', summaryX, finalY);
+      doc.setTextColor(30, 41, 59);
+      doc.text(`R$ ${Number(order.subtotal || order.total).toFixed(2)}`, 196, finalY, { align: 'right' });
+
+      if (order.discount_value > 0) {
+        const discountAmount = order.discount_type === 'percentage' 
+          ? (Number(order.subtotal || 0) * order.discount_value) / 100
+          : order.discount_value;
+        
+        doc.setTextColor(244, 63, 94); // rose-500
+        doc.text(`Desconto (${order.discount_type === 'percentage' ? `${order.discount_value}%` : `R$ ${order.discount_value}`}):`, summaryX, finalY + 5);
+        doc.text(`- R$ ${discountAmount.toFixed(2)}`, 196, finalY + 5, { align: 'right' });
+      }
+
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(30, 41, 59);
+      doc.text('TOTAL FINAL:', summaryX, finalY + 12);
+      doc.setTextColor(236, 72, 153); // pink-500
+      doc.text(`R$ ${Number(order.total).toFixed(2)}`, 196, finalY + 12, { align: 'right' });
+
+      // Footer extra info
+      doc.setFontSize(7);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(148, 163, 184);
+      const totalItems = orderItems.length;
+      const totalProducts = orderItems.reduce((acc, i) => acc + i.quantidade, 0);
+      doc.text(`ITENS EXCLUSIVOS: ${totalItems} | TOTAL DE PRODUTOS: ${totalProducts}`, margin, finalY + 12);
+      
+      if (order.payment_method) {
+        doc.text(`CONDIÇÃO DE PAGAMENTO: ${order.payment_method.toUpperCase()}`, margin, finalY + 16);
+      }
+
+      doc.save(`Pedido_${order.id.slice(-6).toUpperCase()}.pdf`);
+    } catch (error) {
+      console.error('Error generating PDF', error);
+      alert('Erro ao gerar PDF do pedido.');
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
+
   const toggleOrderSelection = (orderId: string) => {
     setSelectedOrderIds(prev => 
       prev.includes(orderId) 
@@ -1095,9 +1245,23 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                     </div>
                   )}
                 </div>
-                <button onClick={() => { setSelectedOrder(null); setEditingPayment(false); setEditingCustomer(false); setEditingDate(false); }} className="p-3 bg-white text-slate-400 hover:text-rose-500 rounded-2xl shadow-sm border border-slate-100 transition-all ml-4">
-                  <X size={20} />
-                </button>
+                <div className="flex items-center gap-2 ml-4">
+                  <button
+                    onClick={() => handleDownloadPDF(selectedOrder)}
+                    disabled={isGeneratingPDF}
+                    className="flex items-center gap-2 px-4 py-3 bg-emerald-50 text-emerald-600 rounded-2xl font-bold text-xs hover:bg-emerald-100 transition-all border border-emerald-100 shadow-sm disabled:opacity-50"
+                  >
+                    {isGeneratingPDF ? (
+                      <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current" />
+                    ) : (
+                      <FileSpreadsheet size={14} />
+                    )}
+                    Baixar PDF
+                  </button>
+                  <button onClick={() => { setSelectedOrder(null); setEditingPayment(false); setEditingCustomer(false); setEditingDate(false); }} className="p-3 bg-white text-slate-400 hover:text-rose-500 rounded-2xl shadow-sm border border-slate-100 transition-all">
+                    <X size={20} />
+                  </button>
+                </div>
               </div>
 
               <div ref={scrollRef} className="flex-1 overflow-y-auto p-8 space-y-6">

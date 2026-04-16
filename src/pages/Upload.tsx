@@ -229,6 +229,10 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
                            nome.match(/(\d+)\s*un/i);
         const qtdBox = qtdBoxMatch ? parseInt(qtdBoxMatch[1], 10) : 1;
 
+        // Extrai Multiplo do nome (ex: !4) ou variações
+        const multiploMatch = nome.match(/!(\d+)/) || nome.match(/Variação de (\d+) Modelos/i);
+        const multiploVenda = multiploMatch ? parseInt(multiploMatch[1], 10) : 1;
+
         results.push({
           sku,
           qtd: parseInt(qtdMatch[1], 10),
@@ -236,7 +240,8 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
           unidade,
           precoPadrao,
           precoTabela4,
-          qtdBox
+          qtdBox,
+          multiploVenda
         });
       }
     });
@@ -295,6 +300,8 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
             const sku = String(row[skuKey]).trim().toUpperCase();
             const nome = nomeKey ? String(row[nomeKey]).trim() : '';
             const qtdBoxMatch = nome.match(/BX\s*C\/(\d+)/i) || nome.match(/C\/(\d+)/i) || nome.match(/Emb\s*C\/(\d+)/i);
+            const multiploMatch = nome.match(/!(\d+)/) || nome.match(/Variação de (\d+) Modelos/i);
+            const multiploVenda = multiploMatch ? parseInt(multiploMatch[1], 10) : 1;
             
             if (sku) syncData.push({ 
               sku, 
@@ -303,7 +310,8 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
               precoPadrao: precoKey ? parseNumber(row[precoKey]) : undefined,
               precoTabela4: precoBoxKey ? parseNumber(row[precoBoxKey]) : undefined,
               unidade: unidadeKey ? String(row[unidadeKey]).trim().toUpperCase() : 'UN',
-              qtdBox: qtdBoxMatch ? parseInt(qtdBoxMatch[1], 10) : 1
+              qtdBox: qtdBoxMatch ? parseInt(qtdBoxMatch[1], 10) : 1,
+              multiploVenda
             });
           }
         });
@@ -311,7 +319,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
 
       if (syncData.length === 0) throw new Error('Não foi possível identificar produtos no arquivo.');
       
-      const { data: existingProducts } = await supabase.from('products').select('id, sku, nome, status_estoque, estoque, preco_unitario, preco_box, venda_somente_box, has_box_discount, is_last_units, qtd_box').eq('company_id', companyId).eq('brand_id', selectedBrandId);
+      const { data: existingProducts } = await supabase.from('products').select('id, sku, nome, status_estoque, estoque, preco_unitario, preco_box, venda_somente_box, has_box_discount, is_last_units, qtd_box, multiplo_venda').eq('company_id', companyId).eq('brand_id', selectedBrandId);
       if (!existingProducts) throw new Error('Erro ao buscar produtos.');
       
       const existingMap = new Map(existingProducts.map(p => [p.sku.toUpperCase().trim(), p]));
@@ -353,7 +361,8 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
           const flagsChanged = vendaSomenteBox !== existing.venda_somente_box || 
                                hasBoxDiscount !== existing.has_box_discount ||
                                isLastUnits !== existing.is_last_units ||
-                               (d.qtdBox !== undefined && d.qtdBox !== existing.qtd_box);
+                               (d.qtdBox !== undefined && d.qtdBox !== existing.qtd_box) ||
+                               (d.multiploVenda !== undefined && d.multiploVenda > 1 && d.multiploVenda !== existing.multiplo_venda);
 
           if (existing.status_estoque !== newStatus || existing.estoque !== d.qtd || nameChanged || priceChanged || flagsChanged) {
             const updateObj: any = { 
@@ -363,7 +372,8 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
               venda_somente_box: vendaSomenteBox,
               has_box_discount: hasBoxDiscount,
               is_last_units: isLastUnits,
-              qtd_box: d.qtdBox || existing.qtd_box
+              qtd_box: d.qtdBox || existing.qtd_box,
+              multiplo_venda: (d.multiploVenda && d.multiploVenda > 1) ? d.multiploVenda : existing.multiplo_venda
             };
             if (nameChanged) updateObj.nome = d.nome;
             if (precoUnitario !== undefined) updateObj.preco_unitario = precoUnitario;
@@ -522,7 +532,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
               venda_somente_box: !!extracted.venda_somente_box, 
               has_box_discount: hasBoxDiscount, 
               is_last_units: statusEstoque === 'ultimas', 
-              multiplo_venda: 1, 
+              multiplo_venda: extracted.multiplo_venda || 1, 
               status_estoque: statusEstoque, 
               category_id: categoriaId, 
               categoria_pendente: !categoriaId, 

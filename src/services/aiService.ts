@@ -55,6 +55,7 @@ export async function extractProductsFromMedia(base64Data: string, mimeType: str
   - qtd_box: Quantidade na caixa (ex: 12)
   - venda_somente_box: boolean
   - has_box_discount: boolean (True somente se o preco_box for menor que preco_unitario * qtd_box. Se forem iguais ou preco_box for 0, retorne false)
+  - multiplo_venda: number (O padrão é 1. Se encontrar expressões como "(Variação de 4 Modelos Sortidos)", "(Variação de 20 cores)", "(Assortment of 12)", ou similares, extraia o NÚMERO e retorne aqui. Se não houver indicação de múltiplos, retorne 1).
   - status_estoque: "normal", "baixo", "ultimas" ou "esgotado"
   - tipo_variacao: 'variedades' (Use 'variedades' SOMENTE se o produto tiver variações explícitas como tamanhos P, M, G ou cores diferentes no mesmo anúncio. Cada variação DEVE ter seu próprio SKU. Se o produto for único e não tiver uma lista de variações, deixe null).
   - variacoes_flat: Se 'variedades', array {sku, nome}. Se não houver variações explícitas, retorne um array vazio [].
@@ -74,6 +75,7 @@ export async function extractProductsFromMedia(base64Data: string, mimeType: str
         "qtd_box": "string",
         "venda_somente_box": boolean,
         "has_box_discount": boolean,
+        "multiplo_venda": number,
         "is_last_units": boolean,
         "status_estoque": "string",
         "tipo_variacao": "string",

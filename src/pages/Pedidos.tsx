@@ -70,7 +70,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
   const [isTypingModalOpen, setIsTypingModalOpen] = useState(false);
   const [typingItems, setTypingItems] = useState<any[]>([]);
   const [typingSku, setTypingSku] = useState('');
-  const [typingQty, setTypingQty] = useState<string>('1');
+  const [typingQty, setTypingQty] = useState<string>('');
   const [typingPrice, setTypingPrice] = useState<string>('');
   const [typingProduct, setTypingProduct] = useState<any>(null);
   const [typingBrandId, setTypingBrandId] = useState('');
@@ -156,7 +156,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
     
     // Reset fields
     setTypingSku('');
-    setTypingQty('1');
+    setTypingQty('');
     setTypingPrice('');
     setTypingProduct(null);
     

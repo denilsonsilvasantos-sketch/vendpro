@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { supabase } from '../integrations/supabaseClient';
-import { X, Eye, ShoppingBag, TrendingUp, AlertTriangle, PackageSearch, Calendar, CreditCard, Filter, Trash2, AlertCircle, Search, Send, Edit2, Check, Plus, FileSpreadsheet } from 'lucide-react';
+import { X, Eye, ShoppingBag, TrendingUp, AlertTriangle, PackageSearch, Calendar, CreditCard, Filter, Trash2, AlertCircle, Search, Send, Edit2, Check, Plus, FileSpreadsheet, Keyboard, Upload, User as UserIcon, ChevronRight, ChevronLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 import { getCartItemPrice } from '../utils/prices';
@@ -65,6 +65,248 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
   const [addingItemLoading, setAddingItemLoading] = useState(false);
   const [foundProductName, setFoundProductName] = useState<string | null>(null);
   const [searchingSku, setSearchingSku] = useState(false);
+
+  // --- Novas States para Digitação Manual e Importação ---
+  const [isTypingModalOpen, setIsTypingModalOpen] = useState(false);
+  const [typingItems, setTypingItems] = useState<any[]>([]);
+  const [typingSku, setTypingSku] = useState('');
+  const [typingQty, setTypingQty] = useState<string>('1');
+  const [typingPrice, setTypingPrice] = useState<string>('');
+  const [typingProduct, setTypingProduct] = useState<any>(null);
+  const [typingBrandId, setTypingBrandId] = useState('');
+  const [typingSellers, setTypingSellers] = useState<any[]>([]);
+  const [typingCustomerId, setTypingCustomerId] = useState('');
+  const [typingSellerId, setTypingSellerId] = useState(role === 'seller' ? user?.id : '');
+  const [typingStep, setTypingStep] = useState<'items' | 'config'>('items');
+  const [importingOrders, setImportingOrders] = useState(false);
+
+  const skuInputRef = useRef<HTMLInputElement>(null);
+  const qtyInputRef = useRef<HTMLInputElement>(null);
+  const priceInputRef = useRef<HTMLInputElement>(null);
+  const orderImportRef = useRef<HTMLInputElement>(null);
+
+  // Efeito para buscar produto na digitação manual
+  useEffect(() => {
+    const searchTypingProduct = async () => {
+      if (!typingSku || !supabase || !companyId) {
+        setTypingProduct(null);
+        setTypingPrice('');
+        return;
+      }
+      
+      let query = supabase
+        .from('products')
+        .select('*')
+        .eq('company_id', companyId)
+        .eq('sku', typingSku.trim().toUpperCase());
+      
+      if (typingBrandId) query = query.eq('brand_id', typingBrandId);
+
+      const { data } = await query.maybeSingle();
+      
+      if (data) {
+        setTypingProduct(data);
+        setTypingPrice(data.preco_unitario?.toString() || '');
+        if (!typingBrandId) setTypingBrandId(data.brand_id);
+      } else {
+        setTypingProduct(null);
+      }
+    };
+
+    const timer = setTimeout(searchTypingProduct, 300);
+    return () => clearTimeout(timer);
+  }, [typingSku, companyId, typingBrandId]);
+
+  const handleManualKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Tab' || e.key === 'Enter') {
+      const target = e.target as HTMLInputElement;
+      if (target.name === 'sku' && typingProduct) {
+        // Se deu tab no SKU e achou produto, vai pra Qty
+        e.preventDefault();
+        qtyInputRef.current?.focus();
+      } else if (target.name === 'qty') {
+        // Se deu tab na Qty, vai pro Preço
+        e.preventDefault();
+        priceInputRef.current?.focus();
+      } else if (target.name === 'price') {
+        // Se deu tab no Preço, confirma e volta pro SKU
+        e.preventDefault();
+        handleAddTypingItem();
+      }
+    }
+  };
+
+  const handleAddTypingItem = () => {
+    if (!typingProduct && typingSku) {
+      alert('Produto não encontrado para o SKU informado.');
+      return;
+    }
+    if (!typingProduct) return;
+
+    const newItem = {
+      product_id: typingProduct.id,
+      sku: typingProduct.sku,
+      nome: typingProduct.nome,
+      brand_id: typingProduct.brand_id,
+      quantidade: parseInt(typingQty) || 1,
+      preco_unitario: parseFloat(typingPrice) || typingProduct.preco_unitario || 0,
+    };
+
+    setTypingItems(prev => [...prev, newItem]);
+    
+    // Reset fields
+    setTypingSku('');
+    setTypingQty('1');
+    setTypingPrice('');
+    setTypingProduct(null);
+    
+    // Voltar o foco para o SKU
+    setTimeout(() => skuInputRef.current?.focus(), 10);
+  };
+
+  const handleSaveTypedOrder = async () => {
+    if (!supabase || typingItems.length === 0) return;
+    if (!typingCustomerId) {
+      alert('Selecione um cliente antes de finalizar.');
+      return;
+    }
+    setIsProcessing(true);
+
+    try {
+      const selectedCust = customers.find(c => c.id === typingCustomerId);
+      const subtotal = typingItems.reduce((acc, i) => acc + (i.quantidade * i.preco_unitario), 0);
+
+      const orderData = {
+        company_id: companyId,
+        customer_id: typingCustomerId,
+        seller_id: typingSellerId || null,
+        brand_id: typingBrandId || typingItems[0].brand_id,
+        subtotal: subtotal,
+        total: subtotal,
+        status: 'typed',
+        client_name: selectedCust?.nome_empresa || selectedCust?.nome || 'Manual',
+        created_at: new Date().toISOString()
+      };
+
+      const { data: order, error: orderErr } = await supabase.from('orders').insert([orderData]).select().single();
+      if (orderErr) throw orderErr;
+
+      const itemsToInsert = typingItems.map(item => ({
+        order_id: order.id,
+        product_id: item.product_id,
+        sku: item.sku,
+        nome: item.nome,
+        quantidade: item.quantidade,
+        preco_unitario: item.preco_unitario,
+        subtotal: item.quantidade * item.preco_unitario,
+        company_id: companyId
+      }));
+
+      const { error: itemsErr } = await supabase.from('order_items').insert(itemsToInsert);
+      if (itemsErr) throw itemsErr;
+
+      setIsTypingModalOpen(false);
+      setTypingItems([]);
+      setTypingStep('items');
+      fetchOrders();
+    } catch (err: any) {
+      console.error(err);
+      alert('Erro ao salvar pedido: ' + err.message);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleExcelOrderImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !supabase || !companyId) return;
+    setImportingOrders(true);
+    e.target.value = '';
+
+    try {
+      const XLSX = await import('xlsx');
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data);
+      const rows: any[] = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+
+      const skus = Array.from(new Set(rows.map(r => {
+        const val = Object.values(r)[0];
+        return val ? String(val).trim().toUpperCase() : null;
+      }).filter(Boolean)));
+      
+      if (skus.length === 0) {
+        alert('Nenhum SKU encontrado na primeira coluna do arquivo.');
+        return;
+      }
+
+      // Batch fetch products by SKU
+      const { data: products } = await supabase
+        .from('products')
+        .select('*')
+        .eq('company_id', companyId)
+        .in('sku', skus);
+      
+      if (!products || products.length === 0) {
+        alert('Nenhum SKU do arquivo foi encontrado no banco de dados.');
+        return;
+      }
+
+      const productMap = new Map(products.map((p: any) => [p.sku, p]));
+      const brandId = products[0].brand_id; // Assume same brand for simplicity unless mixed
+
+      const validItems = rows.map(row => {
+        const values = Object.values(row);
+        const sku = String(values[0]).trim().toUpperCase();
+        const product = productMap.get(sku);
+        if (!product) return null;
+
+        const qty = parseInt(String(values[1])) || 1;
+        const price = parseFloat(String(values[2])) || product.preco_unitario || 0;
+
+        return {
+          product_id: product.id,
+          sku: product.sku,
+          nome: product.nome,
+          quantidade: qty,
+          preco_unitario: price,
+          subtotal: qty * price,
+          company_id: companyId
+        };
+      }).filter(Boolean);
+
+      if (validItems.length === 0) {
+        alert('Nenhum item válido encontrado no Excel.');
+        return;
+      }
+
+      const subtotal = validItems.reduce((acc, i: any) => acc + i.subtotal, 0);
+
+      const orderData = {
+        company_id: companyId,
+        brand_id: brandId,
+        subtotal: subtotal,
+        total: subtotal,
+        status: 'draft',
+        client_name: 'Importado (Sem Cliente)',
+        created_at: new Date().toISOString()
+      };
+
+      const { data: order, error: orderErr } = await supabase.from('orders').insert([orderData]).select().single();
+      if (orderErr) throw orderErr;
+
+      const itemsWithOrderId = validItems.map(i => ({ ...i, order_id: order.id }));
+      const { error: itemsErr } = await supabase.from('order_items').insert(itemsWithOrderId);
+      if (itemsErr) throw itemsErr;
+
+      alert('Pedido importado como rascunho com sucesso!');
+      fetchOrders();
+    } catch (err: any) {
+      console.error(err);
+      alert('Erro ao importar Excel: ' + err.message);
+    } finally {
+      setImportingOrders(false);
+    }
+  };
 
   useEffect(() => {
     const searchProduct = async () => {
@@ -853,6 +1095,18 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
   const getBrandName = (brandId: string) =>
     brands.find((b: any) => b.id === brandId)?.name || '—';
 
+  // Refresh sellers for manual typing
+  useEffect(() => {
+    async function fetchSellers() {
+      if (!supabase || !companyId || role !== 'company') return;
+      const { data } = await supabase.from('sellers').select('*').eq('company_id', companyId).eq('ativo', true).order('nome');
+      setTypingSellers(data || []);
+    }
+    if (isTypingModalOpen) {
+      fetchSellers();
+    }
+  }, [isTypingModalOpen, companyId, role]);
+
   if (loading) return (
     <div className="p-6 flex items-center justify-center min-h-[400px]">
       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
@@ -866,6 +1120,38 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
           {role === 'customer' ? 'Meus Pedidos' : 'Pedidos'}
         </h1>
         <div className="flex items-center gap-2">
+          {canEditOrder && (
+            <>
+              <button
+                onClick={() => setIsTypingModalOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold bg-primary text-white shadow-md shadow-primary/20 hover:bg-primary/90 transition-all"
+              >
+                <Keyboard size={13} />
+                Digitar Pedido
+              </button>
+
+              <button
+                onClick={() => orderImportRef.current?.click()}
+                disabled={importingOrders}
+                className="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold bg-white text-slate-500 border border-slate-200 hover:border-primary/40 transition-all disabled:opacity-50"
+              >
+                {importingOrders ? (
+                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current" />
+                ) : (
+                  <Upload size={13} />
+                )}
+                Importar Pedido
+              </button>
+              <input 
+                type="file" 
+                ref={orderImportRef} 
+                onChange={handleExcelOrderImport} 
+                accept=".xlsx, .xls, .csv" 
+                className="hidden" 
+              />
+            </>
+          )}
+
           {canEditOrder && (
             <button
               onClick={() => {
@@ -1662,6 +1948,229 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                   <button onClick={() => { setSelectedOrder(null); setEditingPayment(false); setEditingDate(false); }} className="px-8 py-3 bg-white text-slate-600 rounded-xl font-bold shadow-sm border border-slate-200 hover:bg-slate-50 transition-all">
                     Fechar
                   </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Digitação Manual Modal */}
+      <AnimatePresence>
+        {isTypingModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-white rounded-[32px] shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden"
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <div>
+                  <h2 className="text-xl font-black text-slate-800 flex items-center gap-2">
+                    <Keyboard size={20} className="text-primary" />
+                    {typingStep === 'items' ? 'Digitação Rápida de Itens' : 'Configuração do Pedido'}
+                  </h2>
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">
+                    {typingStep === 'items' ? 'Adicione os itens usando SKU e TAB' : 'Selecione o cliente e finalize'}
+                  </p>
+                </div>
+                <button 
+                  onClick={() => setIsTypingModalOpen(false)} 
+                  className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-6">
+                {typingStep === 'items' ? (
+                  <div className="space-y-6">
+                    {/* Input Row */}
+                    <div className="grid grid-cols-12 gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                      <div className="col-span-4 space-y-1">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">SKU (Foco Automático)</label>
+                        <input
+                          ref={skuInputRef}
+                          name="sku"
+                          autoFocus
+                          type="text"
+                          value={typingSku}
+                          onChange={e => setTypingSku(e.target.value)}
+                          onKeyDown={handleManualKeyDown}
+                          placeholder="Digite o SKU..."
+                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all uppercase"
+                        />
+                      </div>
+                      <div className="col-span-2 space-y-1">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Qtd</label>
+                        <input
+                          ref={qtyInputRef}
+                          name="qty"
+                          type="text"
+                          value={typingQty}
+                          onChange={e => setTypingQty(e.target.value)}
+                          onKeyDown={handleManualKeyDown}
+                          placeholder="Qtd"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-center outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                        />
+                      </div>
+                      <div className="col-span-3 space-y-1">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Preço Sugerido</label>
+                        <input
+                          ref={priceInputRef}
+                          name="price"
+                          type="text"
+                          value={typingPrice}
+                          onChange={e => setTypingPrice(e.target.value)}
+                          onKeyDown={handleManualKeyDown}
+                          placeholder="0,00"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-right outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                        />
+                      </div>
+                      <div className="col-span-3">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Preview</label>
+                        <div className="h-[42px] flex items-center px-1">
+                          {typingProduct ? (
+                            <div className="flex flex-col">
+                              <span className="text-[11px] font-black text-slate-800 line-clamp-1">{typingProduct.nome}</span>
+                              <span className="text-[9px] font-bold text-primary uppercase tracking-tighter">
+                                {getBrandName(typingProduct.brand_id)} • R$ {Number(typingProduct.preco_unitario).toFixed(2)}
+                              </span>
+                            </div>
+                          ) : typingSku ? (
+                            <span className="text-[10px] font-bold text-rose-400 uppercase italic">Produto não localizado...</span>
+                          ) : (
+                            <span className="text-[10px] font-bold text-slate-300 uppercase italic">Aguardando SKU...</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Table of items */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between px-2">
+                        <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Itens Adicionados ({typingItems.length})</h3>
+                        <span className="text-sm font-black text-primary">Subtotal: R$ {typingItems.reduce((acc, i) => acc + (i.quantidade * i.preco_unitario), 0).toFixed(2)}</span>
+                      </div>
+                      <div className="max-h-[300px] overflow-y-auto space-y-2 pr-2 custom-scrollbar">
+                        {typingItems.length > 0 ? typingItems.map((item, idx) => (
+                          <div key={idx} className="flex items-center justify-between p-3 bg-white rounded-2xl border border-slate-100 hover:border-primary/20 transition-all group">
+                            <div className="flex items-center gap-3">
+                              <span className="text-[10px] font-black text-slate-300">{idx + 1}.</span>
+                              <div className="flex flex-col">
+                                <span className="text-xs font-black text-slate-800">{item.nome}</span>
+                                <span className="text-[10px] font-bold text-slate-400">SKU: {item.sku} • {item.quantidade} un x R$ {item.preco_unitario.toFixed(2)}</span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <span className="text-sm font-black text-slate-900">R$ {(item.quantidade * item.preco_unitario).toFixed(2)}</span>
+                              <button 
+                                onClick={() => setTypingItems(prev => prev.filter((_, i) => i !== idx))}
+                                className="p-1.5 text-slate-300 hover:text-rose-500 rounded-lg transition-colors"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          </div>
+                        )).reverse() : (
+                          <div className="py-12 text-center bg-slate-50/50 rounded-[28px] border-2 border-dashed border-slate-100">
+                             <PackageSearch size={24} className="text-slate-200 mx-auto mb-2" />
+                             <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Nenhum item adicionado ainda</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="max-w-md mx-auto space-y-6 py-8">
+                    <div className="space-y-4">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Cliente / Empresa</label>
+                        <div className="relative">
+                          <UserIcon size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                          <select
+                            value={typingCustomerId}
+                            onChange={e => setTypingCustomerId(e.target.value)}
+                            className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-11 pr-4 py-3 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-primary/20 outline-none appearance-none"
+                          >
+                            <option value="">Selecione o Cliente...</option>
+                            {customers.map(c => (
+                              <option key={c.id} value={c.id}>{c.nome_empresa || c.nome}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+
+                      {role === 'company' && (
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Vendedor Responsável</label>
+                          <select
+                            value={typingSellerId}
+                            onChange={e => setTypingSellerId(e.target.value)}
+                            className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-primary/20 outline-none appearance-none"
+                          >
+                            <option value="">Nenhum Vendedor (Empresa)</option>
+                            {typingSellers.map(s => (
+                              <option key={s.id} value={s.id}>{s.nome}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-bold text-primary/60 uppercase tracking-widest">Total do Pedido</span>
+                        <span className="text-2xl font-black text-primary">R$ {typingItems.reduce((acc, i) => acc + (i.quantidade * i.preco_unitario), 0).toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer Buttons */}
+              <div className="p-6 border-t border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <button 
+                  onClick={() => setIsTypingModalOpen(false)}
+                  className="px-6 py-3 text-sm font-bold text-slate-500 hover:text-slate-700 transition-colors uppercase tracking-widest"
+                >
+                  Descartar
+                </button>
+                <div className="flex items-center gap-3">
+                  {typingStep === 'items' ? (
+                    <button
+                      disabled={typingItems.length === 0}
+                      onClick={() => setTypingStep('config')}
+                      className="flex items-center gap-2 px-8 py-3 bg-primary text-white rounded-2xl font-black text-sm shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all disabled:opacity-50"
+                    >
+                      Próximo: Identificar Cliente
+                      <ChevronRight size={16} />
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => setTypingStep('items')}
+                        className="flex items-center gap-2 px-6 py-3 bg-white text-slate-600 border border-slate-200 rounded-2xl font-bold text-sm hover:bg-slate-50 transition-all"
+                      >
+                        <ChevronLeft size={16} />
+                        Voltar aos Itens
+                      </button>
+                      <button
+                        onClick={handleSaveTypedOrder}
+                        disabled={isProcessing || !typingCustomerId}
+                        className="flex items-center gap-2 px-10 py-3 bg-emerald-500 text-white rounded-2xl font-black text-sm shadow-lg shadow-emerald-500/20 hover:bg-emerald-600 transition-all disabled:opacity-50"
+                      >
+                        {isProcessing ? (
+                          <div className="w-4 h-4 border-b-2 border-white rounded-full animate-spin" />
+                        ) : (
+                          <><Check size={16} /> Finalizar e Salvar</>
+                        )}
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             </motion.div>

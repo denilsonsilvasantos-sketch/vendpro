@@ -49,6 +49,8 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
   const [tempPaymentMethod, setTempPaymentMethod] = useState('');
   const [editingDiscount, setEditingDiscount] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState(false);
+  const [editingDate, setEditingDate] = useState(false);
+  const [tempDate, setTempDate] = useState('');
   const [tempCustomerId, setTempCustomerId] = useState('');
   const [tempDiscountValue, setTempDiscountValue] = useState(0);
   const [tempDiscountType, setTempDiscountType] = useState<'fixed' | 'percentage'>('fixed');
@@ -260,6 +262,23 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
     setEditingCustomer(false);
   };
 
+  const handleDateChange = async (orderId: string, newDate: string) => {
+    if (!supabase || !newDate) return;
+    
+    try {
+      const dateToSave = new Date(newDate).toISOString();
+
+      const { error } = await supabase.from('orders').update({ created_at: dateToSave }).eq('id', orderId);
+      if (error) throw error;
+      
+      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, created_at: dateToSave } : o));
+      if (selectedOrder?.id === orderId) setSelectedOrder((prev: any) => ({ ...prev, created_at: dateToSave }));
+      setEditingDate(false);
+    } catch (err: any) {
+      alert('Erro ao atualizar data: ' + err.message);
+    }
+  };
+
   const handleDiscountChange = async (orderId: string, value: number, type: 'fixed' | 'percentage') => {
     if (!supabase || !selectedOrder) return;
     
@@ -432,6 +451,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
     setEditingDiscount(false);
     setEditingPayment(false);
     setEditingCustomer(false);
+    setEditingDate(false);
     setTempDiscountValue(order.discount_value || 0);
     setTempDiscountType(order.discount_type || 'fixed');
     if (!supabase) { setItemsError('Conexão indisponível.'); setLoadingItems(false); return; }
@@ -1075,7 +1095,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                     </div>
                   )}
                 </div>
-                <button onClick={() => { setSelectedOrder(null); setEditingPayment(false); setEditingCustomer(false); }} className="p-3 bg-white text-slate-400 hover:text-rose-500 rounded-2xl shadow-sm border border-slate-100 transition-all ml-4">
+                <button onClick={() => { setSelectedOrder(null); setEditingPayment(false); setEditingCustomer(false); setEditingDate(false); }} className="p-3 bg-white text-slate-400 hover:text-rose-500 rounded-2xl shadow-sm border border-slate-100 transition-all ml-4">
                   <X size={20} />
                 </button>
               </div>
@@ -1104,8 +1124,44 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                         <p className="text-sm font-bold text-slate-700">{getBrandName(selectedOrder.brand_id)}</p>
                       </div>
                       <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1 flex items-center gap-1.5"><Calendar size={10} /> Data</p>
-                        <p className="text-sm font-bold text-slate-700">{formatDate(selectedOrder.created_at)}</p>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1 flex items-center justify-between">
+                          <span className="flex items-center gap-1.5"><Calendar size={10} /> Data</span>
+                          {canEditOrder && !editingDate && (
+                            <button 
+                              onClick={() => {
+                                setTempDate(selectedOrder.created_at ? selectedOrder.created_at.slice(0, 16) : '');
+                                setEditingDate(true);
+                              }}
+                              className="text-primary hover:text-primary/80 transition-colors"
+                            >
+                              <Edit2 size={12} />
+                            </button>
+                          )}
+                        </p>
+                        {editingDate ? (
+                          <div className="flex items-center gap-2">
+                            <input 
+                              type="datetime-local"
+                              value={tempDate}
+                              onChange={(e) => setTempDate(e.target.value)}
+                              className="flex-1 bg-white border border-slate-200 rounded-lg text-[10px] font-bold text-slate-700 px-2 py-1 focus:ring-2 focus:ring-primary/20 outline-none"
+                            />
+                            <button 
+                              onClick={() => handleDateChange(selectedOrder.id, tempDate)}
+                              className="p-1.5 bg-primary text-white rounded-lg hover:bg-primary/90 transition-all"
+                            >
+                              <Check size={14} />
+                            </button>
+                            <button 
+                              onClick={() => setEditingDate(false)}
+                              className="p-1.5 bg-slate-200 text-slate-500 rounded-lg hover:bg-slate-300 transition-all"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        ) : (
+                          <p className="text-sm font-bold text-slate-700">{formatDate(selectedOrder.created_at)}</p>
+                        )}
                       </div>
                       <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10 col-span-2">
                         <p className="text-[10px] font-bold uppercase tracking-widest text-primary/60 mb-3">Resumo de Valores</p>
@@ -1439,7 +1495,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                       Notificar Cliente
                     </button>
                   )}
-                  <button onClick={() => { setSelectedOrder(null); setEditingPayment(false); }} className="px-8 py-3 bg-white text-slate-600 rounded-xl font-bold shadow-sm border border-slate-200 hover:bg-slate-50 transition-all">
+                  <button onClick={() => { setSelectedOrder(null); setEditingPayment(false); setEditingDate(false); }} className="px-8 py-3 bg-white text-slate-600 rounded-xl font-bold shadow-sm border border-slate-200 hover:bg-slate-50 transition-all">
                     Fechar
                   </button>
                 </div>

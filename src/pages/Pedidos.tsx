@@ -90,7 +90,6 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
     const searchTypingProduct = async () => {
       if (!typingSku || !supabase || !companyId) {
         setTypingProduct(null);
-        setTypingPrice('');
         return;
       }
       
@@ -105,8 +104,27 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
       const { data } = await query.maybeSingle();
       
       if (data) {
-        setTypingProduct(data);
-        setTypingPrice(data.preco_unitario?.toString() || '');
+        // Encontrar marca para aplicar margem
+        const brand = brands.find(b => b.id === data.brand_id);
+        const margin = brand?.margin_percentage || 0;
+        
+        // Aplica a margem de preço
+        const priceUnit = margin > 0 ? data.preco_unitario * (1 + margin / 100) : data.preco_unitario;
+        const priceBox = (margin > 0 && data.preco_box) ? data.preco_box * (1 + margin / 100) : data.preco_box;
+        const promoPriceUnit = (margin > 0 && data.promo_price_unit) ? data.promo_price_unit * (1 + margin / 100) : data.promo_price_unit;
+        const promoPriceBox = (margin > 0 && data.promo_price_box) ? data.promo_price_box * (1 + margin / 100) : data.promo_price_box;
+
+        const processedProduct = {
+          ...data,
+          preco_unitario: priceUnit,
+          preco_box: priceBox,
+          promo_price_unit: promoPriceUnit,
+          promo_price_box: promoPriceBox,
+          brand_nome: brand?.name,
+          margin_percentage: margin
+        };
+
+        setTypingProduct(processedProduct);
         if (!typingBrandId) setTypingBrandId(data.brand_id);
       } else {
         setTypingProduct(null);
@@ -115,7 +133,19 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
 
     const timer = setTimeout(searchTypingProduct, 300);
     return () => clearTimeout(timer);
-  }, [typingSku, companyId, typingBrandId]);
+  }, [typingSku, companyId, typingBrandId, brands]);
+
+  // Efeito para atualizar o preço sugerido com base na quantidade e regras de 'somente box'
+  useEffect(() => {
+    if (!typingProduct) {
+      setTypingPrice('');
+      return;
+    }
+
+    const qty = parseInt(typingQty) || 1;
+    const price = getCartItemPrice({ ...typingProduct, quantity: qty });
+    setTypingPrice(price.toFixed(2));
+  }, [typingProduct, typingQty]);
 
   const handleManualKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Tab' || e.key === 'Enter') {

@@ -470,7 +470,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
       }
       return true;
     });
-  }, [orders, filterStatus, filterDateFrom, filterDateTo, filterSearch]);
+  }, [orders, filterStatus, filterBrand, filterDateFrom, filterDateTo, filterSearch]);
 
   const hasActiveFilters = filterStatus || filterBrand || filterDateFrom || filterDateTo || filterSearch;
 

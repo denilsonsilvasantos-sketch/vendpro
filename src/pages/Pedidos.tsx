@@ -472,6 +472,11 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
     });
   }, [orders, filterStatus, filterBrand, filterDateFrom, filterDateTo, filterSearch]);
 
+  const typingFilteredCustomers = useMemo(() => {
+    if (!typingSellerId) return customers;
+    return customers.filter(c => c.seller_id === typingSellerId);
+  }, [customers, typingSellerId]);
+
   const hasActiveFilters = filterStatus || filterBrand || filterDateFrom || filterDateTo || filterSearch;
 
   function clearFilters() {
@@ -2117,6 +2122,28 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                 ) : (
                   <div className="max-w-md mx-auto space-y-6 py-8">
                     <div className="space-y-4">
+                      {role === 'company' && (
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Vendedor Responsável</label>
+                          <div className="relative">
+                            <UserIcon size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                            <select
+                              value={typingSellerId}
+                              onChange={e => {
+                                setTypingSellerId(e.target.value);
+                                setTypingCustomerId(''); // Reseta cliente ao mudar vendedor
+                              }}
+                              className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-11 pr-4 py-3 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-primary/20 outline-none appearance-none"
+                            >
+                              <option value="">Nenhum Vendedor (Empresa)</option>
+                              {typingSellers.map(s => (
+                                <option key={s.id} value={s.id}>{s.nome}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                      )}
+
                       <div className="space-y-1.5">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Cliente / Empresa</label>
                         <div className="relative">
@@ -2127,28 +2154,12 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                             className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-11 pr-4 py-3 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-primary/20 outline-none appearance-none"
                           >
                             <option value="">Selecione o Cliente...</option>
-                            {customers.map(c => (
+                            {typingFilteredCustomers.map(c => (
                               <option key={c.id} value={c.id}>{c.nome_empresa || c.nome}</option>
                             ))}
                           </select>
                         </div>
                       </div>
-
-                      {role === 'company' && (
-                        <div className="space-y-1.5">
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Vendedor Responsável</label>
-                          <select
-                            value={typingSellerId}
-                            onChange={e => setTypingSellerId(e.target.value)}
-                            className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-primary/20 outline-none appearance-none"
-                          >
-                            <option value="">Nenhum Vendedor (Empresa)</option>
-                            {typingSellers.map(s => (
-                              <option key={s.id} value={s.id}>{s.nome}</option>
-                            ))}
-                          </select>
-                        </div>
-                      )}
                     </div>
 
                     <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10">

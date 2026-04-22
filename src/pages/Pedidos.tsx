@@ -491,7 +491,11 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
   const handleStatusChange = async (orderId: string, newStatus: string) => {
     if (!supabase) return;
     const { error } = await supabase.from('orders').update({ status: newStatus }).eq('id', orderId);
-    if (error) { alert('Erro ao atualizar status.'); return; }
+    if (error) { 
+      console.error('Status Update Error:', error);
+      alert('Erro ao atualizar status: ' + (error.message || 'Erro desconhecido')); 
+      return; 
+    }
     setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
     if (selectedOrder?.id === orderId) setSelectedOrder((prev: any) => ({ ...prev, status: newStatus }));
   };
@@ -499,7 +503,11 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
   const handlePaymentMethodChange = async (orderId: string, newMethod: string) => {
     if (!supabase) return;
     const { error } = await supabase.from('orders').update({ payment_method: newMethod }).eq('id', orderId);
-    if (error) { alert('Erro ao atualizar pagamento.'); return; }
+    if (error) { 
+      console.error('Payment Update Error:', error);
+      alert('Erro ao atualizar pagamento: ' + (error.message || 'Erro desconhecido')); 
+      return; 
+    }
     setOrders(prev => prev.map(o => o.id === orderId ? { ...o, payment_method: newMethod } : o));
     if (selectedOrder?.id === orderId) setSelectedOrder((prev: any) => ({ ...prev, payment_method: newMethod }));
     setEditingPayment(false);
@@ -580,7 +588,11 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
       total: newTotal
     }).eq('id', orderId);
 
-    if (error) { alert('Erro ao atualizar desconto.'); return; }
+    if (error) { 
+      console.error('Discount Update Error:', error);
+      alert('Erro ao atualizar desconto: ' + (error.message || 'Erro desconhecido')); 
+      return; 
+    }
     
     setOrders(prev => prev.map(o => o.id === orderId ? { ...o, discount_value: value, discount_type: type, total: newTotal } : o));
     setSelectedOrder((prev: any) => ({ ...prev, discount_value: value, discount_type: type, total: newTotal }));

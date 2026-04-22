@@ -401,7 +401,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
     // Fetch customers for this company to merge with orders
     const { data: customersData } = await supabase
       .from('customers')
-      .select('id, nome, nome_empresa, whatsapp')
+      .select('id, nome, nome_empresa, whatsapp, seller_id')
       .eq('company_id', companyId);
     
     setCustomers(customersData || []);

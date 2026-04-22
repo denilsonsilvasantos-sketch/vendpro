@@ -59,7 +59,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
   const [tempDiscountType, setTempDiscountType] = useState<'fixed' | 'percentage'>('fixed');
 
   const [newSku, setNewSku] = useState('');
-  const [newQuantity, setNewQuantity] = useState(1);
+  const [newQuantity, setNewQuantity] = useState<number | ''>('');
   const [isAddingItem, setIsAddingItem] = useState(false);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [addingItemLoading, setAddingItemLoading] = useState(false);
@@ -79,6 +79,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
   const [typingSellerId, setTypingSellerId] = useState(role === 'seller' ? user?.id : '');
   const [typingStep, setTypingStep] = useState<'items' | 'config'>('items');
   const [importingOrders, setImportingOrders] = useState(false);
+  const [itemSortMode, setItemSortMode] = useState<'name-asc' | 'name-desc' | 'qty-asc' | 'qty-desc'>('name-asc');
 
   const skuInputRef = useRef<HTMLInputElement>(null);
   const qtyInputRef = useRef<HTMLInputElement>(null);
@@ -178,7 +179,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
       sku: typingProduct.sku,
       nome: typingProduct.nome,
       brand_id: typingProduct.brand_id,
-      quantidade: parseInt(typingQty) || 1,
+      quantidade: parseInt(typingQty as string) || 1,
       preco_unitario: parseFloat(typingPrice) || typingProduct.preco_unitario || 0,
     };
 
@@ -1116,12 +1117,19 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
     );
   };
 
-  const statusLabel = (s: string) => ({ pending: 'Pendente', typed: 'Digitado', finished: 'Finalizado', cancelled: 'Cancelado' }[s] || s);
+  const statusLabel = (s: string) => ({ 
+    pending: 'Pendente', 
+    typed: 'Digitado', 
+    transmitted: 'Transmitido',
+    finished: 'Finalizado', 
+    cancelled: 'Cancelado' 
+  }[s] || s);
   const statusClass = (s: string) => ({
-    pending: 'bg-amber-50 text-amber-600',
-    typed: 'bg-blue-50 text-blue-600',
-    finished: 'bg-emerald-50 text-emerald-600',
-    cancelled: 'bg-rose-50 text-rose-600',
+    pending: 'bg-amber-100 text-amber-700',
+    typed: 'bg-blue-100 text-blue-700',
+    transmitted: 'bg-purple-100 text-purple-700',
+    finished: 'bg-emerald-100 text-emerald-700',
+    cancelled: 'bg-rose-100 text-rose-700',
   }[s] || 'bg-slate-100 text-slate-600');
 
   const canEditOrder = role === 'seller' || role === 'company';
@@ -1261,17 +1269,18 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Status</label>
-                  <select
-                    value={filterStatus}
-                    onChange={e => setFilterStatus(e.target.value)}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-primary/40 font-bold text-slate-900"
-                  >
-                    <option value="">Todos</option>
-                    <option value="pending">Pendente</option>
-                    <option value="typed">Digitado</option>
-                    <option value="finished">Finalizado</option>
-                    <option value="cancelled">Cancelado</option>
-                  </select>
+                    <select
+                      value={filterStatus}
+                      onChange={e => setFilterStatus(e.target.value)}
+                      className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-primary/40 font-bold text-slate-900"
+                    >
+                      <option value="">Todos</option>
+                      <option value="pending">Pendente</option>
+                      <option value="typed">Digitado</option>
+                      <option value="transmitted">Transmitido</option>
+                      <option value="finished">Finalizado</option>
+                      <option value="cancelled">Cancelado</option>
+                    </select>
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Data de</label>
@@ -1402,7 +1411,9 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                         className={`px-3 py-1.5 rounded-xl text-xs font-bold border-none outline-none cursor-pointer ${statusClass(order.status)}`}>
                         <option value="pending">Pendente</option>
                         <option value="typed">Digitado</option>
+                        <option value="transmitted">Transmitido</option>
                         <option value="finished">Finalizado</option>
+                        <option value="cancelled">Cancelado</option>
                       </select>
                     )}
                   </td>
@@ -1771,7 +1782,21 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
 
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400">Itens do Pedido</h4>
+                        <div className="flex items-center gap-3">
+                          <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400">Itens do Pedido</h4>
+                          {selectedOrder.status === 'typed' && (
+                            <select
+                              value={itemSortMode}
+                              onChange={e => setItemSortMode(e.target.value as any)}
+                              className="text-[10px] font-bold text-primary bg-primary/5 border-none outline-none rounded-lg px-2 py-1 cursor-pointer"
+                            >
+                              <option value="name-asc">Nome A-Z</option>
+                              <option value="name-desc">Nome Z-A</option>
+                              <option value="qty-asc">Qtd 1-9</option>
+                              <option value="qty-desc">Qtd 9-1</option>
+                            </select>
+                          )}
+                        </div>
                         {canEditOrder && !isAddingItem && (
                           <button 
                             onClick={() => setIsAddingItem(true)}
@@ -1830,9 +1855,18 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                       )}
 
                       <div className="space-y-2">
-                        <AnimatePresence>
-                          {orderItems.length > 0 ? orderItems.map((item, idx) => (
-                            <motion.div key={item.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }}
+                        <AnimatePresence mode="popLayout">
+                          {orderItems.length > 0 ? [...orderItems]
+                            .sort((a, b) => {
+                              if (selectedOrder.status !== 'typed') return 0;
+                              if (itemSortMode === 'name-asc') return (a.nome || '').localeCompare(b.nome || '');
+                              if (itemSortMode === 'name-desc') return (b.nome || '').localeCompare(a.nome || '');
+                              if (itemSortMode === 'qty-asc') return a.quantidade - b.quantidade;
+                              if (itemSortMode === 'qty-desc') return b.quantidade - a.quantidade;
+                              return 0;
+                            })
+                            .map((item, idx) => (
+                            <motion.div layout key={item.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }}
                               className="flex items-center justify-between p-4 bg-white rounded-2xl border border-slate-100 hover:border-primary/20 transition-all group">
                               <div className="flex-1 flex items-center gap-4">
                                 <span className="text-[10px] font-black text-slate-300 w-4">{idx + 1}.</span>
@@ -2072,7 +2106,12 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                             <div className="flex flex-col">
                               <span className="text-[11px] font-black text-slate-800 line-clamp-1">{typingProduct.nome}</span>
                               <span className="text-[9px] font-bold text-primary uppercase tracking-tighter">
-                                {getBrandName(typingProduct.brand_id)} • R$ {Number(typingProduct.preco_unitario).toFixed(2)}
+                                {getBrandName(typingProduct.brand_id)} • 
+                                {typingProduct.venda_somente_box ? (
+                                  ` BOX C/${typingProduct.qtd_box} - R$ ${Number(typingProduct.preco_box).toFixed(2)} (R$ ${Number(typingProduct.preco_unitario).toFixed(2)} un.)`
+                                ) : (
+                                  ` R$ ${Number(typingProduct.preco_unitario).toFixed(2)}`
+                                )}
                               </span>
                             </div>
                           ) : typingSku ? (
@@ -2087,7 +2126,19 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                     {/* Table of items */}
                     <div className="space-y-3">
                       <div className="flex items-center justify-between px-2">
-                        <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Itens Adicionados ({typingItems.length})</h3>
+                        <div className="flex items-center gap-3">
+                          <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Itens Adicionados ({typingItems.length})</h3>
+                          {typingItems.length > 0 && (
+                            <button
+                              onClick={() => {
+                                if (confirm('Limpar todos os itens da lista?')) setTypingItems([]);
+                              }}
+                              className="text-[10px] font-bold text-rose-500 hover:underline flex items-center gap-1"
+                            >
+                              <Trash2 size={11} /> Limpar Tudo
+                            </button>
+                          )}
+                        </div>
                         <span className="text-sm font-black text-primary">Subtotal: R$ {typingItems.reduce((acc, i) => acc + (i.quantidade * i.preco_unitario), 0).toFixed(2)}</span>
                       </div>
                       <div className="max-h-[300px] overflow-y-auto space-y-2 pr-2 custom-scrollbar">

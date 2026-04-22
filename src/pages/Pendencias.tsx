@@ -100,6 +100,20 @@ export default function Pendencias({ companyId, onRefresh }: { companyId: string
     setLoading(false);
   }
 
+  const handleDelete = async (id: string) => {
+    if (!supabase || !confirm('Deseja realmente excluir este produto?')) return;
+    const { error } = await supabase.from('products').delete().eq('id', id);
+    if (error) alert('Erro ao excluir: ' + error.message);
+    else fetchPendencies();
+  };
+
+  const handleDeleteAll = async () => {
+    if (!supabase || products.length === 0 || !confirm(`Deseja realmente excluir TODOS os ${products.length} produtos pendentes?`)) return;
+    const { error } = await supabase.from('products').delete().in('id', products.map(p => p.id));
+    if (error) alert('Erro ao excluir todos: ' + error.message);
+    else fetchPendencies();
+  };
+
   useEffect(() => {
     fetchPendencies();
   }, [companyId]);
@@ -201,6 +215,15 @@ export default function Pendencias({ companyId, onRefresh }: { companyId: string
           <span className="w-2 h-2 bg-amber-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
           {products.length} itens aguardando
         </div>
+        {products.length > 0 && (
+          <button
+            onClick={handleDeleteAll}
+            className="flex items-center gap-2 px-4 py-2 bg-rose-50 text-rose-500 rounded-full text-[10px] font-black uppercase tracking-widest border border-rose-100 hover:bg-rose-500 hover:text-white transition-all shadow-sm"
+          >
+            <AlertTriangle size={14} />
+            Excluir Tudo
+          </button>
+        )}
       </div>
 
       <div className="relative group max-w-md">
@@ -350,15 +373,24 @@ export default function Pendencias({ companyId, onRefresh }: { companyId: string
                         </button>
                       </div>
                     ) : (
-                      <button 
-                        onClick={() => {
-                          setEditingId(product.id);
-                          setEditData({ category_id: product.category_id, imagem: product.imagem });
-                        }}
-                        className="px-[10px] py-[5px] text-primary bg-primary/5 hover:bg-primary hover:text-white rounded-[6px] transition-all flex items-center gap-2 font-black text-[9px] uppercase tracking-widest active:scale-95"
-                      >
-                        <Edit size={10} strokeWidth={3} /> Revisar
-                      </button>
+                      <div className="flex items-center gap-1">
+                        <button 
+                          onClick={() => {
+                            setEditingId(product.id);
+                            setEditData({ category_id: product.category_id, imagem: product.imagem });
+                          }}
+                          className="px-[10px] py-[5px] text-primary bg-primary/5 hover:bg-primary hover:text-white rounded-[6px] transition-all flex items-center gap-2 font-black text-[9px] uppercase tracking-widest active:scale-95"
+                        >
+                          <Edit size={10} strokeWidth={3} /> Revisar
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(product.id)}
+                          className="p-1.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
+                          title="Excluir produto permanentemente"
+                        >
+                          <AlertTriangle size={12} strokeWidth={3} />
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>

@@ -372,8 +372,9 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
               venda_somente_box: vendaSomenteBox,
               has_box_discount: hasBoxDiscount,
               is_last_units: isLastUnits,
-              qtd_box: d.qtdBox || existing.qtd_box,
-              multiplo_venda: (d.multiploVenda && d.multiploVenda > 1) ? d.multiploVenda : existing.multiplo_venda
+              // Preserve existing values if they are > 1, otherwise use file data or existing
+              qtd_box: (existing.qtd_box && existing.qtd_box > 1) ? existing.qtd_box : (d.qtdBox || existing.qtd_box || 1),
+              multiplo_venda: (existing.multiplo_venda && existing.multiplo_venda > 1) ? existing.multiplo_venda : ((d.multiploVenda && d.multiploVenda > 1) ? d.multiploVenda : (existing.multiplo_venda || 1))
             };
             if (nameChanged) updateObj.nome = d.nome;
             if (precoUnitario !== undefined) updateObj.preco_unitario = precoUnitario;

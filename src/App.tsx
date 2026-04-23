@@ -2907,7 +2907,7 @@ function CatalogScreen({
   );
 }
 
-function VarietiesModal({ 
+ function VarietiesModal({ 
   product, 
   onClose, 
   onAdd, 
@@ -2929,113 +2929,138 @@ function VarietiesModal({
         initial={{ opacity: 0 }} 
         animate={{ opacity: 1 }} 
         exit={{ opacity: 0 }} 
-        className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
+        className="absolute inset-0 bg-slate-900/80 backdrop-blur-xl"
         onClick={onClose}
       />
       <motion.div 
-        initial={{ scale: 0.9, opacity: 0, y: 20 }} 
+        initial={{ scale: 0.9, opacity: 0, y: 40 }} 
         animate={{ scale: 1, opacity: 1, y: 0 }} 
-        exit={{ scale: 0.9, opacity: 0, y: 20 }} 
-        className="bg-white w-full max-w-lg rounded-[40px] shadow-2xl relative z-10 overflow-hidden flex flex-col max-h-[90vh]"
+        exit={{ scale: 0.9, opacity: 0, y: 40 }} 
+        className="bg-white w-full max-w-2xl rounded-[48px] shadow-2xl relative z-10 overflow-hidden flex flex-col max-h-[92vh] border border-white/20"
       >
-        <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl overflow-hidden bg-white border border-slate-100 shadow-sm shrink-0 relative group">
-              <AnimatePresence mode="wait">
-                <motion.img 
-                  key={currentImageIndex}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  src={images[currentImageIndex]} 
-                  className="w-full h-full object-contain p-1" 
-                  alt={product.nome} 
-                />
-              </AnimatePresence>
+        <div className="relative h-64 sm:h-80 bg-slate-50 flex items-center justify-center group overflow-hidden shadow-inner">
+          <AnimatePresence mode="wait">
+            <motion.img 
+              key={currentImageIndex}
+              initial={{ opacity: 0.4, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0.4, scale: 1.05 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 120 }}
+              src={images[currentImageIndex]} 
+              className="w-full h-full object-contain p-8 sm:p-12 drop-shadow-2xl" 
+              alt={product.nome} 
+              referrerPolicy="no-referrer"
+            />
+          </AnimatePresence>
+          
+          <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent opacity-60" />
+
+          {images.length > 1 && (
+            <>
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setCurrentImageIndex(prev => (prev - 1 + images.length) % images.length);
+                }}
+                className="absolute left-6 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/80 hover:bg-white backdrop-blur-md text-slate-900 rounded-full flex items-center justify-center transition-all z-10 shadow-xl active:scale-90 border border-slate-100"
+              >
+                <ChevronLeft size={24} strokeWidth={3} />
+              </button>
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setCurrentImageIndex(prev => (prev + 1) % images.length);
+                }}
+                className="absolute right-6 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/80 hover:bg-white backdrop-blur-md text-slate-900 rounded-full flex items-center justify-center transition-all z-10 shadow-xl active:scale-90 border border-slate-100"
+              >
+                <ChevronRight size={24} strokeWidth={3} />
+              </button>
               
-              {images.length > 1 && (
-                <>
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setCurrentImageIndex(prev => (prev - 1 + images.length) % images.length);
-                    }}
-                    className="absolute left-0 top-1/2 -translate-y-1/2 bg-slate-900/70 hover:bg-slate-900/90 text-white p-1.5 rounded-r transition-all z-10 shadow-lg"
-                  >
-                    <ChevronLeft size={24} strokeWidth={2.5} />
-                  </button>
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setCurrentImageIndex(prev => (prev + 1) % images.length);
-                    }}
-                    className="absolute right-0 top-1/2 -translate-y-1/2 bg-slate-900/70 hover:bg-slate-900/90 text-white p-1.5 rounded-l transition-all z-10 shadow-lg"
-                  >
-                    <ChevronRight size={24} strokeWidth={2.5} />
-                  </button>
-                </>
-              )}
-            </div>
-            <div className="min-w-0">
-              <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight line-clamp-1">{product.nome}</h3>
-              <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Escolha as variedades</p>
-              {product.multiplo_venda && product.multiplo_venda > 1 && (
-                <p className="text-[9px] font-black text-primary uppercase tracking-widest mt-0.5">
-                  Venda em múltiplos de {product.multiplo_venda}
-                </p>
-              )}
-            </div>
-          </div>
-          <button onClick={onClose} className="w-10 h-10 flex items-center justify-center rounded-full bg-white border border-slate-100 text-slate-400 hover:text-rose-500 transition-all shadow-sm">
-            <X size={20} strokeWidth={2.5} />
+              <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-20">
+                {images.map((_, idx) => (
+                  <div 
+                    key={idx} 
+                    className={`h-1.5 rounded-full transition-all duration-300 ${idx === currentImageIndex ? 'bg-primary w-6' : 'bg-slate-300 w-1.5'}`}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+
+          <button 
+            onClick={onClose} 
+            className="absolute top-6 right-6 w-12 h-12 flex items-center justify-center rounded-full bg-white/80 hover:bg-white backdrop-blur-md text-slate-400 hover:text-rose-500 transition-all shadow-xl z-20 border border-slate-100"
+          >
+            <X size={24} strokeWidth={3} />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-4">
-          {product.variacoes_flat?.map(v => (
-            <div key={v.sku} className={`flex items-center justify-between gap-4 p-4 rounded-3xl border transition-all ${varietiesQty[v.sku] > 0 ? 'bg-primary/5 border-primary/20 shadow-sm' : 'bg-white border-slate-100'} ${v.esgotado ? 'opacity-50 grayscale' : ''}`}>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <p className="text-xs font-black text-slate-800 uppercase tracking-tight">{v.nome}</p>
-                  {v.esgotado && <span className="bg-rose-100 text-rose-600 text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">Esgotado</span>}
-                </div>
-                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">SKU: {v.sku}</p>
-              </div>
-              
-              <div className="flex items-center bg-white rounded-2xl border border-slate-200 p-1 shadow-sm">
-                <button 
-                  disabled={v.esgotado}
-                  onClick={() => onQtyChange(v.sku, (varietiesQty[v.sku] || 0) - 1)}
-                  className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-primary transition-colors rounded-xl hover:bg-slate-50"
-                >
-                  <Minus size={14} strokeWidth={2.5} />
-                </button>
-                <input 
-                  type="number" 
-                  disabled={v.esgotado}
-                  value={varietiesQty[v.sku] || 0}
-                  onChange={e => onQtyChange(v.sku, parseInt(e.target.value) || 0)}
-                  className="w-16 text-center text-sm font-black bg-slate-50 border border-slate-100 rounded-lg py-1 outline-none text-slate-800 focus:border-primary/30 transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                />
-                <button 
-                  disabled={v.esgotado}
-                  onClick={() => onQtyChange(v.sku, (varietiesQty[v.sku] || 0) + 1)}
-                  className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-primary transition-colors rounded-xl hover:bg-slate-50"
-                >
-                  <Plus size={14} strokeWidth={2.5} />
-                </button>
-              </div>
+        <div className="px-8 py-6 border-b border-slate-100 bg-white relative z-10">
+          <div className="flex flex-col gap-1">
+            <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">{product.nome}</h3>
+            <div className="flex items-center gap-3">
+              <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Escolha as Variedades</span>
+              <span className="text-[10px] text-slate-300 font-black uppercase tracking-widest bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">SKU: {product.sku}</span>
             </div>
-          ))}
+          </div>
         </div>
 
-        <div className="p-6 bg-slate-50 border-t border-slate-100">
+        <div className="flex-1 overflow-y-auto px-8 py-6 space-y-4 bg-slate-50/30">
+          {product.variacoes_flat?.map((v, idx) => {
+            // Se tiver várias imagens, tentamos associar se houver match de nome ou índice
+            // Caso contrário usamos a imagem principal do produto para todas variedades (se o usuário não definiu fotos por variação)
+            // Mas para o usuário ver QUAL escolher, se ele não tem fotos por variação, a gente mostra a do item
+            const vImage = (product.imagens && product.imagens.length > idx) ? product.imagens[idx] : product.imagem;
+
+            return (
+              <div key={v.sku} className={`flex items-center gap-5 p-5 rounded-[32px] border transition-all duration-300 ${varietiesQty[v.sku] > 0 ? 'bg-white border-primary/20 shadow-xl shadow-primary/5 ring-1 ring-primary/10' : 'bg-white border-slate-100 hover:border-slate-200'} ${v.esgotado ? 'opacity-50 grayscale' : ''}`}>
+                <div className="w-20 h-20 bg-slate-50 rounded-[20px] overflow-hidden border border-slate-100 shadow-inner shrink-0 group-hover:scale-110 transition-transform">
+                  <img src={vImage} className="w-full h-full object-contain p-2" alt={v.nome} />
+                </div>
+                
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-black text-slate-800 uppercase tracking-tight mb-0.5 line-clamp-1">{v.nome}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest">Cod: {v.sku}</p>
+                    {v.esgotado && <span className="bg-rose-100 text-rose-600 text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest border border-rose-200/50">Esgotado</span>}
+                  </div>
+                </div>
+                
+                <div className="flex items-center bg-slate-50 rounded-2xl border border-slate-100 p-1 shadow-inner">
+                  <button 
+                    disabled={v.esgotado}
+                    onClick={() => onQtyChange(v.sku, (varietiesQty[v.sku] || 0) - 1)}
+                    className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-primary transition-all rounded-xl hover:bg-white active:scale-90"
+                  >
+                    <Minus size={18} strokeWidth={3} />
+                  </button>
+                  <input 
+                    type="number" 
+                    disabled={v.esgotado}
+                    value={varietiesQty[v.sku] || 0}
+                    onChange={e => onQtyChange(v.sku, parseInt(e.target.value) || 0)}
+                    className="w-14 text-center text-base font-black bg-transparent outline-none text-slate-800 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                  <button 
+                    disabled={v.esgotado}
+                    onClick={() => onQtyChange(v.sku, (varietiesQty[v.sku] || 0) + 1)}
+                    className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-primary transition-all rounded-xl hover:bg-white active:scale-90"
+                  >
+                    <Plus size={18} strokeWidth={3} />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="p-8 bg-white border-t border-slate-100 relative z-10">
           <button 
             onClick={onAdd}
-            className="w-full py-4 bg-primary text-white rounded-2xl font-black uppercase tracking-[0.2em] text-xs shadow-xl shadow-primary/20 hover:scale-[0.98] active:scale-95 transition-all flex items-center justify-center gap-3"
+            className="w-full py-5 pink-gradient text-white rounded-[24px] font-black uppercase tracking-[0.25em] text-xs shadow-2xl shadow-primary/40 hover:scale-[0.98] active:scale-95 transition-all flex items-center justify-center gap-4"
           >
-            <ShoppingCart size={18} strokeWidth={2.5} />
-            Adicionar ao Carrinho
+            <ShoppingCart size={20} strokeWidth={3} />
+            Adicionar Itens Selecionados
           </button>
         </div>
       </motion.div>

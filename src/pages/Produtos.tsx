@@ -18,6 +18,7 @@ export default function Produtos({ companyId, onRefresh, searchTerm: externalSea
   const [zoomIndex, setZoomIndex] = useState(0);
   const [editingProduct, setEditingProduct] = useState<Product | undefined>();
   const [internalSearchTerm, setInternalSearchTerm] = useState('');
+  const [showErrorChecker, setShowErrorChecker] = useState(false);
   
   const searchTerm = externalSearchTerm !== undefined ? externalSearchTerm : internalSearchTerm;
   const setSearchTerm = externalSearchTerm !== undefined ? () => {} : setInternalSearchTerm;
@@ -182,6 +183,13 @@ export default function Produtos({ companyId, onRefresh, searchTerm: externalSea
           </div>
           <div className="flex flex-col sm:flex-row gap-3">
             <button 
+              onClick={() => setShowErrorChecker(true)} 
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-rose-50 border border-rose-100 px-5 py-3 text-xs font-black uppercase tracking-[0.18em] text-rose-600 shadow-sm hover:bg-rose-100 hover:-translate-y-0.5 active:translate-y-0 transition-all w-full md:w-auto"
+              title="Procurar produtos sem foto ou sem preço"
+            >
+              <AlertCircle size={18} strokeWidth={3} /> Corrigir Catálogo
+            </button>
+            <button 
               onClick={() => setIsBulkModalOpen(true)} 
               className="inline-flex items-center justify-center gap-2 rounded-full bg-white border border-slate-200 px-5 py-3 text-xs font-black uppercase tracking-[0.18em] text-slate-600 shadow-sm hover:bg-slate-50 hover:-translate-y-0.5 active:translate-y-0 transition-all w-full md:w-auto"
             >
@@ -286,6 +294,20 @@ export default function Produtos({ companyId, onRefresh, searchTerm: externalSea
               </div>
             )}
           </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showErrorChecker && (
+          <ProductErrorChecker 
+            products={products}
+            brands={brands}
+            onEdit={(p) => { 
+              setEditingProduct(p); 
+              setIsModalOpen(true);
+            }}
+            onClose={() => setShowErrorChecker(false)}
+          />
         )}
       </AnimatePresence>
 
@@ -536,4 +558,113 @@ const ProductItem = memo(({
     </motion.div>
   );
 });
+
+
+function ProductErrorChecker({ 
+  products, 
+  brands,
+  onEdit, 
+  onClose 
+}: { 
+  products: Product[], 
+  brands: Brand[],
+  onEdit: (p: Product) => void, 
+  onClose: () => void 
+}) {
+  const errorProducts = useMemo(() => {
+    return products.filter(p => {
+      const hasNoPhoto = !p.imagem || p.imagem.includes('picsum.photos');
+      const hasNoPrice = (!p.preco_unitario || p.preco_unitario <= 0) && (!p.preco_box || p.preco_box <= 0);
+      return hasNoPhoto || hasNoPrice;
+    });
+  }, [products]);
+
+  return (
+    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+      <motion.div 
+        initial={{ opacity: 0 }} 
+        animate={{ opacity: 1 }} 
+        exit={{ opacity: 0 }} 
+        className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
+        onClick={onClose}
+      />
+      <motion.div 
+        initial={{ scale: 0.9, opacity: 0, y: 20 }} 
+        animate={{ scale: 1, opacity: 1, y: 0 }} 
+        exit={{ scale: 0.9, opacity: 0, y: 20 }} 
+        className="bg-white w-full max-w-4xl rounded-[40px] shadow-2xl relative z-10 overflow-hidden flex flex-col max-h-[90vh]"
+      >
+        <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-rose-100 rounded-2xl flex items-center justify-center text-rose-500 shadow-inner">
+              <AlertCircle size={24} strokeWidth={2.5} />
+            </div>
+            <div>
+              <h3 className="text-base font-black text-slate-900 uppercase tracking-tight">Produtos com Inconsistências</h3>
+              <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">{errorProducts.length} itens precisam de atenção</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="w-10 h-10 flex items-center justify-center rounded-full bg-white border border-slate-100 text-slate-400 hover:text-rose-500 transition-all shadow-sm">
+            <X size={20} strokeWidth={2.5} />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-8">
+          {errorProducts.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
+              <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-500 shadow-inner">
+                <CheckCircle2 size={40} />
+              </div>
+              <div>
+                <h4 className="text-lg font-black text-slate-900 uppercase tracking-tight">Tudo em ordem!</h4>
+                <p className="text-sm text-slate-400 font-medium">Não encontramos produtos sem foto ou sem preço.</p>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {errorProducts.map(p => (
+                <div key={p.id} className="flex gap-4 p-4 rounded-3xl bg-slate-50 border border-slate-100 hover:border-primary/20 transition-all group">
+                  <div className="w-20 h-20 bg-white rounded-2xl overflow-hidden border border-slate-100 shrink-0 shadow-inner">
+                    <img src={p.imagem || `https://picsum.photos/seed/${p.sku}/200/200`} className={`w-full h-full object-contain p-2 ${(!p.imagem || p.imagem.includes('picsum')) ? 'opacity-30 grayscale' : ''}`} alt={p.nome} />
+                  </div>
+                  <div className="flex-1 min-w-0 flex flex-col justify-between">
+                    <div>
+                      <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-tight line-clamp-1">{p.nome}</h4>
+                      <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest">SKU: {p.sku}</p>
+                    </div>
+                    
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {(!p.imagem || p.imagem.includes('picsum')) && (
+                        <span className="bg-rose-50 text-rose-500 text-[7px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest border border-rose-100">Sem Foto</span>
+                      )}
+                      {(!p.preco_unitario || p.preco_unitario <= 0) && (!p.preco_box || p.preco_box <= 0) && (
+                        <span className="bg-amber-50 text-amber-500 text-[7px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest border border-amber-100">Sem Preço</span>
+                      )}
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => onEdit(p)}
+                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-400 hover:text-primary hover:border-primary/30 transition-all shadow-sm active:scale-90 self-center"
+                  >
+                    <Edit size={18} strokeWidth={2.5} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="p-8 bg-slate-50 border-t border-slate-100 text-center">
+          <p className="text-[10px] text-slate-400 font-bold mb-4">DICA: Clique no ícone de editar para abrir o formulário e corrigir o item.</p>
+          <button 
+            onClick={onClose}
+            className="px-10 py-4 bg-white border border-slate-200 text-slate-900 rounded-2xl font-black uppercase tracking-widest text-xs shadow-sm hover:bg-slate-50 transition-all"
+          >
+            Fechar Relatório
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
 

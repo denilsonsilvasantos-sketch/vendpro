@@ -600,7 +600,8 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
   };
 
   const handleAddItem = async () => {
-    if (!supabase || !selectedOrder || !newSku || newQuantity <= 0) return;
+    const qty = typeof newQuantity === 'number' ? newQuantity : 0;
+    if (!supabase || !selectedOrder || !newSku || qty <= 0) return;
     setAddingItemLoading(true);
 
     try {
@@ -638,11 +639,11 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
         ...product,
         preco_unitario: (product.preco_unitario || 0) * marginMultiplier,
         preco_box: (product.preco_box || 0) * marginMultiplier,
-        quantity: newQuantity
+        quantity: qty
       };
       
       const precoUnitario = getCartItemPrice(productWithMargin as any);
-      const subtotalItem = precoUnitario * newQuantity;
+      const subtotalItem = precoUnitario * qty;
 
       // 3. Insert into order_items
       const { data: newItem, error: insertError } = await supabase
@@ -652,7 +653,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
           product_id: product.id,
           sku: product.sku,
           nome: product.nome,
-          quantidade: newQuantity,
+          quantidade: qty,
           preco_unitario: precoUnitario,
           subtotal: subtotalItem,
           company_id: companyId

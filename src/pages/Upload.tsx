@@ -668,10 +668,10 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
       const doc = new jsPDF();
       const pageWidth = doc.internal.pageSize.getWidth();
       const pageHeight = doc.internal.pageSize.getHeight();
-      const margin = 15;
-      const cardWidth = 58;
-      const cardHeight = 85;
-      const gap = 5;
+      const margin = 10;
+      const cardWidth = 60;
+      const cardHeight = 82;
+      const gap = 4;
       const cols = 3;
 
       // Helper to load image
@@ -694,33 +694,23 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
       };
 
       // Header e Footer
-      const drawHeaderAndFooter = async (pageNumber: number, title: string, logoUrl?: string) => {
+      const drawHeaderAndFooter = async (pageNumber: number, title: string) => {
         // Footer (Página e Data no canto direito inferior)
         doc.setFontSize(8);
         doc.setTextColor(148, 163, 184);
         const footerText = `${new Date().toLocaleDateString('pt-BR')} | Página ${pageNumber}`;
-        doc.text(footerText, pageWidth - margin, pageHeight - 10, { align: 'right' });
+        doc.text(footerText, pageWidth - margin, pageHeight - 8, { align: 'right' });
 
         // Header
         if (pageNumber > 1) { // Só desenha header se não for a capa
-          // Logo centralizado no topo
-          if (logoUrl) {
-            const logoBase64 = await loadImage(logoUrl);
-            if (logoBase64) {
-              try {
-                doc.addImage(logoBase64, 'JPEG', pageWidth / 2 - 15, 10, 30, 15);
-              } catch (e) { console.error('Logo header error', e); }
-            }
-          }
-
-          // Categoria no lado esquerdo
-          doc.setFontSize(14);
+          // Categoria no lado esquerdo (Diminuído conforme solicitado)
+          doc.setFontSize(10);
           doc.setTextColor(30, 41, 59);
           doc.setFont('helvetica', 'bold');
-          doc.text(title.toUpperCase(), margin, 32);
+          doc.text(title.toUpperCase(), margin, 20);
           
           doc.setDrawColor(241, 245, 249);
-          doc.line(margin, 35, pageWidth - margin, 35);
+          doc.line(margin, 23, pageWidth - margin, 23);
         }
       };
 
@@ -785,20 +775,20 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
           // Nova página para cada categoria (e brand se mudar)
           doc.addPage();
           pageCount++;
-          await drawHeaderAndFooter(pageCount, `${brandName} - ${categoryName}`, brand?.logo_url);
+          await drawHeaderAndFooter(pageCount, categoryName);
           
-          let currentY = 45;
+          let currentY = 30;
           let colIndex = 0;
 
           for (const p of categoryProducts) {
             processedProducts++;
             setDownloadProgress(Math.round((processedProducts / totalProducts) * 100));
 
-            if (currentY + cardHeight > pageHeight - 20) {
+            if (currentY + cardHeight > pageHeight - 10) {
               doc.addPage();
               pageCount++;
-              await drawHeaderAndFooter(pageCount, `${brandName} - ${categoryName}`, brand?.logo_url);
-              currentY = 45;
+              await drawHeaderAndFooter(pageCount, categoryName);
+              currentY = 30;
               colIndex = 0;
             }
 
@@ -841,14 +831,24 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
             doc.setFontSize(10);
             doc.setTextColor(219, 39, 119); // rose-600
             doc.setFont('helvetica', 'bold');
-            doc.text(`R$ ${Number(p.preco_unitario_venda).toFixed(2)}`, x + 3, y + 70);
+            doc.text(`R$ ${Number(p.preco_unitario_venda).toFixed(2)}`, x + 3, y + 68);
 
             // Box Sale Price
             if (p.preco_box_venda > 0) {
               doc.setFontSize(7);
               doc.setTextColor(100, 116, 139);
               doc.setFont('helvetica', 'normal');
-              doc.text(`Box: R$ ${Number(p.preco_box_venda).toFixed(2)} (${p.qtd_box} un)`, x + 3, y + 75);
+              doc.text(`Box: R$ ${Number(p.preco_box_venda).toFixed(2)} (${p.qtd_box} un)`, x + 3, y + 73);
+            }
+
+            // Varieties Listing
+            if (p.variacoes_flat && p.variacoes_flat.length > 0) {
+              doc.setFontSize(5);
+              doc.setTextColor(148, 163, 184);
+              doc.setFont('helvetica', 'normal');
+              const varietiesStr = p.variacoes_flat.map((v: any) => v.nome).join(' • ');
+              const varietyLines = doc.splitTextToSize(varietiesStr, cardWidth - 6);
+              doc.text(varietyLines.slice(0, 2), x + 3, y + 76);
             }
 
             // Status Badge
@@ -856,11 +856,11 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
               const statusText = p.status_estoque === 'esgotado' ? 'ESGOTADO' : 'ÚLTIMAS';
               const badgeColor = p.status_estoque === 'esgotado' ? [15, 23, 42] : [244, 63, 94];
               doc.setFillColor(badgeColor[0], badgeColor[1], badgeColor[2]);
-              doc.roundedRect(x + 3, y + 78, 28, 4.5, 1, 1, 'F');
+              doc.roundedRect(x + 3, y + 78, 25, 3.5, 0.5, 0.5, 'F');
               doc.setTextColor(255, 255, 255);
-              doc.setFontSize(6);
+              doc.setFontSize(5);
               doc.setFont('helvetica', 'bold');
-              doc.text(statusText, x + 17, y + 81.5, { align: 'center' });
+              doc.text(statusText, x + 15.5, y + 80.5, { align: 'center' });
             }
 
             colIndex++;

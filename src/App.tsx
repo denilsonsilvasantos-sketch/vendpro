@@ -748,7 +748,7 @@ export default function App() {
       <AnimatePresence>
         {zoomImages.length > 0 && (
           <div 
-            className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/90 backdrop-blur-md"
+            className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/90 backdrop-blur-md"
             onClick={() => setZoomImages([])}
           >
             <motion.div 
@@ -2923,6 +2923,7 @@ function CatalogScreen({
   onZoom?: (imgs: string[], index: number) => void
 }) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [zoomedVariety, setZoomedVariety] = useState<{img: string, nome: string, sku: string} | null>(null);
   const images = product.imagens && product.imagens.length > 0 ? product.imagens : [product.imagem || `https://picsum.photos/seed/${product.sku}/400/400`];
 
   return (
@@ -3014,7 +3015,7 @@ function CatalogScreen({
             return (
               <div key={v.sku} className={`flex items-center gap-5 p-5 rounded-[32px] border transition-all duration-300 ${varietiesQty[v.sku] > 0 ? 'bg-white border-primary/20 shadow-xl shadow-primary/5 ring-1 ring-primary/10' : 'bg-white border-slate-100 hover:border-slate-200'} ${v.esgotado ? 'opacity-50 grayscale' : ''}`}>
                 <div 
-                  onClick={() => onZoom && vImage && onZoom([vImage], 0)}
+                  onClick={() => vImage && setZoomedVariety({ img: vImage, nome: v.nome, sku: v.sku })}
                   className="w-20 h-20 bg-slate-50 rounded-[20px] overflow-hidden border border-slate-100 shadow-inner shrink-0 group-hover:scale-110 transition-transform cursor-zoom-in"
                 >
                   <img src={vImage} className="w-full h-full object-contain p-2" alt={v.nome} />
@@ -3056,7 +3057,7 @@ function CatalogScreen({
           })}
         </div>
 
-        <div className="p-8 bg-white border-t border-slate-100 relative z-10">
+        <div className="p-8 bg-white border-t border-slate-100 relative z-10 shrink-0">
           <button 
             onClick={onAdd}
             className="w-full py-5 pink-gradient text-white rounded-[24px] font-black uppercase tracking-[0.25em] text-xs shadow-2xl shadow-primary/40 hover:scale-[0.98] active:scale-95 transition-all flex items-center justify-center gap-4"
@@ -3065,6 +3066,55 @@ function CatalogScreen({
             Adicionar Itens Selecionados
           </button>
         </div>
+
+        {/* Local Variety Zoom Modal */}
+        <AnimatePresence>
+          {zoomedVariety && (
+            <div className="fixed inset-0 z-[160] flex items-center justify-center p-4">
+              <motion.div 
+                initial={{ opacity: 0 }} 
+                animate={{ opacity: 1 }} 
+                exit={{ opacity: 0 }} 
+                className="absolute inset-0 bg-slate-900/95 backdrop-blur-xl"
+                onClick={() => setZoomedVariety(null)}
+              />
+              <motion.div 
+                initial={{ scale: 0.9, opacity: 0 }} 
+                animate={{ scale: 1, opacity: 1 }} 
+                exit={{ scale: 0.9, opacity: 0 }} 
+                className="relative z-10 w-full max-w-lg flex flex-col items-center gap-6"
+                onClick={e => e.stopPropagation()}
+              >
+                <div className="relative group w-full aspect-square bg-white rounded-[40px] overflow-hidden shadow-2xl border border-white/20">
+                  <img 
+                    src={zoomedVariety.img} 
+                    className="w-full h-full object-contain p-8" 
+                    alt={zoomedVariety.nome} 
+                    referrerPolicy="no-referrer"
+                  />
+                  <button 
+                    onClick={() => setZoomedVariety(null)}
+                    className="absolute top-6 right-6 w-12 h-12 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white rounded-full flex items-center justify-center transition-all border border-white/20"
+                  >
+                    <X size={24} strokeWidth={3} />
+                  </button>
+                </div>
+                
+                <div className="text-center space-y-2">
+                  <h4 className="text-2xl font-black text-white uppercase tracking-tight">{zoomedVariety.nome}</h4>
+                  <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.3em]">SKU: {zoomedVariety.sku}</p>
+                </div>
+                
+                <button 
+                  onClick={() => setZoomedVariety(null)}
+                  className="px-10 py-4 bg-white/10 hover:bg-white text-white hover:text-slate-900 rounded-full font-black uppercase tracking-widest text-[10px] transition-all border border-white/10 backdrop-blur-md"
+                >
+                  Fechar Visualização
+                </button>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
       </motion.div>
     </div>
   );

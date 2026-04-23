@@ -340,7 +340,7 @@ export default function Produtos({ companyId, onRefresh, searchTerm: externalSea
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/95 backdrop-blur-xl"
+            className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/95 backdrop-blur-xl"
             onClick={() => setZoomImages([])}
           >
             <motion.div 

@@ -402,6 +402,9 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
                   {(formData.imagens || []).map((img, idx) => (
                     <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border border-slate-100 group/img">
                       <img src={img} className="w-full h-full object-cover" alt={`Galeria ${idx}`} />
+                      <div className="absolute top-1 right-1 bg-black/60 text-white text-[10px] font-black w-5 h-5 flex items-center justify-center rounded-md backdrop-blur-sm border border-white/20">
+                        {idx + 1}
+                      </div>
                       <button 
                         type="button"
                         onClick={() => {
@@ -598,22 +601,50 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
                         <div key={idx} className="flex gap-4 items-start p-4 bg-white rounded-2xl border border-slate-100 shadow-sm transition-all hover:border-primary/20">
                           <div className="shrink-0 space-y-2">
                             <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest text-center block">Foto</label>
-                            <div className="relative group/varimg">
-                              <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-200 overflow-hidden flex items-center justify-center shadow-inner">
-                                {v.imagem ? (
-                                  <img src={v.imagem} className="w-full h-full object-contain p-1" alt={v.nome} />
-                                ) : (
-                                  <ImageIcon size={18} className="text-slate-200" />
-                                )}
+                            <div className="flex flex-col gap-1 items-center">
+                              <div className="relative group/varimg">
+                                <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-200 overflow-hidden flex items-center justify-center shadow-inner">
+                                  {v.imagem ? (
+                                    <img src={v.imagem} className="w-full h-full object-contain p-1" alt={v.nome} />
+                                  ) : (
+                                    <ImageIcon size={18} className="text-slate-200" />
+                                  )}
+                                </div>
+                                <input 
+                                  type="text"
+                                  placeholder="Link da foto"
+                                  className="absolute left-0 top-full mt-2 w-48 hidden group-hover/varimg:block z-20 p-2 bg-white border border-slate-200 shadow-2xl rounded-lg text-[9px] font-bold outline-none focus:border-primary ring-4 ring-primary/5"
+                                  value={v.imagem || ''}
+                                  onChange={e => {
+                                    const val = e.target.value;
+                                    const newList = [...(formData.variacoes_flat || [])];
+                                    
+                                    // Se for apenas um número, busca na galeria
+                                    const num = parseInt(val);
+                                    if (!isNaN(num) && num > 0 && num <= (formData.imagens || []).length && val.length < 3) {
+                                      newList[idx] = { ...newList[idx], imagem: formData.imagens![num - 1] };
+                                    } else {
+                                      newList[idx] = { ...newList[idx], imagem: val };
+                                    }
+                                    
+                                    setFormData({ ...formData, variacoes_flat: newList });
+                                  }}
+                                />
                               </div>
                               <input 
                                 type="text"
-                                placeholder="Link da foto"
-                                className="absolute left-0 top-full mt-2 w-48 hidden group-hover/varimg:block z-20 p-2 bg-white border border-slate-200 shadow-2xl rounded-lg text-[9px] font-bold outline-none focus:border-primary ring-4 ring-primary/5"
-                                value={v.imagem || ''}
+                                placeholder="Nº"
+                                className="w-8 h-8 text-center bg-slate-50 border border-slate-100 rounded-lg text-[10px] font-black outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 shadow-inner"
+                                value={(formData.imagens || []).findIndex(img => img === v.imagem) + 1 || ''}
+                                title="Número da foto na galeria"
                                 onChange={e => {
+                                  const num = parseInt(e.target.value);
                                   const newList = [...(formData.variacoes_flat || [])];
-                                  newList[idx] = { ...newList[idx], imagem: e.target.value };
+                                  if (!isNaN(num) && num > 0 && num <= (formData.imagens || []).length) {
+                                    newList[idx] = { ...newList[idx], imagem: formData.imagens![num - 1] };
+                                  } else if (e.target.value === '') {
+                                    newList[idx] = { ...newList[idx], imagem: '' };
+                                  }
                                   setFormData({ ...formData, variacoes_flat: newList });
                                 }}
                               />

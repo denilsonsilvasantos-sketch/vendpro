@@ -595,11 +595,35 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
                     
                     <div className="space-y-3">
                       {(formData.variacoes_flat || []).map((v, idx) => (
-                        <div key={idx} className="flex gap-3 items-start">
-                          <div className="flex-1 space-y-1">
+                        <div key={idx} className="flex gap-4 items-start p-4 bg-white rounded-2xl border border-slate-100 shadow-sm transition-all hover:border-primary/20">
+                          <div className="shrink-0 space-y-2">
+                            <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest text-center block">Foto</label>
+                            <div className="relative group/varimg">
+                              <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-200 overflow-hidden flex items-center justify-center shadow-inner">
+                                {v.imagem ? (
+                                  <img src={v.imagem} className="w-full h-full object-contain p-1" alt={v.nome} />
+                                ) : (
+                                  <ImageIcon size={18} className="text-slate-200" />
+                                )}
+                              </div>
+                              <input 
+                                type="text"
+                                placeholder="Link da foto"
+                                className="absolute left-0 top-full mt-2 w-48 hidden group-hover/varimg:block z-20 p-2 bg-white border border-slate-200 shadow-2xl rounded-lg text-[9px] font-bold outline-none focus:border-primary ring-4 ring-primary/5"
+                                value={v.imagem || ''}
+                                onChange={e => {
+                                  const newList = [...(formData.variacoes_flat || [])];
+                                  newList[idx] = { ...newList[idx], imagem: e.target.value };
+                                  setFormData({ ...formData, variacoes_flat: newList });
+                                }}
+                              />
+                            </div>
+                          </div>
+                          <div className="flex-1 space-y-2">
+                            <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest block">Código SKU</label>
                             <input 
                               placeholder="SKU" 
-                              className="w-full p-2 bg-white border border-slate-200 rounded-md text-[10px] font-black uppercase tracking-widest outline-none focus:border-primary/30"
+                              className="w-full p-2.5 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-black uppercase tracking-widest outline-none focus:border-primary/30 shadow-inner"
                               value={v.sku}
                               onChange={e => {
                                 const newList = [...(formData.variacoes_flat || [])];
@@ -608,10 +632,11 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
                               }}
                             />
                           </div>
-                          <div className="flex-[2] space-y-1">
+                          <div className="flex-[2] space-y-2">
+                            <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest block">Identificação</label>
                             <input 
-                              placeholder="Cor/Tamanho/Diferencial" 
-                              className="w-full p-2 bg-white border border-slate-200 rounded-md text-[10px] font-bold outline-none focus:border-primary/30"
+                              placeholder="Cores, Tamanhos..." 
+                              className="w-full p-2.5 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-bold outline-none focus:border-primary/30 shadow-inner"
                               value={v.nome}
                               onChange={e => {
                                 const newList = [...(formData.variacoes_flat || [])];
@@ -620,8 +645,7 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
                               }}
                             />
                           </div>
-                          <div className="flex flex-col items-center gap-1">
-                            <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Esgotado</label>
+                          <div className="flex flex-col items-center justify-center pt-5">
                             <button 
                               type="button"
                               onClick={() => {
@@ -629,21 +653,23 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
                                 newList[idx] = { ...newList[idx], esgotado: !v.esgotado };
                                 setFormData({ ...formData, variacoes_flat: newList });
                               }}
-                              className={`w-6 h-6 rounded border-2 flex items-center justify-center transition-all ${v.esgotado ? 'bg-rose-500 border-rose-500' : 'border-slate-200'}`}
+                              className={`w-10 h-10 rounded-xl border-2 flex items-center justify-center transition-all ${v.esgotado ? 'bg-rose-500 border-rose-500 text-white shadow-lg shadow-rose-500/20' : 'border-slate-100 text-slate-300 hover:border-slate-200'}`}
                             >
-                              {v.esgotado && <Check size={12} strokeWidth={4} className="text-white" />}
+                              <Check size={16} strokeWidth={4} />
                             </button>
                           </div>
-                          <button 
-                            type="button"
-                            onClick={() => {
-                              const newList = (formData.variacoes_flat || []).filter((_, i) => i !== idx);
-                              setFormData({ ...formData, variacoes_flat: newList });
-                            }}
-                            className="p-2 text-slate-300 hover:text-rose-500 transition-colors"
-                          >
-                            <Trash2 size={14} />
-                          </button>
+                          <div className="pt-5">
+                            <button 
+                              type="button"
+                              onClick={() => {
+                                const newList = (formData.variacoes_flat || []).filter((_, i) => i !== idx);
+                                setFormData({ ...formData, variacoes_flat: newList });
+                              }}
+                              className="w-10 h-10 flex items-center justify-center text-slate-300 hover:text-rose-500 transition-all hover:bg-rose-50 rounded-xl"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
                         </div>
                       ))}
                       {(formData.variacoes_flat || []).length === 0 && (

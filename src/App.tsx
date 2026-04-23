@@ -2912,13 +2912,15 @@ function CatalogScreen({
   onClose, 
   onAdd, 
   varietiesQty, 
-  onQtyChange 
+  onQtyChange,
+  onZoom
 }: { 
   product: Product, 
   onClose: () => void, 
   onAdd: () => void,
   varietiesQty: Record<string, number>,
-  onQtyChange: (sku: string, val: number) => void
+  onQtyChange: (sku: string, val: number) => void,
+  onZoom?: (imgs: string[], index: number) => void
 }) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const images = product.imagens && product.imagens.length > 0 ? product.imagens : [product.imagem || `https://picsum.photos/seed/${product.sku}/400/400`];
@@ -3007,14 +3009,14 @@ function CatalogScreen({
 
         <div className="flex-1 overflow-y-auto px-8 py-6 space-y-4 bg-slate-50/30">
           {product.variacoes_flat?.map((v, idx) => {
-            // Se tiver várias imagens, tentamos associar se houver match de nome ou índice
-            // Caso contrário usamos a imagem principal do produto para todas variedades (se o usuário não definiu fotos por variação)
-            // Mas para o usuário ver QUAL escolher, se ele não tem fotos por variação, a gente mostra a do item
-            const vImage = (product.imagens && product.imagens.length > idx) ? product.imagens[idx] : product.imagem;
+            const vImage = v.imagem || (product.imagens && product.imagens.length > idx ? product.imagens[idx] : product.imagem);
 
             return (
               <div key={v.sku} className={`flex items-center gap-5 p-5 rounded-[32px] border transition-all duration-300 ${varietiesQty[v.sku] > 0 ? 'bg-white border-primary/20 shadow-xl shadow-primary/5 ring-1 ring-primary/10' : 'bg-white border-slate-100 hover:border-slate-200'} ${v.esgotado ? 'opacity-50 grayscale' : ''}`}>
-                <div className="w-20 h-20 bg-slate-50 rounded-[20px] overflow-hidden border border-slate-100 shadow-inner shrink-0 group-hover:scale-110 transition-transform">
+                <div 
+                  onClick={() => onZoom && vImage && onZoom([vImage], 0)}
+                  className="w-20 h-20 bg-slate-50 rounded-[20px] overflow-hidden border border-slate-100 shadow-inner shrink-0 group-hover:scale-110 transition-transform cursor-zoom-in"
+                >
                   <img src={vImage} className="w-full h-full object-contain p-2" alt={v.nome} />
                 </div>
                 
@@ -3316,6 +3318,7 @@ const ProductCard = memo(({ product, onAdd, onEdit, role, userId, onZoom, isInCa
             onQtyChange={handleVarietyQtyChange}
             onClose={() => setShowVarieties(false)}
             onAdd={handleAddVarietiesToCart}
+            onZoom={onZoom}
           />
         )}
       </AnimatePresence>

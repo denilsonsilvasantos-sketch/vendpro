@@ -634,24 +634,31 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
         productQuery = productQuery.eq('is_last_units', false);
       }
 
-      const [productsRes, brandsRes, categoriesRes] = await Promise.all([
+      const [productsRes, brandsRes, categoriesRes, companyRes] = await Promise.all([
         productQuery.order('brand_id').order('category_id').order('nome'),
         supabase!
           .from('brands')
-          .select('id, name')
+          .select('id, name, logo_url, margin_percentage')
           .in('id', selectedCatalogBrands),
         supabase!
           .from('categories')
           .select('id, nome')
-          .in('brand_id', selectedCatalogBrands)
+          .in('brand_id', selectedCatalogBrands),
+        supabase!
+          .from('companies')
+          .select('*')
+          .eq('id', companyId)
+          .single()
       ]);
 
       if (productsRes.error) throw productsRes.error;
       if (brandsRes.error) throw brandsRes.error;
       if (categoriesRes.error) throw categoriesRes.error;
+      if (companyRes.error) throw companyRes.error;
 
       const products = productsRes.data || [];
-      const brandsMap = new Map((brandsRes.data || []).map(b => [b.id, b.name]));
+      const company = companyRes.data;
+      const brandsMap = new Map((brandsRes.data || []).map(b => [b.id, b]));
       const categoriesMap = new Map((categoriesRes.data || []).map(c => [c.id, c.nome]));
 
       if (products.length === 0) {
@@ -661,27 +668,11 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
       const doc = new jsPDF();
       const pageWidth = doc.internal.pageSize.getWidth();
       const pageHeight = doc.internal.pageSize.getHeight();
-      const margin = 10;
-      const cardWidth = 60;
+      const margin = 15;
+      const cardWidth = 58;
       const cardHeight = 85;
       const gap = 5;
       const cols = 3;
-      
-      let currentX = margin;
-      let currentY = 40;
-
-      // Header
-      const drawHeader = (pageNumber: number) => {
-        doc.setFontSize(22);
-        doc.setTextColor(236, 72, 153); // text-primary
-        doc.text('Catálogo de Produtos', pageWidth / 2, 20, { align: 'center' });
-        
-        doc.setFontSize(10);
-        doc.setTextColor(100, 116, 139); // text-slate-500
-        doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')} | Página ${pageNumber}`, pageWidth / 2, 28, { align: 'center' });
-      };
-
-      drawHeader(1);
 
       // Helper to load image
       const loadImage = (url: string): Promise<string | null> => {
@@ -695,66 +686,119 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
             const ctx = canvas.getContext('2d');
             if (!ctx) { resolve(null); return; }
             ctx.drawImage(img, 0, 0);
-            resolve(canvas.toDataURL('image/jpeg', 0.7));
+            resolve(canvas.toDataURL('image/jpeg', 0.8));
           };
           img.onerror = () => resolve(null);
           img.src = url;
         });
       };
 
+      // Header e Footer
+      const drawHeaderAndFooter = async (pageNumber: number, title: string, logoUrl?: string) => {
+        // Footer (Página e Data no canto direito inferior)
+        doc.setFontSize(8);
+        doc.setTextColor(148, 163, 184);
+        const footerText = `${new Date().toLocaleDateString('pt-BR')} | Página ${pageNumber}`;
+        doc.text(footerText, pageWidth - margin, pageHeight - 10, { align: 'right' });
+
+        // Header
+        if (pageNumber > 1) { // Só desenha header se não for a capa
+          // Logo centralizado no topo
+          if (logoUrl) {
+            const logoBase64 = await loadImage(logoUrl);
+            if (logoBase64) {
+              try {
+                doc.addImage(logoBase64, 'JPEG', pageWidth / 2 - 15, 10, 30, 15);
+              } catch (e) { console.error('Logo header error', e); }
+            }
+          }
+
+          // Categoria no lado esquerdo
+          doc.setFontSize(14);
+          doc.setTextColor(30, 41, 59);
+          doc.setFont('helvetica', 'bold');
+          doc.text(title.toUpperCase(), margin, 32);
+          
+          doc.setDrawColor(241, 245, 249);
+          doc.line(margin, 35, pageWidth - margin, 35);
+        }
+      };
+
+      // Cover Page
+      const drawCover = async () => {
+        // Logo centralizado
+        const mainLogo = company.logo_url || (brandsRes.data && brandsRes.data[0]?.logo_url);
+        if (mainLogo) {
+          const logo64 = await loadImage(mainLogo);
+          if (logo64) {
+            try {
+              doc.addImage(logo64, 'JPEG', pageWidth / 2 - 30, pageHeight / 3, 60, 30);
+            } catch (e) { console.error('Cover logo error', e); }
+          }
+        }
+
+        doc.setFontSize(32);
+        doc.setTextColor(236, 72, 153);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Catálogo de Produtos', pageWidth / 2, pageHeight / 2 + 20, { align: 'center' });
+        
+        doc.setFontSize(14);
+        doc.setTextColor(148, 163, 184);
+        doc.setFont('helvetica', 'normal');
+        doc.text(company.nome, pageWidth / 2, pageHeight / 2 + 35, { align: 'center' });
+
+        doc.setFontSize(12);
+        doc.text(new Date().toLocaleDateString('pt-BR'), pageWidth / 2, pageHeight - 30, { align: 'center' });
+      };
+
+      await drawCover();
+      let pageCount = 1;
+
       // Group by brand then category
       const grouped: Record<string, Record<string, any[]>> = {};
       products.forEach(p => {
-        const brandName = brandsMap.get(p.brand_id) || 'Sem Marca';
+        const brand = brandsMap.get(p.brand_id);
+        const brandName = brand?.name || 'Sem Marca';
         const categoryName = categoriesMap.get(p.category_id) || 'Sem Categoria';
         if (!grouped[brandName]) grouped[brandName] = {};
         if (!grouped[brandName][categoryName]) grouped[brandName][categoryName] = [];
-        grouped[brandName][categoryName].push(p);
+        
+        // Aplicar margem de venda no preço para o PDF
+        const marginMultiplier = 1 + (brand?.margin_percentage || 0) / 100;
+        const sellingPrice = (p.preco_unitario || 0) * marginMultiplier;
+        const sellingBoxPrice = (p.preco_box || 0) * marginMultiplier;
+
+        grouped[brandName][categoryName].push({
+          ...p,
+          preco_unitario_venda: sellingPrice,
+          preco_box_venda: sellingBoxPrice
+        });
       });
 
-      let pageCount = 1;
       const totalProducts = products.length;
       let processedProducts = 0;
 
       for (const [brandName, categories] of Object.entries(grouped)) {
-        // Brand Title
-        if (currentY > pageHeight - 40) {
+        const brand = brandsRes.data?.find(b => b.name === brandName);
+        
+        for (const [categoryName, categoryProducts] of Object.entries(categories)) {
+          // Nova página para cada categoria (e brand se mudar)
           doc.addPage();
           pageCount++;
-          drawHeader(pageCount);
-          currentY = 40;
-        }
-
-        doc.setFontSize(18);
-        doc.setTextColor(30, 41, 59);
-        doc.text(brandName, margin, currentY);
-        currentY += 10;
-
-        for (const [categoryName, categoryProducts] of Object.entries(categories)) {
-          // Category Title
-          if (currentY > pageHeight - 30) {
-            doc.addPage();
-            pageCount++;
-            drawHeader(pageCount);
-            currentY = 40;
-          }
-
-          doc.setFontSize(14);
-          doc.setTextColor(100, 116, 139);
-          doc.text(categoryName, margin, currentY);
-          currentY += 8;
-
+          await drawHeaderAndFooter(pageCount, `${brandName} - ${categoryName}`, brand?.logo_url);
+          
+          let currentY = 45;
           let colIndex = 0;
 
           for (const p of categoryProducts) {
             processedProducts++;
             setDownloadProgress(Math.round((processedProducts / totalProducts) * 100));
 
-            if (currentY + cardHeight > pageHeight - margin) {
+            if (currentY + cardHeight > pageHeight - 20) {
               doc.addPage();
               pageCount++;
-              drawHeader(pageCount);
-              currentY = 40;
+              await drawHeaderAndFooter(pageCount, `${brandName} - ${categoryName}`, brand?.logo_url);
+              currentY = 45;
               colIndex = 0;
             }
 
@@ -762,8 +806,8 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
             const y = currentY;
 
             // Card Border
-            doc.setDrawColor(241, 245, 249); // slate-100
-            doc.roundedRect(x, y, cardWidth, cardHeight, 2, 2);
+            doc.setDrawColor(241, 245, 249); 
+            doc.roundedRect(x, y, cardWidth, cardHeight, 3, 3);
 
             // Image
             if (p.imagem) {
@@ -771,12 +815,10 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
               if (base64) {
                 try {
                   doc.addImage(base64, 'JPEG', x + 2, y + 2, cardWidth - 4, 45);
-                } catch (e) {
-                  console.error('Error adding image to PDF', e);
-                }
+                } catch (e) { console.error('Image add error', e); }
               }
             } else {
-              doc.setFillColor(248, 250, 252); // slate-50
+              doc.setFillColor(248, 250, 252);
               doc.rect(x + 2, y + 2, cardWidth - 4, 45, 'F');
               doc.setFontSize(8);
               doc.setTextColor(203, 213, 225);
@@ -785,35 +827,40 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
 
             // Product Info
             doc.setTextColor(30, 41, 59);
-            doc.setFontSize(9);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(8);
             const nameLines = doc.splitTextToSize(p.nome, cardWidth - 6);
             doc.text(nameLines.slice(0, 2), x + 3, y + 52);
 
+            doc.setFont('helvetica', 'normal');
             doc.setFontSize(7);
             doc.setTextColor(148, 163, 184);
             doc.text(`SKU: ${p.sku}`, x + 3, y + 62);
 
-            // Price
+            // Sale Price
             doc.setFontSize(10);
-            doc.setTextColor(236, 72, 153);
-            doc.text(`R$ ${Number(p.preco_unitario || 0).toFixed(2)}`, x + 3, y + 68);
+            doc.setTextColor(219, 39, 119); // rose-600
+            doc.setFont('helvetica', 'bold');
+            doc.text(`R$ ${Number(p.preco_unitario_venda).toFixed(2)}`, x + 3, y + 70);
 
-            // Box Price
-            if (p.preco_box && p.preco_box > 0) {
+            // Box Sale Price
+            if (p.preco_box_venda > 0) {
               doc.setFontSize(7);
               doc.setTextColor(100, 116, 139);
-              doc.text(`Box: R$ ${Number(p.preco_box).toFixed(2)} (${p.qtd_box} un)`, x + 3, y + 73);
+              doc.setFont('helvetica', 'normal');
+              doc.text(`Box: R$ ${Number(p.preco_box_venda).toFixed(2)} (${p.qtd_box} un)`, x + 3, y + 75);
             }
 
             // Status Badge
             if (p.status_estoque === 'esgotado' || p.is_last_units) {
               const statusText = p.status_estoque === 'esgotado' ? 'ESGOTADO' : 'ÚLTIMAS';
-              const badgeColor = p.status_estoque === 'esgotado' ? [244, 63, 94] : [245, 158, 11];
+              const badgeColor = p.status_estoque === 'esgotado' ? [15, 23, 42] : [244, 63, 94];
               doc.setFillColor(badgeColor[0], badgeColor[1], badgeColor[2]);
-              doc.roundedRect(x + 3, y + 78, 25, 4, 1, 1, 'F');
+              doc.roundedRect(x + 3, y + 78, 28, 4.5, 1, 1, 'F');
               doc.setTextColor(255, 255, 255);
               doc.setFontSize(6);
-              doc.text(statusText, x + 15.5, y + 81, { align: 'center' });
+              doc.setFont('helvetica', 'bold');
+              doc.text(statusText, x + 17, y + 81.5, { align: 'center' });
             }
 
             colIndex++;
@@ -822,13 +869,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
               currentY += cardHeight + gap;
             }
           }
-
-          if (colIndex > 0) {
-            currentY += cardHeight + gap;
-          }
-          currentY += 5; // Extra space between categories
         }
-        currentY += 10; // Extra space between brands
       }
 
       doc.save(`Catalogo_VendPro_${new Date().getTime()}.pdf`);

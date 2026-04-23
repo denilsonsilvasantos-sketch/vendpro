@@ -25,6 +25,7 @@ export default function Produtos({ companyId, onRefresh, searchTerm: externalSea
 
   const [filterBrand, setFilterBrand] = useState<string | null>(null);
   const [filterCategory, setFilterCategory] = useState<string | null>(null);
+  const [filterAttribute, setFilterAttribute] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const gridRef = React.useRef<HTMLDivElement>(null);
   const itemsPerPage = 20;
@@ -85,8 +86,16 @@ export default function Produtos({ companyId, onRefresh, searchTerm: externalSea
           matchesCategory = cat?.nome === filterCategory;
         }
       }
+
+      let matchesAttribute = true;
+      if (filterAttribute) {
+        if (filterAttribute === 'box-only') matchesAttribute = p.venda_somente_box === true;
+        if (filterAttribute === 'has-discount') matchesAttribute = p.has_box_discount === true;
+        if (filterAttribute === 'has-varieties') matchesAttribute = (p.variacoes_flat?.length || 0) > 0;
+        if (filterAttribute === 'has-multiples') matchesAttribute = (p.multiplo_venda || 1) > 1;
+      }
       
-      return matchesSearch && matchesBrand && matchesCategory;
+      return matchesSearch && matchesBrand && matchesCategory && matchesAttribute;
     }).sort((a, b) => {
       const now = new Date();
       
@@ -141,14 +150,14 @@ export default function Produtos({ companyId, onRefresh, searchTerm: externalSea
 
       return a.nome.localeCompare(b.nome);
     });
-  }, [products, searchTerm, filterBrand, filterCategory, brands, categories]);
+  }, [products, searchTerm, filterBrand, filterCategory, filterAttribute, brands, categories]);
 
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
   const paginatedProducts = filteredProducts.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, filterBrand, filterCategory]);
+  }, [searchTerm, filterBrand, filterCategory, filterAttribute]);
 
   useEffect(() => {
     if (currentPage > 1 || searchTerm || filterBrand || filterCategory) {
@@ -230,6 +239,22 @@ export default function Produtos({ companyId, onRefresh, searchTerm: externalSea
           >
             <option value="">Todas as Categorias</option>
             {filteredCategories.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+          </select>
+          <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={16} />
+        </div>
+
+        <div className="relative min-w-[200px] group">
+          <Filter className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors" size={16} />
+          <select 
+            className="w-full pl-12 pr-10 py-3 bg-slate-50/50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary/30 transition-all appearance-none font-black uppercase tracking-widest text-[10px] text-slate-900 cursor-pointer"
+            value={filterAttribute || ''}
+            onChange={e => setFilterAttribute(e.target.value || null)}
+          >
+            <option value="">Todos os Atributos</option>
+            <option value="box-only">Somente Box</option>
+            <option value="has-discount">Desconto no Box</option>
+            <option value="has-varieties">Possui Variedades</option>
+            <option value="has-multiples">Possui Múltiplos</option>
           </select>
           <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={16} />
         </div>

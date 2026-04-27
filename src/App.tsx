@@ -70,6 +70,7 @@ const Marcas = lazy(() => import('./pages/Marcas'));
 const Upload = lazy(() => import('./pages/Upload'));
 const Vendedores = lazy(() => import('./pages/Vendedores'));
 const BannerManager = lazy(() => import('./pages/BannerManager'));
+const MaisVendidos = lazy(() => import('./pages/MaisVendidos'));
 import ProductFormModal from './components/ProductFormModal';
 const Pendencias = lazy(() => import('./pages/Pendencias'));
 const AdminUsage = lazy(() => import('./pages/AdminUsage'));
@@ -1092,13 +1093,17 @@ export default function App() {
                         <SidebarItem icon={<Users size={16}/>} label="Clientes" active={activeTab === 'clientes'} onClick={() => { setActiveTab('clientes'); setIsSidebarOpen(false); }} />
                         <SidebarItem icon={<FileText size={16}/>} label="Pedidos" active={activeTab === 'pedidos'} onClick={() => { setActiveTab('pedidos'); setIsSidebarOpen(false); }} />
                         <SidebarItem icon={<DollarSign size={16}/>} label="Comissões" active={activeTab === 'comissoes'} onClick={() => { setActiveTab('comissoes'); setIsSidebarOpen(false); }} />
+                        <SidebarItem icon={<TrendingUp size={16}/>} label="Mais Vendidos" active={activeTab === 'maisvendidos'} onClick={() => { setActiveTab('maisvendidos'); setIsSidebarOpen(false); }} />
                       </>
                     )}
                   </>
                 )}
 
                 {effectiveRole === 'customer' && (
-                  <SidebarItem icon={<FileText size={16}/>} label="Meus Pedidos" active={activeTab === 'pedidos'} onClick={() => { setActiveTab('pedidos'); setIsSidebarOpen(false); }} />
+                  <>
+                    <SidebarItem icon={<FileText size={16}/>} label="Meus Pedidos" active={activeTab === 'pedidos'} onClick={() => { setActiveTab('pedidos'); setIsSidebarOpen(false); }} />
+                    <SidebarItem icon={<TrendingUp size={16}/>} label="Mais Vendidos" active={activeTab === 'maisvendidos'} onClick={() => { setActiveTab('maisvendidos'); setIsSidebarOpen(false); }} />
+                  </>
                 )}
                     
                 {role !== 'seller' && role !== 'customer' && !isMaster && (
@@ -1266,6 +1271,7 @@ export default function App() {
             {activeTab === 'vendedores' && <Vendedores companyId={activeCompanyId} />}
             {activeTab === 'clientes' && <Clientes companyId={activeCompanyId} role={role} user={user} />}
             {activeTab === 'pedidos' && <Pedidos companyId={activeCompanyId} role={role} user={user} />}
+            {activeTab === 'maisvendidos' && <MaisVendidos companyId={activeCompanyId} role={effectiveRole} />}
             {activeTab === 'comissoes' && (role === 'seller' || role === 'company') && <Comissao companyId={activeCompanyId} role={role} user={user} />}
             {activeTab === 'account' && <Configuracoes companyId={activeCompanyId} user={user} role={role} onLogout={handleLogout} onUpdateUser={setUser} />}
           </Suspense>

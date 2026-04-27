@@ -1094,7 +1094,7 @@ export default function App() {
                         <SidebarItem icon={<Users size={16}/>} label="Clientes" active={activeTab === 'clientes'} onClick={() => { setActiveTab('clientes'); setIsSidebarOpen(false); }} />
                         <SidebarItem icon={<FileText size={16}/>} label="Pedidos" active={activeTab === 'pedidos'} onClick={() => { setActiveTab('pedidos'); setIsSidebarOpen(false); }} />
                         <SidebarItem icon={<DollarSign size={16}/>} label="Comissões" active={activeTab === 'comissoes'} onClick={() => { setActiveTab('comissoes'); setIsSidebarOpen(false); }} />
-                        <SidebarItem icon={<TrendingUp size={16}/>} label="Mais Vendidos" active={activeTab === 'maisvendidos'} onClick={() => { setActiveTab('maisvendidos'); setIsSidebarOpen(false); }} />
+                        <SidebarItem icon={<BarChart3 size={16}/>} label="Mais Vendidos" active={activeTab === 'maisvendidos'} onClick={() => { setActiveTab('maisvendidos'); setIsSidebarOpen(false); }} />
                       </>
                     )}
                   </>
@@ -1103,7 +1103,7 @@ export default function App() {
                 {effectiveRole === 'customer' && (
                   <>
                     <SidebarItem icon={<FileText size={16}/>} label="Meus Pedidos" active={activeTab === 'pedidos'} onClick={() => { setActiveTab('pedidos'); setIsSidebarOpen(false); }} />
-                    <SidebarItem icon={<TrendingUp size={16}/>} label="Mais Vendidos" active={activeTab === 'maisvendidos'} onClick={() => { setActiveTab('maisvendidos'); setIsSidebarOpen(false); }} />
+                    <SidebarItem icon={<BarChart3 size={16}/>} label="Mais Vendidos" active={activeTab === 'maisvendidos'} onClick={() => { setActiveTab('maisvendidos'); setIsSidebarOpen(false); }} />
                   </>
                 )}
                     

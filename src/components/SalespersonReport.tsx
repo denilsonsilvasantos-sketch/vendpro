@@ -24,6 +24,7 @@ export default function SalespersonReport({ companyId, role, user }: { companyId
       setLoading(true);
       
       try {
+        console.log("Fetching Sales Report for company:", companyId, "Role:", role);
         let query = supabase
           .from('orders')
           .select(`
@@ -34,6 +35,7 @@ export default function SalespersonReport({ companyId, role, user }: { companyId
             customer_id, 
             seller_id,
             brand_id,
+            sellers:seller_id (id, nome, comissao),
             customers:customer_id (id, nome_empresa, seller_id)
           `)
           .eq('company_id', companyId)
@@ -41,13 +43,15 @@ export default function SalespersonReport({ companyId, role, user }: { companyId
 
         if (role === 'seller') {
           query = query.eq('seller_id', user.id);
-        } else if (selectedSellerId) {
-          // If a seller is selected, we fetch all orders for the company and filter in JS 
-          // to avoid complex 'or' query issues across joined tables in PostgREST
         }
 
         const { data: ordersData, error } = await query;
-        if (error) throw error;
+        if (error) {
+          console.error("Supabase Error in Sales Report:", error);
+          throw error;
+        }
+
+        console.log(`Fetched ${ordersData?.length || 0} orders for report`);
 
         // Filter by seller locally if necessary to be more robust
         let filteredOrders = ordersData || [];
@@ -55,20 +59,22 @@ export default function SalespersonReport({ companyId, role, user }: { companyId
           filteredOrders = filteredOrders.filter((order: any) => 
             order.seller_id === selectedSellerId || order.customers?.seller_id === selectedSellerId
           );
+          console.log(`Filtered to ${filteredOrders.length} orders for seller:`, selectedSellerId);
         }
 
         // Fetch commission data for the relevant sellers
-        // We need to collect ALL related seller IDs: from orders AND from customers
+        // Use unique IDs to minimize requests
         const sellerIdsFromOrders = filteredOrders.map(o => o.seller_id).filter(Boolean) || [];
         const sellerIdsFromCustomers = filteredOrders.map((o: any) => o.customers?.seller_id).filter(Boolean) || [];
         const uniqueSellerIds = Array.from(new Set([...sellerIdsFromOrders, ...sellerIdsFromCustomers]));
 
         const { data: sellersData } = uniqueSellerIds.length > 0 
-          ? await supabase.from('sellers').select('id, comissao, comissao_por_marca').in('id', uniqueSellerIds)
+          ? await supabase.from('sellers').select('id, nome, comissao, comissao_por_marca').in('id', uniqueSellerIds)
           : { data: [] };
 
         const processedOrders = filteredOrders.map((order: any) => {
-          // Determine the most accurate seller ID for this order
+          // Determine the most accurate seller for this order
+          // Prioritize the seller explicitly linked on the order, then fall back to customer's current seller
           const effectiveSellerId = order.seller_id || order.customers?.seller_id;
           
           const seller = sellersData?.find(s => s.id === effectiveSellerId);
@@ -79,6 +85,7 @@ export default function SalespersonReport({ companyId, role, user }: { companyId
           return {
             ...order,
             company_name: order.customers?.nome_empresa || order.client_name || 'N/A',
+            seller_name: seller?.nome || order.sellers?.nome || 'N/A',
             commission: commissionValue
           };
         });

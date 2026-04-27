@@ -52,7 +52,7 @@ export default function MaisVendidos({ companyId, role }: { companyId: string | 
         
         if (bData && bData.length > 0) {
           // If filtering by a brand name (like 'VM DISTRIBUIDORA DE BELEZA'), 
-          // find all related brand IDs if there are duplicates
+          // find all related brand IDs if there are duplicates across company (though rare now)
           const selectedBrandObj = bData.find(b => b.id === filterBrand);
           if (selectedBrandObj) {
             const relatedBrandIds = bData
@@ -74,17 +74,19 @@ export default function MaisVendidos({ companyId, role }: { companyId: string | 
               return;
             }
 
-            const productIds = brandProducts.map(p => p.id);
+            // Get a list of SKUs for these products to match with order items
+            const productSkus = brandProducts.map(p => p.sku).filter(Boolean);
 
-            // Step 2: Fetch order items for these products within this company
+            // Step 2: Fetch order items for these products within this company using SKU
+            // This is more robust as it survives product deletions/re-uploads where IDs change but SKUs remain
             const { data: items, error: itemsError } = await supabase
               .from('order_items')
               .select(`
                 quantidade,
                 subtotal,
-                product_id
+                sku
               `)
-              .in('product_id', productIds)
+              .in('sku', productSkus)
               .eq('company_id', companyId);
 
             if (itemsError) throw itemsError;
@@ -92,18 +94,19 @@ export default function MaisVendidos({ companyId, role }: { companyId: string | 
             const aggregation: Record<string, { total_qty: number, total_sales: number }> = {};
             
             (items || []).forEach((item: any) => {
-              if (!aggregation[item.product_id]) {
-                aggregation[item.product_id] = {
+              if (!item.sku) return;
+              if (!aggregation[item.sku]) {
+                aggregation[item.sku] = {
                   total_qty: 0,
                   total_sales: 0
                 };
               }
-              aggregation[item.product_id].total_qty += Number(item.quantidade || 0);
-              aggregation[item.product_id].total_sales += Number(item.subtotal || 0);
+              aggregation[item.sku].total_qty += Number(item.quantidade || 0);
+              aggregation[item.sku].total_sales += Number(item.subtotal || 0);
             });
 
             const finalData = brandProducts.map(prod => {
-              const stats = aggregation[prod.id] || { total_qty: 0, total_sales: 0 };
+              const stats = aggregation[prod.sku] || { total_qty: 0, total_sales: 0 };
               return {
                 product_id: prod.id,
                 sku: prod.sku,
@@ -116,9 +119,10 @@ export default function MaisVendidos({ companyId, role }: { companyId: string | 
                 total_sales: stats.total_sales
               };
             })
+            // Group by SKU in the final list if multiple product IDs exist for same SKU (rare)
             .sort((a: any, b: any) => b.total_qty - a.total_qty);
 
-            setData(finalData.slice(0, 50));
+            setData(finalData.slice(0, 100));
           }
         }
       } catch (err) {

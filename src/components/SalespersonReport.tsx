@@ -43,14 +43,17 @@ export default function SalespersonReport({ companyId, role, user }: { companyId
           .order('created_at', { ascending: false });
 
         if (role === 'seller') {
-          query = query.eq('seller_id', user.id);
+          // A seller should see orders where they are explicit OR orders from their assigned customers
+          // However, PostgREST filtering across joins can be tricky, so we'll fetch more and filter locally if needed
+          // or use a more comprehensive query if we can.
+          // For now, we fetch by company and filter strictly in JS to ensure visibility
         }
 
         if (startDate) {
-          query = query.gte('created_at', `${startDate}T00:00:00`);
+          query = query.gte('created_at', `${startDate}T00:00:00Z`);
         }
         if (endDate) {
-          query = query.lte('created_at', `${endDate}T23:59:59`);
+          query = query.lte('created_at', `${endDate}T23:59:59Z`);
         }
 
         const { data: ordersData, error } = await query;
@@ -59,15 +62,13 @@ export default function SalespersonReport({ companyId, role, user }: { companyId
           throw error;
         }
 
-        console.log(`Fetched ${ordersData?.length || 0} orders for report`);
-
-        // Filter by seller locally if necessary to be more robust
+        // Filter by seller locally to be robust (handles both explicit seller_id and customer's seller_id)
         let filteredOrders = ordersData || [];
-        if (selectedSellerId && role === 'company') {
+        if (role === 'seller' || (selectedSellerId && role === 'company')) {
+          const sellerIdToFilter = role === 'seller' ? user.id : selectedSellerId;
           filteredOrders = filteredOrders.filter((order: any) => 
-            order.seller_id === selectedSellerId || order.customers?.seller_id === selectedSellerId
+            order.seller_id === sellerIdToFilter || order.customers?.seller_id === sellerIdToFilter
           );
-          console.log(`Filtered to ${filteredOrders.length} orders for seller:`, selectedSellerId);
         }
 
         // Fetch commission data for the relevant sellers

@@ -43,8 +43,8 @@ export default function MaisVendidos({ companyId, role }: { companyId: string | 
       try {
         // Step 1: Get all products for the selected brand and company
         // Fetch brands and categories for the current company
-        const { data: bData } = await supabase.from('brands').select('*').eq('company_id', companyId).order('name');
-        const { data: cData } = await supabase.from('categories').select('*').eq('company_id', companyId).order('nome');
+        const { data: bData } = await supabase.from('brands').select('*').eq('company_id', companyId).order('order_index', { ascending: true });
+        const { data: cData } = await supabase.from('categories').select('*').eq('company_id', companyId).order('order_index', { ascending: true });
         
         setBrands(bData || []);
         const cats = cData || [];

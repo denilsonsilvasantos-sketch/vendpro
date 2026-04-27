@@ -41,40 +41,42 @@ export default function MaisVendidos({ companyId, role }: { companyId: string | 
       
       setLoading(true);
       try {
+        // Step 1: Get all products for the selected brand and company
+        const { data: brandProducts, error: productsError } = await supabase
+          .from('products')
+          .select('id, sku, nome, imagem, preco_unitario, status_estoque, category_id')
+          .eq('brand_id', filterBrand)
+          .eq('company_id', companyId);
+
+        if (productsError) throw productsError;
+
+        if (!brandProducts || brandProducts.length === 0) {
+          setData([]);
+          setLoading(false);
+          return;
+        }
+
+        const productIds = brandProducts.map(p => p.id);
+
+        // Step 2: Fetch order items for these products within this company
+        // We filter by company_id through the orders relationship to be safe
         const { data: items, error: itemsError } = await supabase
           .from('order_items')
           .select(`
             quantidade,
             subtotal,
-            product_id,
-            products!inner (
-              id, sku, nome, imagem, preco_unitario, status_estoque, category_id, brand_id
-            ),
-            orders!inner (
-              id, company_id, brand_id
-            )
+            product_id
           `)
-          .eq('orders.company_id', companyId)
-          .eq('orders.brand_id', filterBrand)
-          .eq('products.brand_id', filterBrand);
+          .in('product_id', productIds)
+          .eq('company_id', companyId);
 
         if (itemsError) throw itemsError;
 
-        const aggregation: Record<string, any> = {};
+        const aggregation: Record<string, { total_qty: number, total_sales: number }> = {};
         
         (items || []).forEach((item: any) => {
-          const prod = item.products;
-          if (!prod) return;
-
           if (!aggregation[item.product_id]) {
             aggregation[item.product_id] = {
-              product_id: item.product_id,
-              sku: prod.sku,
-              nome: prod.nome,
-              imagem: prod.imagem,
-              preco: prod.preco_unitario,
-              status_estoque: prod.status_estoque,
-              category_id: prod.category_id,
               total_qty: 0,
               total_sales: 0
             };
@@ -83,9 +85,22 @@ export default function MaisVendidos({ companyId, role }: { companyId: string | 
           aggregation[item.product_id].total_sales += Number(item.subtotal || 0);
         });
 
-        const finalData = Object.values(aggregation)
-          .sort((a: any, b: any) => b.total_qty - a.total_qty)
-          .slice(0, 50);
+        const finalData = brandProducts.map(prod => {
+          const stats = aggregation[prod.id] || { total_qty: 0, total_sales: 0 };
+          return {
+            product_id: prod.id,
+            sku: prod.sku,
+            nome: prod.nome,
+            imagem: prod.imagem,
+            preco: prod.preco_unitario,
+            status_estoque: prod.status_estoque,
+            category_id: prod.category_id,
+            total_qty: stats.total_qty,
+            total_sales: stats.total_sales
+          };
+        })
+        .sort((a: any, b: any) => b.total_qty - a.total_qty)
+        .slice(0, 100); // Show more items as requested (Top 100)
 
         setData(finalData);
       } catch (err) {

@@ -34,7 +34,7 @@ export default function SalespersonReport({ companyId, role, user }: { companyId
             customer_id, 
             seller_id,
             brand_id,
-            customers!customer_id (nome_empresa)
+            customers:customer_id (id, nome_empresa, seller_id)
           `)
           .eq('company_id', companyId)
           .order('created_at', { ascending: false });
@@ -42,28 +42,35 @@ export default function SalespersonReport({ companyId, role, user }: { companyId
         if (role === 'seller') {
           query = query.eq('seller_id', user.id);
         } else if (selectedSellerId) {
-          query = query.eq('seller_id', selectedSellerId);
+          // Filter by order's seller_id OR by the customer's assigned seller_id
+          query = query.or(`seller_id.eq.${selectedSellerId},customers.seller_id.eq.${selectedSellerId}`);
         }
 
         const { data: ordersData, error } = await query;
         if (error) throw error;
 
         // Fetch commission data for the relevant sellers
-        const sellerIds = Array.from(new Set(ordersData?.map(o => o.seller_id) || []));
-        const { data: sellersData } = await supabase.from('sellers').select('id, comissao, comissao_por_marca').in('id', sellerIds);
+        // We need to collect ALL related seller IDs: from orders AND from customers
+        const sellerIdsFromOrders = ordersData?.map(o => o.seller_id).filter(Boolean) || [];
+        const sellerIdsFromCustomers = (ordersData || []).map((o: any) => o.customers?.seller_id).filter(Boolean) || [];
+        const uniqueSellerIds = Array.from(new Set([...sellerIdsFromOrders, ...sellerIdsFromCustomers]));
 
-        const processedOrders = ordersData?.map(order => {
-          const seller = sellersData?.find(s => s.id === order.seller_id);
+        const { data: sellersData } = uniqueSellerIds.length > 0 
+          ? await supabase.from('sellers').select('id, comissao, comissao_por_marca').in('id', uniqueSellerIds)
+          : { data: [] };
+
+        const processedOrders = ordersData?.map((order: any) => {
+          // Determine the most accurate seller ID for this order
+          const effectiveSellerId = order.seller_id || order.customers?.seller_id;
+          
+          const seller = sellersData?.find(s => s.id === effectiveSellerId);
           const brandCommission = seller?.comissao_por_marca?.[order.brand_id];
           const commissionRate = brandCommission !== undefined ? brandCommission : (seller?.comissao || 0);
           const commissionValue = order.total * (commissionRate / 100);
 
-          // Handle possible array from supabase join
-          const customer = Array.isArray(order.customers) ? order.customers[0] : order.customers;
-
           return {
             ...order,
-            company_name: customer?.nome_empresa || order.client_name || 'N/A',
+            company_name: order.customers?.nome_empresa || order.client_name || 'N/A',
             commission: commissionValue
           };
         });

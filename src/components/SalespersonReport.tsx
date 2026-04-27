@@ -8,6 +8,8 @@ export default function SalespersonReport({ companyId, role, user }: { companyId
   const [loading, setLoading] = useState(true);
   const [sellers, setSellers] = useState<any[]>([]);
   const [selectedSellerId, setSelectedSellerId] = useState<string | null>(null);
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
 
   useEffect(() => {
     async function loadSellers() {
@@ -24,7 +26,6 @@ export default function SalespersonReport({ companyId, role, user }: { companyId
       setLoading(true);
       
       try {
-        console.log("Fetching Sales Report for company:", companyId, "Role:", role);
         let query = supabase
           .from('orders')
           .select(`
@@ -43,6 +44,13 @@ export default function SalespersonReport({ companyId, role, user }: { companyId
 
         if (role === 'seller') {
           query = query.eq('seller_id', user.id);
+        }
+
+        if (startDate) {
+          query = query.gte('created_at', `${startDate}T00:00:00`);
+        }
+        if (endDate) {
+          query = query.lte('created_at', `${endDate}T23:59:59`);
         }
 
         const { data: ordersData, error } = await query;
@@ -98,7 +106,7 @@ export default function SalespersonReport({ companyId, role, user }: { companyId
       }
     }
     fetchReport();
-  }, [companyId, role, user?.id, selectedSellerId]);
+  }, [companyId, role, user?.id, selectedSellerId, startDate, endDate]);
 
   const totals = orders.reduce((acc, order) => ({
     revenue: acc.revenue + order.total,
@@ -107,27 +115,68 @@ export default function SalespersonReport({ companyId, role, user }: { companyId
 
   return (
     <div className="space-y-4">
-      {role === 'company' && (
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50 p-4 rounded-3xl border border-slate-100">
-          <div className="flex items-center gap-2">
-            <User size={16} className="text-primary" />
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Filtrar por Vendedor</span>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-slate-50 p-4 rounded-3xl border border-slate-100">
+        {role === 'company' && (
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2 px-2">
+              <User size={12} className="text-primary" />
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Vendedor</span>
+            </div>
+            <div className="relative">
+              <select 
+                value={selectedSellerId || ''}
+                onChange={(e) => setSelectedSellerId(e.target.value || null)}
+                className="w-full pl-4 pr-10 py-2.5 bg-white border border-slate-200 rounded-2xl text-[11px] font-bold outline-none focus:border-primary/30 appearance-none"
+              >
+                <option value="">TODOS VENDEDORES</option>
+                {sellers.map(s => (
+                  <option key={s.id} value={s.id}>{s.nome.toUpperCase()}</option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={14} />
+            </div>
           </div>
-          <div className="relative min-w-[200px]">
-            <select 
-              value={selectedSellerId || ''}
-              onChange={(e) => setSelectedSellerId(e.target.value || null)}
-              className="w-full pl-4 pr-10 py-2.5 bg-white border border-slate-200 rounded-2xl text-[11px] font-bold outline-none focus:border-primary/30 appearance-none"
-            >
-              <option value="">TODOS VENDEDORES</option>
-              {sellers.map(s => (
-                <option key={s.id} value={s.id}>{s.nome.toUpperCase()}</option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={14} />
+        )}
+
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2 px-2">
+            <Calendar size={12} className="text-primary" />
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">De</span>
           </div>
+          <input 
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="w-full px-4 py-2 bg-white border border-slate-200 rounded-2xl text-[11px] font-bold outline-none focus:border-primary/30 appearance-none h-[42px]"
+          />
         </div>
-      )}
+
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2 px-2">
+            <Calendar size={12} className="text-primary" />
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Até</span>
+          </div>
+          <input 
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className="w-full px-4 py-2 bg-white border border-slate-200 rounded-2xl text-[11px] font-bold outline-none focus:border-primary/30 appearance-none h-[42px]"
+          />
+        </div>
+
+        <div className="md:col-span-1 flex items-end">
+          <button 
+            onClick={() => {
+              setSelectedSellerId(null);
+              setStartDate('');
+              setEndDate('');
+            }}
+            className="w-full h-[42px] bg-slate-200 hover:bg-slate-300 text-slate-600 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all"
+          >
+            Limpar Filtros
+          </button>
+        </div>
+      </div>
 
       <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
@@ -136,6 +185,7 @@ export default function SalespersonReport({ companyId, role, user }: { companyId
               <tr className="bg-slate-50/50 border-b border-slate-100">
                 <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest">Data</th>
                 <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest">Empresa</th>
+                <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest">Vendedor</th>
                 <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest text-right">Valor Pedido</th>
                 <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest text-right">Comissão</th>
               </tr>
@@ -143,14 +193,14 @@ export default function SalespersonReport({ companyId, role, user }: { companyId
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={4} className="px-6 py-10 text-center">
+                  <td colSpan={5} className="px-6 py-10 text-center">
                     <Calendar className="animate-spin text-primary inline-block mb-2" size={20} />
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Carregando dados...</p>
                   </td>
                 </tr>
               ) : orders.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-6 py-10 text-center text-slate-300 text-[10px] font-black uppercase tracking-widest">
+                  <td colSpan={5} className="px-6 py-10 text-center text-slate-300 text-[10px] font-black uppercase tracking-widest">
                     Nenhuma venda encontrada
                   </td>
                 </tr>
@@ -159,11 +209,14 @@ export default function SalespersonReport({ companyId, role, user }: { companyId
                   <tr key={order.id} className="border-b border-slate-50 hover:bg-slate-50/30 transition-colors">
                     <td className="px-6 py-4">
                       <span className="text-[10px] font-bold text-slate-500">
-                        {new Date(order.created_at).toLocaleDateString('pt-BR')}
+                         {new Date(order.created_at).toLocaleDateString('pt-BR')}
                       </span>
                     </td>
                     <td className="px-6 py-4">
                       <p className="text-[11px] font-black text-slate-700 uppercase tracking-tight line-clamp-1">{order.company_name}</p>
+                    </td>
+                    <td className="px-6 py-4">
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{order.seller_name}</p>
                     </td>
                     <td className="px-6 py-4 text-right">
                       <span className="text-[11px] font-black text-slate-900 tracking-tight">
@@ -182,7 +235,7 @@ export default function SalespersonReport({ companyId, role, user }: { companyId
             {!loading && orders.length > 0 && (
               <tfoot>
                 <tr className="bg-slate-50 font-black">
-                  <td colSpan={2} className="px-6 py-4 text-[10px] uppercase text-slate-400 tracking-widest">TOTAIS</td>
+                  <td colSpan={3} className="px-6 py-4 text-[10px] uppercase text-slate-400 tracking-widest">TOTAIS</td>
                   <td className="px-6 py-4 text-right text-xs text-slate-900">
                     R$ {totals.revenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </td>

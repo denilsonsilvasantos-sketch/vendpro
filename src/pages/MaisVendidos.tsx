@@ -120,7 +120,7 @@ export default function MaisVendidos({ companyId, role }: { companyId: string | 
               };
             })
             // Group by SKU in the final list if multiple product IDs exist for same SKU (rare)
-            .sort((a: any, b: any) => b.total_qty - a.total_qty);
+            .sort((a: any, b: any) => b.total_sales - a.total_sales);
 
             setData(finalData.slice(0, 100));
           }
@@ -255,13 +255,8 @@ export default function MaisVendidos({ companyId, role }: { companyId: string | 
                 <tr className="bg-slate-50/50 border-b border-slate-100">
                   <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Produto</th>
                   <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">SKU</th>
-                  {role !== 'customer' && (
-                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Preço</th>
-                  )}
-                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Qtd Vendida</th>
-                  {role !== 'customer' && (
-                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Valor Total</th>
-                  )}
+                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Preço</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Volume em Vendas</th>
                 </tr>
               </thead>
               <tbody>
@@ -295,22 +290,15 @@ export default function MaisVendidos({ companyId, role }: { companyId: string | 
                     <td className="px-6 py-4 text-center">
                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{item.sku}</span>
                     </td>
-                    {role !== 'customer' && (
-                      <td className="px-6 py-4 text-center">
-                        <span className="text-xs font-black text-slate-600">R$ {item.preco?.toFixed(2)}</span>
-                      </td>
-                    )}
                     <td className="px-6 py-4 text-center">
+                      <span className="text-xs font-black text-slate-600">R$ {item.preco?.toFixed(2)}</span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
                       <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-50 rounded-full text-amber-600">
-                        <ShoppingCart size={12} />
-                        <span className="text-xs font-black">{item.total_qty}</span>
+                        <DollarSign size={12} />
+                        <span className="text-xs font-black">R$ {item.total_sales.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                       </div>
                     </td>
-                    {role !== 'customer' && (
-                      <td className="px-6 py-4 text-right">
-                        <span className="text-xs font-black text-slate-900 tracking-tight">R$ {item.total_sales.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                      </td>
-                    )}
                   </tr>
                 ))}
               </tbody>

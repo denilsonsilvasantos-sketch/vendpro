@@ -12,12 +12,21 @@ export default function MaisVendidos({ companyId, role, user }: { companyId: str
   const [filterBrand, setFilterBrand] = useState<string | null>(null);
   const [filterCategory, setFilterCategory] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [filterStock, setFilterStock] = useState<'all' | 'in_stock' | 'out_of_stock'>('all');
   const [zoomImage, setZoomImage] = useState<string | null>(null);
 
   // Get blocked IDs from user object
   const blockedBrandIds = role === 'seller' ? (user?.marcas_bloqueadas || []) : (user?.vendedor_marcas_bloqueadas || []);
   const blockedSkus = role === 'seller' ? (user?.skus_bloqueados || []) : (user?.vendedor_skus_bloqueados || []);
+
+  // Debounce search term
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   useEffect(() => {
     async function loadFilters() {
@@ -41,8 +50,10 @@ export default function MaisVendidos({ companyId, role, user }: { companyId: str
 
   useEffect(() => {
     async function fetchData() {
-      if (!supabase || !companyId || (!filterBrand && !searchTerm)) {
-        setData([]);
+      // Clear data immediately when filters change to avoid showing stale results while loading
+      setData([]);
+      
+      if (!supabase || !companyId || (!filterBrand && !debouncedSearch)) {
         setLoading(false);
         return;
       }
@@ -72,8 +83,8 @@ export default function MaisVendidos({ companyId, role, user }: { companyId: str
             .eq('company_id', companyId);
 
           // If search term is present, search globally matching the name
-          if (searchTerm && searchTerm.trim().length >= 3) {
-            query = query.ilike('nome', `%${searchTerm.trim()}%`);
+          if (debouncedSearch && debouncedSearch.trim().length >= 3) {
+            query = query.ilike('nome', `%${debouncedSearch.trim()}%`);
           } else {
             // Otherwise use the brand filter
             const currentFilterBrand = filterBrand || availableBrands[0].id;
@@ -85,7 +96,6 @@ export default function MaisVendidos({ companyId, role, user }: { companyId: str
               query = query.in('brand_id', relatedBrandIds);
             } else {
               // Fallback if brand not found
-              setData([]);
               setLoading(false);
               return;
             }
@@ -164,11 +174,11 @@ export default function MaisVendidos({ companyId, role, user }: { companyId: str
       }
     }
     fetchData();
-  }, [companyId, filterBrand, filterCategory, searchTerm]);
+  }, [companyId, filterBrand, filterCategory, debouncedSearch]);
 
   const filteredData = data.filter(item => {
-    const matchesSearch = item.nome.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          item.sku.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = item.nome.toLowerCase().includes(debouncedSearch.toLowerCase()) || 
+                          item.sku.toLowerCase().includes(debouncedSearch.toLowerCase());
     
     let matchesStock = true;
     if (filterStock === 'in_stock') matchesStock = item.status_estoque !== 'esgotado';

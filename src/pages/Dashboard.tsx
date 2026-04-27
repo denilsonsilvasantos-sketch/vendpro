@@ -5,7 +5,6 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { Package, Users, ShoppingCart, TrendingUp, Building2, Tag, LayoutGrid } from 'lucide-react';
 import Banner from '../components/Banner';
 import { UserRole, BannerData } from '../types';
-import SalespersonReport from '../components/SalespersonReport';
 
 export default function Dashboard({ companyId, role, user, banners }: { companyId: string | null, role?: UserRole, user?: any, banners?: BannerData[] }) {
   const [stats, setStats] = useState({ products: 0, customers: 0, orders: 0, revenue: 0, companies: 0, brands: 0, categories: 0 });
@@ -194,24 +193,6 @@ export default function Dashboard({ companyId, role, user, banners }: { companyI
           </div>
         )}
       </div>
-
-      {/* Relatório de Vendas por Vendedor */}
-      {!isMaster && (role === 'company' || role === 'seller') && (
-        <div className="space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-600">
-              <Building2 size={16} strokeWidth={2} />
-            </div>
-            <div>
-              <h2 className="text-sm font-black text-slate-900 uppercase tracking-tight">Relatório de Vendas</h2>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-                {role === 'company' ? 'Acompanhamento por vendedor' : 'Seu histórico e comissões'}
-              </p>
-            </div>
-          </div>
-          <SalespersonReport companyId={companyId} role={role} user={user} />
-        </div>
-      )}
     </div>
   );
 }

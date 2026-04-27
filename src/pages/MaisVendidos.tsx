@@ -133,10 +133,12 @@ export default function MaisVendidos({ companyId, role, user }: { companyId: str
                 total_sales: stats.total_sales
               };
             })
-            // Group by SKU in the final list if multiple product IDs exist for same SKU (rare)
+            // Filter by category BEFORE sorting and slicing if the user selected one
+            .filter(item => filterCategory ? item.category_id === filterCategory : true)
+            // Sort by total sales value (Descending)
             .sort((a: any, b: any) => b.total_sales - a.total_sales);
 
-            setData(finalData.slice(0, 100));
+            setData(finalData.slice(0, 50));
           }
         }
       } catch (err) {
@@ -147,12 +149,11 @@ export default function MaisVendidos({ companyId, role, user }: { companyId: str
       }
     }
     fetchData();
-  }, [companyId, filterBrand]);
+  }, [companyId, filterBrand, filterCategory]);
 
   const filteredData = data.filter(item => {
     const matchesSearch = item.nome.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           item.sku.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = filterCategory ? item.category_id === filterCategory : true;
     
     let matchesStock = true;
     if (filterStock === 'in_stock') matchesStock = item.status_estoque !== 'esgotado';
@@ -163,7 +164,7 @@ export default function MaisVendidos({ companyId, role, user }: { companyId: str
       matchesStock = item.status_estoque !== 'esgotado';
     }
 
-    return matchesSearch && matchesCategory && matchesStock;
+    return matchesSearch && matchesStock;
   });
 
   return (

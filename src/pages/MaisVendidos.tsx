@@ -26,10 +26,14 @@ export default function MaisVendidos({ companyId, role, user }: { companyId: str
         supabase.from('brands').select('*').eq('company_id', companyId).order('name'),
         supabase.from('categories').select('*').eq('company_id', companyId).order('nome')
       ]);
-      setBrands(brandRes.data || []);
+      const brandData = brandRes.data || [];
+      setBrands(brandData);
       setCategories(catRes.data || []);
-      if (brandRes.data && brandRes.data.length > 0) {
-        setFilterBrand(brandRes.data[0].id);
+      
+      if (brandData.length > 0) {
+        // Find "VM DISTRIBUIDORA DE BELEZA" or default to first
+        const vmBrand = brandData.find(b => b.name?.toUpperCase().includes('VM DISTRIBUIDORA DE BELEZA'));
+        setFilterBrand(vmBrand ? vmBrand.id : brandData[0].id);
       }
     }
     loadFilters();
@@ -135,8 +139,8 @@ export default function MaisVendidos({ companyId, role, user }: { companyId: str
             })
             // Filter by category BEFORE sorting and slicing if the user selected one
             .filter(item => filterCategory ? item.category_id === filterCategory : true)
-            // Sort by total sales value (Descending)
-            .sort((a: any, b: any) => b.total_sales - a.total_sales);
+            // Sort by quantity sold (Descending)
+            .sort((a: any, b: any) => b.total_qty - a.total_qty);
 
             setData(finalData.slice(0, 50));
           }

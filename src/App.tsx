@@ -1280,7 +1280,7 @@ export default function App() {
             {activeTab === 'vendedores' && <Vendedores companyId={activeCompanyId} />}
             {activeTab === 'clientes' && <Clientes companyId={activeCompanyId} role={role} user={user} />}
             {activeTab === 'pedidos' && <Pedidos companyId={activeCompanyId} role={role} user={user} />}
-            {activeTab === 'maisvendidos' && <MaisVendidos companyId={activeCompanyId} role={effectiveRole} />}
+            {activeTab === 'maisvendidos' && <MaisVendidos companyId={activeCompanyId} role={effectiveRole} user={user} />}
             {activeTab === 'comissoes' && (role === 'seller' || role === 'company') && <Comissao companyId={activeCompanyId} role={role} user={user} />}
             {activeTab === 'account' && <Configuracoes companyId={activeCompanyId} user={user} role={role} onLogout={handleLogout} onUpdateUser={setUser} />}
           </Suspense>

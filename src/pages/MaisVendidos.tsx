@@ -4,7 +4,7 @@ import { Package, Search, Filter, ChevronDown, TrendingUp, AlertCircle, Shopping
 import { Product, Brand, Category, UserRole } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 
-export default function MaisVendidos({ companyId, role }: { companyId: string | null, role?: UserRole }) {
+export default function MaisVendidos({ companyId, role, user }: { companyId: string | null, role?: UserRole, user?: any }) {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [brands, setBrands] = useState<Brand[]>([]);
@@ -14,6 +14,10 @@ export default function MaisVendidos({ companyId, role }: { companyId: string | 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStock, setFilterStock] = useState<'all' | 'in_stock' | 'out_of_stock'>('all');
   const [zoomImage, setZoomImage] = useState<string | null>(null);
+
+  // Get blocked IDs from user object
+  const blockedBrandIds = role === 'seller' ? (user?.marcas_bloqueadas || []) : (user?.vendedor_marcas_bloqueadas || []);
+  const blockedSkus = role === 'seller' ? (user?.skus_bloqueados || []) : (user?.vendedor_skus_bloqueados || []);
 
   useEffect(() => {
     async function loadFilters() {
@@ -41,25 +45,33 @@ export default function MaisVendidos({ companyId, role }: { companyId: string | 
       
       setLoading(true);
       try {
-        // Step 1: Get all products for the selected brand and company
-        // Fetch brands and categories for the current company
-        const { data: bData } = await supabase.from('brands').select('*').eq('company_id', companyId).order('order_index', { ascending: true });
-        const { data: cData } = await supabase.from('categories').select('*').eq('company_id', companyId).order('order_index', { ascending: true });
+        // Step 1: Fetch brands and categories for the current company with correct order
+        const { data: bData } = await supabase.from('brands')
+          .select('*')
+          .eq('company_id', companyId)
+          .order('order_index', { ascending: true });
+          
+        const { data: cData } = await supabase.from('categories')
+          .select('*')
+          .eq('company_id', companyId)
+          .order('order_index', { ascending: true });
         
-        setBrands(bData || []);
-        const cats = cData || [];
-        setCategories(cats);
+        // Filter out blocked brands
+        const availableBrands = (bData || []).filter(b => !blockedBrandIds.includes(b.id));
+        setBrands(availableBrands);
+        setCategories(cData || []);
         
-        if (bData && bData.length > 0) {
-          // If filtering by a brand name (like 'VM DISTRIBUIDORA DE BELEZA'), 
-          // find all related brand IDs if there are duplicates across company (though rare now)
-          const selectedBrandObj = bData.find(b => b.id === filterBrand);
+        if (availableBrands.length > 0) {
+          const currentFilterBrand = filterBrand || availableBrands[0].id;
+          if (!filterBrand) setFilterBrand(currentFilterBrand);
+
+          const selectedBrandObj = availableBrands.find(b => b.id === currentFilterBrand);
           if (selectedBrandObj) {
-            const relatedBrandIds = bData
+            const relatedBrandIds = availableBrands
               .filter(b => b.name === selectedBrandObj.name)
               .map(b => b.id);
             
-            // Step 1: Get all products for THESE brand IDs and company
+            // Get products for these brand IDs
             const { data: brandProducts, error: productsError } = await supabase
               .from('products')
               .select('id, sku, nome, imagem, preco_unitario, status_estoque, category_id')
@@ -68,14 +80,16 @@ export default function MaisVendidos({ companyId, role }: { companyId: string | 
 
             if (productsError) throw productsError;
 
-            if (!brandProducts || brandProducts.length === 0) {
+            // Filter out blocked SKUs
+            const filteredProducts = (brandProducts || []).filter(p => !blockedSkus.includes(p.sku));
+
+            if (filteredProducts.length === 0) {
               setData([]);
               setLoading(false);
               return;
             }
 
-            // Get a list of SKUs for these products to match with order items
-            const productSkus = brandProducts.map(p => p.sku).filter(Boolean);
+            const productSkus = filteredProducts.map(p => p.sku).filter(Boolean);
 
             // Step 2: Fetch order items for these products within this company using SKU
             // This is more robust as it survives product deletions/re-uploads where IDs change but SKUs remain
@@ -105,7 +119,7 @@ export default function MaisVendidos({ companyId, role }: { companyId: string | 
               aggregation[item.sku].total_sales += Number(item.subtotal || 0);
             });
 
-            const finalData = brandProducts.map(prod => {
+            const finalData = filteredProducts.map(prod => {
               const stats = aggregation[prod.sku] || { total_qty: 0, total_sales: 0 };
               return {
                 product_id: prod.id,
@@ -256,7 +270,12 @@ export default function MaisVendidos({ companyId, role }: { companyId: string | 
                   <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Produto</th>
                   <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">SKU</th>
                   <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Preço</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Volume em Vendas</th>
+                  {role !== 'customer' && (
+                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Qtd Vendida</th>
+                  )}
+                  {role !== 'customer' && (
+                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Volume em Vendas</th>
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -293,12 +312,22 @@ export default function MaisVendidos({ companyId, role }: { companyId: string | 
                     <td className="px-6 py-4 text-center">
                       <span className="text-xs font-black text-slate-600">R$ {item.preco?.toFixed(2)}</span>
                     </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-50 rounded-full text-amber-600">
-                        <DollarSign size={12} />
-                        <span className="text-xs font-black">R$ {item.total_sales.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                      </div>
-                    </td>
+                    {role !== 'customer' && (
+                      <td className="px-6 py-4 text-center">
+                        <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-50 rounded-full text-blue-600">
+                          <ShoppingCart size={12} />
+                          <span className="text-xs font-black">{item.total_qty}</span>
+                        </div>
+                      </td>
+                    )}
+                    {role !== 'customer' && (
+                      <td className="px-6 py-4 text-right">
+                        <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-50 rounded-full text-amber-600">
+                          <DollarSign size={12} />
+                          <span className="text-xs font-black">R$ {item.total_sales.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>

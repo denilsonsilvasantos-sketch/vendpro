@@ -36,7 +36,7 @@ export default function MaisVendidos({ companyId, role }: { companyId: string | 
       if (!supabase || !companyId || !filterBrand) return;
       setLoading(true);
       try {
-        // Step 1: Get all products for the selected brand
+        // Step 1: Get all products for the selected brand and company
         const { data: brandProducts, error: productsError } = await supabase
           .from('products')
           .select('id, sku, nome, imagem, preco_unitario, status_estoque, category_id')
@@ -49,20 +49,27 @@ export default function MaisVendidos({ companyId, role }: { companyId: string | 
         
         if (productIds.length === 0) {
           setData([]);
+          setLoading(false);
           return;
         }
 
         // Step 2: Sum quantities and totals from order_items for these products
-        // We use a reasonably high limit or fetch in chunks if needed, but for top sellers, a few thousand items is usually enough
+        // We filter by company_id through the orders relationship
         const { data: items, error: itemsError } = await supabase
           .from('order_items')
-          .select('product_id, quantidade, subtotal')
-          .in('product_id', productIds);
+          .select(`
+            product_id, 
+            quantidade, 
+            subtotal,
+            orders!inner(id, company_id)
+          `)
+          .in('product_id', productIds)
+          .eq('orders.company_id', companyId);
 
         if (itemsError) throw itemsError;
 
         const aggregation: Record<string, { total_qty: number, total_sales: number }> = {};
-        items?.forEach(item => {
+        items?.forEach((item: any) => {
           if (!aggregation[item.product_id]) {
             aggregation[item.product_id] = {
               total_qty: 0,
@@ -73,7 +80,7 @@ export default function MaisVendidos({ companyId, role }: { companyId: string | 
           aggregation[item.product_id].total_sales += item.subtotal || 0;
         });
 
-        // Step 3: Combine aggregation with product details
+        // Step 3: Combine aggregation with product details and keep only Top 50
         const finalData = brandProducts.map(product => {
           const stats = aggregation[product.id] || { total_qty: 0, total_sales: 0 };
           return {
@@ -89,7 +96,8 @@ export default function MaisVendidos({ companyId, role }: { companyId: string | 
           };
         })
         .filter(item => item.total_qty > 0) // Only show items that were actually sold
-        .sort((a, b) => b.total_qty - a.total_qty);
+        .sort((a, b) => b.total_qty - a.total_qty)
+        .slice(0, 50); // Limit to Top 50
 
         setData(finalData);
       } catch (err) {

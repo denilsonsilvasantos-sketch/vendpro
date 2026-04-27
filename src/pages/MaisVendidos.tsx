@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../integrations/supabaseClient';
-import { Package, Search, Filter, ChevronDown, TrendingUp, AlertCircle, ShoppingCart, DollarSign, Tag, Building2 } from 'lucide-react';
+import { Package, Search, Filter, ChevronDown, TrendingUp, AlertCircle, ShoppingCart, DollarSign, Tag, Building2, X, ZoomIn } from 'lucide-react';
 import { Product, Brand, Category, UserRole } from '../types';
+import { motion, AnimatePresence } from 'motion/react';
 
 export default function MaisVendidos({ companyId, role }: { companyId: string | null, role?: UserRole }) {
   const [data, setData] = useState<any[]>([]);
@@ -12,6 +13,7 @@ export default function MaisVendidos({ companyId, role }: { companyId: string | 
   const [filterCategory, setFilterCategory] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStock, setFilterStock] = useState<'all' | 'in_stock' | 'out_of_stock'>('all');
+  const [zoomImage, setZoomImage] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadFilters() {
@@ -34,32 +36,35 @@ export default function MaisVendidos({ companyId, role }: { companyId: string | 
       if (!supabase || !companyId || !filterBrand) return;
       setLoading(true);
       try {
-        // Fetch orders and items for the selected brand
-        const { data: orders, error: ordersError } = await supabase
-          .from('orders')
-          .select('id')
-          .eq('company_id', companyId)
-          .eq('brand_id', filterBrand);
+        // Step 1: Get all products for the selected brand
+        const { data: brandProducts, error: productsError } = await supabase
+          .from('products')
+          .select('id, sku, nome, imagem, preco_unitario, status_estoque, category_id')
+          .eq('brand_id', filterBrand)
+          .eq('company_id', companyId);
 
-        if (ordersError) throw ordersError;
+        if (productsError) throw productsError;
 
-        const orderIds = orders?.map(o => o.id) || [];
+        const productIds = brandProducts?.map(p => p.id) || [];
         
-        // Sum quantities and totals from order_items
+        if (productIds.length === 0) {
+          setData([]);
+          return;
+        }
+
+        // Step 2: Sum quantities and totals from order_items for these products
+        // We use a reasonably high limit or fetch in chunks if needed, but for top sellers, a few thousand items is usually enough
         const { data: items, error: itemsError } = await supabase
           .from('order_items')
-          .select('product_id, sku, nome, quantidade, subtotal')
-          .in('order_id', orderIds);
+          .select('product_id, quantidade, subtotal')
+          .in('product_id', productIds);
 
         if (itemsError) throw itemsError;
 
-        const aggregation: Record<string, any> = {};
+        const aggregation: Record<string, { total_qty: number, total_sales: number }> = {};
         items?.forEach(item => {
           if (!aggregation[item.product_id]) {
             aggregation[item.product_id] = {
-              product_id: item.product_id,
-              sku: item.sku,
-              nome: item.nome,
               total_qty: 0,
               total_sales: 0
             };
@@ -68,25 +73,23 @@ export default function MaisVendidos({ companyId, role }: { companyId: string | 
           aggregation[item.product_id].total_sales += item.subtotal || 0;
         });
 
-        // Get product details (photos, prices, stock status)
-        const productIds = Object.keys(aggregation);
-        const { data: products, error: productsError } = await supabase
-          .from('products')
-          .select('id, brand_id, category_id, imagem, preco_unitario, status_estoque')
-          .in('id', productIds);
-
-        if (productsError) throw productsError;
-
-        const finalData = productIds.map(id => {
-          const product = products?.find(p => p.id === id);
+        // Step 3: Combine aggregation with product details
+        const finalData = brandProducts.map(product => {
+          const stats = aggregation[product.id] || { total_qty: 0, total_sales: 0 };
           return {
-            ...aggregation[id],
-            imagem: product?.imagem,
-            preco: product?.preco_unitario,
-            status_estoque: product?.status_estoque,
-            category_id: product?.category_id
+            product_id: product.id,
+            sku: product.sku,
+            nome: product.nome,
+            imagem: product.imagem,
+            preco: product.preco_unitario,
+            status_estoque: product.status_estoque,
+            category_id: product.category_id,
+            total_qty: stats.total_qty,
+            total_sales: stats.total_sales
           };
-        }).sort((a, b) => b.total_qty - a.total_qty);
+        })
+        .filter(item => item.total_qty > 0) // Only show items that were actually sold
+        .sort((a, b) => b.total_qty - a.total_qty);
 
         setData(finalData);
       } catch (err) {
@@ -232,9 +235,17 @@ export default function MaisVendidos({ companyId, role }: { companyId: string | 
                   <tr key={item.product_id} className="border-b border-slate-50 hover:bg-slate-50/30 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-white rounded-xl border border-slate-100 flex items-center justify-center overflow-hidden shrink-0 shadow-sm">
+                        <div 
+                          className="w-12 h-12 bg-white rounded-xl border border-slate-100 flex items-center justify-center overflow-hidden shrink-0 shadow-sm cursor-zoom-in group/img relative"
+                          onClick={() => item.imagem && setZoomImage(item.imagem)}
+                        >
                           {item.imagem ? (
-                            <img src={item.imagem} alt={item.nome} className="w-full h-full object-contain p-1" />
+                            <>
+                              <img src={item.imagem} alt={item.nome} className="w-full h-full object-contain p-1" />
+                              <div className="absolute inset-0 bg-black/5 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center">
+                                <ZoomIn size={14} className="text-white drop-shadow-md" />
+                              </div>
+                            </>
                           ) : (
                             <Package size={20} className="text-slate-200" />
                           )}
@@ -273,6 +284,35 @@ export default function MaisVendidos({ companyId, role }: { companyId: string | 
           </div>
         )}
       </div>
+
+      {/* Zoom Modal */}
+      <AnimatePresence>
+        {zoomImage && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/90 backdrop-blur-xl"
+            onClick={() => setZoomImage(null)}
+          >
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="relative max-w-4xl w-full aspect-square bg-white rounded-[40px] overflow-hidden shadow-2xl p-4"
+              onClick={e => e.stopPropagation()}
+            >
+              <button 
+                onClick={() => setZoomImage(null)}
+                className="absolute top-6 right-6 w-10 h-10 bg-white/80 backdrop-blur-md border border-slate-100 rounded-2xl flex items-center justify-center text-slate-900 shadow-xl z-10 hover:bg-white transition-all active:scale-95"
+              >
+                <X size={20} />
+              </button>
+              <img src={zoomImage} className="w-full h-full object-contain" alt="Zoom" />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

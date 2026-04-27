@@ -58,9 +58,12 @@ export default function SalespersonReport({ companyId, role, user }: { companyId
           const commissionRate = brandCommission !== undefined ? brandCommission : (seller?.comissao || 0);
           const commissionValue = order.total * (commissionRate / 100);
 
+          // Handle possible array from supabase join
+          const customer = Array.isArray(order.customers) ? order.customers[0] : order.customers;
+
           return {
             ...order,
-            company_name: order.customers?.nome_empresa || order.client_name || 'N/A',
+            company_name: customer?.nome_empresa || order.client_name || 'N/A',
             commission: commissionValue
           };
         });

@@ -29,6 +29,7 @@ import {
   Search,
   CheckCircle2,
   Check,
+  TrendingUp,
   Copy,
   Send,
   Share2,

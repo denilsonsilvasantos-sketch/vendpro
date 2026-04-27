@@ -525,7 +525,7 @@ export default function App() {
           // Refresh current customer data to get latest blocked brands from seller
           const { data: currentCustomer, error: refreshError } = await supabase
             .from('customers')
-            .select('*, sellers(*)')
+            .select('*, sellers!seller_id(*)')
             .eq('id', user.id)
             .maybeSingle();
             
@@ -1690,7 +1690,7 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
       // Try to find existing customer by CNPJ globally
       const { data: existingCustomers, error: searchError } = await supabase
         .from('customers')
-        .select('*, sellers(*)')
+        .select('*')
         .eq('cnpj', customerData.cnpj.replace(/\D/g, ''))
         .maybeSingle();
 

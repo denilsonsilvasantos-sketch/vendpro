@@ -39,11 +39,12 @@ export async function validateSellerCode(code: string, senha?: string, type: 'se
   const { data: sellers, error } = await query;
 
   if (error) {
-    console.error("Erro ao validar vendedor:", error);
-    return { success: false };
+    console.error("Erro Supabase ao validar vendedor:", error);
+    return { success: false, message: "Erro ao comunicar com o servidor" };
   }
 
   if (!sellers || sellers.length === 0) {
+    console.warn("Nenhum vendedor encontrado com o código:", code);
     return { success: false, message: "Código ou senha incorretos" };
   }
 
@@ -55,6 +56,7 @@ export async function validateSellerCode(code: string, senha?: string, type: 'se
     const authPassword = seller.senha;
 
     // Try to sign in
+    console.log("Tentando login no Auth para vendedor com email:", email);
     const { error: signInError } = await supabase.auth.signInWithPassword({
       email,
       password: authPassword,
@@ -62,7 +64,7 @@ export async function validateSellerCode(code: string, senha?: string, type: 'se
 
     if (signInError) {
       console.warn("Sign in failed for seller, checking if user needs to be created:", signInError.message);
-      if (signInError.message.includes('Invalid login credentials') || signInError.status === 400) {
+      if (signInError.message.includes('Invalid login credentials') || signInError.status === 400 || signInError.message.includes('User not found')) {
         try {
           const { error: signUpError } = await supabase.auth.signUp({
             email,
@@ -75,12 +77,14 @@ export async function validateSellerCode(code: string, senha?: string, type: 'se
               }
             }
           });
-          if (signUpError) {
+          if (signUpError && !signUpError.message.includes('already registered')) {
             console.error("Erro ao tentar registrar vendedor no Auth durante login:", signUpError.message);
           }
         } catch (err) {
           console.error("Exceção ao tentar registrar vendedor no Auth durante login:", err);
         }
+      } else {
+        console.error("Erro de autenticação para vendedor:", signInError.message);
       }
     }
   }

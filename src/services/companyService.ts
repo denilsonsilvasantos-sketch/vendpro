@@ -17,7 +17,7 @@ export async function registerCompany(companyData: any) {
       cnpj: cleanCnpj,
       responsavel: companyData.responsavel,
       telefone: companyData.telefone,
-      // email: authEmail, // Removido pois a coluna não existe na tabela companies
+      email: authEmail,
       senha: companyData.senha
     }])
     .select()
@@ -76,8 +76,9 @@ export async function loginCompany(identifier: string, senha?: string) {
   }
 
   // 2. Supabase Auth Integration for RLS
-  const authEmail = `${company.cnpj}@vendpro.com`;
+  const authEmail = company.email || `${company.cnpj}@vendpro.com`;
   if (authEmail && company.senha) {
+    console.log("Tentando login no Auth com email:", authEmail);
     const { error: signInError } = await supabase.auth.signInWithPassword({
       email: authEmail,
       password: company.senha,
@@ -85,10 +86,9 @@ export async function loginCompany(identifier: string, senha?: string) {
 
     if (signInError) {
       console.warn("Sign in failed, checking if user needs to be created:", signInError.message);
-      // Only try to sign up if the error is specifically about user not found
-      // or if we want to ensure the user exists for RLS.
-      // Note: Supabase doesn't always return a clear "user not found" error code for security.
-      if (signInError.message.includes('Invalid login credentials') || signInError.status === 400) {
+      
+      // If it's a dynamic user (dummy email), we can try to create it on the fly
+      if (authEmail.endsWith('@vendpro.com')) {
         try {
           const { error: signUpError } = await supabase.auth.signUp({
             email: authEmail,
@@ -101,12 +101,16 @@ export async function loginCompany(identifier: string, senha?: string) {
               }
             }
           });
-          if (signUpError) {
+          if (signUpError && !signUpError.message.includes('already registered')) {
             console.error("Erro ao tentar registrar no Auth durante login:", signUpError.message);
           }
         } catch (err) {
           console.error("Exceção ao tentar registrar no Auth durante login:", err);
         }
+      } else {
+        // Real email, login should work or they need to reset password
+        console.error("Erro de autenticação para conta com email real:", signInError.message);
+        return { success: false, message: "Erro de autenticação: " + signInError.message };
       }
     }
   }

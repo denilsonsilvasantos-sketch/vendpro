@@ -523,11 +523,15 @@ export default function App() {
           }
         } else if (supabase && role === 'customer' && user?.id) {
           // Refresh current customer data to get latest blocked brands from seller
-          const { data: currentCustomer } = await supabase
+          const { data: currentCustomer, error: refreshError } = await supabase
             .from('customers')
-            .select('*, sellers!customers_seller_id_fkey(*)')
+            .select('*, sellers(*)')
             .eq('id', user.id)
             .maybeSingle();
+            
+          if (refreshError) {
+            console.error("Erro ao atualizar dados do cliente:", refreshError);
+          }
             
           if (currentCustomer) {
             const updatedUser = {
@@ -686,6 +690,9 @@ export default function App() {
   };
 
   const handleLogout = async () => {
+    if (supabase) {
+      await supabase.auth.signOut();
+    }
     userRefreshed.current = false;
     setRole(null);
     setUser(null);
@@ -693,6 +700,7 @@ export default function App() {
     setAvailableSellers([]);
     setActiveCompanyId(null);
     localStorage.removeItem('vendpro_role');
+    localStorage.removeItem('vendpro_user');
     localStorage.removeItem('vendpro_user_id');
     localStorage.removeItem('vendpro_seller_code');
     localStorage.removeItem('vendpro_available_companies');
@@ -1535,7 +1543,7 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
           const company = data[0];
           
           // Sign in to Supabase Auth for RLS
-          const authEmail = `${company.cnpj || 'admin'}@vendpro.com.br`;
+          const authEmail = `${company.cnpj || 'admin'}@vendpro.com`;
           const authPassword = company.senha || 'admin123';
           
           try {
@@ -1545,6 +1553,7 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
             });
 
             if (signInError) {
+              console.warn("Sign in failed for admin, attempting sign up:", signInError.message);
               await supabase.auth.signUp({
                 email: authEmail,
                 password: authPassword,
@@ -1557,8 +1566,8 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
                 }
               });
             }
-          } catch (err) {
-            console.warn("Erro ao autenticar admin no Supabase Auth:", err);
+          } catch (err: any) {
+            console.error("Erro ao autenticar admin no Supabase Auth:", err);
           }
 
           onLogin('company', company, [company]);
@@ -1681,11 +1690,14 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
       // Try to find existing customer by CNPJ globally
       const { data: existingCustomers, error: searchError } = await supabase
         .from('customers')
-        .select('*, sellers!customers_seller_id_fkey(*)')
+        .select('*, sellers(*)')
         .eq('cnpj', customerData.cnpj.replace(/\D/g, ''))
         .maybeSingle();
 
-      if (searchError) throw searchError;
+      if (searchError) {
+        console.error("Erro ao buscar cliente por CNPJ:", searchError);
+        throw searchError;
+      }
 
       if (existingCustomers) {
         setError('Este CNPJ já está cadastrado no sistema. Por favor, faça login.');
@@ -1773,7 +1785,7 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
           const company = data[0];
           
           // Sign in to Supabase Auth for RLS
-          const authEmail = `${company.cnpj || 'admin'}@vendpro.com.br`;
+          const authEmail = `${company.cnpj || 'admin'}@vendpro.com`;
           const authPassword = company.senha || 'admin123';
           
           try {
@@ -1783,6 +1795,7 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
             });
 
             if (signInError) {
+              console.warn("Sign in failed for admin, attempting sign up:", signInError.message);
               await supabase.auth.signUp({
                 email: authEmail,
                 password: authPassword,
@@ -1795,8 +1808,8 @@ function LoginScreen({ onLogin }: { onLogin: (role: UserRole, user: any, compani
                 }
               });
             }
-          } catch (err) {
-            console.warn("Erro ao autenticar admin no Supabase Auth:", err);
+          } catch (err: any) {
+            console.error("Erro ao autenticar admin no Supabase Auth:", err);
           }
 
           onLogin('company', company);

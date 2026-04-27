@@ -29,8 +29,14 @@ export async function validateCustomerCode(code: string, password?: string) {
     .eq('codigo_acesso', code.toUpperCase())
     .maybeSingle();
 
-  if (error) return { success: false, error: error.message };
-  if (!data) return { success: false, error: 'Código de acesso inválido' };
+  if (error) {
+    console.error("Erro Supabase ao buscar cliente por código:", error);
+    return { success: false, error: error.message };
+  }
+  if (!data) {
+    console.warn("Cliente não encontrado com código:", code);
+    return { success: false, error: 'Código de acesso inválido' };
+  }
 
   if (password && data.senha !== password) {
     return { success: false, error: 'Senha incorreta' };
@@ -129,8 +135,14 @@ export async function validateCustomerLogin(cnpj: string, password?: string) {
     .limit(1)
     .maybeSingle();
 
-  if (error) return { success: false, error: error.message };
-  if (!data) return { success: false, error: 'CNPJ não cadastrado' };
+  if (error) {
+    console.error("Erro Supabase ao buscar cliente por CNPJ no login:", error);
+    return { success: false, error: error.message };
+  }
+  if (!data) {
+    console.warn("Cliente não encontrado com CNPJ no login:", cleanCnpj);
+    return { success: false, error: 'CNPJ não cadastrado' };
+  }
 
   if (password && data.senha !== password) {
     return { success: false, error: 'Senha incorreta' };

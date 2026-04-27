@@ -42,67 +42,85 @@ export default function MaisVendidos({ companyId, role }: { companyId: string | 
       setLoading(true);
       try {
         // Step 1: Get all products for the selected brand and company
-        const { data: brandProducts, error: productsError } = await supabase
-          .from('products')
-          .select('id, sku, nome, imagem, preco_unitario, status_estoque, category_id')
-          .eq('brand_id', filterBrand)
-          .eq('company_id', companyId);
-
-        if (productsError) throw productsError;
-
-        if (!brandProducts || brandProducts.length === 0) {
-          setData([]);
-          setLoading(false);
-          return;
-        }
-
-        const productIds = brandProducts.map(p => p.id);
-
-        // Step 2: Fetch order items for these products within this company
-        // We filter by company_id through the orders relationship to be safe
-        const { data: items, error: itemsError } = await supabase
-          .from('order_items')
-          .select(`
-            quantidade,
-            subtotal,
-            product_id
-          `)
-          .in('product_id', productIds)
-          .eq('company_id', companyId);
-
-        if (itemsError) throw itemsError;
-
-        const aggregation: Record<string, { total_qty: number, total_sales: number }> = {};
+        // Fetch brands and categories for the current company
+        const { data: bData } = await supabase.from('brands').select('*').eq('company_id', companyId).order('name');
+        const { data: cData } = await supabase.from('categories').select('*').eq('company_id', companyId).order('nome');
         
-        (items || []).forEach((item: any) => {
-          if (!aggregation[item.product_id]) {
-            aggregation[item.product_id] = {
-              total_qty: 0,
-              total_sales: 0
-            };
+        setBrands(bData || []);
+        const cats = cData || [];
+        setCategories(cats);
+        
+        if (bData && bData.length > 0) {
+          // If filtering by a brand name (like 'VM DISTRIBUIDORA DE BELEZA'), 
+          // find all related brand IDs if there are duplicates
+          const selectedBrandObj = bData.find(b => b.id === filterBrand);
+          if (selectedBrandObj) {
+            const relatedBrandIds = bData
+              .filter(b => b.name === selectedBrandObj.name)
+              .map(b => b.id);
+            
+            // Step 1: Get all products for THESE brand IDs and company
+            const { data: brandProducts, error: productsError } = await supabase
+              .from('products')
+              .select('id, sku, nome, imagem, preco_unitario, status_estoque, category_id')
+              .in('brand_id', relatedBrandIds)
+              .eq('company_id', companyId);
+
+            if (productsError) throw productsError;
+
+            if (!brandProducts || brandProducts.length === 0) {
+              setData([]);
+              setLoading(false);
+              return;
+            }
+
+            const productIds = brandProducts.map(p => p.id);
+
+            // Step 2: Fetch order items for these products within this company
+            const { data: items, error: itemsError } = await supabase
+              .from('order_items')
+              .select(`
+                quantidade,
+                subtotal,
+                product_id
+              `)
+              .in('product_id', productIds)
+              .eq('company_id', companyId);
+
+            if (itemsError) throw itemsError;
+
+            const aggregation: Record<string, { total_qty: number, total_sales: number }> = {};
+            
+            (items || []).forEach((item: any) => {
+              if (!aggregation[item.product_id]) {
+                aggregation[item.product_id] = {
+                  total_qty: 0,
+                  total_sales: 0
+                };
+              }
+              aggregation[item.product_id].total_qty += Number(item.quantidade || 0);
+              aggregation[item.product_id].total_sales += Number(item.subtotal || 0);
+            });
+
+            const finalData = brandProducts.map(prod => {
+              const stats = aggregation[prod.id] || { total_qty: 0, total_sales: 0 };
+              return {
+                product_id: prod.id,
+                sku: prod.sku,
+                nome: prod.nome,
+                imagem: prod.imagem,
+                preco: prod.preco_unitario,
+                status_estoque: prod.status_estoque,
+                category_id: prod.category_id,
+                total_qty: stats.total_qty,
+                total_sales: stats.total_sales
+              };
+            })
+            .sort((a: any, b: any) => b.total_qty - a.total_qty);
+
+            setData(finalData.slice(0, 50));
           }
-          aggregation[item.product_id].total_qty += Number(item.quantidade || 0);
-          aggregation[item.product_id].total_sales += Number(item.subtotal || 0);
-        });
-
-        const finalData = brandProducts.map(prod => {
-          const stats = aggregation[prod.id] || { total_qty: 0, total_sales: 0 };
-          return {
-            product_id: prod.id,
-            sku: prod.sku,
-            nome: prod.nome,
-            imagem: prod.imagem,
-            preco: prod.preco_unitario,
-            status_estoque: prod.status_estoque,
-            category_id: prod.category_id,
-            total_qty: stats.total_qty,
-            total_sales: stats.total_sales
-          };
-        })
-        .sort((a: any, b: any) => b.total_qty - a.total_qty)
-        .slice(0, 100); // Show more items as requested (Top 100)
-
-        setData(finalData);
+        }
       } catch (err) {
         console.error("Erro ao buscar curva ABC:", err);
         setData([]);

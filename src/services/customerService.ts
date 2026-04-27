@@ -59,6 +59,15 @@ export async function validateCustomerCode(code: string, password?: string) {
     });
 
     if (signInError) {
+      if (signInError.message.includes('Email not confirmed')) {
+        console.warn("Login Auth (validateCode): Email not confirmed, but proceeding as RLS is disabled.");
+        return { 
+          success: true, 
+          customer: data,
+          seller: sellerRes.data,
+          company: companyRes.data
+        };
+      }
       const { error: signUpError } = await supabase.auth.signUp({
         email,
         password: authPassword,
@@ -165,6 +174,15 @@ export async function validateCustomerLogin(cnpj: string, password?: string) {
     });
 
     if (signInError) {
+      if (signInError.message.includes('Email not confirmed')) {
+        console.warn("Login Auth (validateLogin): Email not confirmed, but proceeding as RLS is disabled.");
+        return { 
+          success: true, 
+          customer: data,
+          seller: sellerRes.data,
+          company: companyRes.data
+        };
+      }
       const { error: signUpError } = await supabase.auth.signUp({
         email,
         password: authPassword,

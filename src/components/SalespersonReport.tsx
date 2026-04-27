@@ -42,24 +42,32 @@ export default function SalespersonReport({ companyId, role, user }: { companyId
         if (role === 'seller') {
           query = query.eq('seller_id', user.id);
         } else if (selectedSellerId) {
-          // Filter by order's seller_id OR by the customer's assigned seller_id
-          query = query.or(`seller_id.eq.${selectedSellerId},customers.seller_id.eq.${selectedSellerId}`);
+          // If a seller is selected, we fetch all orders for the company and filter in JS 
+          // to avoid complex 'or' query issues across joined tables in PostgREST
         }
 
         const { data: ordersData, error } = await query;
         if (error) throw error;
 
+        // Filter by seller locally if necessary to be more robust
+        let filteredOrders = ordersData || [];
+        if (selectedSellerId && role === 'company') {
+          filteredOrders = filteredOrders.filter((order: any) => 
+            order.seller_id === selectedSellerId || order.customers?.seller_id === selectedSellerId
+          );
+        }
+
         // Fetch commission data for the relevant sellers
         // We need to collect ALL related seller IDs: from orders AND from customers
-        const sellerIdsFromOrders = ordersData?.map(o => o.seller_id).filter(Boolean) || [];
-        const sellerIdsFromCustomers = (ordersData || []).map((o: any) => o.customers?.seller_id).filter(Boolean) || [];
+        const sellerIdsFromOrders = filteredOrders.map(o => o.seller_id).filter(Boolean) || [];
+        const sellerIdsFromCustomers = filteredOrders.map((o: any) => o.customers?.seller_id).filter(Boolean) || [];
         const uniqueSellerIds = Array.from(new Set([...sellerIdsFromOrders, ...sellerIdsFromCustomers]));
 
         const { data: sellersData } = uniqueSellerIds.length > 0 
           ? await supabase.from('sellers').select('id, comissao, comissao_por_marca').in('id', uniqueSellerIds)
           : { data: [] };
 
-        const processedOrders = ordersData?.map((order: any) => {
+        const processedOrders = filteredOrders.map((order: any) => {
           // Determine the most accurate seller ID for this order
           const effectiveSellerId = order.seller_id || order.customers?.seller_id;
           

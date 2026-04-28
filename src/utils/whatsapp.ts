@@ -28,23 +28,24 @@ export function formatWhatsAppMessage(items: CartItem[], clientName?: string, br
     return line;
   });
   
-  let message = `🛍️ *PEDIDO REALIZADO*\n`;
-  message += `--------------------------\n`;
+  let message = `🚀 *NOVO PEDIDO REALIZADO*\n`;
+  message += `━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+  
   if (brandName) {
-    message += `*Marca:* ${brandName}\n`;
+    message += `🏷️ *Marca:* ${brandName}\n`;
   }
   if (clientName) {
-    message += `*Cliente:* ${clientName}\n`;
+    message += `👤 *Cliente:* ${clientName}\n`;
   }
-  message += `--------------------------\n\n`;
   
-  message += `📊 *Resumo:* ${itemCount} itens | ${productCount} produtos\n\n`;
+  message += `📊 *Resumo:* ${itemCount} itens | ${productCount} produtos\n`;
+  message += `━━━━━━━━━━━━━━━━━━━━━━\n\n`;
   
   message += lines.join('\n\n');
   
-  message += `\n\n--------------------------\n`;
-  message += `💰 *TOTAL: R$ ${total.toFixed(2).replace('.', ',')}*\n`;
-  message += `--------------------------`;
+  message += `\n\n━━━━━━━━━━━━━━━━━━━━━━\n`;
+  message += `💰 *VALOR TOTAL: R$ ${total.toFixed(2).replace('.', ',')}*\n`;
+  message += `━━━━━━━━━━━━━━━━━━━━━━`;
   
   if (notes && notes.trim()) {
     message += `\n\n📝 *Observações:*\n${notes.trim()}`;

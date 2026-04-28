@@ -135,18 +135,20 @@ export default function MaisVendidos({ companyId, role, user }: { companyId: str
           
           (items || []).forEach((item: any) => {
             if (!item.sku) return;
-            if (!aggregation[item.sku]) {
-              aggregation[item.sku] = {
+            const normalizedSku = item.sku.trim().toUpperCase();
+            if (!aggregation[normalizedSku]) {
+              aggregation[normalizedSku] = {
                 total_qty: 0,
                 total_sales: 0
               };
             }
-            aggregation[item.sku].total_qty += Number(item.quantidade || 0);
-            aggregation[item.sku].total_sales += Number(item.subtotal || 0);
+            aggregation[normalizedSku].total_qty += Number(item.quantidade || 0);
+            aggregation[normalizedSku].total_sales += Number(item.subtotal || 0);
           });
 
           const finalData = filteredProducts.map(prod => {
-            const stats = aggregation[prod.sku] || { total_qty: 0, total_sales: 0 };
+            const normalizedProdSku = (prod.sku || '').trim().toUpperCase();
+            const stats = aggregation[normalizedProdSku] || { total_qty: 0, total_sales: 0 };
             return {
               product_id: prod.id,
               sku: prod.sku,
@@ -162,7 +164,10 @@ export default function MaisVendidos({ companyId, role, user }: { companyId: str
           // Filter by category BEFORE sorting and slicing if the user selected one
           .filter(item => filterCategory ? item.category_id === filterCategory : true)
           // Sort by quantity sold (Descending)
-          .sort((a: any, b: any) => b.total_qty - a.total_qty);
+          .sort((a: any, b: any) => {
+            if (b.total_qty !== a.total_qty) return b.total_qty - a.total_qty;
+            return (a.nome || '').localeCompare(b.nome || '');
+          });
 
           setData(finalData.slice(0, 50));
         }

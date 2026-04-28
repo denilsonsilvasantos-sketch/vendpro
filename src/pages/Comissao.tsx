@@ -4,7 +4,7 @@ import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
 import {
-  ShoppingBag, CheckCircle2, TrendingUp, DollarSign, Trophy, Filter, Star, Percent
+  ShoppingBag, CheckCircle2, TrendingUp, DollarSign, Trophy, Filter, Star, Percent, ChevronRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -79,10 +79,12 @@ export default function Comissao({ companyId, role, user }: { companyId: string 
   const [brandCommissions, setBrandCommissions] = useState<BrandCommissionStats[]>([]);
   const [myStats, setMyStats] = useState<SellerStats | null>(null);
   const [loading, setLoading] = useState(true);
-
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+
+  const [expandedSeller, setExpandedSeller] = useState<string | null>(null);
+  const [brandNamesMapping, setBrandNamesMapping] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (role === 'company') loadCompanyData();
@@ -102,18 +104,24 @@ export default function Comissao({ companyId, role, user }: { companyId: string 
       if (filterDateFrom) ordersQuery = ordersQuery.gte('created_at', filterDateFrom + 'T00:00:00');
       if (filterDateTo) ordersQuery = ordersQuery.lte('created_at', filterDateTo + 'T23:59:59');
 
-      const [{ data: orders }, { data: sellersList }] = await Promise.all([
+      const [{ data: orders }, { data: sellersList }, { data: brandsList }] = await Promise.all([
         ordersQuery,
         supabase.from('sellers').select('id, nome, comissao, comissao_por_marca').eq('company_id', companyId).eq('ativo', true),
+        supabase.from('brands').select('id, name').eq('company_id', companyId),
       ]);
 
-      const statsMap: Record<string, SellerStats & { comissao_por_marca: Record<string, number> }> = {};
+      const brandNames: Record<string, string> = {};
+      (brandsList || []).forEach(b => brandNames[b.id] = b.name);
+      setBrandNamesMapping(brandNames);
+
+      const statsMap: Record<string, SellerStats & { comissao_por_marca: Record<string, number>, brand_breakdown: Record<string, { total: number, comissao: number, orders: number }> }> = {};
       (sellersList || []).forEach((s: any) => {
         statsMap[s.id] = {
           id: s.id,
           nome: s.nome,
           comissao: Number(s.comissao || 0),
           comissao_por_marca: s.comissao_por_marca || {},
+          brand_breakdown: {},
           total_pedidos: 0,
           pedidos_finalizados: 0,
           valor_total: 0,
@@ -129,16 +137,24 @@ export default function Comissao({ companyId, role, user }: { companyId: string 
         const taxa = s.comissao_por_marca[o.brand_id] !== undefined
           ? s.comissao_por_marca[o.brand_id]
           : s.comissao;
+        
         s.total_pedidos += 1;
         s.valor_total += Number(o.total || 0);
+
+        if (!s.brand_breakdown[o.brand_id]) {
+          s.brand_breakdown[o.brand_id] = { total: 0, comissao: 0, orders: 0 };
+        }
+
         if (o.status === 'finished') {
           s.pedidos_finalizados += 1;
           s.valor_finalizado += Number(o.total || 0);
+          s.comissao_real += (Number(o.total || 0) * taxa) / 100;
+
+          s.brand_breakdown[o.brand_id].total += Number(o.total || 0);
+          s.brand_breakdown[o.brand_id].comissao += (Number(o.total || 0) * taxa) / 100;
+          s.brand_breakdown[o.brand_id].orders += 1;
         }
         s.comissao_prevista += (Number(o.total || 0) * taxa) / 100;
-        if (o.status === 'finished') {
-          s.comissao_real += (Number(o.total || 0) * taxa) / 100;
-        }
       });
 
       const sorted = Object.values(statsMap).sort((a, b) => b.valor_finalizado - a.valor_finalizado);
@@ -521,25 +537,67 @@ export default function Comissao({ companyId, role, user }: { companyId: string 
             </thead>
             <tbody className="divide-y divide-slate-50">
               {sellers.map((s, i) => (
-                <motion.tr key={s.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.04 }}
-                  className="hover:bg-slate-50/50 transition-colors">
-                  <td className="px-5 py-4">
-                    <span className={`w-6 h-6 flex items-center justify-center rounded-full text-[10px] font-black ${i === 0 ? 'bg-amber-100 text-amber-600' : i === 1 ? 'bg-slate-100 text-slate-500' : i === 2 ? 'bg-orange-100 text-orange-600' : 'bg-slate-50 text-slate-400'}`}>
-                      {i === 0 ? <Star size={11} fill="currentColor" /> : i + 1}
-                    </span>
-                  </td>
-                  <td className="px-5 py-4 font-bold text-slate-800 text-sm">{s.nome}</td>
-                  <td className="px-5 py-4">
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-600 text-[10px] font-black rounded-full border border-emerald-100">
-                      <Percent size={8} strokeWidth={3} />{s.comissao}%
-                    </span>
-                  </td>
-                  <td className="px-5 py-4 hidden sm:table-cell text-sm font-medium text-slate-600">{s.total_pedidos}</td>
-                  <td className="px-5 py-4 hidden md:table-cell text-sm font-medium text-slate-600">{s.pedidos_finalizados}</td>
-                  <td className="px-5 py-4 hidden lg:table-cell text-sm font-bold text-slate-700">{formatCurrency(s.valor_finalizado)}</td>
-                  <td className="px-5 py-4 text-sm font-bold text-amber-600">{formatCurrency(s.comissao_prevista)}</td>
-                  <td className="px-5 py-4 text-sm font-black text-primary">{formatCurrency(s.comissao_real)}</td>
-                </motion.tr>
+                <React.Fragment key={s.id}>
+                  <motion.tr initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.04 }}
+                    onClick={() => setExpandedSeller(expandedSeller === s.id ? null : s.id)}
+                    className="hover:bg-slate-50/50 transition-colors cursor-pointer">
+                    <td className="px-5 py-4">
+                      <span className={`w-6 h-6 flex items-center justify-center rounded-full text-[10px] font-black ${i === 0 ? 'bg-amber-100 text-amber-600' : i === 1 ? 'bg-slate-100 text-slate-500' : i === 2 ? 'bg-orange-100 text-orange-600' : 'bg-slate-50 text-slate-400'}`}>
+                        {i === 0 ? <Star size={11} fill="currentColor" /> : i + 1}
+                      </span>
+                    </td>
+                    <td className="px-5 py-4 font-bold text-slate-800 text-sm">
+                      <div className="flex items-center gap-2">
+                        {s.nome}
+                        <ChevronRight size={12} className={`text-slate-300 transition-transform ${expandedSeller === s.id ? 'rotate-90' : ''}`} />
+                      </div>
+                    </td>
+                    <td className="px-5 py-4">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-600 text-[10px] font-black rounded-full border border-emerald-100">
+                        <Percent size={8} strokeWidth={3} />{s.comissao}%
+                      </span>
+                    </td>
+                    <td className="px-5 py-4 hidden sm:table-cell text-sm font-medium text-slate-600">{s.total_pedidos}</td>
+                    <td className="px-5 py-4 hidden md:table-cell text-sm font-medium text-slate-600">{s.pedidos_finalizados}</td>
+                    <td className="px-5 py-4 hidden lg:table-cell text-sm font-bold text-slate-700">{formatCurrency(s.valor_finalizado)}</td>
+                    <td className="px-5 py-4 text-sm font-bold text-amber-600">{formatCurrency(s.comissao_prevista)}</td>
+                    <td className="px-5 py-4 text-sm font-black text-primary">{formatCurrency(s.comissao_real)}</td>
+                  </motion.tr>
+                  
+                  <AnimatePresence>
+                    {expandedSeller === s.id && (
+                      <motion.tr
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="bg-slate-50/30"
+                      >
+                        <td colSpan={8} className="px-10 py-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                            {(s as any).brand_breakdown && Object.entries((s as any).brand_breakdown).map(([brandId, data]: [string, any]) => (
+                               <div key={brandId} className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm space-y-1">
+                                 <div className="flex justify-between items-center">
+                                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{brandNamesMapping[brandId] || 'Marca Desconhecida'}</span>
+                                   <span className="text-[9px] font-bold text-slate-300 whitespace-nowrap">{data.orders} pedidos</span>
+                                 </div>
+                                 <div className="flex justify-between items-end pt-1">
+                                    <div>
+                                      <p className="text-[8px] text-slate-400 font-bold uppercase">Volume</p>
+                                      <p className="text-xs font-bold text-slate-600">{formatCurrency(data.total)}</p>
+                                    </div>
+                                    <div className="text-right">
+                                      <p className="text-[8px] text-primary font-bold uppercase">Comissão</p>
+                                      <p className="text-sm font-black text-primary">{formatCurrency(data.comissao)}</p>
+                                    </div>
+                                 </div>
+                               </div>
+                            ))}
+                          </div>
+                        </td>
+                      </motion.tr>
+                    )}
+                  </AnimatePresence>
+                </React.Fragment>
               ))}
             </tbody>
           </table>

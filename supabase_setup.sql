@@ -49,6 +49,7 @@ CREATE TABLE IF NOT EXISTS brands (
     stock_policy TEXT,
     payment_methods TEXT[] DEFAULT '{}',
     order_index INTEGER DEFAULT 0,
+    ativo BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -92,6 +93,7 @@ CREATE TABLE IF NOT EXISTS products (
     tipo_variacao TEXT,
     variacoes_disponiveis JSONB DEFAULT '[]',
     variacoes_flat JSONB DEFAULT '[]',
+    barcode TEXT,
     created_at TIMESTAMPTZ DEFAULT now()
 );
 

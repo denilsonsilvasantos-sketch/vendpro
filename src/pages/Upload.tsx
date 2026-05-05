@@ -295,11 +295,15 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
           const precoKey = Object.keys(row).find(k => /preço|preco|valor|price|unitario|padrao/i.test(k));
           const precoBoxKey = Object.keys(row).find(k => /box|tabela 4|tabela4/i.test(k));
           const unidadeKey = Object.keys(row).find(k => /unidade|un|tipo/i.test(k));
-          const barcodeKey = Object.keys(row).find(k => /barcode|codigo de barras|código de barras|bar code|ean/i.test(k));
+          const barcodeKey = Object.keys(row).find(k => /barcode|codigo de barras|código de barras|bar code|ean|cod\.barras|cod barras/i.test(k));
 
           if (skuKey) {
             const sku = String(row[skuKey]).trim().toUpperCase();
-            const barcode = barcodeKey ? String(row[barcodeKey]).trim() : undefined;
+            let barcode = barcodeKey ? String(row[barcodeKey]).trim() : undefined;
+            
+            if (barcode && /cod\.barras:|cod barras:/i.test(barcode)) {
+              barcode = barcode.replace(/cod\.barras:|cod barras:/i, '').trim();
+            }
             const nome = nomeKey ? String(row[nomeKey]).trim() : '';
             const qtdBoxMatch = nome.match(/BX\s*C\/(\d+)/i) || nome.match(/C\/(\d+)/i) || nome.match(/Emb\s*C\/(\d+)/i);
             const multiploMatch = nome.match(/!(\d+)/) || nome.match(/Variação de (\d+) Modelos/i);

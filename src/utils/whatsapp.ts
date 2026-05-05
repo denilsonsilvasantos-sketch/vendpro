@@ -28,28 +28,28 @@ export function formatWhatsAppMessage(items: CartItem[], clientName?: string, br
     return line;
   });
   
-  let message = `🚀 *NOVO PEDIDO REALIZADO*\n`;
+  let message = `📦 *NOVO PEDIDO - ${brandName?.toUpperCase() || 'CATÁLOGO'}*\n`;
   message += `━━━━━━━━━━━━━━━━━━━━━━\n\n`;
   
-  if (brandName) {
-    message += `🏷️ *Marca:* ${brandName}\n`;
-  }
   if (clientName) {
-    message += `👤 *Cliente:* ${clientName}\n`;
+    message += `👤 *CLIENTE:* ${clientName.toUpperCase()}\n`;
   }
-  
-  message += `📊 *Resumo:* ${itemCount} itens | ${productCount} produtos\n`;
+  message += `📅 *DATA:* ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}\n`;
+  message += `🔢 *TOTAL DE ITENS:* ${productCount}\n`;
   message += `━━━━━━━━━━━━━━━━━━━━━━\n\n`;
   
+  message += `🛍️ *PRODUTOS:*\n\n`;
   message += lines.join('\n\n');
   
   message += `\n\n━━━━━━━━━━━━━━━━━━━━━━\n`;
-  message += `💰 *VALOR TOTAL: R$ ${total.toFixed(2).replace('.', ',')}*\n`;
+  message += `💰 *TOTAL DO PEDIDO: R$ ${total.toFixed(2).replace('.', ',')}*\n`;
   message += `━━━━━━━━━━━━━━━━━━━━━━`;
   
   if (notes && notes.trim()) {
-    message += `\n\n📝 *Observações:*\n${notes.trim()}`;
+    message += `\n\n📝 *OBSERVAÇÕES:*\n${notes.trim()}`;
   }
+  
+  message += `\n\n_Gerado por VendPro_`;
   
   return message;
 }

@@ -10,6 +10,7 @@ export interface Brand {
   stock_policy?: string;
   payment_methods?: string[];
   order_index?: number;
+  ativo?: boolean;
 }
 
 export interface Company {
@@ -118,6 +119,7 @@ export interface Product {
     opcoes: string[]; // e.g., ["Azul", "Vermelho"], ["P", "M", "G"]
   }[];
   variacoes_flat?: { sku: string; nome: string; imagem?: string; esgotado?: boolean }[];
+  barcode?: string;
 }
 
 export interface CartItem extends Product {

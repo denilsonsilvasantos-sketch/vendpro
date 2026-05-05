@@ -518,6 +518,47 @@ export default function Comissao({ companyId, role, user }: { companyId: string 
       )}
 
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/30">
+          <h3 className="text-sm font-black text-slate-700 uppercase tracking-wide">Relatório por Marca (O que cada marca deve pagar)</h3>
+          <span className="text-[10px] font-bold text-slate-400">VALORES BASEADOS EM PEDIDOS FINALIZADOS</span>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="bg-slate-50/50">
+                <th className="px-5 py-3 text-left text-[9px] font-black uppercase tracking-widest text-slate-400">Marca</th>
+                <th className="px-5 py-3 text-left text-[9px] font-black uppercase tracking-widest text-slate-400">Vendedor</th>
+                <th className="px-5 py-3 text-right text-[9px] font-black uppercase tracking-widest text-slate-400">Vendas</th>
+                <th className="px-5 py-3 text-right text-[9px] font-black uppercase tracking-widest text-slate-400">Comissão Devida</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {Object.entries(brandNamesMapping).map(([brandId, brandName]) => {
+                const brandSellers = sellers.filter(s => (s as any).brand_breakdown[brandId] && (s as any).brand_breakdown[brandId].total > 0);
+                if (brandSellers.length === 0) return null;
+                
+                return brandSellers.map((s, idx) => {
+                  const data = (s as any).brand_breakdown[brandId];
+                  return (
+                    <tr key={`${brandId}-${s.id}`} className="hover:bg-slate-50/30 transition-colors">
+                      {idx === 0 && (
+                        <td rowSpan={brandSellers.length} className="px-5 py-4 border-r border-slate-50">
+                          <span className="text-xs font-black text-slate-900 uppercase tracking-tight">{brandName}</span>
+                        </td>
+                      )}
+                      <td className="px-5 py-4 text-xs font-medium text-slate-600">{s.nome}</td>
+                      <td className="px-5 py-4 text-right text-xs font-bold text-slate-700">{formatCurrency(data.total)}</td>
+                      <td className="px-5 py-4 text-right text-xs font-black text-primary">{formatCurrency(data.comissao)}</td>
+                    </tr>
+                  );
+                });
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         <div className="p-5 border-b border-slate-100">
           <h3 className="text-sm font-black text-slate-700 uppercase tracking-wide">Detalhamento por Vendedor</h3>
         </div>

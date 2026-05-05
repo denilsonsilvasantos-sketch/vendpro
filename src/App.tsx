@@ -576,17 +576,30 @@ export default function App() {
           
           let brandQuery = supabase.from('brands').select('*').eq('company_id', activeCompanyId).order('name');
           
+          if (role === 'customer') {
+            brandQuery = brandQuery.eq('ativo', true);
+          }
+          
           if (role === 'seller') {
             if (blockedBrandIds.length > 0) {
               brandQuery = brandQuery.not('id', 'in', `(${blockedBrandIds.join(',')})`);
               filteredCats = filteredCats.filter((c: any) => !c.brand_id || !blockedBrandIds.includes(c.brand_id));
             }
-          } else if (role === 'customer' && blockedBrandIds.length > 0) {
-            brandQuery = brandQuery.not('id', 'in', `(${blockedBrandIds.join(',')})`);
-            filteredCats = filteredCats.filter((c: any) => !c.brand_id || !blockedBrandIds.includes(c.brand_id));
+          } else if (role === 'customer') {
+            if (blockedBrandIds.length > 0) {
+              brandQuery = brandQuery.not('id', 'in', `(${blockedBrandIds.join(',')})`);
+              filteredCats = filteredCats.filter((c: any) => !c.brand_id || !blockedBrandIds.includes(c.brand_id));
+            }
           }
 
           const { data: brandData } = await brandQuery;
+          
+          // Se for cliente, também filtramos os produtos das marcas que agora estão inativas
+          if (role === 'customer') {
+            const activeBrandIds = (brandData || []).map(b => b.id);
+            finalProducts = finalProducts.filter(p => p.brand_id && activeBrandIds.includes(p.brand_id));
+            filteredCats = filteredCats.filter(c => c.brand_id && activeBrandIds.includes(c.brand_id));
+          }
           
           const sortedBrands = (brandData || []).sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
           setCategories(filteredCats.sort((a: any, b: any) => (a.order_index || 0) - (b.order_index || 0)));

@@ -32,7 +32,7 @@ export default function MaisVendidos({ companyId, role, user }: { companyId: str
     async function loadFilters() {
       if (!supabase || !companyId) return;
       const [brandRes, catRes] = await Promise.all([
-        supabase.from('brands').select('*').eq('company_id', companyId).order('name'),
+        supabase.from('brands').select('*').eq('company_id', companyId).eq('ativo', true).order('name'),
         supabase.from('categories').select('*').eq('company_id', companyId).order('nome')
       ]);
       const brandData = brandRes.data || [];
@@ -50,9 +50,6 @@ export default function MaisVendidos({ companyId, role, user }: { companyId: str
 
   useEffect(() => {
     async function fetchData() {
-      // Clear data immediately when filters change to avoid showing stale results while loading
-      setData([]);
-      
       if (!supabase || !companyId || (!filterBrand && !debouncedSearch)) {
         setLoading(false);
         return;
@@ -64,6 +61,7 @@ export default function MaisVendidos({ companyId, role, user }: { companyId: str
         const { data: bData } = await supabase.from('brands')
           .select('*')
           .eq('company_id', companyId)
+          .eq('ativo', true)
           .order('order_index', { ascending: true });
           
         const { data: cData } = await supabase.from('categories')

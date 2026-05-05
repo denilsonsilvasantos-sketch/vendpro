@@ -295,9 +295,11 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
           const precoKey = Object.keys(row).find(k => /preço|preco|valor|price|unitario|padrao/i.test(k));
           const precoBoxKey = Object.keys(row).find(k => /box|tabela 4|tabela4/i.test(k));
           const unidadeKey = Object.keys(row).find(k => /unidade|un|tipo/i.test(k));
+          const barcodeKey = Object.keys(row).find(k => /barcode|codigo de barras|código de barras|bar code|ean/i.test(k));
 
           if (skuKey) {
             const sku = String(row[skuKey]).trim().toUpperCase();
+            const barcode = barcodeKey ? String(row[barcodeKey]).trim() : undefined;
             const nome = nomeKey ? String(row[nomeKey]).trim() : '';
             const qtdBoxMatch = nome.match(/BX\s*C\/(\d+)/i) || nome.match(/C\/(\d+)/i) || nome.match(/Emb\s*C\/(\d+)/i);
             const multiploMatch = nome.match(/!(\d+)/) || nome.match(/Variação de (\d+) Modelos/i);
@@ -305,6 +307,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
             
             if (sku) syncData.push({ 
               sku, 
+              barcode,
               qtd: parseNumber(qtdKey ? row[qtdKey] : 0, 0),
               nome: nome || undefined,
               precoPadrao: precoKey ? parseNumber(row[precoKey]) : undefined,
@@ -362,7 +365,8 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
                                hasBoxDiscount !== existing.has_box_discount ||
                                isLastUnits !== existing.is_last_units ||
                                (d.qtdBox !== undefined && d.qtdBox !== existing.qtd_box) ||
-                               (d.multiploVenda !== undefined && d.multiploVenda > 1 && d.multiploVenda !== existing.multiplo_venda);
+                               (d.multiploVenda !== undefined && d.multiploVenda > 1 && d.multiploVenda !== existing.multiplo_venda) ||
+                               (d.barcode !== undefined && d.barcode !== existing.barcode);
 
           if (existing.status_estoque !== newStatus || existing.estoque !== d.qtd || nameChanged || priceChanged || flagsChanged) {
             const updateObj: any = { 
@@ -379,6 +383,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
             if (nameChanged) updateObj.nome = d.nome;
             if (precoUnitario !== undefined) updateObj.preco_unitario = precoUnitario;
             if (precoBox !== undefined) updateObj.preco_box = precoBox;
+            if (d.barcode !== undefined && d.barcode !== existing.barcode) updateObj.barcode = d.barcode;
             
             updates.push(updateObj);
             if (newStatus === 'esgotado') newOutOfStock.push({ sku: existing.sku, nome: existing.nome });

@@ -462,7 +462,7 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
 
             {/* Form Column */}
             <div className="md:col-span-2 space-y-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="space-y-2">
                   <label className="text-[9px] font-black text-slate-400 uppercase tracking-[2px] ml-2">Nome do Produto</label>
                   <input className="w-full p-4 bg-slate-50/50 border border-slate-100 rounded-[6px] focus:ring-4 focus:ring-primary/5 focus:border-primary/30 outline-none transition-all font-bold text-[12px] text-slate-700 placeholder:text-slate-300 shadow-inner" placeholder="Ex: Batom Matte" value={formData.nome} onChange={e => setFormData({...formData, nome: e.target.value})} required />
@@ -470,6 +470,10 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
                 <div className="space-y-2">
                   <label className="text-[9px] font-black text-slate-400 uppercase tracking-[2px] ml-2">SKU / Código</label>
                   <input className="w-full p-4 bg-slate-50/50 border border-slate-100 rounded-[6px] focus:ring-4 focus:ring-primary/5 focus:border-primary/30 outline-none transition-all font-black uppercase tracking-widest text-[12px] text-slate-700 placeholder:text-slate-300 shadow-inner" placeholder="Ex: JB-001" value={formData.sku} onChange={e => setFormData({...formData, sku: e.target.value})} required />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-[2px] ml-2">Código de Barras</label>
+                  <input className="w-full p-4 bg-slate-50/50 border border-slate-100 rounded-[6px] focus:ring-4 focus:ring-primary/5 focus:border-primary/30 outline-none transition-all font-black uppercase tracking-widest text-[12px] text-slate-700 placeholder:text-slate-300 shadow-inner" placeholder="EAN-13" value={formData.barcode || ''} onChange={e => setFormData({...formData, barcode: e.target.value})} />
                 </div>
               </div>
 

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../integrations/supabaseClient';
 import { Brand, Category } from '../types';
-import { Edit, Trash2, Plus, ChevronDown, ChevronUp, Tag, AlertTriangle, Loader2, ArrowUp, ArrowDown, X, LayoutGrid, Settings2 } from 'lucide-react';
+import { Edit, Trash2, Plus, ChevronDown, ChevronUp, Tag, AlertTriangle, Loader2, ArrowUp, ArrowDown, X, LayoutGrid, Settings2, ToggleLeft, ToggleRight } from 'lucide-react';
 import BrandFormModal from '../components/BrandFormModal';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -129,6 +129,22 @@ export default function Marcas({ companyId }: { companyId: string | null }) {
     }
   };
 
+  const toggleBrandActive = async (brandId: string, currentStatus: boolean) => {
+    if (!supabase) return;
+    try {
+      const { error } = await supabase
+        .from('brands')
+        .update({ ativo: !currentStatus })
+        .eq('id', brandId);
+      
+      if (error) throw error;
+      
+      setBrands(prev => prev.map(b => b.id === brandId ? { ...b, ativo: !currentStatus } : b));
+    } catch (error) {
+      console.error("Erro ao alternar status da marca:", error);
+    }
+  };
+
   if (loading && brands.length === 0) {
     return (
       <div className="p-6 flex items-center justify-center min-h-[300px]">
@@ -204,6 +220,14 @@ export default function Marcas({ companyId }: { companyId: string | null }) {
 
                   {/* Actions */}
                   <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                    <button
+                      onClick={() => toggleBrandActive(brand.id, brand.ativo !== false)}
+                      className={`flex items-center gap-1.5 px-2 py-1 rounded-lg transition-all mr-1 ${brand.ativo !== false ? 'text-emerald-500 bg-emerald-50 hover:bg-emerald-100' : 'text-slate-400 bg-slate-100 hover:bg-slate-200'}`}
+                      title={brand.ativo !== false ? "Marca Ativa" : "Marca em Manutenção"}
+                    >
+                      {brand.ativo !== false ? <ToggleRight size={18} strokeWidth={2.5} /> : <ToggleLeft size={18} strokeWidth={2.5} />}
+                      <span className="text-[9px] font-black uppercase tracking-tight hidden sm:inline">{brand.ativo !== false ? 'Ativa' : 'Pausada'}</span>
+                    </button>
                     <div className="flex flex-col bg-slate-50 rounded-lg border border-slate-100 overflow-hidden mr-1">
                       <button onClick={() => moveBrand(brandIndex, 'up')} disabled={brandIndex === 0} className="p-1.5 text-slate-300 hover:text-primary disabled:opacity-20 hover:bg-slate-100 transition-all">
                         <ArrowUp size={12} strokeWidth={3} />

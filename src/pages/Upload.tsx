@@ -322,7 +322,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
 
       if (syncData.length === 0) throw new Error('Não foi possível identificar produtos no arquivo.');
       
-      const { data: existingProducts } = await supabase.from('products').select('id, sku, nome, status_estoque, estoque, preco_unitario, preco_box, venda_somente_box, has_box_discount, is_last_units, qtd_box, multiplo_venda').eq('company_id', companyId).eq('brand_id', selectedBrandId);
+      const { data: existingProducts } = await supabase.from('products').select('id, sku, nome, status_estoque, estoque, preco_unitario, preco_box, venda_somente_box, has_box_discount, is_last_units, qtd_box, multiplo_venda, barcode').eq('company_id', companyId).eq('brand_id', selectedBrandId);
       if (!existingProducts) throw new Error('Erro ao buscar produtos.');
       
       const existingMap = new Map(existingProducts.map(p => [p.sku.toUpperCase().trim(), p]));

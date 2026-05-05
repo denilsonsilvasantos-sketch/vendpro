@@ -12,7 +12,8 @@ export default function BrandFormModal({ onClose, onSave, brand, companyId }: { 
     minimum_order_value: 0, 
     shipping_policy: '', 
     payment_policy: '',
-    stock_policy: ''
+    stock_policy: '',
+    ativo: true
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -336,6 +337,20 @@ export default function BrandFormModal({ onClose, onSave, brand, companyId }: { 
                 value={formData.stock_policy} 
                 onChange={e => setFormData({...formData, stock_policy: e.target.value})} 
               />
+            </div>
+
+            <div className="md:col-span-2 bg-slate-50 p-6 rounded-[24px] border border-slate-100 flex items-center justify-between">
+              <div className="space-y-1">
+                <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Status da Marca</h4>
+                <p className="text-[10px] text-slate-400 font-bold uppercase">Quando inativa, a marca não aparece no catálogo para clientes.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setFormData(prev => ({ ...prev, ativo: !prev.ativo }))}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest ${formData.ativo !== false ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-slate-200 text-slate-500 border border-slate-300'}`}
+              >
+                {formData.ativo !== false ? 'Ativa' : 'Em Manutenção'}
+              </button>
             </div>
           </div>
 

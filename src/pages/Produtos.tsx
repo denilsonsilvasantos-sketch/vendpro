@@ -72,6 +72,7 @@ export default function Produtos({ companyId, onRefresh, searchTerm: externalSea
       const varietySkus = (p.variacoes_flat || []).map(v => (v.sku || '').toLowerCase());
       const matchesSearch = p.nome.toLowerCase().includes(searchLower) || 
                            p.sku.toLowerCase().includes(searchLower) ||
+                           (p.barcode || '').toLowerCase().includes(searchLower) ||
                            varietySkus.some(vSku => vSku.includes(searchLower));
       const matchesBrand = filterBrand ? p.brand_id === filterBrand : true;
       
@@ -523,9 +524,17 @@ const ProductItem = memo(({
             )}
           </div>
           <h3 className="font-black text-slate-900 text-[11px] leading-tight group-hover:text-primary transition-colors line-clamp-2 uppercase tracking-tight h-8 flex items-center">{product.nome}</h3>
-          <div className="flex items-center gap-1.5">
-            <span className="text-[7px] font-black text-slate-300 uppercase tracking-widest">SKU</span>
-            <span className="text-[8px] font-mono font-black text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100">{product.sku}</span>
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[7px] font-black text-slate-300 uppercase tracking-widest">SKU</span>
+              <span className="text-[8px] font-mono font-black text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100">{product.sku}</span>
+            </div>
+            {product.barcode && (
+              <div className="flex items-center gap-1.5">
+                <span className="text-[7px] font-black text-slate-300 uppercase tracking-widest">EAN</span>
+                <span className="text-[8px] font-mono font-black text-slate-400 bg-emerald-50/50 px-1.5 py-0.5 rounded border border-emerald-100/50">{product.barcode}</span>
+              </div>
+            )}
           </div>
         </div>
 

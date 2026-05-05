@@ -77,12 +77,13 @@ export default function MaisVendidos({ companyId, role, user }: { companyId: str
         if (availableBrands.length > 0) {
           let query = supabase
             .from('products')
-            .select('id, sku, nome, imagem, preco_unitario, status_estoque, category_id, brand_id')
+            .select('id, sku, nome, imagem, preco_unitario, status_estoque, category_id, brand_id, barcode')
             .eq('company_id', companyId);
 
-          // If search term is present, search globally matching the name
+          // If search term is present, search globally matching the name, SKU or barcode
           if (debouncedSearch && debouncedSearch.trim().length >= 3) {
-            query = query.ilike('nome', `%${debouncedSearch.trim()}%`);
+            const term = `%${debouncedSearch.trim()}%`;
+            query = query.or(`nome.ilike.${term},sku.ilike.${term},barcode.ilike.${term}`);
           } else {
             // Otherwise use the brand filter
             const currentFilterBrand = filterBrand || availableBrands[0].id;
@@ -270,7 +271,7 @@ export default function MaisVendidos({ companyId, role, user }: { companyId: str
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
             <input 
               type="text"
-              placeholder="Buscar por nome ou SKU..."
+              placeholder="Buscar por nome, SKU ou Código de Barras..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-100 rounded-2xl text-[11px] font-bold outline-none focus:border-primary/30 transition-all"
@@ -329,6 +330,9 @@ export default function MaisVendidos({ companyId, role, user }: { companyId: str
                         </div>
                         <div>
                           <p className="text-xs font-black text-slate-700 uppercase tracking-tight line-clamp-1">{item.nome}</p>
+                          {item.barcode && (
+                            <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest mt-0.5">EAN: {item.barcode}</p>
+                          )}
                           <div className={`mt-1 inline-flex px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest ${item.status_estoque === 'esgotado' ? 'bg-rose-50 text-rose-500' : 'bg-emerald-50 text-emerald-500'}`}>
                             {item.status_estoque === 'esgotado' ? 'Esgotado' : 'Em Estoque'}
                           </div>

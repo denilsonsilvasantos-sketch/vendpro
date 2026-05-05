@@ -943,7 +943,7 @@ export default function App() {
             </div>
             <input
               type="text"
-              placeholder="Buscar produtos..."
+              placeholder="Nome, SKU ou Código de Barras..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="block w-full pl-10 pr-24 py-2.5 bg-slate-50 border border-slate-100 rounded-full text-xs font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary/40 transition-all shadow-inner"
@@ -2477,6 +2477,7 @@ function CatalogScreen({
       const searchTerms = searchLower.split(/\s+/);
       const nome = (p.nome || '').toLowerCase();
       const sku = (p.sku || '').toLowerCase();
+      const barcode = (p.barcode || '').toLowerCase();
       
       // Check variety SKUs
       const varietySkus = (p.variacoes_flat || []).map(v => (v.sku || '').toLowerCase());
@@ -2484,6 +2485,7 @@ function CatalogScreen({
       const matchesSearch = searchTerms.every(term => 
         nome.includes(term) || 
         sku.includes(term) || 
+        barcode.includes(term) ||
         varietySkus.some(vSku => vSku.includes(term))
       );
       const matchesCategory = selectedCategory ? p.category_id === selectedCategory : true;
@@ -3302,7 +3304,12 @@ const ProductCard = memo(({ product, onAdd, onEdit, role, userId, onZoom, isInCa
             <p className="text-[9px] font-black text-primary uppercase tracking-[0.15em] mb-1.5 opacity-80">{product.categoria_nome}</p>
           )}
           <h3 className="font-black text-slate-800 text-[11px] md:text-xs leading-tight mb-2 min-h-[2.5rem] flex items-center justify-center uppercase tracking-tight">{product.nome}</h3>
-          <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mb-3">SKU: {product.sku}</p>
+          <div className="flex flex-col items-center gap-1 mb-3">
+            <p className="text-[9px] text-slate-400 font-black uppercase tracking-[0.2em]">SKU: {product.sku}</p>
+            {product.barcode && (
+              <p className="text-[9px] text-emerald-500 font-black uppercase tracking-[0.2em]">EAN: {product.barcode}</p>
+            )}
+          </div>
           
           {!isEsgotado && (
             <div className="flex flex-col items-center">

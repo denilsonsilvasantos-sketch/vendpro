@@ -50,6 +50,7 @@ export async function extractProductsFromMedia(base64Data: string, mimeType: str
   Para cada produto, identifique:
   - nome: Nome completo (NÃO inclua o nome da marca ou categoria no nome do produto)
   - sku: Código ou SKU
+  - barcode: Código de barras (Geralmente 12 ou 13 dígitos, como EAN-13. Procure por "Cod.Barras", "EAN", "GTIN" ou similares)
   - preco_unitario: Preço por unidade (ex: 10,50). Se for SOMENTE BOX, este valor deve ser o preco_box dividido pela qtd_box.
   - preco_box: Preço da caixa fechada (se houver)
   - qtd_box: Quantidade na caixa (ex: 12)
@@ -68,6 +69,7 @@ export async function extractProductsFromMedia(base64Data: string, mimeType: str
     "products": [
       {
         "sku": "string",
+        "barcode": "string",
         "nome": "string",
         "descricao": "string",
         "preco_unitario": "string",

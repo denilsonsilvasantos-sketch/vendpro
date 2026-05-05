@@ -202,6 +202,8 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
     productBlocks.forEach(block => {
       const skuMatch = block.match(/SKU:\s*([A-Z0-9-]+)/i);
       const qtdMatch = block.match(/Disponível:\s*(\d+)/i);
+      // Barcode: <p class="font-size-12"><i class="fas fa-barcode mr-2"></i> Cod.Barras: 695581001502</p>
+      const barcodeMatch = block.match(/Cod\.Barras:\s*(\d+)/i);
       // Nome: Geralmente em um link ou span antes do SKU
       const nomeMatch = block.match(/<p[^>]*class=["']bold font-size-14 pull-left["'][^>]*>([^<]+)<\/p>/i) || 
                         block.match(/<a[^>]*>([^<]+)<\/a>/i) || 
@@ -235,6 +237,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
 
         results.push({
           sku,
+          barcode: barcodeMatch ? barcodeMatch[1].trim() : undefined,
           qtd: parseInt(qtdMatch[1], 10),
           nome,
           unidade,
@@ -549,7 +552,8 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
               imagem_pendente: existing ? !existing.imagem : true, 
               tipo_variacao: hasVariations ? (extracted.tipo_variacao || 'variedades') : null, 
               variacoes_disponiveis: hasVariations ? (extracted.variacoes_disponiveis || null) : null,
-              variacoes_flat: hasVariations ? extracted.variacoes_flat : null
+              variacoes_flat: hasVariations ? extracted.variacoes_flat : null,
+              barcode: extracted.barcode || null
             };
 
             if (existing?.imagem) productData.imagem = existing.imagem;

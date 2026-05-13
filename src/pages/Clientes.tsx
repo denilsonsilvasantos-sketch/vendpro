@@ -7,7 +7,7 @@ import CustomerFormModal from '../components/CustomerFormModal';
 import { motion, AnimatePresence } from 'motion/react';
 import { QRCodeSVG } from 'qrcode.react';
 
-export default function Clientes({ companyId, role, user }: { companyId: string | null, role: UserRole, user: any }) {
+export default function Clientes({ companyId, role, user, sellers }: { companyId: string | null, role: UserRole, user: any, sellers: any[] }) {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -56,12 +56,28 @@ export default function Clientes({ companyId, role, user }: { companyId: string 
         return;
       }
 
+      let defaultSellerId = user.id;
+      if (role === 'company') {
+        if (sellers && sellers.length > 0) {
+          defaultSellerId = sellers[0].id;
+        } else {
+          // Find any seller for this company if prop is empty
+          const { data: firstSeller } = await supabase.from('sellers').select('id').eq('company_id', companyId).limit(1).maybeSingle();
+          if (firstSeller) {
+            defaultSellerId = firstSeller.id;
+          } else {
+            setImportStatus({ type: 'error', msg: 'É necessário cadastrar pelo menos um vendedor antes de importar clientes.' });
+            return;
+          }
+        }
+      }
+
       const toInsert = rows
         .map(mapRow)
         .filter(Boolean)
         .map(c => ({
           ...c,
-          seller_id: user.id,
+          seller_id: defaultSellerId,
           company_id: companyId,
         }));
 

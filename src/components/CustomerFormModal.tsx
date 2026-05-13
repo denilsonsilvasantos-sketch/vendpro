@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../integrations/supabaseClient';
 import { Customer, Seller, UserRole } from '../types';
-import { X, Save, Loader2, Phone, User, FileText, Lock, Building2, AlertCircle } from 'lucide-react';
+import { X, Save, Loader2, Phone, User, FileText, Lock, Building2, AlertCircle, UserCircle2 } from 'lucide-react';
 import { formatPhone } from '../lib/validators';
 
 export default function CustomerFormModal({ onClose, onSave, customer, companyId, role, user }: { onClose: () => void, onSave: () => void, customer?: Customer, companyId: string | null, role?: UserRole, user?: any }) {
@@ -20,12 +20,16 @@ export default function CustomerFormModal({ onClose, onSave, customer, companyId
 
   useEffect(() => {
     async function fetchSellers() {
-      if (!supabase || !companyId) return;
-      const { data } = await supabase.from('sellers').select('id, nome').eq('company_id', companyId);
+      if (!supabase || !companyId || role === 'seller') return;
+      console.log('Fetching sellers for companyId:', companyId);
+      const { data, error } = await supabase.from('sellers').select('id, nome').eq('company_id', companyId).eq('ativo', true).order('nome');
+      if (error) {
+        console.error('Error fetching sellers:', error);
+      }
       setSellers(data as Pick<Seller, 'id' | 'nome'>[] || []);
     }
     fetchSellers();
-  }, [companyId]);
+  }, [companyId, role]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,7 +47,7 @@ export default function CustomerFormModal({ onClose, onSave, customer, companyId
         cnpj: formData.cnpj ? formData.cnpj.replace(/\D/g, '') : '',
         senha: formData.senha || '',
         ativo: formData.ativo ?? true,
-        seller_id: formData.seller_id || null,
+        seller_id: (role === 'seller' ? user?.id : formData.seller_id) || null,
         responsavel: formData.nome || '',
       };
 
@@ -84,6 +88,7 @@ export default function CustomerFormModal({ onClose, onSave, customer, companyId
               {error}
             </div>
           )}
+          
           <div className="space-y-1">
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nome da Empresa / Razão Social</label>
             <div className="relative">
@@ -140,21 +145,29 @@ export default function CustomerFormModal({ onClose, onSave, customer, companyId
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Vendedor Responsável</label>
-              <select 
-                className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:border-primary/50 transition-all appearance-none" 
-                value={formData.seller_id || ''} 
-                onChange={e => setFormData({...formData, seller_id: e.target.value})}
-                required
-              >
-                <option value="">Selecione...</option>
-                {sellers.map(s => (
-                  <option key={s.id} value={s.id}>{s.nome}</option>
-                ))}
-              </select>
-            </div>
+          <div className={`${role === 'seller' ? 'grid-cols-1' : 'grid-cols-2'} grid gap-4`}>
+            {role !== 'seller' && (
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Vendedor Responsável</label>
+                <div className="relative">
+                  <select 
+                    className="w-full pl-4 pr-10 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:border-primary/50 transition-all appearance-none" 
+                    value={formData.seller_id || ''} 
+                    onChange={e => setFormData({...formData, seller_id: e.target.value})}
+                    required
+                  >
+                    <option value="">Selecione...</option>
+                    {sellers.map(s => (
+                      <option key={s.id} value={s.id}>{s.nome}</option>
+                    ))}
+                  </select>
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                    <UserCircle2 size={14} />
+                  </div>
+                </div>
+              </div>
+            )}
+            
             <div className="space-y-1">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Senha de Acesso</label>
               <div className="relative">
@@ -170,6 +183,7 @@ export default function CustomerFormModal({ onClose, onSave, customer, companyId
               </div>
             </div>
           </div>
+
 
           <div className="pt-2">
             <button 

@@ -1321,7 +1321,7 @@ export default function App() {
             {activeTab === 'pendencias' && <Pendencias companyId={activeCompanyId} onRefresh={loadData} />}
             {activeTab === 'marcas' && <Marcas companyId={activeCompanyId} />}
             {activeTab === 'vendedores' && <Vendedores companyId={activeCompanyId} />}
-            {activeTab === 'clientes' && <Clientes companyId={activeCompanyId} role={role} user={user} />}
+            {activeTab === 'clientes' && <Clientes companyId={activeCompanyId} role={role} user={user} sellers={sellers} />}
             {activeTab === 'pedidos' && <Pedidos companyId={activeCompanyId} role={role} user={user} />}
             {activeTab === 'maisvendidos' && <MaisVendidos companyId={activeCompanyId} role={effectiveRole} user={user} />}
             {activeTab === 'comissoes' && (role === 'seller' || role === 'company') && <Comissao companyId={activeCompanyId} role={role} user={user} />}

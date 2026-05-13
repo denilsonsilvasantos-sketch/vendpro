@@ -333,8 +333,15 @@ export default function MaisVendidos({ companyId, role, user }: { companyId: str
                           {item.barcode && (
                             <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest mt-0.5">EAN: {item.barcode}</p>
                           )}
-                          <div className={`mt-1 inline-flex px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest ${item.status_estoque === 'esgotado' ? 'bg-rose-50 text-rose-500' : 'bg-emerald-50 text-emerald-500'}`}>
-                            {item.status_estoque === 'esgotado' ? 'Esgotado' : 'Em Estoque'}
+                          <div className="flex gap-1 items-center mt-1">
+                            <div className={`inline-flex px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest ${item.status_estoque === 'esgotado' ? 'bg-rose-50 text-rose-500' : 'bg-emerald-50 text-emerald-500'}`}>
+                              {item.status_estoque === 'esgotado' ? 'Esgotado' : 'Em Estoque'}
+                            </div>
+                            {(item.preco || 0) < 6.99 && item.status_estoque !== 'esgotado' && (
+                              <div className="inline-flex px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest bg-rose-500 text-white shadow-sm">
+                                ATÉ 10
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>

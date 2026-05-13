@@ -1280,6 +1280,36 @@ export default function App() {
               fileInputRef={fileInputRef}
             />
           )}
+
+          {activeTab === 'revenda10' && (
+            <CatalogScreen 
+              products={products} 
+              categories={categories} 
+              brands={brands}
+              onAddToCart={handleAddToCart} 
+              onEdit={setEditingProduct} 
+              role={effectiveRole} 
+              onZoom={onZoom}
+              banners={banners}
+              user={user}
+              company={company}
+              selectedBrand={selectedBrand}
+              setSelectedBrand={setSelectedBrand}
+              selectedCategory={selectedCategory}
+              setSelectedCategory={setSelectedCategory}
+              carts={carts}
+              onGoToCart={() => setIsCartOpen(true)}
+              filterType="revenda10"
+              onTabChange={setActiveTab}
+              search={search}
+              setSearch={setSearch}
+              startVoiceSearch={startVoiceSearch}
+              handlePhotoSearch={handlePhotoSearch}
+              isListening={isListening}
+              isAnalyzingPhoto={isAnalyzingPhoto}
+              fileInputRef={fileInputRef}
+            />
+          )}
         
         <div className="max-w-7xl mx-auto px-4 md:px-8 py-8">
           <Suspense fallback={<PageLoader />}>
@@ -2362,7 +2392,7 @@ function CatalogScreen({
   setSelectedCategory: (id: string | null) => void,
   carts: { [brandId: string]: CartItem[] },
   onGoToCart: () => void,
-  filterType?: 'all' | 'new' | 'back',
+  filterType?: 'all' | 'new' | 'back' | 'revenda10',
   onTabChange?: (tab: string) => void,
   search: string,
   setSearch: (val: string) => void,
@@ -2462,13 +2492,16 @@ function CatalogScreen({
       
       if (isEsgotado) return false;
 
-      // Filtro por tipo (Novidades / Reposição)
+      // Filtro por tipo (Novidades / Reposição / Revenda até 10)
       if (filterType === 'new') {
         if (!p.is_new || !p.new_until) return false;
         if (new Date(p.new_until) < now) return false;
       } else if (filterType === 'back') {
         if (!p.back_in_stock_until) return false;
         if (new Date(p.back_in_stock_until) < now) return false;
+      } else if (filterType === 'revenda10') {
+        // Produtos com preço unitário menor que 6.99
+        if ((p.preco_unitario || 0) >= 6.99) return false;
       }
 
       const searchLower = search.trim().toLowerCase();
@@ -2522,7 +2555,11 @@ function CatalogScreen({
       if (!isPromoA && isPromoB) return 1;
 
       // Se for Novidades ou Reposição (abas específicas), ordenar por data de criação (mais recentes primeiro)
+      // Se for Revenda Até 10, ordenar por preço (menores primeiro)
       if (filterType !== 'all') {
+        if (filterType === 'revenda10') {
+          return (a.preco_unitario || 0) - (b.preco_unitario || 0);
+        }
         const dateA = new Date(a.created_at || 0).getTime();
         const dateB = new Date(b.created_at || 0).getTime();
         return dateB - dateA;
@@ -2696,15 +2733,15 @@ function CatalogScreen({
       <div className="max-w-6xl xl:max-w-7xl mx-auto px-4 md:px-8 py-12">
         {filterType !== 'all' && (
           <div className="mb-10 flex items-center gap-4">
-            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-inner ${filterType === 'new' ? 'bg-amber-100 text-amber-600' : 'bg-emerald-100 text-emerald-600'}`}>
-              {filterType === 'new' ? <Plus size={28} strokeWidth={3} /> : <CheckCircle2 size={28} strokeWidth={3} />}
+            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-inner ${filterType === 'new' ? 'bg-amber-100 text-amber-600' : filterType === 'back' ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`}>
+              {filterType === 'new' ? <Plus size={28} strokeWidth={3} /> : filterType === 'back' ? <CheckCircle2 size={28} strokeWidth={3} /> : <Tag size={28} strokeWidth={3} />}
             </div>
             <div>
               <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tight">
-                {filterType === 'new' ? 'Novidades' : 'Reposição'}
+                {filterType === 'new' ? 'Novidades' : filterType === 'back' ? 'Reposição' : 'Revenda Até 10'}
               </h2>
               <p className="text-slate-500 font-medium text-sm">
-                {filterType === 'new' ? 'Confira os últimos lançamentos adicionados ao catálogo.' : 'Itens que acabaram de voltar ao estoque!'}
+                {filterType === 'new' ? 'Confira os últimos lançamentos adicionados ao catálogo.' : filterType === 'back' ? 'Itens que acabaram de voltar ao estoque!' : 'Oportunidades imperdíveis com preço unitário abaixo de R$ 6,99.'}
               </p>
             </div>
           </div>
@@ -2753,6 +2790,15 @@ function CatalogScreen({
                 >
                   <CheckCircle2 size={14} strokeWidth={3} className={filterType === 'back' ? 'text-white' : 'text-emerald-500'} />
                   Reposição
+                </motion.button>
+                <motion.button 
+                  whileHover={{ scale: 1.02, x: 5 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => onTabChange?.('revenda10')}
+                  className={`w-full text-left px-5 py-3 rounded-[20px] text-xs font-black uppercase tracking-widest transition-all flex items-center gap-3 ${filterType === 'revenda10' ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/20' : 'text-slate-900 hover:bg-slate-50'}`}
+                >
+                  <Tag size={14} strokeWidth={3} className={filterType === 'revenda10' ? 'text-white' : 'text-rose-500'} />
+                  Revenda Até 10
                 </motion.button>
 
                 <div className="h-px bg-slate-100 my-4 mx-4" />
@@ -3295,6 +3341,8 @@ const ProductCard = memo(({ product, onAdd, onEdit, role, userId, onZoom, isInCa
               <span className="bg-amber-400 text-slate-900 text-[9px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-widest border border-amber-500/20">NOVIDADE</span>
             ) : !isEsgotado && product.back_in_stock_until && new Date(product.back_in_stock_until) > new Date() ? (
               <span className="bg-emerald-500 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-widest border border-emerald-600/20">VOLTEI!</span>
+            ) : !isEsgotado && (product.preco_unitario || 0) < 6.99 ? (
+              <span className="bg-rose-500 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-widest border border-rose-600/20">ATÉ 10</span>
             ) : null}
           </div>
         </div>

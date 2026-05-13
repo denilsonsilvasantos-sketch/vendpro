@@ -507,6 +507,8 @@ const ProductItem = memo(({
             <span className="bg-amber-400 text-slate-900 text-[7px] font-black px-1.5 py-0.5 rounded shadow-xl uppercase tracking-wider border border-white/10">Novidade</span>
           ) : !isEsgotado && product.back_in_stock_until && new Date(product.back_in_stock_until) > new Date() ? (
             <span className="bg-emerald-500 text-white text-[7px] font-black px-1.5 py-0.5 rounded shadow-xl uppercase tracking-wider border border-white/10">Voltei!</span>
+          ) : !isEsgotado && (product.preco_unitario || 0) < 6.99 ? (
+            <span className="bg-rose-500 text-white text-[7px] font-black px-1.5 py-0.5 rounded shadow-xl uppercase tracking-wider border border-white/10">Até 10</span>
           ) : null}
         </div>
       </div>

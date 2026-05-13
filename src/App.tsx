@@ -3336,14 +3336,16 @@ const ProductCard = memo(({ product, onAdd, onEdit, role, userId, onZoom, isInCa
             {product.venda_somente_box && <span className="bg-amber-500 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-widest">SOMENTE NO BOX</span>}
             {isPromoActive && <span className="bg-amber-500 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-widest border border-amber-600/20">PROMOÇÃO</span>}
             
-            {/* Novos Selos (Exclusivos) */}
-            {!isEsgotado && product.is_new && product.new_until && new Date(product.new_until) > new Date() ? (
+            {/* Novos Selos */}
+            {!isEsgotado && product.is_new && product.new_until && new Date(product.new_until) > new Date() && (
               <span className="bg-amber-400 text-slate-900 text-[9px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-widest border border-amber-500/20">NOVIDADE</span>
-            ) : !isEsgotado && product.back_in_stock_until && new Date(product.back_in_stock_until) > new Date() ? (
+            )}
+            {!isEsgotado && product.back_in_stock_until && new Date(product.back_in_stock_until) > new Date() && (
               <span className="bg-emerald-500 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-widest border border-emerald-600/20">VOLTEI!</span>
-            ) : !isEsgotado && (product.preco_unitario || 0) < 6.99 ? (
+            )}
+            {!isEsgotado && (product.preco_unitario || 0) < 6.99 && (
               <span className="bg-rose-500 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-widest border border-rose-600/20">ATÉ 10</span>
-            ) : null}
+            )}
           </div>
         </div>
         

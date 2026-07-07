@@ -1,4 +1,5 @@
 import * as XLSX from 'xlsx';
+import { decodeHtmlEntities } from '../utils/text';
 
 export interface ParsedCatalogProduct {
   sku: string;
@@ -77,7 +78,7 @@ export async function parseExcelCatalog(file: File): Promise<ParsedCatalogProduc
 
     results.push({
       sku,
-      nome: nome || `Produto ${sku}`,
+      nome: decodeHtmlEntities(nome || `Produto ${sku}`),
       barcode: barcodeKey ? String(row[barcodeKey]).trim() : undefined,
       preco_unitario: precoUnitario,
       preco_box: precoBox,
@@ -86,7 +87,7 @@ export async function parseExcelCatalog(file: File): Promise<ParsedCatalogProduc
       multiplo_venda: multiploVenda,
       estoque,
       status_estoque: statusFromQtd(estoque),
-      category_name: categoriaKey ? String(row[categoriaKey]).trim() : undefined,
+      category_name: categoriaKey ? decodeHtmlEntities(String(row[categoriaKey]).trim()) : undefined,
       source: 'excel',
     });
   }
@@ -129,7 +130,7 @@ export function parseHtmlCatalog(html: string): ParsedCatalogProduct[] {
 
     results.push({
       sku,
-      nome: nome || `Produto ${sku}`,
+      nome: decodeHtmlEntities(nome || `Produto ${sku}`),
       barcode: barcodeMatch ? barcodeMatch[1].trim() : undefined,
       preco_unitario: precoUnitario,
       preco_box: precoBox,
@@ -219,7 +220,7 @@ function parseLinesIntoProducts(lines: string[]): ParsedCatalogProduct[] {
     seen.add(sku);
     results.push({
       sku,
-      nome: nome || `Produto ${sku}`,
+      nome: decodeHtmlEntities(nome || `Produto ${sku}`),
       barcode: barcodeMatch ? barcodeMatch[1] : undefined,
       preco_unitario: parseNumber(priceMatch[1]),
       preco_box: 0,

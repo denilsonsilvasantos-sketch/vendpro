@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../integrations/supabaseClient';
 import { Package, Search, Filter, ChevronDown, TrendingUp, AlertCircle, ShoppingCart, DollarSign, Tag, Building2, X, ZoomIn } from 'lucide-react';
 import { Product, Brand, Category, UserRole } from '../types';
+import { decodeHtmlEntities } from '../utils/text';
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function MaisVendidos({ companyId, role, user }: { companyId: string | null, role?: UserRole, user?: any }) {
@@ -69,10 +70,19 @@ export default function MaisVendidos({ companyId, role, user }: { companyId: str
           .eq('company_id', companyId)
           .order('order_index', { ascending: true });
         
-        // Filter out blocked brands
-        const availableBrands = (bData || []).filter(b => !blockedBrandIds.includes(b.id));
+        // Filter out blocked brands and decode names
+        const decodedBrands = (bData || []).map((b: any) => ({
+          ...b,
+          name: decodeHtmlEntities(b.name)
+        }));
+        const decodedCategories = (cData || []).map((c: any) => ({
+          ...c,
+          nome: decodeHtmlEntities(c.nome)
+        }));
+        
+        const availableBrands = decodedBrands.filter(b => !blockedBrandIds.includes(b.id));
         setBrands(availableBrands);
-        setCategories(cData || []);
+        setCategories(decodedCategories);
         
         if (availableBrands.length > 0) {
           let query = supabase
@@ -103,8 +113,13 @@ export default function MaisVendidos({ companyId, role, user }: { companyId: str
           const { data: productsResult, error: productsError } = await query;
           if (productsError) throw productsError;
 
+          const decodedProductsResult = (productsResult || []).map((p: any) => ({
+            ...p,
+            nome: decodeHtmlEntities(p.nome)
+          }));
+
           // Filter out blocked SKUs and restricted brands (for global search)
-          const filteredProducts = (productsResult || []).filter(p => 
+          const filteredProducts = decodedProductsResult.filter(p => 
             !blockedSkus.includes(p.sku) && 
             !blockedBrandIds.includes(p.brand_id)
           );

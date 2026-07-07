@@ -57,6 +57,7 @@ import { Badge } from './components/Badge';
 import CartScreen from './pages/CartScreen';
 import Banner from './components/Banner';
 import { formatWhatsAppMessage } from './utils/whatsapp';
+import { decodeHtmlEntities } from './utils/text';
 import { getCartItemPrice } from './utils/prices';
 import { getBanners, getTopBarMessages } from './services/bannerService';
 
@@ -601,8 +602,14 @@ export default function App() {
             filteredCats = filteredCats.filter(c => !c.brand_id || activeBrandIds.includes(c.brand_id));
           }
           
-          const sortedBrands = (brandData || []).sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
-          setCategories(filteredCats.sort((a: any, b: any) => (a.order_index || 0) - (b.order_index || 0)));
+          const sortedBrands = (brandData || []).map((b: any) => ({
+            ...b,
+            name: decodeHtmlEntities(b.name)
+          })).sort((a: any, b: any) => (a.order_index || 0) - (b.order_index || 0));
+          setCategories(filteredCats.map((c: any) => ({
+            ...c,
+            nome: decodeHtmlEntities(c.nome)
+          })).sort((a: any, b: any) => (a.order_index || 0) - (b.order_index || 0)));
           setBrands(sortedBrands);
           
           if (sortedBrands.length > 0 && !selectedBrand) {

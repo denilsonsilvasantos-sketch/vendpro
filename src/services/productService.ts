@@ -1,5 +1,6 @@
 import { supabase } from "../integrations/supabaseClient";
 import { Product } from "../types";
+import { decodeHtmlEntities } from "../utils/text";
 
 export async function getProducts(companyId: string): Promise<Product[]> {
   if (!supabase) {
@@ -39,15 +40,25 @@ export async function getProducts(companyId: string): Promise<Product[]> {
       ? item.preco_box * (1 + margin / 100)
       : item.preco_box;
 
+    const decodedVariationsFlat = item.variacoes_flat
+      ? item.variacoes_flat.map((v: any) => ({
+          ...v,
+          nome: decodeHtmlEntities(v.nome)
+        }))
+      : item.variacoes_flat;
+
     return {
       ...item,
+      nome: decodeHtmlEntities(item.nome),
       base_price: item.preco_unitario,
       base_box_price: item.preco_box,
       preco_unitario: finalPrice,
       preco_box: finalBoxPrice,
-      brand_nome: brand?.name,
-      categoria_nome: category?.nome,
-      margin_percentage: margin
+      brand_nome: decodeHtmlEntities(brand?.name),
+      categoria_nome: decodeHtmlEntities(category?.nome),
+      margin_percentage: margin,
+      variacoes_flat: decodedVariationsFlat
     };
   });
 }
+

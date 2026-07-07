@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo, memo } from 'react';
 import { supabase } from '../integrations/supabaseClient';
 import { Product, Brand, Category } from '../types';
 import { getProducts } from '../services/productService';
+import { decodeHtmlEntities } from '../utils/text';
 import { Package, Edit, Trash2, Plus, Search, Filter, Tag, AlertCircle, CheckCircle2, Loader2, ChevronDown, X, ZoomIn, Info, ChevronLeft, ChevronRight, Upload } from 'lucide-react';
 import ProductFormModal from '../components/ProductFormModal';
 import BulkImageUploadModal from '../components/BulkImageUploadModal';
@@ -40,8 +41,8 @@ export default function Produtos({ companyId, onRefresh, searchTerm: externalSea
     const { data: cData } = await supabase.from('categories').select('*').eq('company_id', companyId).order('nome');
     
     setProducts(pData || []);
-    setBrands((bData || []).sort((a, b) => (a.order_index || 0) - (b.order_index || 0)));
-    setCategories((cData || []).sort((a, b) => (a.order_index || 0) - (b.order_index || 0)));
+    setBrands((bData || []).map((b: any) => ({ ...b, name: decodeHtmlEntities(b.name) })).sort((a, b) => (a.order_index || 0) - (b.order_index || 0)));
+    setCategories((cData || []).map((c: any) => ({ ...c, nome: decodeHtmlEntities(c.nome) })).sort((a, b) => (a.order_index || 0) - (b.order_index || 0)));
     setLoading(false);
   }
 

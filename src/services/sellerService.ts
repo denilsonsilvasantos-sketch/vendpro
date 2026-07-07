@@ -21,39 +21,30 @@ export async function validateSellerCode(code: string, senha?: string, type: 'se
     return { success: false };
   }
 
-  let query = supabase
-    .from("sellers")
-    .select("*, companies!company_id(*)");
-
-  if (type === 'customer') {
-    // Para clientes, aceitamos tanto o código de vínculo quanto o código de cliente
-    query = query.or(`codigo_vinculo.eq.${code.trim().toUpperCase()},codigo_cliente.eq.${code.trim().toUpperCase()}`);
-  } else {
-    query = query.eq("codigo_vinculo", code.trim().toUpperCase());
-  }
-
-  if (type === 'seller' && senha) {
-    query = query.eq("senha", senha.trim());
-  }
-
-  const { data: sellers, error } = await query;
+  const { data: rpcData, error } = await supabase
+    .rpc('login_seller_or_lookup_by_code', {
+      p_code: code.trim(),
+      p_senha: type === 'seller' && senha ? senha.trim() : null,
+      p_type: type,
+    });
 
   if (error) {
     console.error("Erro Supabase ao validar vendedor:", error);
     return { success: false, message: "Erro ao comunicar com o servidor" };
   }
 
-  if (!sellers || sellers.length === 0) {
+  if (!rpcData?.success) {
     console.warn("Nenhum vendedor encontrado com o código:", code);
-    return { success: false, message: "Código ou senha incorretos" };
+    return { success: false, message: rpcData?.message || "Código ou senha incorretos" };
   }
 
+  const sellers: any[] = rpcData.sellers;
   const seller = sellers[0];
 
   // Supabase Auth Integration for RLS (only for seller login)
   if (type === 'seller' && senha) {
     const email = `${seller.codigo_vinculo.toLowerCase()}@vendpro.com`;
-    const authPassword = seller.senha;
+    const authPassword = senha.trim();
 
     // Try to sign in
     console.log("Tentando login no Auth para vendedor com email:", email);

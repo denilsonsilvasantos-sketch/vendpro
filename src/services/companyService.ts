@@ -61,27 +61,25 @@ export async function loginCompany(identifier: string, senha?: string) {
 
   const cleanIdentifier = identifier.replace(/\D/g, '');
 
-  // 1. Find the company in the database
+  // 1. Find the company in the database (checagem de senha feita dentro do banco)
   console.log("Tentando login com CNPJ:", cleanIdentifier);
-  const { data: company, error } = await supabase
-    .from("companies")
-    .select("*")
-    .eq("cnpj", cleanIdentifier)
-    .eq("senha", senha)
-    .maybeSingle();
+  const { data: rpcData, error } = await supabase
+    .rpc('login_company_by_cnpj', { p_cnpj: cleanIdentifier, p_senha: senha });
 
-  if (error || !company) {
-    console.error("Erro ao buscar empresa no banco:", error || "Empresa não encontrada");
-    return { success: false, message: "Identificador ou senha incorretos" };
+  if (error || !rpcData?.success) {
+    console.error("Erro ao buscar empresa no banco:", error || rpcData?.message || "Empresa não encontrada");
+    return { success: false, message: rpcData?.message || "Identificador ou senha incorretos" };
   }
+
+  const company = rpcData.company;
 
   // 2. Supabase Auth Integration for RLS
   const authEmail = company.email || `${company.cnpj}@vendpro.com`;
-  if (authEmail && company.senha) {
+  if (authEmail && senha) {
     console.log("Tentando login no Auth com email:", authEmail);
     const { error: signInError } = await supabase.auth.signInWithPassword({
       email: authEmail,
-      password: company.senha,
+      password: senha,
     });
 
     if (signInError) {
@@ -98,7 +96,7 @@ export async function loginCompany(identifier: string, senha?: string) {
         try {
           const { error: signUpError } = await supabase.auth.signUp({
             email: authEmail,
-            password: company.senha,
+            password: senha,
             options: {
               data: {
                 role: 'company',

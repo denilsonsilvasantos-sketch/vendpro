@@ -23,34 +23,25 @@ export function generateCustomerPassword() {
 export async function validateCustomerCode(code: string, password?: string) {
   if (!supabase) return { success: false, error: 'Supabase não inicializado' };
 
-  const { data, error } = await supabase
-    .from('customers')
-    .select('*')
-    .eq('codigo_acesso', code.toUpperCase())
-    .maybeSingle();
+  const { data: rpcData, error } = await supabase
+    .rpc('login_customer_by_code', { p_code: code, p_senha: password ?? null });
 
   if (error) {
     console.error("Erro Supabase ao buscar cliente por código:", error);
     return { success: false, error: error.message };
   }
-  if (!data) {
-    console.warn("Cliente não encontrado com código:", code);
-    return { success: false, error: 'Código de acesso inválido' };
+  if (!rpcData?.success) {
+    console.warn("Cliente não encontrado/senha incorreta com código:", code);
+    return { success: false, error: rpcData?.error || 'Código de acesso inválido' };
   }
 
-  if (password && data.senha !== password) {
-    return { success: false, error: 'Senha incorreta' };
-  }
-
-  // Fetch seller and company separately to avoid FK ambiguity
-  const [sellerRes, companyRes] = await Promise.all([
-    data.seller_id ? supabase.from('sellers').select('*').eq('id', data.seller_id).maybeSingle() : Promise.resolve({ data: null }),
-    data.company_id ? supabase.from('companies').select('*').eq('id', data.company_id).maybeSingle() : Promise.resolve({ data: null }),
-  ]);
+  const data = rpcData.customer;
+  const sellerRes = { data: rpcData.seller };
+  const companyRes = { data: rpcData.company };
 
   // Supabase Auth Integration for RLS
   const email = `${data.codigo_acesso.toLowerCase()}@vendpro.com`;
-  const authPassword = data.senha;
+  const authPassword = password || 'vendpro123';
 
   try {
     const { error: signInError } = await supabase.auth.signInWithPassword({
@@ -136,36 +127,25 @@ export async function validateCustomerLogin(cnpj: string, password?: string) {
 
   const cleanCnpj = cnpj.replace(/\D/g, '');
 
-  const { data, error } = await supabase
-    .from('customers')
-    .select('*')
-    .eq('cnpj', cleanCnpj)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const { data: rpcData, error } = await supabase
+    .rpc('login_customer_by_cnpj', { p_cnpj: cleanCnpj, p_senha: password ?? null });
 
   if (error) {
     console.error("Erro Supabase ao buscar cliente por CNPJ no login:", error);
     return { success: false, error: error.message };
   }
-  if (!data) {
-    console.warn("Cliente não encontrado com CNPJ no login:", cleanCnpj);
-    return { success: false, error: 'CNPJ não cadastrado' };
+  if (!rpcData?.success) {
+    console.warn("Cliente não encontrado/senha incorreta com CNPJ no login:", cleanCnpj);
+    return { success: false, error: rpcData?.error || 'CNPJ não cadastrado' };
   }
 
-  if (password && data.senha !== password) {
-    return { success: false, error: 'Senha incorreta' };
-  }
-
-  // Fetch seller and company separately to avoid FK ambiguity
-  const [sellerRes, companyRes] = await Promise.all([
-    data.seller_id ? supabase.from('sellers').select('*').eq('id', data.seller_id).maybeSingle() : Promise.resolve({ data: null }),
-    data.company_id ? supabase.from('companies').select('*').eq('id', data.company_id).maybeSingle() : Promise.resolve({ data: null }),
-  ]);
+  const data = rpcData.customer;
+  const sellerRes = { data: rpcData.seller };
+  const companyRes = { data: rpcData.company };
 
   // Supabase Auth Integration for RLS
   const email = `${(data.codigo_acesso || data.id).toLowerCase()}@vendpro.com`;
-  const authPassword = data.senha || 'vendpro123';
+  const authPassword = password || 'vendpro123';
 
   try {
     const { error: signInError } = await supabase.auth.signInWithPassword({

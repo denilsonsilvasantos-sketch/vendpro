@@ -2,9 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Upload, FileText, CheckCircle2, AlertCircle, Loader2, Image as ImageIcon, Trash2, Send, AlertTriangle, RefreshCw, ChevronDown, Sparkles, Database, Zap, Download, Printer } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { supabase } from '../integrations/supabaseClient';
-import { extractProductsFromMedia, classifyCategory } from '../services/aiService';
+import { parseCatalogFile, ParsedCatalogProduct } from '../services/catalogParser';
 import { Brand, Product } from '../types';
-import { PDFDocument } from 'pdf-lib';
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -21,7 +20,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
   const [selectedBrandId, setSelectedBrandId] = useState<string | null>(null);
   const [useCatalogNameAsCategory, setUseCatalogNameAsCategory] = useState(true);
   const [brands, setBrands] = useState<Brand[]>([]);
-  const [uploadedFiles, setUploadedFiles] = useState<{ file: File, pages: { base64: string, mimeType: string }[] }[]>([]);
+  const [uploadedFiles, setUploadedFiles] = useState<{ file: File }[]>([]);
   const [missingProducts, setMissingProducts] = useState<Product[]>([]);
   const [showMissingAlert, setShowMissingAlert] = useState(false);
   const [priceChanges, setPriceChanges] = useState<{ sku: string, old: number, new: number }[]>([]);
@@ -71,68 +70,6 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
     fetchBrands();
   }, [companyId]);
 
-  const fileToBase64 = (file: File): Promise<string> => new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => resolve((reader.result as string).split(',')[1]);
-    reader.onerror = error => reject(error);
-  });
-
-  const processFileToBase64 = async (file: File): Promise<{ base64: string, mimeType: string }[]> => {
-    const fileName = file.name.toLowerCase();
-    if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          try {
-            const data = new Uint8Array(e.target?.result as ArrayBuffer);
-            const workbook = XLSX.read(data, { type: 'array' });
-            const csv = XLSX.utils.sheet_to_csv(workbook.Sheets[workbook.SheetNames[0]]);
-            resolve([{ base64: btoa(unescape(encodeURIComponent(csv))), mimeType: 'text/csv' }]);
-          } catch (error) { reject(error); }
-        };
-        reader.onerror = error => reject(error);
-        reader.readAsArrayBuffer(file);
-      });
-    } else if (fileName.endsWith('.html') || fileName.endsWith('.htm')) {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          try {
-            const text = e.target?.result as string;
-            resolve([{ base64: btoa(unescape(encodeURIComponent(text))), mimeType: 'text/html' }]);
-          } catch (error) { reject(error); }
-        };
-        reader.onerror = error => reject(error);
-        reader.readAsText(file);
-      });
-    } else if (fileName.endsWith('.pdf')) {
-      try {
-        const pdfDoc = await PDFDocument.load(await file.arrayBuffer());
-        const pageCount = pdfDoc.getPageCount();
-        const results: { base64: string, mimeType: string }[] = [];
-        for (let i = 0; i < pageCount; i += 2) {
-          const newPdf = await PDFDocument.create();
-          const end = Math.min(i + 2, pageCount);
-          const pages = await newPdf.copyPages(pdfDoc, Array.from({ length: end - i }, (_, k) => i + k));
-          pages.forEach(p => newPdf.addPage(p));
-          const blob = new Blob([await newPdf.save() as any], { type: 'application/pdf' });
-          const base64 = await new Promise<string>((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
-            reader.readAsDataURL(blob);
-          });
-          results.push({ base64, mimeType: 'application/pdf' });
-        }
-        return results;
-      } catch (error) {
-        return [{ base64: await fileToBase64(file), mimeType: 'application/pdf' }];
-      }
-    } else {
-      return [{ base64: await fileToBase64(file), mimeType: file.type }];
-    }
-  };
-
   const parseNumber = (val: any, fallback = 0): number => {
     if (typeof val === 'number') return val;
     if (!val) return fallback;
@@ -152,23 +89,18 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
     }
 
     if (!files || files.length === 0) return;
-    const newFiles: { file: File, pages: { base64: string, mimeType: string }[] }[] = [];
+    const allowedExt = uploadMode === 'stock'
+      ? ['.xlsx', '.xls', '.html', '.htm']
+      : ['.xlsx', '.xls', '.csv', '.html', '.htm', '.pdf'];
+    const newFiles: { file: File }[] = [];
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       const fileName = file.name.toLowerCase();
-      if (uploadMode === 'stock' && !fileName.endsWith('.xlsx') && !fileName.endsWith('.xls') && !fileName.endsWith('.html') && !fileName.endsWith('.htm')) {
-        alert(`${file.name} não é um formato suportado. Modo estoque aceita .xlsx, .xls, .html ou .htm`);
+      if (!allowedExt.some(ext => fileName.endsWith(ext))) {
+        alert(`${file.name} não é um formato suportado. Aceito: ${allowedExt.join(', ')}`);
         continue;
       }
-      try {
-        if (uploadMode === 'stock' && (fileName.endsWith('.xlsx') || fileName.endsWith('.xls') || fileName.endsWith('.html') || fileName.endsWith('.htm'))) {
-          newFiles.push({ file, pages: [] });
-        } else {
-          newFiles.push({ file, pages: await processFileToBase64(file) });
-        }
-      } catch (error) {
-        alert(`Erro ao processar ${file.name}`);
-      }
+      newFiles.push({ file });
     }
     setUploadedFiles(prev => [...prev, ...newFiles]);
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -336,6 +268,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
       const fileSkus = new Set(syncData.map(d => d.sku));
       const updates: any[] = [];
       const unregistered: { sku: string, qtd: number }[] = [];
+      const newProductsToInsert: any[] = [];
       const newOutOfStock: { sku: string, nome: string }[] = [];
       const newLastUnits: { sku: string, nome: string }[] = [];
 
@@ -396,7 +329,46 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
             if (newStatus === 'esgotado') newOutOfStock.push({ sku: existing.sku, nome: existing.nome });
             else if (newStatus === 'ultimas') newLastUnits.push({ sku: existing.sku, nome: existing.nome });
           }
-        } else unregistered.push(d);
+        } else {
+          unregistered.push(d);
+
+          // Cadastra automaticamente o produto novo, sem categoria/imagem
+          // (fica pendente de revisão em Pendências até o usuário completar)
+          const newStatus = d.qtd === 0 ? 'esgotado' : d.qtd < 10 ? 'ultimas' : 'normal';
+          const isLastUnits = d.qtd > 0 && d.qtd < 10;
+          let precoUnitario = d.precoPadrao || 0;
+          let precoBox = d.precoTabela4 !== undefined ? d.precoTabela4 : 0;
+          const vendaSomenteBox = d.unidade === 'BX';
+          const hasBoxDiscount = d.precoTabela4 !== undefined &&
+                                 d.unidade === 'UN' &&
+                                 d.precoTabela4 > 0 &&
+                                 Math.abs(d.precoTabela4 - precoUnitario) > 0.01;
+
+          if (vendaSomenteBox) {
+            precoBox = d.precoPadrao || 0;
+            if (precoBox) precoUnitario = precoBox / (d.qtdBox || 1);
+          }
+
+          newProductsToInsert.push({
+            company_id: companyId,
+            brand_id: selectedBrandId,
+            sku: d.sku,
+            nome: d.nome || `Produto ${d.sku}`,
+            preco_unitario: precoUnitario,
+            preco_box: precoBox,
+            qtd_box: d.qtdBox || 1,
+            venda_somente_box: vendaSomenteBox,
+            has_box_discount: hasBoxDiscount,
+            is_last_units: isLastUnits,
+            multiplo_venda: d.multiploVenda || 1,
+            status_estoque: newStatus,
+            estoque: d.qtd,
+            barcode: d.barcode || null,
+            category_id: null,
+            categoria_pendente: true,
+            imagem_pendente: true,
+          });
+        }
       }
 
       // Produtos que estão no banco mas não no arquivo (marcar como esgotado se for semanal/completo)
@@ -418,10 +390,25 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
           setProgress(Math.round(((i + Math.min(batchSize, updates.length - i)) / updates.length) * 100));
         }
       }
+
+      let insertedCount = 0;
+      if (newProductsToInsert.length > 0) {
+        const batchSize = 20;
+        for (let i = 0; i < newProductsToInsert.length; i += batchSize) {
+          const { error: insertError } = await supabase.from('products').insert(newProductsToInsert.slice(i, i + batchSize));
+          if (insertError) {
+            console.error('Erro ao cadastrar produtos novos automaticamente:', insertError);
+          } else {
+            insertedCount += Math.min(batchSize, newProductsToInsert.length - i);
+          }
+        }
+      }
+
       setUnregisteredSkus(unregistered); setOutOfStockSkus(newOutOfStock); setLastUnitsSkus(newLastUnits);
       if (unregistered.length > 0) setShowUnregisteredAlert(true); else setShowSyncReport(true);
       setIsUploading(false); setUploadedFiles([]);
-      setStatus({ type: 'success', message: `Sincronização concluída! ${updates.length} produtos atualizados.` });
+      const insertedMsg = insertedCount > 0 ? ` ${insertedCount} produtos novos cadastrados automaticamente (aguardando imagem/categoria em Pendências).` : '';
+      setStatus({ type: 'success', message: `Sincronização concluída! ${updates.length} produtos atualizados.${insertedMsg}` });
       if (onRefresh) onRefresh();
     } catch (error: any) {
       setIsUploading(false);
@@ -435,7 +422,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
       setStatus({ type: 'error', message: 'Selecione uma marca e adicione arquivos primeiro.' });
       return;
     }
-    setIsUploading(true); setStatus({ type: 'info', message: 'A IA está analisando os arquivos...' }); setProgress(0);
+    setIsUploading(true); setStatus({ type: 'info', message: 'Lendo arquivos...' }); setProgress(0);
     try {
       let authUser = null;
       try {
@@ -462,8 +449,12 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
       let categories: { id: string, nome: string }[] = (initialCategories || []).map(c => ({ id: String(c.id), nome: c.nome }));
       const processedSkus: string[] = [];
       let totalProducts = 0;
+      let lowConfidenceCount = 0;
+
       for (let i = 0; i < uploadedFiles.length; i++) {
-        const { file, pages } = uploadedFiles[i];
+        const { file } = uploadedFiles[i];
+        setStatus({ type: 'info', message: `Lendo ${i + 1}/${uploadedFiles.length}: ${file.name}` });
+
         let categoriaIdParaArquivo: string | null = null;
         if (useCatalogNameAsCategory) {
           const categoryName = file.name.replace(/\.[^/.]+$/, '').replace(/[0-9]/g, '').trim() || 'Geral';
@@ -478,101 +469,83 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
             if (newCat) { categoriaIdParaArquivo = String(newCat.id); categories.push({ id: categoriaIdParaArquivo, nome: newCat.nome }); }
           }
         }
-        for (let j = 0; j < pages.length; j++) {
-          const { base64, mimeType } = pages[j];
-          setStatus({ type: 'info', message: `Analisando ${i + 1}/${uploadedFiles.length}: ${file.name}${pages.length > 1 ? ` (Parte ${j + 1}/${pages.length})` : ''}` });
-          let extractedProducts = await extractProductsFromMedia(base64, mimeType, useCatalogNameAsCategory ? undefined : categories);
-          
-          // Small delay between chunks to avoid overwhelming the API
-          if (j < pages.length - 1 || i < uploadedFiles.length - 1) {
-            await new Promise(resolve => setTimeout(resolve, 500));
-          }
-          
-          if (!Array.isArray(extractedProducts)) extractedProducts = [];
-          totalProducts += extractedProducts.length;
-          for (const extracted of extractedProducts) {
-            let sku = extracted.sku ? String(extracted.sku).trim().toUpperCase() : '';
-            if (!sku) { const h = extracted.nome ? extracted.nome.split('').reduce((a: number, b: string) => { a = ((a << 5) - a) + b.charCodeAt(0); return a & a; }, 0) : Math.random(); sku = `AUTO-${Math.abs(h).toString(36).toUpperCase()}`; }
-            processedSkus.push(sku);
-            const { data: existing } = await supabase.from('products').select('id, nome, preco_unitario, imagem, sku').eq('company_id', companyId).eq('brand_id', selectedBrandId).ilike('sku', sku).maybeSingle();
-            let pendingStatus = 'none';
-            let parsedPrecoUnitario = parseNumber(extracted.preco_unitario, 0);
-            const parsedPrecoBox = parseNumber(extracted.preco_box, 0);
-            const parsedQtdBox = parseNumber(extracted.qtd_box, 1);
 
-            // Regra: Se for venda somente box, o preço unitário é o preço box dividido pela quantidade
-            if (!!extracted.venda_somente_box && parsedPrecoBox > 0 && parsedQtdBox > 0) {
-              parsedPrecoUnitario = parsedPrecoBox / parsedQtdBox;
-            }
-
-            if (existing && catalogType === 'replenishment' && (existing.preco_unitario || 0) !== parsedPrecoUnitario) {
-              const m = margin > 0 ? (1 + margin / 100) : 1;
-              setPriceChanges(prev => [...prev, { sku, old: (existing.preco_unitario || 0) * m, new: parsedPrecoUnitario * m }]);
-              pendingStatus = 'price_changed';
-            }
-            const validStatus = ['normal', 'baixo', 'ultimas', 'esgotado'];
-            let statusEstoque = validStatus.includes(extracted.status_estoque) ? extracted.status_estoque : 'normal';
-            
-            // Se a IA marcou como últimas unidades ou estoque < 10, garante que o status reflita isso
-            if ((extracted.is_last_units || (extracted.estoque > 0 && extracted.estoque < 10)) && statusEstoque === 'normal') {
-              statusEstoque = 'ultimas';
-            }
-            
-            // Se o estoque for 0, garante que o status seja esgotado
-            if (extracted.estoque === 0) {
-              statusEstoque = 'esgotado';
-            }
-            
-            let categoriaId = categoriaIdParaArquivo;
-            if (!useCatalogNameAsCategory && extracted.category_name) {
-              const foundCat = categories.find(c => c.nome.toLowerCase() === extracted.category_name.toLowerCase());
-              if (foundCat) categoriaId = foundCat.id;
-            }
-            const isPDF = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
-            const hasBoxDiscount = (isPDF ? !!extracted.has_box_discount : false) && 
-                                   parsedPrecoBox > 0 && 
-                                   Math.abs(parsedPrecoBox - parsedPrecoUnitario) > 0.01;
-
-            const hasVariations = Array.isArray(extracted.variacoes_flat) && extracted.variacoes_flat.length > 0;
-            const productData: any = { 
-              company_id: companyId, 
-              brand_id: selectedBrandId, 
-              sku, 
-              nome: extracted.nome ? String(extracted.nome).trim() : `Produto (${sku})`, 
-              preco_unitario: parsedPrecoUnitario, 
-              preco_box: parsedPrecoBox, 
-              qtd_box: parseNumber(extracted.qtd_box, 1), 
-              venda_somente_box: !!extracted.venda_somente_box, 
-              has_box_discount: hasBoxDiscount, 
-              is_last_units: statusEstoque === 'ultimas', 
-              multiplo_venda: extracted.multiplo_venda || 1, 
-              status_estoque: statusEstoque, 
-              category_id: categoriaId, 
-              categoria_pendente: !categoriaId, 
-              imagem_pendente: existing ? !existing.imagem : true, 
-              tipo_variacao: hasVariations ? (extracted.tipo_variacao || 'variedades') : null, 
-              variacoes_disponiveis: hasVariations ? (extracted.variacoes_disponiveis || null) : null,
-              variacoes_flat: hasVariations ? extracted.variacoes_flat : null,
-              barcode: extracted.barcode || null
-            };
-
-            if (existing?.imagem) productData.imagem = existing.imagem;
-            
-            let result;
-            if (existing) {
-              result = await supabase.from('products').update(productData).eq('id', existing.id);
-            } else {
-              result = await supabase.from('products').insert([productData]);
-            }
-
-            if (result.error) {
-              console.error('Erro ao salvar produto:', result.error);
-              throw new Error(`Erro no banco de dados (RLS?): ${result.error.message}`);
-            }
-          }
-          setProgress(Math.round(((i * pages.length + j + 1) / (uploadedFiles.length * pages.length)) * 100));
+        let extractedProducts: ParsedCatalogProduct[];
+        try {
+          extractedProducts = await parseCatalogFile(file);
+        } catch (err: any) {
+          console.error('Erro ao ler arquivo', file.name, err);
+          setStatus({ type: 'warning', message: `Não consegui ler ${file.name}: ${err.message}` });
+          setProgress(Math.round(((i + 1) / uploadedFiles.length) * 100));
+          continue;
         }
+
+        totalProducts += extractedProducts.length;
+
+        for (const extracted of extractedProducts) {
+          const sku = extracted.sku;
+          processedSkus.push(sku);
+          const { data: existing } = await supabase.from('products').select('id, nome, preco_unitario, imagem, sku').eq('company_id', companyId).eq('brand_id', selectedBrandId).ilike('sku', sku).maybeSingle();
+
+          // Itens de baixa confiança (PDF) só criam produto novo; nunca sobrescrevem
+          // um produto já cadastrado, pra não arriscar corromper dado real com um "chute".
+          if (existing && extracted.low_confidence) {
+            lowConfidenceCount++;
+            continue;
+          }
+
+          if (existing && catalogType === 'replenishment' && (existing.preco_unitario || 0) !== extracted.preco_unitario) {
+            const m = margin > 0 ? (1 + margin / 100) : 1;
+            setPriceChanges(prev => [...prev, { sku, old: (existing.preco_unitario || 0) * m, new: extracted.preco_unitario * m }]);
+          }
+
+          let categoriaId = extracted.low_confidence ? null : categoriaIdParaArquivo;
+          if (!extracted.low_confidence && !useCatalogNameAsCategory && extracted.category_name) {
+            const foundCat = categories.find(c => c.nome.toLowerCase() === extracted.category_name!.toLowerCase());
+            if (foundCat) categoriaId = foundCat.id;
+          }
+
+          const vendaSomenteBox = extracted.unidade === 'BX';
+          const hasBoxDiscount = !vendaSomenteBox && extracted.preco_box > 0 && Math.abs(extracted.preco_box - extracted.preco_unitario) > 0.01;
+
+          if (extracted.low_confidence) lowConfidenceCount++;
+
+          const productData: any = {
+            company_id: companyId,
+            brand_id: selectedBrandId,
+            sku,
+            nome: extracted.nome,
+            preco_unitario: extracted.preco_unitario,
+            preco_box: extracted.preco_box,
+            qtd_box: extracted.qtd_box,
+            venda_somente_box: vendaSomenteBox,
+            has_box_discount: hasBoxDiscount,
+            is_last_units: extracted.status_estoque === 'ultimas',
+            multiplo_venda: extracted.multiplo_venda,
+            status_estoque: extracted.status_estoque,
+            category_id: categoriaId,
+            categoria_pendente: !categoriaId,
+            imagem_pendente: existing ? !existing.imagem : true,
+            barcode: extracted.barcode || null,
+          };
+
+          if (existing?.imagem) productData.imagem = existing.imagem;
+
+          let result;
+          if (existing) {
+            result = await supabase.from('products').update(productData).eq('id', existing.id);
+          } else {
+            result = await supabase.from('products').insert([productData]);
+          }
+
+          if (result.error) {
+            console.error('Erro ao salvar produto:', result.error);
+            throw new Error(`Erro no banco de dados (RLS?): ${result.error.message}`);
+          }
+        }
+        setProgress(Math.round(((i + 1) / uploadedFiles.length) * 100));
       }
+
       if (catalogType === 'weekly') {
         const { data: existingProducts } = await supabase.from('products').select('*').eq('company_id', companyId).eq('brand_id', selectedBrandId);
         if (existingProducts) {
@@ -582,7 +555,8 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
       }
       setIsUploading(false); setUploadedFiles([]);
       if (priceChanges.length > 0) setShowPriceAlert(true);
-      setStatus({ type: totalProducts === 0 ? 'warning' : 'success', message: totalProducts === 0 ? 'Nenhum produto identificado nos arquivos.' : `Concluído! ${totalProducts} produtos identificados.` });
+      const lowConfMsg = lowConfidenceCount > 0 ? ` ${lowConfidenceCount} produto(s) de PDF foram enviados para Pendências para conferência (nome/preço podem precisar de ajuste).` : '';
+      setStatus({ type: totalProducts === 0 ? 'warning' : 'success', message: totalProducts === 0 ? 'Nenhum produto identificado nos arquivos.' : `Concluído! ${totalProducts} produtos identificados.${lowConfMsg}` });
       if (onRefresh) onRefresh();
     } catch (error: any) {
       setIsUploading(false);
@@ -923,7 +897,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
             {(['catalog', 'stock'] as UploadMode[]).map(mode => (
               <button key={mode} onClick={() => { setUploadMode(mode); setUploadedFiles([]); setStatus(null); }}
                 className={`px-3 py-1.5 rounded-md text-[10px] font-black uppercase tracking-wide transition-all flex items-center gap-1.5 ${uploadMode === mode ? 'bg-white text-primary shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>
-                {mode === 'catalog' ? <><Sparkles size={10} strokeWidth={3} /> Catálogo (PDF/Excel/IA)</> : <><Database size={10} strokeWidth={3} /> Estoque (Excel/HTML)</>}
+                {mode === 'catalog' ? <><Sparkles size={10} strokeWidth={3} /> Catálogo (Excel/HTML/PDF)</> : <><Database size={10} strokeWidth={3} /> Estoque (Excel/HTML)</>}
               </button>
             ))}
           </div>
@@ -973,7 +947,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
                 <input type="checkbox" className="hidden" checked={useCatalogNameAsCategory} onChange={e => setUseCatalogNameAsCategory(e.target.checked)} />
                 <div>
                   <p className="text-xs font-bold text-slate-700">Criar categoria com nome do arquivo</p>
-                  <p className="text-[9px] text-slate-400">A IA classifica automaticamente se desativado</p>
+                  <p className="text-[9px] text-slate-400">Se desativado, fica pendente para categorizar manualmente</p>
                 </div>
               </label>
             )}
@@ -1087,12 +1061,12 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
               'border-slate-200 bg-white hover:border-primary hover:bg-primary/5'
             }`}
           >
-            <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept={uploadMode === 'stock' ? '.xlsx,.xls,.html,.htm' : '.pdf,image/*,.csv,.xlsx,.xls'} multiple={uploadMode === 'catalog'} className="hidden" />
+            <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept={uploadMode === 'stock' ? '.xlsx,.xls,.html,.htm' : '.pdf,.csv,.xlsx,.xls,.html,.htm'} multiple={uploadMode === 'catalog'} className="hidden" />
             <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center mb-3">
               <Upload size={20} className="text-primary" strokeWidth={2.5} />
             </div>
             <p className="text-xs font-black text-slate-700 uppercase mb-1">{uploadMode === 'stock' ? 'Selecionar Arquivo de Estoque' : 'Adicionar Arquivos'}</p>
-            <p className="text-[9px] text-slate-400">{uploadMode === 'stock' ? 'Excel (.xlsx) ou HTML do Pluggar' : 'PDF, PNG, JPG, CSV ou Excel'}</p>
+            <p className="text-[9px] text-slate-400">{uploadMode === 'stock' ? 'Excel (.xlsx) ou HTML do Pluggar' : 'PDF, CSV, Excel ou HTML'}</p>
           </div>
         </div>
 
@@ -1121,7 +1095,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold text-slate-700 truncate">{item.file.name}</p>
-                    <p className="text-[9px] text-slate-400">{(item.file.size / 1024 / 1024).toFixed(2)} MB{item.pages.length > 1 ? ` · ${item.pages.length} partes` : ''}</p>
+                    <p className="text-[9px] text-slate-400">{(item.file.size / 1024 / 1024).toFixed(2)} MB</p>
                   </div>
                   <button onClick={() => removeFile(idx)} className="w-6 h-6 flex items-center justify-center text-slate-200 hover:text-rose-500 rounded-md transition-all">
                     <Trash2 size={12} strokeWidth={2.5} />
@@ -1136,7 +1110,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
               className={`w-full py-2.5 rounded-lg text-xs font-black uppercase tracking-wide flex items-center justify-center gap-2 transition-all ${isUploading || uploadedFiles.length === 0 ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-slate-900 text-white shadow-lg hover:-translate-y-0.5 active:translate-y-0'}`}>
               {isUploading
                 ? <><Loader2 size={14} className="animate-spin" /> {uploadMode === 'stock' ? 'Sincronizando' : 'Processando'}... {progress}%</>
-                : uploadMode === 'stock' ? <><RefreshCw size={14} strokeWidth={3} /> Sincronizar Estoque</> : <><Send size={14} strokeWidth={3} /> Processar com IA</>}
+                : uploadMode === 'stock' ? <><RefreshCw size={14} strokeWidth={3} /> Sincronizar Estoque</> : <><Send size={14} strokeWidth={3} /> Processar Arquivos</>}
             </button>
           </div>
         </div>
@@ -1180,9 +1154,13 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-9 h-9 bg-blue-50 rounded-lg flex items-center justify-center"><AlertCircle size={18} className="text-blue-500" /></div>
                 <h2 className="text-sm font-black text-slate-900">
-                  {showPriceAlert ? `Mudanças de Preço (${priceChanges.length})` : showUnregisteredAlert ? `SKUs Não Cadastrados (${unregisteredSkus.length})` : 'Relatório de Sincronização'}
+                  {showPriceAlert ? `Mudanças de Preço (${priceChanges.length})` : showUnregisteredAlert ? `Cadastrados Automaticamente (${unregisteredSkus.length})` : 'Relatório de Sincronização'}
                 </h2>
               </div>
+
+              {showUnregisteredAlert && (
+                <p className="text-[10px] text-slate-400 font-medium -mt-2 mb-3">Esses produtos não existiam no catálogo e foram cadastrados a partir do arquivo. Vá em <b>Pendências</b> pra adicionar imagem e categoria.</p>
+              )}
 
               <div className="flex-1 overflow-y-auto space-y-1.5 mb-4">
                 {showPriceAlert && priceChanges.map((pc, i) => (
@@ -1201,7 +1179,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
                   <div className="space-y-3">
                     {outOfStockSkus.length > 0 && <div><p className="text-[9px] font-black text-rose-500 uppercase tracking-widest mb-1">Esgotados ({outOfStockSkus.length})</p>{outOfStockSkus.map((s, i) => <div key={i} className="px-3 py-1.5 bg-rose-50 rounded-lg text-[10px] font-bold text-rose-800">{s.nome}</div>)}</div>}
                     {lastUnitsSkus.length > 0 && <div><p className="text-[9px] font-black text-amber-500 uppercase tracking-widest mb-1">Últimas Unidades ({lastUnitsSkus.length})</p>{lastUnitsSkus.map((s, i) => <div key={i} className="px-3 py-1.5 bg-amber-50 rounded-lg text-[10px] font-bold text-amber-800">{s.nome}</div>)}</div>}
-                    {unregisteredSkus.length > 0 && <div><p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Não Cadastrados ({unregisteredSkus.length})</p>{unregisteredSkus.map((s, i) => <div key={i} className="px-3 py-1.5 bg-slate-50 rounded-lg text-[10px] font-bold text-slate-600">{s.sku} — QTD: {s.qtd}</div>)}</div>}
+                    {unregisteredSkus.length > 0 && <div><p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Cadastrados Automaticamente ({unregisteredSkus.length})</p>{unregisteredSkus.map((s, i) => <div key={i} className="px-3 py-1.5 bg-slate-50 rounded-lg text-[10px] font-bold text-slate-600">{s.sku} — QTD: {s.qtd}</div>)}</div>}
                     {outOfStockSkus.length === 0 && lastUnitsSkus.length === 0 && unregisteredSkus.length === 0 && <p className="text-xs text-slate-300 text-center py-4">Nenhuma alteração detectada.</p>}
                   </div>
                 )}

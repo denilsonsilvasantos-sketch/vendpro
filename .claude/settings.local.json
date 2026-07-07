@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/DENILSON/AppData/Roaming/Claude/local-agent-mode-sessions/skills-plugin/18066dea-cff2-4c3c-9dc9-55f6a3ece630/12f67d1a-0f07-4827-9110-f3a183f517c2/skills/docx/**)",
+      "Bash(extract-text \"C:\\\\Users\\\\DENILSON\\\\Desktop\\\\CORREÇÕES VENDPRO.docx\")",
+      "Bash(which pandoc; find / -iname \"extract-text*\" 2>/dev/null | head -20)",
+      "Bash(python scripts/office/unpack.py \"C:\\\\Users\\\\DENILSON\\\\Desktop\\\\CORREÇÕES VENDPRO.docx\" \"C:\\\\Users\\\\DENILSON\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-DENILSON-Documents-SITES-VENDPRO-VENDPRO-CATALOGO-INTELIGENTE\\\\30871152-53f9-4993-9273-e4c0f0629111\\\\scratchpad\\\\unpacked\")",
+      "Bash(pip install *)",
+      "Bash(where pandoc *)",
+      "Bash(python parse_report.py)",
+      "Bash(node -e ' *)",
+      "Bash(npm ls *)",
+      "Bash(ls node_modules)",
+      "WebFetch(domain:registry.npmjs.org)",
+      "Bash(npm -v)",
+      "Bash(npm install *)",
+      "Bash(npm audit *)",
+      "Bash(npm run *)",
+      "WebFetch(domain:github.com)",
+      "Bash(gh api *)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:www.npmjs.com)",
+      "WebFetch(domain:unpkg.com)",
+      "Bash(npx tsc *)",
+      "Bash(grep -rl \"from 'cloudinary'\" --include=\"*.ts\" . --exclude-dir=node_modules)",
+      "Bash(grep -rl \"test-cloudinary\" --include=\"*.ts\" . --exclude-dir=node_modules)",
+      "Bash(node -e \"console.log\\(JSON.stringify\\(require\\('./node_modules/pdfjs-dist/package.json'\\).exports, null, 2\\)\\)\")",
+      "Bash(node -e \"const p=require\\('./node_modules/pdfjs-dist/package.json'\\); console.log\\('main:', p.main\\); console.log\\('module:', p.module\\); console.log\\('types:', p.types\\);\")"
+    ]
+  }
+}

@@ -2,7 +2,8 @@ import React, { useEffect, useState, useRef } from 'react';
 import { supabase } from '../integrations/supabaseClient';
 import { Product, Category } from '../types';
 import { searchProductByImage } from '../services/aiService';
-import { AlertTriangle, Edit, Check, X, Image as ImageIcon, Tag, Upload, Loader2, Link as LinkIcon, ChevronDown, Sparkles, Search, Filter, Mic, Camera } from 'lucide-react';
+import ProductFormModal from '../components/ProductFormModal';
+import { AlertTriangle, Edit, Check, X, Image as ImageIcon, Tag, Loader2, ChevronDown, Sparkles, Search, Filter, Mic, Camera } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function Pendencias({ companyId, onRefresh }: { companyId: string | null, onRefresh?: () => void }) {
@@ -10,13 +11,10 @@ export default function Pendencias({ companyId, onRefresh }: { companyId: string
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editData, setEditData] = useState<Partial<Product>>({});
-  const [isUploading, setIsUploading] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isListening, setIsListening] = useState(false);
   const [isAnalyzingPhoto, setIsAnalyzingPhoto] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const startVoiceSearch = () => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -117,59 +115,6 @@ export default function Pendencias({ companyId, onRefresh }: { companyId: string
   useEffect(() => {
     fetchPendencies();
   }, [companyId]);
-
-  const handleSave = async (id: string) => {
-    if (!supabase) return;
-    
-    const updates = {
-      category_id: editData.category_id,
-      imagem: editData.imagem,
-      categoria_pendente: !editData.category_id,
-      imagem_pendente: !editData.imagem
-    };
-
-    const { error } = await supabase.from('products').update(updates).eq('id', id);
-    if (error) {
-      console.error('Erro ao salvar:', error.message);
-    } else {
-      setEditingId(null);
-      fetchPendencies();
-      if (onRefresh) onRefresh();
-    }
-  };
-
-  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
-    const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
-
-    if (!cloudName || !uploadPreset) {
-      console.error('Configurações do Cloudinary não encontradas.');
-      return;
-    }
-
-    setIsUploading(true);
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('upload_preset', uploadPreset);
-
-    try {
-      const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
-        method: 'POST',
-        body: formData,
-      });
-      const data = await response.json();
-      if (data.secure_url) {
-        setEditData(prev => ({ ...prev, imagem: data.secure_url }));
-      }
-    } catch (error) {
-      console.error('Erro no upload para Cloudinary:', error);
-    } finally {
-      setIsUploading(false);
-    }
-  };
 
   const filteredProducts = products.filter(p => {
     const searchLower = searchTerm.trim().toLowerCase();
@@ -286,13 +231,13 @@ export default function Pendencias({ companyId, onRefresh }: { companyId: string
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.03 }}
                 key={product.id} 
-                className={`bg-white h-[70px] rounded-[10px] shadow-sm transition-all duration-300 border flex items-center px-3 gap-4 ${editingId === product.id ? 'border-primary/40 ring-4 ring-primary/5' : 'border-slate-100 hover:border-slate-200'}`}
+                className={`bg-white h-[70px] rounded-[10px] shadow-sm transition-all duration-300 border flex items-center px-3 gap-4 ${editingProduct?.id === product.id ? 'border-primary/40 ring-4 ring-primary/5' : 'border-slate-100 hover:border-slate-200'}`}
               >
                 <div className="relative shrink-0">
                   <div className="w-14 h-14 bg-slate-50 rounded-[8px] flex items-center justify-center overflow-hidden border border-slate-100 shadow-inner">
-                    {(editData.imagem && editingId === product.id) || product.imagem ? (
+                    {product.imagem ? (
                       <img 
-                        src={editingId === product.id ? (editData.imagem || product.imagem) : product.imagem} 
+                        src={product.imagem}
                         alt={product.nome} 
                         className="w-full h-full object-contain p-1 bg-white" 
                         referrerPolicy="no-referrer"
@@ -328,70 +273,21 @@ export default function Pendencias({ companyId, onRefresh }: { companyId: string
                       )}
                     </div>
 
-                    {editingId === product.id ? (
-                      <div className="flex items-center gap-2 flex-wrap justify-end">
-                        <select 
-                          className="px-2 py-1 bg-slate-50 border border-slate-100 rounded-[6px] outline-none font-black uppercase tracking-widest text-[8px] text-slate-600 cursor-pointer"
-                          value={editData.category_id || ''}
-                          onChange={e => setEditData({...editData, category_id: e.target.value})}
-                        >
-                          <option value="">Categoria</option>
-                          {categories.map(cat => (
-                            <option key={cat.id} value={cat.id}>{cat.nome}</option>
-                          ))}
-                        </select>
-                        <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-[6px] px-2 h-[26px] focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/10">
-                          <LinkIcon size={9} strokeWidth={2.5} className="text-slate-400 shrink-0" />
-                          <input
-                            type="url"
-                            placeholder="Link da imagem"
-                            value={editData.imagem || ''}
-                            onChange={e => setEditData({ ...editData, imagem: e.target.value })}
-                            className="bg-transparent outline-none text-[9px] font-medium text-slate-700 placeholder:text-slate-300 w-36"
-                          />
-                          {isUploading && <Loader2 size={9} className="animate-spin text-primary shrink-0" />}
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => fileInputRef.current?.click()}
-                          title="Fazer upload de arquivo"
-                          className="h-[26px] px-2 bg-slate-100 text-slate-500 hover:bg-primary/10 hover:text-primary rounded-[6px] transition-all flex items-center gap-1 text-[9px] font-black uppercase tracking-widest"
-                        >
-                          <Upload size={9} strokeWidth={3} /> Upload
-                        </button>
-                        <button 
-                          onClick={() => handleSave(product.id)}
-                          className="px-[10px] py-[5px] bg-emerald-500 text-white rounded-[6px] shadow-lg hover:bg-emerald-600 transition-all active:scale-95 flex items-center justify-center"
-                        >
-                          <Check size={14} strokeWidth={3} />
-                        </button>
-                        <button 
-                          onClick={() => setEditingId(null)}
-                          className="px-[10px] py-[5px] bg-slate-100 text-slate-600 rounded-[6px] hover:bg-slate-200 transition-all flex items-center justify-center"
-                        >
-                          <X size={14} strokeWidth={3} />
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-1">
-                        <button 
-                          onClick={() => {
-                            setEditingId(product.id);
-                            setEditData({ category_id: product.category_id, imagem: product.imagem });
-                          }}
-                          className="px-[10px] py-[5px] text-primary bg-primary/5 hover:bg-primary hover:text-white rounded-[6px] transition-all flex items-center gap-2 font-black text-[9px] uppercase tracking-widest active:scale-95"
-                        >
-                          <Edit size={10} strokeWidth={3} /> Revisar
-                        </button>
-                        <button 
-                          onClick={() => handleDelete(product.id)}
-                          className="p-1.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
-                          title="Excluir produto permanentemente"
-                        >
-                          <AlertTriangle size={12} strokeWidth={3} />
-                        </button>
-                      </div>
-                    )}
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setEditingProduct(product)}
+                        className="px-[10px] py-[5px] text-primary bg-primary/5 hover:bg-primary hover:text-white rounded-[6px] transition-all flex items-center gap-2 font-black text-[9px] uppercase tracking-widest active:scale-95"
+                      >
+                        <Edit size={10} strokeWidth={3} /> Revisar
+                      </button>
+                      <button
+                        onClick={() => handleDelete(product.id)}
+                        className="p-1.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
+                        title="Excluir produto permanentemente"
+                      >
+                        <AlertTriangle size={12} strokeWidth={3} />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </motion.div>
@@ -401,13 +297,16 @@ export default function Pendencias({ companyId, onRefresh }: { companyId: string
         )}
       </AnimatePresence>
 
-      <input 
-        type="file" 
-        ref={fileInputRef} 
-        className="hidden" 
-        accept="image/*" 
-        onChange={handleImageUpload} 
-      />
+      <AnimatePresence>
+        {editingProduct && (
+          <ProductFormModal
+            onClose={() => setEditingProduct(null)}
+            onSave={() => { setEditingProduct(null); fetchPendencies(); if (onRefresh) onRefresh(); }}
+            product={editingProduct}
+            companyId={companyId}
+          />
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

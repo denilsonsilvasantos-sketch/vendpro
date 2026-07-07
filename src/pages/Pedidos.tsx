@@ -4,6 +4,7 @@ import { X, Eye, ShoppingBag, TrendingUp, AlertTriangle, PackageSearch, Calendar
 import { motion, AnimatePresence } from 'motion/react';
 
 import { getCartItemPrice } from '../utils/prices';
+import { decodeHtmlEntities } from '../utils/text';
 
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -117,11 +118,12 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
 
         const processedProduct = {
           ...data,
+          nome: decodeHtmlEntities(data.nome),
           preco_unitario: priceUnit,
           preco_box: priceBox,
           promo_price_unit: promoPriceUnit,
           promo_price_box: promoPriceBox,
-          brand_nome: brand?.name,
+          brand_nome: decodeHtmlEntities(brand?.name),
           margin_percentage: margin
         };
 
@@ -297,7 +299,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
         return {
           product_id: product.id,
           sku: product.sku,
-          nome: product.nome,
+          nome: decodeHtmlEntities(product.nome),
           quantidade: qty,
           preco_unitario: price,
           subtotal: qty * price,
@@ -359,7 +361,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
       const { data } = await query.maybeSingle();
       
       if (data) {
-        setFoundProductName(data.nome);
+        setFoundProductName(decodeHtmlEntities(data.nome));
       } else {
         setFoundProductName('SKU não encontrado');
       }
@@ -421,7 +423,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
 
     // Fetch brands for filtering
     const { data: brandsData } = await supabase.from('brands').select('*').eq('company_id', companyId).order('name');
-    setBrands(brandsData || []);
+    setBrands((brandsData || []).map((b: any) => ({ ...b, name: decodeHtmlEntities(b.name) })));
     
     if (!silent) setLoading(false);
   }
@@ -756,8 +758,18 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
         supabase.from('order_removed_items').select('*').eq('order_id', order.id),
       ]);
       if (e1) { setItemsError(`Erro: ${e1.message}`); return; }
-      setOrderItems(items || []);
-      setRemovedItems(removed || []);
+      
+      const decodedItems = (items || []).map((i: any) => ({
+        ...i,
+        nome: decodeHtmlEntities(i.nome)
+      }));
+      const decodedRemoved = (removed || []).map((i: any) => ({
+        ...i,
+        nome: decodeHtmlEntities(i.nome)
+      }));
+
+      setOrderItems(decodedItems);
+      setRemovedItems(decodedRemoved);
     } catch (err: any) {
       setItemsError(`Erro inesperado: ${err.message}`);
     } finally {

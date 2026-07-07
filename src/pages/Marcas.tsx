@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../integrations/supabaseClient';
 import { Brand, Category } from '../types';
+import { decodeHtmlEntities } from '../utils/text';
 import { Edit, Trash2, Plus, ChevronDown, ChevronUp, Tag, AlertTriangle, Loader2, ArrowUp, ArrowDown, X, LayoutGrid, Settings2, ToggleLeft, ToggleRight } from 'lucide-react';
 import BrandFormModal from '../components/BrandFormModal';
 import { motion, AnimatePresence } from 'motion/react';
@@ -26,8 +27,10 @@ export default function Marcas({ companyId }: { companyId: string | null }) {
       const { data: cData, error: cError } = await supabase.from('categories').select('*').eq('company_id', companyId).order('nome');
       if (bError) throw bError;
       if (cError) throw cError;
-      setBrands((bData || []).sort((a, b) => (a.order_index || 0) - (b.order_index || 0)));
-      setCategories((cData || []).sort((a, b) => (a.order_index || 0) - (b.order_index || 0)));
+      const decodedBrands = (bData || []).map((b: any) => ({ ...b, name: decodeHtmlEntities(b.name) }));
+      const decodedCategories = (cData || []).map((c: any) => ({ ...c, nome: decodeHtmlEntities(c.nome) }));
+      setBrands(decodedBrands.sort((a, b) => (a.order_index || 0) - (b.order_index || 0)));
+      setCategories(decodedCategories.sort((a, b) => (a.order_index || 0) - (b.order_index || 0)));
     } catch (error: any) {
       console.error("Erro ao buscar dados:", error);
     } finally {

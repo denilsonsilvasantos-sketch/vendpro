@@ -438,19 +438,23 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
           if (!isNaN(qty) && sku) {
             const numberTokens: string[] = [];
             for (let j = unitIdx + 1; j < tokens.length; j++) {
-              if (/^\d+(?:,\d+)?$/.test(tokens[j])) {
-                numberTokens.push(tokens[j]);
+              const cleanToken = tokens[j].replace(/R\$\s*/i, '').replace(/%/g, '').trim();
+              if (/^[\d.,]+$/.test(cleanToken)) {
+                numberTokens.push(cleanToken);
               }
             }
 
             if (i + 1 < lines.length) {
               const nextLineTokens = lines[i + 1].split(/\s+/);
-              if (nextLineTokens.length === 1 && /^\d+(?:,\d+)?$/.test(nextLineTokens[0])) {
-                numberTokens.push(nextLineTokens[0]);
+              if (nextLineTokens.length === 1) {
+                const cleanNextToken = nextLineTokens[0].replace(/R\$\s*/i, '').replace(/%/g, '').trim();
+                if (/^[\d.,]+$/.test(cleanNextToken)) {
+                  numberTokens.push(cleanNextToken);
+                }
               }
             }
 
-            const numbers = numberTokens.map(parseBrFloat);
+            const numbers = numberTokens.map(parseBrFloat).filter(n => n >= 0 && n < 50000);
 
             if (numbers.length > 0) {
               const unitPrice = numbers[0];

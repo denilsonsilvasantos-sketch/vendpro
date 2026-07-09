@@ -350,8 +350,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
 
     try {
       const pdfjsLib = await import('pdfjs-dist');
-      const workerUrl = (await import('pdfjs-dist/build/pdf.worker.mjs?url')).default;
-      pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
+      pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
       const buffer = await file.arrayBuffer();
       const doc = await pdfjsLib.getDocument({ data: buffer }).promise;

@@ -320,7 +320,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
         brand_id: brandId,
         subtotal: subtotal,
         total: subtotal,
-        status: 'draft',
+        status: 'pending',
         client_name: 'Importado (Sem Cliente)',
         created_at: new Date().toISOString()
       };
@@ -332,7 +332,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
       const { error: itemsErr } = await supabase.from('order_items').insert(itemsWithOrderId);
       if (itemsErr) throw itemsErr;
 
-      alert('Pedido importado como rascunho com sucesso!');
+      alert('Pedido importado com sucesso!');
       fetchOrders();
     } catch (err: any) {
       console.error(err);
@@ -596,7 +596,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
         brand_id: brandId,
         subtotal: subtotal,
         total: total,
-        status: 'draft',
+        status: 'pending',
         client_name: finalClientName,
         discount_value: discountValue,
         discount_type: discountType,

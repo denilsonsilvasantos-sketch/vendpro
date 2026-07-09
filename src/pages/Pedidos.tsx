@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { supabase } from '../integrations/supabaseClient';
-import { X, Eye, ShoppingBag, TrendingUp, AlertTriangle, PackageSearch, Calendar, CreditCard, Filter, Trash2, AlertCircle, Search, Send, Edit2, Check, Plus, FileSpreadsheet, Keyboard, Upload, User as UserIcon, ChevronRight, ChevronLeft } from 'lucide-react';
+import { X, Eye, ShoppingBag, TrendingUp, AlertTriangle, PackageSearch, Calendar, CreditCard, Filter, Trash2, AlertCircle, Search, Send, Edit2, Check, Plus, FileSpreadsheet, Keyboard, Upload, User as UserIcon, ChevronRight, ChevronLeft, FileText } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 import { getCartItemPrice } from '../utils/prices';
@@ -86,6 +86,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
   const qtyInputRef = useRef<HTMLInputElement>(null);
   const priceInputRef = useRef<HTMLInputElement>(null);
   const orderImportRef = useRef<HTMLInputElement>(null);
+  const orderPdfImportRef = useRef<HTMLInputElement>(null);
 
   // Efeito para buscar produto na digitação manual
   useEffect(() => {
@@ -336,6 +337,281 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
     } catch (err: any) {
       console.error(err);
       alert('Erro ao importar Excel: ' + err.message);
+    } finally {
+      setImportingOrders(false);
+    }
+  };
+
+  const handlePdfOrderImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !supabase || !companyId) return;
+    setImportingOrders(true);
+    e.target.value = '';
+
+    try {
+      const pdfjsLib = await import('pdfjs-dist');
+      const workerUrl = (await import('pdfjs-dist/build/pdf.worker.mjs?url')).default;
+      pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
+
+      const buffer = await file.arrayBuffer();
+      const doc = await pdfjsLib.getDocument({ data: buffer }).promise;
+      const lines: string[] = [];
+
+      for (let pageNum = 1; pageNum <= doc.numPages; pageNum++) {
+        const page = await doc.getPage(pageNum);
+        const content = await page.getTextContent();
+        const rows = new Map<number, { x: number, str: string }[]>();
+
+        for (const item of content.items as any[]) {
+          if (!('str' in item) || !item.str.trim()) continue;
+          const y = Math.round(item.transform[5]);
+          if (!rows.has(y)) rows.set(y, []);
+          rows.get(y)!.push({ x: item.transform[4], str: item.str });
+        }
+
+        const sortedYs = Array.from(rows.keys()).sort((a, b) => b - a);
+        for (const y of sortedYs) {
+          const line = rows.get(y)!.sort((a, b) => a.x - b.x).map(r => r.str).join(' ').replace(/\s+/g, ' ').trim();
+          if (line) lines.push(line);
+        }
+      }
+
+      const parseBrFloat = (str: string): number => {
+        if (!str) return 0;
+        return parseFloat(str.replace(/\./g, '').replace(',', '.')) || 0;
+      };
+
+      let clientCnpj = '';
+      let clientName = '';
+      let orderDateStr = '';
+      const parsedItems: {
+        sku: string;
+        qty: number;
+        unit: string;
+        unitPrice: number;
+        grossTotal: number;
+        discount: number;
+        netTotal: number;
+      }[] = [];
+
+      const distributorCnpj = '59882849000189';
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+
+        // 1. Check for CNPJ
+        const cnpjMatch = line.match(/(\d{2})\.(\d{3})\.(\d{3})\/(\d{4})-(\d{2})/);
+        if (cnpjMatch) {
+          const cleanCnpj = cnpjMatch[0].replace(/\D/g, '');
+          if (cleanCnpj !== distributorCnpj && !clientCnpj) {
+            clientCnpj = cleanCnpj;
+            const nameMatch = line.match(/(.*?)\s+\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}/);
+            if (nameMatch && nameMatch[1].trim() && !clientName) {
+              clientName = nameMatch[1].trim();
+            }
+          }
+        }
+
+        // 2. Check for CLIENTE label
+        const clientLabelMatch = line.match(/CLIENTE:\s*([^\n\r]+)/i);
+        if (clientLabelMatch && !clientName) {
+          clientName = clientLabelMatch[1].trim();
+        }
+
+        // 3. Check for Date
+        const dpMatch = line.match(/DATA PEDIDO:\s*(\d{2})\/(\d{2})\/(\d{4})/i);
+        if (dpMatch && !orderDateStr) {
+          orderDateStr = `${dpMatch[3]}-${dpMatch[2]}-${dpMatch[1]}`;
+        }
+        const dtMatch = line.match(/(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2}):(\d{2})/);
+        if (dtMatch && !orderDateStr) {
+          orderDateStr = `${dtMatch[3]}-${dtMatch[2]}-${dtMatch[1]}T${dtMatch[4]}:${dtMatch[5]}:${dtMatch[6]}`;
+        }
+
+        // 4. Check for order items
+        const tokens = line.split(/\s+/);
+        const unitIdx = tokens.findIndex(t => /^(UN|BX|KIT|PCT|CX)$/i.test(t));
+        if (unitIdx > 0) {
+          const qty = parseInt(tokens[unitIdx - 1]);
+          const unit = tokens[unitIdx];
+          const sku = tokens[0].trim().toUpperCase();
+
+          if (!isNaN(qty) && sku) {
+            const numberTokens: string[] = [];
+            for (let j = unitIdx + 1; j < tokens.length; j++) {
+              if (/^\d+(?:,\d+)?$/.test(tokens[j])) {
+                numberTokens.push(tokens[j]);
+              }
+            }
+
+            if (i + 1 < lines.length) {
+              const nextLineTokens = lines[i + 1].split(/\s+/);
+              if (nextLineTokens.length === 1 && /^\d+(?:,\d+)?$/.test(nextLineTokens[0])) {
+                numberTokens.push(nextLineTokens[0]);
+              }
+            }
+
+            const numbers = numberTokens.map(parseBrFloat);
+
+            if (numbers.length > 0) {
+              const unitPrice = numbers[0];
+              const grossTotal = qty * unitPrice;
+              let discount = 0;
+              let netTotal = grossTotal;
+
+              let pairFound = false;
+              const remaining = numbers.slice(1);
+              for (let a = 0; a < remaining.length; a++) {
+                for (let b = 0; b < remaining.length; b++) {
+                  if (a !== b) {
+                    const dCandidate = remaining[a];
+                    const nCandidate = remaining[b];
+                    if (Math.abs(grossTotal - dCandidate - nCandidate) < 0.05) {
+                      discount = dCandidate;
+                      netTotal = nCandidate;
+                      pairFound = true;
+                      break;
+                    }
+                  }
+                }
+                if (pairFound) break;
+              }
+
+              if (!pairFound) {
+                for (const num of remaining) {
+                  if (Math.abs(grossTotal - num) < 0.05) {
+                    netTotal = num;
+                    discount = 0;
+                    pairFound = true;
+                    break;
+                  }
+                }
+              }
+
+              parsedItems.push({
+                sku,
+                qty,
+                unit,
+                unitPrice,
+                grossTotal,
+                discount,
+                netTotal
+              });
+            }
+          }
+        }
+      }
+
+      if (parsedItems.length === 0) {
+        alert('Nenhum item válido encontrado no PDF.');
+        return;
+      }
+
+      // Fetch matching products from DB
+      const skus = Array.from(new Set(parsedItems.map(item => item.sku)));
+      const { data: dbProducts } = await supabase
+        .from('products')
+        .select('*')
+        .eq('company_id', companyId)
+        .in('sku', skus);
+
+      if (!dbProducts || dbProducts.length === 0) {
+        alert('Nenhum SKU do PDF foi encontrado no banco de dados.');
+        return;
+      }
+
+      const productMap = new Map((dbProducts || []).map((p: any) => [p.sku, p]));
+      const brandId = dbProducts[0].brand_id;
+
+      const validItemsToInsert = parsedItems.map(item => {
+        const product = productMap.get(item.sku);
+        if (!product) return null;
+
+        return {
+          product_id: product.id,
+          sku: product.sku,
+          nome: decodeHtmlEntities(product.nome),
+          quantidade: item.qty,
+          preco_unitario: item.unitPrice,
+          subtotal: item.qty * item.unitPrice,
+          company_id: companyId
+        };
+      }).filter(Boolean) as any[];
+
+      if (validItemsToInsert.length === 0) {
+        alert('Nenhum item do PDF corresponde a produtos cadastrados.');
+        return;
+      }
+
+      // Find customer
+      let finalCustomerId = null;
+      let finalClientName = clientName || 'Cliente não cadastrado';
+
+      if (clientCnpj) {
+        const { data: dbCustomer } = await supabase
+          .from('customers')
+          .select('*')
+          .eq('cnpj', clientCnpj)
+          .eq('company_id', companyId)
+          .maybeSingle();
+
+        if (dbCustomer) {
+          finalCustomerId = dbCustomer.id;
+          finalClientName = dbCustomer.nome_empresa || dbCustomer.nome;
+        } else if (clientName) {
+          finalClientName = `${clientName} (Não Cadastrado)`;
+        }
+      }
+
+      // Calculate discount
+      let totalBruto = 0;
+      let totalDesconto = 0;
+
+      parsedItems.forEach(item => {
+        const product = productMap.get(item.sku);
+        if (product) {
+          totalBruto += item.grossTotal;
+          totalDesconto += item.discount;
+        }
+      });
+
+      let discountValue = 0;
+      let discountType: 'percentage' | 'fixed' = 'percentage';
+
+      if (totalBruto > 0 && totalDesconto > 0) {
+        const pct = (totalDesconto / totalBruto) * 100;
+        discountValue = parseFloat(pct.toFixed(2));
+      }
+
+      const subtotal = validItemsToInsert.reduce((acc, i) => acc + i.subtotal, 0);
+      const total = Math.max(0, subtotal - totalDesconto);
+      const dateToSave = orderDateStr ? new Date(orderDateStr).toISOString() : new Date().toISOString();
+
+      const orderData = {
+        company_id: companyId,
+        customer_id: finalCustomerId,
+        brand_id: brandId,
+        subtotal: subtotal,
+        total: total,
+        status: 'draft',
+        client_name: finalClientName,
+        discount_value: discountValue,
+        discount_type: discountType,
+        created_at: dateToSave
+      };
+
+      const { data: order, error: orderErr } = await supabase.from('orders').insert([orderData]).select().single();
+      if (orderErr) throw orderErr;
+
+      const itemsWithOrderId = validItemsToInsert.map(i => ({ ...i, order_id: order.id }));
+      const { error: itemsErr } = await supabase.from('order_items').insert(itemsWithOrderId);
+      if (itemsErr) throw itemsErr;
+
+      alert('Pedido em PDF importado com sucesso!');
+      fetchOrders();
+    } catch (err: any) {
+      console.error(err);
+      alert('Erro ao importar PDF: ' + err.message);
     } finally {
       setImportingOrders(false);
     }
@@ -1208,13 +1484,33 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                 ) : (
                   <Upload size={13} />
                 )}
-                Importar Pedido
+                Importar Excel
               </button>
               <input 
                 type="file" 
                 ref={orderImportRef} 
                 onChange={handleExcelOrderImport} 
                 accept=".xlsx, .xls, .csv" 
+                className="hidden" 
+              />
+
+              <button
+                onClick={() => orderPdfImportRef.current?.click()}
+                disabled={importingOrders}
+                className="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold bg-white text-slate-500 border border-slate-200 hover:border-primary/40 transition-all disabled:opacity-50"
+              >
+                {importingOrders ? (
+                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current" />
+                ) : (
+                  <FileText size={13} />
+                )}
+                Importar PDF
+              </button>
+              <input 
+                type="file" 
+                ref={orderPdfImportRef} 
+                onChange={handlePdfOrderImport} 
+                accept=".pdf" 
                 className="hidden" 
               />
             </>

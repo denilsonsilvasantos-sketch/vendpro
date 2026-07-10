@@ -70,6 +70,9 @@ interface BrandCommissionStats {
   totalValue: number;
   commission: number;
   ordersCount: number;
+  totalValueFinished?: number;
+  commissionFinished?: number;
+  ordersFinishedCount?: number;
 }
 
 export default function Comissao({ companyId, role, user }: { companyId: string | null; role?: string | null; user?: any }) {
@@ -81,6 +84,8 @@ export default function Comissao({ companyId, role, user }: { companyId: string 
   const [loading, setLoading] = useState(true);
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
+  const [tempDateFrom, setTempDateFrom] = useState('');
+  const [tempDateTo, setTempDateTo] = useState('');
   const [showFilters, setShowFilters] = useState(false);
 
   const [expandedSeller, setExpandedSeller] = useState<string | null>(null);
@@ -106,7 +111,7 @@ export default function Comissao({ companyId, role, user }: { companyId: string 
 
       const [{ data: orders }, { data: sellersList }, { data: brandsList }] = await Promise.all([
         ordersQuery,
-        supabase.from('sellers').select('id, nome, comissao, comissao_por_marca').eq('company_id', companyId).eq('ativo', true),
+        supabase.from('sellers').select('id, nome, comissao, comissao_por_marca').eq('company_id', companyId),
         supabase.from('brands').select('id, name').eq('company_id', companyId),
       ]);
 
@@ -114,7 +119,7 @@ export default function Comissao({ companyId, role, user }: { companyId: string 
       (brandsList || []).forEach(b => brandNames[b.id] = b.name);
       setBrandNamesMapping(brandNames);
 
-      const statsMap: Record<string, SellerStats & { comissao_por_marca: Record<string, number>, brand_breakdown: Record<string, { total: number, comissao: number, orders: number }> }> = {};
+      const statsMap: Record<string, SellerStats & { comissao_por_marca: Record<string, number>, brand_breakdown: Record<string, { total: number, comissao: number, orders: number, total_finished: number, comissao_real: number, orders_finished: number }> }> = {};
       (sellersList || []).forEach((s: any) => {
         statsMap[s.id] = {
           id: s.id,
@@ -142,17 +147,30 @@ export default function Comissao({ companyId, role, user }: { companyId: string 
         s.valor_total += Number(o.total || 0);
 
         if (!s.brand_breakdown[o.brand_id]) {
-          s.brand_breakdown[o.brand_id] = { total: 0, comissao: 0, orders: 0 };
+          s.brand_breakdown[o.brand_id] = { 
+            total: 0, 
+            comissao: 0, 
+            orders: 0,
+            total_finished: 0,
+            comissao_real: 0,
+            orders_finished: 0
+          };
         }
+
+        // predicted stats (all non-cancelled orders)
+        s.brand_breakdown[o.brand_id].total += Number(o.total || 0);
+        s.brand_breakdown[o.brand_id].comissao += (Number(o.total || 0) * taxa) / 100;
+        s.brand_breakdown[o.brand_id].orders += 1;
 
         if (o.status === 'finished') {
           s.pedidos_finalizados += 1;
           s.valor_finalizado += Number(o.total || 0);
           s.comissao_real += (Number(o.total || 0) * taxa) / 100;
 
-          s.brand_breakdown[o.brand_id].total += Number(o.total || 0);
-          s.brand_breakdown[o.brand_id].comissao += (Number(o.total || 0) * taxa) / 100;
-          s.brand_breakdown[o.brand_id].orders += 1;
+          // finished/real stats
+          s.brand_breakdown[o.brand_id].total_finished += Number(o.total || 0);
+          s.brand_breakdown[o.brand_id].comissao_real += (Number(o.total || 0) * taxa) / 100;
+          s.brand_breakdown[o.brand_id].orders_finished += 1;
         }
         s.comissao_prevista += (Number(o.total || 0) * taxa) / 100;
       });
@@ -191,13 +209,18 @@ export default function Comissao({ companyId, role, user }: { companyId: string 
     if (!supabase || !companyId || !user?.id) return;
     setLoading(true);
     try {
+      let ordersQuery = supabase.from('orders')
+        .select('brand_id, total, status, created_at')
+        .eq('company_id', companyId)
+        .eq('seller_id', user.id)
+        .neq('status', 'cancelled');
+
+      if (filterDateFrom) ordersQuery = ordersQuery.gte('created_at', filterDateFrom + 'T00:00:00');
+      if (filterDateTo) ordersQuery = ordersQuery.lte('created_at', filterDateTo + 'T23:59:59');
+
       const [{ data: sellerInfo }, { data: orders }, { data: brands }] = await Promise.all([
         supabase.from('sellers').select('id, nome, comissao, comissao_por_marca').eq('id', user.id).single(),
-        supabase.from('orders')
-          .select('brand_id, total, status, created_at')
-          .eq('company_id', companyId)
-          .eq('seller_id', user.id)
-          .neq('status', 'cancelled'),
+        ordersQuery,
         supabase.from('brands').select('id, name').eq('company_id', companyId)
       ]);
 
@@ -210,7 +233,7 @@ export default function Comissao({ companyId, role, user }: { companyId: string 
       let comissao_prevista = 0, comissao_real = 0;
 
       const byMonth: Record<string, { pedidos: number; valor: number; comissao: number }> = {};
-      const byBrand: Record<string, { totalValue: number; commission: number; ordersCount: number }> = {};
+      const byBrand: Record<string, { totalValue: number; commission: number; ordersCount: number; totalValueFinished: number; commissionFinished: number; ordersFinishedCount: number }> = {};
 
       (orders || []).forEach((o: any) => {
         const taxa = comissaoPorMarca[o.brand_id] !== undefined
@@ -222,17 +245,30 @@ export default function Comissao({ companyId, role, user }: { companyId: string 
         comissao_prevista += (Number(o.total || 0) * taxa) / 100;
 
         if (!byBrand[o.brand_id]) {
-          byBrand[o.brand_id] = { totalValue: 0, commission: 0, ordersCount: 0 };
+          byBrand[o.brand_id] = { 
+            totalValue: 0, 
+            commission: 0, 
+            ordersCount: 0,
+            totalValueFinished: 0,
+            commissionFinished: 0,
+            ordersFinishedCount: 0
+          };
         }
+
+        // predicted stats (all non-cancelled orders)
+        byBrand[o.brand_id].totalValue += Number(o.total || 0);
+        byBrand[o.brand_id].commission += (Number(o.total || 0) * taxa) / 100;
+        byBrand[o.brand_id].ordersCount += 1;
         
         if (o.status === 'finished') {
           pedidos_finalizados += 1;
           valor_finalizado += Number(o.total || 0);
           comissao_real += (Number(o.total || 0) * taxa) / 100;
 
-          byBrand[o.brand_id].totalValue += Number(o.total || 0);
-          byBrand[o.brand_id].commission += (Number(o.total || 0) * taxa) / 100;
-          byBrand[o.brand_id].ordersCount += 1;
+          // finished/real stats
+          byBrand[o.brand_id].totalValueFinished += Number(o.total || 0);
+          byBrand[o.brand_id].commissionFinished += (Number(o.total || 0) * taxa) / 100;
+          byBrand[o.brand_id].ordersFinishedCount += 1;
         }
 
         const m = o.created_at?.slice(0, 7);
@@ -338,16 +374,20 @@ export default function Comissao({ companyId, role, user }: { companyId: string 
                   >
                     <div className="flex justify-between items-start">
                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{bc.brandName}</span>
-                      <span className="text-[10px] font-bold text-primary bg-primary/5 px-2 py-0.5 rounded-full">{bc.ordersCount} pedidos</span>
+                      <span className="text-[10px] font-bold text-primary bg-primary/5 px-2 py-0.5 rounded-full">
+                        {bc.ordersCount} {bc.ordersCount === 1 ? 'pedido' : 'pedidos'} <span className="text-slate-400">({bc.ordersFinishedCount || 0} fin.)</span>
+                      </span>
                     </div>
-                    <div className="flex justify-between items-end">
+                    <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-100/50 mt-1">
                       <div>
-                        <p className="text-[9px] text-slate-400 font-bold uppercase">Volume</p>
-                        <p className="text-sm font-bold text-slate-700">{formatCurrency(bc.totalValue)}</p>
+                        <p className="text-[8px] text-slate-400 font-bold uppercase">Volume Previsto</p>
+                        <p className="text-xs font-bold text-slate-700">{formatCurrency(bc.totalValue)}</p>
+                        <p className="text-[8px] text-slate-400 font-medium">Real: {formatCurrency(bc.totalValueFinished || 0)}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-[9px] text-primary font-bold uppercase">Comissão</p>
-                        <p className="text-lg font-black text-primary">{formatCurrency(bc.commission)}</p>
+                        <p className="text-[8px] text-primary font-bold uppercase">Comissão Prev.</p>
+                        <p className="text-sm font-black text-primary">{formatCurrency(bc.commission)}</p>
+                        <p className="text-[8px] text-emerald-600 font-bold">Real: {formatCurrency(bc.commissionFinished || 0)}</p>
                       </div>
                     </div>
                   </motion.div>
@@ -429,16 +469,30 @@ export default function Comissao({ companyId, role, user }: { companyId: string 
               <div className="flex flex-wrap gap-4 items-end">
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">De</label>
-                  <input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)}
-                    className="px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-primary/40" />
+                  <input type="date" value={tempDateFrom} onChange={e => setTempDateFrom(e.target.value)}
+                    className="px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-primary/40 font-bold text-slate-700" />
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Até</label>
-                  <input type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)}
-                    className="px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-primary/40" />
+                  <input type="date" value={tempDateTo} onChange={e => setTempDateTo(e.target.value)}
+                    className="px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-primary/40 font-bold text-slate-700" />
                 </div>
-                {(filterDateFrom || filterDateTo) && (
-                  <button onClick={() => { setFilterDateFrom(''); setFilterDateTo(''); }}
+                <button
+                  onClick={() => {
+                    setFilterDateFrom(tempDateFrom);
+                    setFilterDateTo(tempDateTo);
+                  }}
+                  className="px-4 py-2 bg-primary hover:bg-primary/95 text-white text-xs font-bold rounded-xl transition-all shadow-sm"
+                >
+                  Aplicar Filtro
+                </button>
+                {(tempDateFrom || tempDateTo || filterDateFrom || filterDateTo) && (
+                  <button onClick={() => { 
+                    setTempDateFrom(''); 
+                    setTempDateTo(''); 
+                    setFilterDateFrom(''); 
+                    setFilterDateTo(''); 
+                  }}
                     className="text-xs text-rose-500 font-bold hover:underline pb-2">
                     Limpar
                   </button>
@@ -617,18 +671,22 @@ export default function Comissao({ companyId, role, user }: { companyId: string 
                           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                             {(s as any).brand_breakdown && Object.entries((s as any).brand_breakdown).map(([brandId, data]: [string, any]) => (
                                <div key={brandId} className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm space-y-1">
-                                 <div className="flex justify-between items-center">
+                                 <div className="flex justify-between items-center pb-1 border-b border-slate-50 mb-1">
                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{brandNamesMapping[brandId] || 'Marca Desconhecida'}</span>
-                                   <span className="text-[9px] font-bold text-slate-300 whitespace-nowrap">{data.orders} pedidos</span>
+                                   <span className="text-[9px] font-bold text-slate-400 whitespace-nowrap">
+                                     {data.orders} {data.orders === 1 ? 'pedido' : 'pedidos'} <span className="text-slate-300">({data.orders_finished || 0} fin.)</span>
+                                   </span>
                                  </div>
-                                 <div className="flex justify-between items-end pt-1">
+                                 <div className="grid grid-cols-2 gap-2 pt-0.5">
                                     <div>
-                                      <p className="text-[8px] text-slate-400 font-bold uppercase">Volume</p>
-                                      <p className="text-xs font-bold text-slate-600">{formatCurrency(data.total)}</p>
+                                      <p className="text-[8px] text-slate-400 font-bold uppercase">Volume Prev.</p>
+                                      <p className="text-xs font-bold text-slate-700">{formatCurrency(data.total)}</p>
+                                      <p className="text-[8px] text-slate-400 font-medium">Real: {formatCurrency(data.total_finished || 0)}</p>
                                     </div>
                                     <div className="text-right">
-                                      <p className="text-[8px] text-primary font-bold uppercase">Comissão</p>
+                                      <p className="text-[8px] text-primary font-bold uppercase">Comissão Prev.</p>
                                       <p className="text-sm font-black text-primary">{formatCurrency(data.comissao)}</p>
+                                      <p className="text-[8px] text-emerald-600 font-bold">Real: {formatCurrency(data.comissao_real || 0)}</p>
                                     </div>
                                  </div>
                                </div>

@@ -42,6 +42,8 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
   const [filterBrand, setFilterBrand] = useState('');
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
+  const [tempDateFrom, setTempDateFrom] = useState('');
+  const [tempDateTo, setTempDateTo] = useState('');
   const [filterSearch, setFilterSearch] = useState('');
   const [showFilters, setShowFilters] = useState(false);
 
@@ -904,6 +906,8 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
     setFilterBrand('');
     setFilterDateFrom('');
     setFilterDateTo('');
+    setTempDateFrom('');
+    setTempDateTo('');
     setFilterSearch('');
   }
 
@@ -1748,8 +1752,8 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                   <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Data de</label>
                   <input
                     type="date"
-                    value={filterDateFrom}
-                    onChange={e => setFilterDateFrom(e.target.value)}
+                    value={tempDateFrom}
+                    onChange={e => setTempDateFrom(e.target.value)}
                     className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-primary/40 font-bold text-slate-900"
                   />
                 </div>
@@ -1757,10 +1761,21 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                   <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Até</label>
                   <input
                     type="date"
-                    value={filterDateTo}
-                    onChange={e => setFilterDateTo(e.target.value)}
+                    value={tempDateTo}
+                    onChange={e => setTempDateTo(e.target.value)}
                     className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-primary/40 font-bold text-slate-900"
                   />
+                </div>
+                <div className="space-y-1 flex items-end">
+                  <button
+                    onClick={() => {
+                      setFilterDateFrom(tempDateFrom);
+                      setFilterDateTo(tempDateTo);
+                    }}
+                    className="w-full px-4 py-2 bg-primary hover:bg-primary/95 text-white text-xs font-bold rounded-xl transition-all shadow-sm"
+                  >
+                    Aplicar Filtro
+                  </button>
                 </div>
               </div>
             </div>

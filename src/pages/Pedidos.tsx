@@ -429,31 +429,75 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
 
         // 4. Check for order items
         const tokens = line.split(/\s+/);
-        const unitIdx = tokens.findIndex(t => /^(UN|BX|KIT|PCT|CX)$/i.test(t));
+        // Broad unit regex supporting common abbreviations and optional trailing dot
+        const unitRegex = /^(UN|UND|UNID|PC|PÇ|PÇA|CX|CAIXA|KIT|PCT|PACOTE|BX|BOX|FD|FARDO|JG|JOGO|RL|ROLO|GL|GALAO|LT|LATA|LITRO|KG|KILO|GR|GRAMA|MT|METRO|DZ|DUZIA|PAR|CJ|CONJ|SC|SACO|TB|TUBO|ENV|AMP|FR|PT|POTE|CT|CRT)\.?$/i;
+        const unitIdx = tokens.findIndex(t => unitRegex.test(t));
         if (unitIdx > 0) {
-          const sku = tokens[0].trim().toUpperCase();
           const unit = tokens[unitIdx];
 
           let qty = NaN;
+          let sku = '';
           let numberTokensStartIdx = -1;
 
-          // Check if quantity is before unit (Case A: QTY UN)
-          // Valid if unitIdx > 1 and tokens[unitIdx - 1] is a valid integer
           const qtyBeforeVal = tokens[unitIdx - 1];
-          const qtyBefore = parseInt(qtyBeforeVal);
-          const isQtyBeforeValid = unitIdx > 1 && !isNaN(qtyBefore) && /^\d+$/.test(qtyBeforeVal);
-
-          // Check if quantity is after unit (Case B: UN QTY)
-          // Valid if tokens[unitIdx + 1] is a valid integer
           const qtyAfterVal = unitIdx + 1 < tokens.length ? tokens[unitIdx + 1] : '';
-          const qtyAfter = qtyAfterVal ? parseInt(qtyAfterVal) : NaN;
-          const isQtyAfterValid = qtyAfterVal !== '' && !isNaN(qtyAfter) && /^\d+$/.test(qtyAfterVal);
+
+          const isQtyBeforeValid = unitIdx > 0 && /^\d+$/.test(qtyBeforeVal);
+          const isQtyAfterValid = unitIdx + 1 < tokens.length && /^\d+$/.test(qtyAfterVal);
 
           if (isQtyBeforeValid) {
-            qty = qtyBefore;
-            numberTokensStartIdx = unitIdx + 1;
+            qty = parseInt(qtyBeforeVal);
+            const skuCandidates = tokens.slice(0, unitIdx - 1);
+            const cleanCandidates = skuCandidates.filter((cand, idx) => {
+              if (idx === 0 && /^\d{1,3}$/.test(cand) && skuCandidates.length > 1) {
+                return false;
+              }
+              if (/^(SKU|COD|CÓD|C[OÓ]DIGO|REF|REFERENCIA|REFERÊNCIA)[:.]?$/i.test(cand)) {
+                return false;
+              }
+              return true;
+            });
+
+            if (cleanCandidates.length > 0) {
+              sku = cleanCandidates[0].trim().toUpperCase();
+            } else if (skuCandidates.length > 0) {
+              const candidate = skuCandidates[0].trim().toUpperCase();
+              if (/^\d{1,3}$/.test(candidate) && unitIdx + 1 < tokens.length && !/^\d+$/.test(tokens[unitIdx + 1])) {
+                sku = tokens[unitIdx + 1].trim().toUpperCase();
+              } else {
+                sku = candidate;
+              }
+            } else {
+              if (unitIdx + 1 < tokens.length) {
+                sku = tokens[unitIdx + 1].trim().toUpperCase();
+              }
+            }
+
+            if (cleanCandidates.length > 0 || skuCandidates.length > 0) {
+              numberTokensStartIdx = unitIdx + 1;
+            } else {
+              numberTokensStartIdx = unitIdx + 2;
+            }
+
           } else if (isQtyAfterValid) {
-            qty = qtyAfter;
+            qty = parseInt(qtyAfterVal);
+            const skuCandidates = tokens.slice(0, unitIdx);
+            const cleanCandidates = skuCandidates.filter((cand, idx) => {
+              if (idx === 0 && /^\d{1,3}$/.test(cand) && skuCandidates.length > 1) {
+                return false;
+              }
+              if (/^(SKU|COD|CÓD|C[OÓ]DIGO|REF|REFERENCIA|REFERÊNCIA)[:.]?$/i.test(cand)) {
+                return false;
+              }
+              return true;
+            });
+
+            if (cleanCandidates.length > 0) {
+              sku = cleanCandidates[0].trim().toUpperCase();
+            } else if (skuCandidates.length > 0) {
+              sku = skuCandidates[0].trim().toUpperCase();
+            }
+
             numberTokensStartIdx = unitIdx + 2;
           }
 
@@ -461,6 +505,12 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
             const numberTokens: string[] = [];
             for (let j = numberTokensStartIdx; j < tokens.length; j++) {
               const cleanToken = tokens[j].replace(/R\$\s*/i, '').replace(/%/g, '').trim();
+              
+              // Skip barcodes (12-14 digits) and NCM (8 digits)
+              if (/^\d{8}$/.test(cleanToken) || /^\d{12,14}$/.test(cleanToken)) {
+                continue;
+              }
+
               if (/^[\d.,]+$/.test(cleanToken)) {
                 numberTokens.push(cleanToken);
               }
@@ -470,13 +520,17 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
               const nextLineTokens = lines[i + 1].split(/\s+/);
               if (nextLineTokens.length === 1) {
                 const cleanNextToken = nextLineTokens[0].replace(/R\$\s*/i, '').replace(/%/g, '').trim();
-                if (/^[\d.,]+$/.test(cleanNextToken)) {
+                
+                // Skip barcodes (12-14 digits) and NCM (8 digits)
+                if (/^\d{8}$/.test(cleanNextToken) || /^\d{12,14}$/.test(cleanNextToken)) {
+                  // Do nothing
+                } else if (/^[\d.,]+$/.test(cleanNextToken)) {
                   numberTokens.push(cleanNextToken);
                 }
               }
             }
 
-            const numbers = numberTokens.map(parseBrFloat).filter(n => n >= 0 && n < 50000);
+            const numbers = numberTokens.map(parseBrFloat).filter(n => n >= 0 && n < 500000);
 
             if (numbers.length > 0) {
               const unitPrice = numbers[0];
@@ -492,8 +546,9 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                     const dCandidate = remaining[a];
                     const nCandidate = remaining[b];
                     if (Math.abs(grossTotal - dCandidate - nCandidate) < 0.05) {
-                      discount = dCandidate;
-                      netTotal = nCandidate;
+                      // The smaller candidate is the discount, the larger candidate is the net total
+                      discount = Math.min(dCandidate, nCandidate);
+                      netTotal = Math.max(dCandidate, nCandidate);
                       pairFound = true;
                       break;
                     }

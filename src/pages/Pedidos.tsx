@@ -431,13 +431,35 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
         const tokens = line.split(/\s+/);
         const unitIdx = tokens.findIndex(t => /^(UN|BX|KIT|PCT|CX)$/i.test(t));
         if (unitIdx > 0) {
-          const qty = parseInt(tokens[unitIdx - 1]);
-          const unit = tokens[unitIdx];
           const sku = tokens[0].trim().toUpperCase();
+          const unit = tokens[unitIdx];
 
-          if (!isNaN(qty) && sku) {
+          let qty = NaN;
+          let numberTokensStartIdx = -1;
+
+          // Check if quantity is before unit (Case A: QTY UN)
+          // Valid if unitIdx > 1 and tokens[unitIdx - 1] is a valid integer
+          const qtyBeforeVal = tokens[unitIdx - 1];
+          const qtyBefore = parseInt(qtyBeforeVal);
+          const isQtyBeforeValid = unitIdx > 1 && !isNaN(qtyBefore) && /^\d+$/.test(qtyBeforeVal);
+
+          // Check if quantity is after unit (Case B: UN QTY)
+          // Valid if tokens[unitIdx + 1] is a valid integer
+          const qtyAfterVal = unitIdx + 1 < tokens.length ? tokens[unitIdx + 1] : '';
+          const qtyAfter = qtyAfterVal ? parseInt(qtyAfterVal) : NaN;
+          const isQtyAfterValid = qtyAfterVal !== '' && !isNaN(qtyAfter) && /^\d+$/.test(qtyAfterVal);
+
+          if (isQtyBeforeValid) {
+            qty = qtyBefore;
+            numberTokensStartIdx = unitIdx + 1;
+          } else if (isQtyAfterValid) {
+            qty = qtyAfter;
+            numberTokensStartIdx = unitIdx + 2;
+          }
+
+          if (!isNaN(qty) && sku && qty > 0 && numberTokensStartIdx !== -1) {
             const numberTokens: string[] = [];
-            for (let j = unitIdx + 1; j < tokens.length; j++) {
+            for (let j = numberTokensStartIdx; j < tokens.length; j++) {
               const cleanToken = tokens[j].replace(/R\$\s*/i, '').replace(/%/g, '').trim();
               if (/^[\d.,]+$/.test(cleanToken)) {
                 numberTokens.push(cleanToken);

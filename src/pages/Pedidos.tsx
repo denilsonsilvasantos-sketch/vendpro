@@ -215,7 +215,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
       const orderData = {
         company_id: companyId,
         customer_id: typingCustomerId,
-        seller_id: typingSellerId || null,
+        seller_id: typingSellerId || selectedCust?.seller_id || null,
         brand_id: typingBrandId || typingItems[0].brand_id,
         subtotal: subtotal,
         total: subtotal,
@@ -678,6 +678,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
       // Find customer
       let finalCustomerId = null;
       let finalClientName = clientName || 'Cliente não cadastrado';
+      let matchedSellerId = null;
 
       if (clientCnpj) {
         const { data: dbCustomer } = await supabase
@@ -690,6 +691,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
         if (dbCustomer) {
           finalCustomerId = dbCustomer.id;
           finalClientName = dbCustomer.nome_empresa || dbCustomer.nome;
+          matchedSellerId = dbCustomer.seller_id;
         } else if (clientName) {
           finalClientName = `${clientName} (Não Cadastrado)`;
         }
@@ -728,6 +730,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
       const orderData = {
         company_id: companyId,
         customer_id: finalCustomerId,
+        seller_id: (role === 'seller' && user?.id) ? user.id : (matchedSellerId || null),
         brand_id: brandId,
         subtotal: subtotal,
         total: total,
@@ -943,11 +946,12 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
     
     const updateData: any = { 
       customer_id: newCustomerId,
-      client_name: newCustomer?.nome || ''
+      client_name: newCustomer?.nome_empresa || newCustomer?.nome || ''
     };
 
-    // Se for vendedor, garante que o pedido esteja vinculado a ele para evitar problemas de RLS
-    if (role === 'seller' && user?.id) {
+    if (newCustomer?.seller_id) {
+      updateData.seller_id = newCustomer.seller_id;
+    } else if (role === 'seller' && user?.id) {
       updateData.seller_id = user.id;
     }
 
@@ -2684,7 +2688,16 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                           <UserIcon size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                           <select
                             value={typingCustomerId}
-                            onChange={e => setTypingCustomerId(e.target.value)}
+                            onChange={e => {
+                              const cid = e.target.value;
+                              setTypingCustomerId(cid);
+                              if (cid) {
+                                const cust = customers.find(c => c.id === cid);
+                                if (cust?.seller_id && !typingSellerId) {
+                                  setTypingSellerId(cust.seller_id);
+                                }
+                              }
+                            }}
                             className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-11 pr-4 py-3 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-primary/20 outline-none appearance-none"
                           >
                             <option value="">Selecione o Cliente...</option>

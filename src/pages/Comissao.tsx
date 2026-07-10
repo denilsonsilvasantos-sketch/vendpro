@@ -136,9 +136,25 @@ export default function Comissao({ companyId, role, user }: { companyId: string 
         };
       });
 
+      // Canal de vendas diretas/sem vendedor associado para que os totais coincidam com o módulo Pedidos
+      const noSellerId = 'no-seller';
+      statsMap[noSellerId] = {
+        id: noSellerId,
+        nome: 'Vendas Diretas (Sem Vendedor)',
+        comissao: 0,
+        comissao_por_marca: {},
+        brand_breakdown: {},
+        total_pedidos: 0,
+        pedidos_finalizados: 0,
+        valor_total: 0,
+        valor_finalizado: 0,
+        comissao_prevista: 0,
+        comissao_real: 0,
+      };
+
       (orders || []).forEach((o: any) => {
-        if (!o.seller_id || !statsMap[o.seller_id]) return;
-        const s = statsMap[o.seller_id];
+        const sid = (o.seller_id && statsMap[o.seller_id]) ? o.seller_id : noSellerId;
+        const s = statsMap[sid];
         const taxa = s.comissao_por_marca[o.brand_id] !== undefined
           ? s.comissao_por_marca[o.brand_id]
           : s.comissao;
@@ -175,7 +191,9 @@ export default function Comissao({ companyId, role, user }: { companyId: string 
         s.comissao_prevista += (Number(o.total || 0) * taxa) / 100;
       });
 
-      const sorted = Object.values(statsMap).sort((a, b) => b.valor_finalizado - a.valor_finalizado);
+      const sorted = Object.values(statsMap)
+        .filter(s => s.id !== noSellerId || s.total_pedidos > 0)
+        .sort((a, b) => b.valor_finalizado - a.valor_finalizado);
       setSellers(sorted);
 
       const byMonth: Record<string, { pedidos: number; valor: number; comissao_total: number }> = {};
@@ -185,8 +203,10 @@ export default function Comissao({ companyId, role, user }: { companyId: string 
         if (!byMonth[m]) byMonth[m] = { pedidos: 0, valor: 0, comissao_total: 0 };
         byMonth[m].pedidos += 1;
         byMonth[m].valor += Number(o.total || 0);
-        if (o.seller_id && statsMap[o.seller_id] && o.status === 'finished') {
-          const s = statsMap[o.seller_id];
+        
+        const sid = (o.seller_id && statsMap[o.seller_id]) ? o.seller_id : noSellerId;
+        if (sid && statsMap[sid] && o.status === 'finished') {
+          const s = statsMap[sid];
           const taxa = s.comissao_por_marca[o.brand_id] !== undefined
             ? s.comissao_por_marca[o.brand_id]
             : s.comissao;

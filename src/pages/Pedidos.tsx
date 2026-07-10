@@ -385,6 +385,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
       let orderDateStr = '';
       const parsedItems: {
         sku: string;
+        barcode?: string;
         qty: number;
         unit: string;
         unitPrice: number;
@@ -437,6 +438,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
 
           let qty = NaN;
           let sku = '';
+          let barcode = '';
           let numberTokensStartIdx = -1;
 
           const qtyBeforeVal = tokens[unitIdx - 1];
@@ -448,8 +450,18 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
           if (isQtyBeforeValid) {
             qty = parseInt(qtyBeforeVal);
             const skuCandidates = tokens.slice(0, unitIdx - 1);
+            
+            const foundBarcode = skuCandidates.find(cand => /^\d{12,14}$/.test(cand));
+            if (foundBarcode) {
+              barcode = foundBarcode;
+            }
+
             const cleanCandidates = skuCandidates.filter((cand, idx) => {
               if (idx === 0 && /^\d{1,3}$/.test(cand) && skuCandidates.length > 1) {
+                const nextCand = skuCandidates[1];
+                if (nextCand && (/^\d{8}$/.test(nextCand) || /^\d{12,14}$/.test(nextCand))) {
+                  return true;
+                }
                 return false;
               }
               if (/^(SKU|COD|CÓD|C[OÓ]DIGO|REF|REFERENCIA|REFERÊNCIA)[:.]?$/i.test(cand)) {
@@ -482,8 +494,18 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
           } else if (isQtyAfterValid) {
             qty = parseInt(qtyAfterVal);
             const skuCandidates = tokens.slice(0, unitIdx);
+            
+            const foundBarcode = skuCandidates.find(cand => /^\d{12,14}$/.test(cand));
+            if (foundBarcode) {
+              barcode = foundBarcode;
+            }
+
             const cleanCandidates = skuCandidates.filter((cand, idx) => {
               if (idx === 0 && /^\d{1,3}$/.test(cand) && skuCandidates.length > 1) {
+                const nextCand = skuCandidates[1];
+                if (nextCand && (/^\d{8}$/.test(nextCand) || /^\d{12,14}$/.test(nextCand))) {
+                  return true;
+                }
                 return false;
               }
               if (/^(SKU|COD|CÓD|C[OÓ]DIGO|REF|REFERENCIA|REFERÊNCIA)[:.]?$/i.test(cand)) {
@@ -570,6 +592,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
 
               parsedItems.push({
                 sku,
+                barcode,
                 qty,
                 unit,
                 unitPrice,
@@ -587,24 +610,51 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
         return;
       }
 
-      // Fetch matching products from DB
-      const skus = Array.from(new Set(parsedItems.map(item => item.sku)));
-      const { data: dbProducts } = await supabase
+      // Fetch matching products from DB using both sku and barcode in case they match either
+      const skus = Array.from(new Set(parsedItems.map(item => item.sku).filter((s): s is string => !!s)));
+      const barcodes = Array.from(new Set(parsedItems.map(item => item.barcode).filter((b): b is string => !!b)));
+
+      let dbProductsQuery = supabase
         .from('products')
         .select('*')
-        .eq('company_id', companyId)
-        .in('sku', skus);
+        .eq('company_id', companyId);
+
+      if (barcodes.length > 0) {
+        const skuFilter = skus.map(s => `"${s.replace(/"/g, '""')}"`).join(',');
+        const barcodeFilter = barcodes.map(b => `"${b.replace(/"/g, '""')}"`).join(',');
+        dbProductsQuery = dbProductsQuery.or(`sku.in.(${skuFilter}),barcode.in.(${barcodeFilter})`);
+      } else {
+        dbProductsQuery = dbProductsQuery.in('sku', skus);
+      }
+
+      const { data: dbProducts } = await dbProductsQuery;
 
       if (!dbProducts || dbProducts.length === 0) {
         alert('Nenhum SKU do PDF foi encontrado no banco de dados.');
         return;
       }
 
-      const productMap = new Map((dbProducts || []).map((p: any) => [p.sku, p]));
+      // Build product Map matching both by SKU and by barcode
+      const productMap = new Map();
+      for (const p of dbProducts) {
+        if (p.sku) {
+          productMap.set(p.sku.toUpperCase(), p);
+        }
+        if (p.barcode) {
+          productMap.set(p.barcode.toUpperCase(), p);
+        }
+      }
+
       const brandId = dbProducts[0].brand_id;
 
       const validItemsToInsert = parsedItems.map(item => {
-        const product = productMap.get(item.sku);
+        let product = null;
+        if (item.sku) {
+          product = productMap.get(item.sku.toUpperCase());
+        }
+        if (!product && item.barcode) {
+          product = productMap.get(item.barcode.toUpperCase());
+        }
         if (!product) return null;
 
         return {
@@ -648,7 +698,13 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
       let totalDesconto = 0;
 
       parsedItems.forEach(item => {
-        const product = productMap.get(item.sku);
+        let product = null;
+        if (item.sku) {
+          product = productMap.get(item.sku.toUpperCase());
+        }
+        if (!product && item.barcode) {
+          product = productMap.get(item.barcode.toUpperCase());
+        }
         if (product) {
           totalBruto += item.grossTotal;
           totalDesconto += item.discount;
@@ -760,7 +816,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
     // Fetch customers for this company to merge with orders
     const { data: customersData } = await supabase
       .from('customers')
-      .select('id, nome, nome_empresa, whatsapp, seller_id')
+      .select('id, nome, nome_empresa, whatsapp, seller_id, cnpj')
       .eq('company_id', companyId);
     
     setCustomers(customersData || []);
@@ -824,8 +880,13 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
       }
       if (filterSearch) {
         const s = filterSearch.toLowerCase();
-        const clientName = (o.customers?.nome || o.client_name || '').toLowerCase();
-        if (!clientName.includes(s)) return false;
+        const clientNome = (o.customer?.nome || '').toLowerCase();
+        const clientEmpresa = (o.customer?.nome_empresa || '').toLowerCase();
+        const clientCnpj = (o.customer?.cnpj || '').toLowerCase();
+        const clientFallback = (o.client_name || '').toLowerCase();
+        if (!clientNome.includes(s) && !clientEmpresa.includes(s) && !clientCnpj.includes(s) && !clientFallback.includes(s)) {
+          return false;
+        }
       }
       return true;
     });
@@ -1651,7 +1712,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                         type="text"
                         value={filterSearch}
                         onChange={e => setFilterSearch(e.target.value)}
-                        placeholder="Nome do cliente..."
+                        placeholder="Empresa, responsável ou CNPJ..."
                         className="w-full pl-8 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-primary/40 font-bold text-slate-900 placeholder:text-slate-400"
                       />
                     </div>
@@ -1948,11 +2009,17 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                         className="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-primary/20 outline-none"
                       >
                         <option value="">Selecionar Empresa</option>
-                        {customers.map(c => (
-                          <option key={c.id} value={c.id}>
-                            {c.nome_empresa || c.nome}
-                          </option>
-                        ))}
+                        {customers.map(c => {
+                          const labelParts = [];
+                          if (c.nome_empresa) labelParts.push(c.nome_empresa);
+                          if (c.nome) labelParts.push(`(Resp: ${c.nome})`);
+                          if (c.cnpj) labelParts.push(`- CNPJ: ${c.cnpj}`);
+                          return (
+                            <option key={c.id} value={c.id}>
+                              {labelParts.join(' ')}
+                            </option>
+                          );
+                        })}
                       </select>
                       <button 
                         onClick={() => handleCustomerChange(selectedOrder.id, tempCustomerId)}
@@ -2606,9 +2673,17 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                             className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-11 pr-4 py-3 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-primary/20 outline-none appearance-none"
                           >
                             <option value="">Selecione o Cliente...</option>
-                            {typingFilteredCustomers.map(c => (
-                              <option key={c.id} value={c.id}>{c.nome_empresa || c.nome}</option>
-                            ))}
+                            {typingFilteredCustomers.map(c => {
+                              const labelParts = [];
+                              if (c.nome_empresa) labelParts.push(c.nome_empresa);
+                              if (c.nome) labelParts.push(`(Resp: ${c.nome})`);
+                              if (c.cnpj) labelParts.push(`- CNPJ: ${c.cnpj}`);
+                              return (
+                                <option key={c.id} value={c.id}>
+                                  {labelParts.join(' ')}
+                                </option>
+                              );
+                            })}
                           </select>
                         </div>
                       </div>

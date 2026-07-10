@@ -180,6 +180,7 @@ export default function Clientes({ companyId, role, user, sellers }: { companyId
 
   const filteredCustomers = customers.filter(c =>
     (c.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (c.nome_empresa || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     (c.cnpj || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -294,7 +295,7 @@ export default function Clientes({ companyId, role, user, sellers }: { companyId
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
         <input
-          type="text" placeholder="Buscar por nome ou CNPJ..." value={searchTerm}
+          type="text" placeholder="Buscar por empresa, responsável ou CNPJ..." value={searchTerm}
           onChange={e => setSearchTerm(e.target.value)}
           className="w-full pl-9 pr-4 py-2.5 bg-white rounded-lg border border-slate-200 focus:border-primary/40 outline-none text-xs font-medium text-slate-700 placeholder:text-slate-300 shadow-sm"
         />

@@ -4,7 +4,7 @@ import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
 import {
-  ShoppingBag, CheckCircle2, TrendingUp, DollarSign, Trophy, Filter, Star, Percent, ChevronRight
+  ShoppingBag, CheckCircle2, TrendingUp, DollarSign, Trophy, Filter, Star, Percent, ChevronRight, AlertTriangle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -28,6 +28,7 @@ interface SellerStats {
   valor_finalizado: number;
   comissao_prevista: number;
   comissao_real: number;
+  orders_list?: any[];
 }
 
 interface MonthlyData {
@@ -102,7 +103,7 @@ export default function Comissao({ companyId, role, user }: { companyId: string 
     try {
       let ordersQuery = supabase
         .from('orders')
-        .select('seller_id, brand_id, total, status, created_at')
+        .select('id, client_name, seller_id, brand_id, total, status, created_at')
         .eq('company_id', companyId)
         .neq('status', 'cancelled');
 
@@ -133,6 +134,7 @@ export default function Comissao({ companyId, role, user }: { companyId: string 
           valor_finalizado: 0,
           comissao_prevista: 0,
           comissao_real: 0,
+          orders_list: [],
         };
       });
 
@@ -150,6 +152,7 @@ export default function Comissao({ companyId, role, user }: { companyId: string 
         valor_finalizado: 0,
         comissao_prevista: 0,
         comissao_real: 0,
+        orders_list: [],
       };
 
       (orders || []).forEach((o: any) => {
@@ -161,6 +164,16 @@ export default function Comissao({ companyId, role, user }: { companyId: string 
         
         s.total_pedidos += 1;
         s.valor_total += Number(o.total || 0);
+
+        if (!s.orders_list) s.orders_list = [];
+        s.orders_list.push({
+          id: o.id,
+          client_name: o.client_name,
+          brand_id: o.brand_id,
+          total: o.total,
+          status: o.status,
+          created_at: o.created_at,
+        });
 
         if (!s.brand_breakdown[o.brand_id]) {
           s.brand_breakdown[o.brand_id] = { 
@@ -712,6 +725,56 @@ export default function Comissao({ companyId, role, user }: { companyId: string 
                                </div>
                             ))}
                           </div>
+
+                          {s.id === 'no-seller' && (
+                            <div className="mt-4 bg-rose-50 rounded-2xl border border-rose-100 p-5 space-y-4">
+                              <div className="flex items-start gap-3">
+                                <AlertTriangle size={18} className="text-rose-500 shrink-0 mt-0.5" />
+                                <div>
+                                  <h4 className="text-xs font-black text-rose-900 uppercase tracking-wide">Pedidos sem Vendedor Cadastrado ({s.orders_list?.length || 0})</h4>
+                                  <p className="text-[11px] text-rose-700 font-medium mt-0.5">
+                                    Abaixo estão listadas as vendas que não possuem nenhum vendedor associado. Para corrigir cada uma, pesquise o cliente correspondente na aba <b>Pedidos</b>, clique em ver detalhes e atribua o Vendedor correto.
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div className="bg-white rounded-xl border border-rose-100 overflow-hidden shadow-sm">
+                                <table className="w-full text-left text-xs">
+                                  <thead>
+                                    <tr className="bg-rose-50/50 border-b border-rose-100 text-[9px] font-black uppercase tracking-wider text-rose-600/70">
+                                      <th className="px-4 py-2.5">ID / Data</th>
+                                      <th className="px-4 py-2.5">Cliente</th>
+                                      <th className="px-4 py-2.5">Marca</th>
+                                      <th className="px-4 py-2.5 text-right">Total</th>
+                                      <th className="px-4 py-2.5 text-right">Status</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-rose-50/50 text-slate-700">
+                                    {s.orders_list && s.orders_list.map((o: any, idx: number) => (
+                                      <tr key={o.id || idx} className="hover:bg-rose-50/10 transition-colors">
+                                        <td className="px-4 py-3 font-mono text-[10px] font-bold text-slate-500">
+                                          <div>#{o.id ? o.id.slice(0, 8) : '—'}</div>
+                                          <div className="text-[8px] font-medium text-slate-400 mt-0.5">{o.created_at ? new Date(o.created_at).toLocaleDateString('pt-BR') : ''}</div>
+                                        </td>
+                                        <td className="px-4 py-3 font-bold uppercase">{o.client_name || 'Cliente não cadastrado'}</td>
+                                        <td className="px-4 py-3 text-slate-500 font-medium">{brandNamesMapping[o.brand_id] || '—'}</td>
+                                        <td className="px-4 py-3 text-right font-black text-rose-600">{formatCurrency(o.total || 0)}</td>
+                                        <td className="px-4 py-3 text-right">
+                                          <span className={`inline-flex px-1.5 py-0.5 text-[8px] font-black uppercase tracking-widest rounded-md ${
+                                            o.status === 'finished' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
+                                            o.status === 'pending' ? 'bg-amber-50 text-amber-600 border border-amber-100' :
+                                            'bg-slate-50 text-slate-500'
+                                          }`}>
+                                            {o.status === 'finished' ? 'Finalizado' : o.status === 'pending' ? 'Pendente' : o.status}
+                                          </span>
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          )}
                         </td>
                       </motion.tr>
                     )}

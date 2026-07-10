@@ -56,7 +56,9 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
   const [editingDiscount, setEditingDiscount] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState(false);
   const [editingDate, setEditingDate] = useState(false);
+  const [editingSeller, setEditingSeller] = useState(false);
   const [tempDate, setTempDate] = useState('');
+  const [tempSellerId, setTempSellerId] = useState('');
   const [tempCustomerId, setTempCustomerId] = useState('');
   const [tempDiscountValue, setTempDiscountValue] = useState(0);
   const [tempDiscountType, setTempDiscountType] = useState<'fixed' | 'percentage'>('fixed');
@@ -996,6 +998,22 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
     }
   };
 
+  const handleSellerChange = async (orderId: string, newSellerId: string) => {
+    if (!supabase) return;
+    
+    try {
+      const dbSellerId = newSellerId || null;
+      const { error } = await supabase.from('orders').update({ seller_id: dbSellerId }).eq('id', orderId);
+      if (error) throw error;
+      
+      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, seller_id: dbSellerId } : o));
+      if (selectedOrder?.id === orderId) setSelectedOrder((prev: any) => ({ ...prev, seller_id: dbSellerId }));
+      setEditingSeller(false);
+    } catch (err: any) {
+      alert('Erro ao atualizar vendedor: ' + err.message);
+    }
+  };
+
   const handleDiscountChange = async (orderId: string, value: number, type: 'fixed' | 'percentage') => {
     if (!supabase || !selectedOrder) return;
     
@@ -1588,17 +1606,15 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
   const getBrandName = (brandId: string) =>
     brands.find((b: any) => b.id === brandId)?.name || '—';
 
-  // Refresh sellers for manual typing
+  // Refresh sellers for manual typing and mapping
   useEffect(() => {
     async function fetchSellers() {
       if (!supabase || !companyId || role !== 'company') return;
-      const { data } = await supabase.from('sellers').select('*').eq('company_id', companyId).eq('ativo', true).order('nome');
+      const { data } = await supabase.from('sellers').select('*').eq('company_id', companyId).order('nome');
       setTypingSellers(data || []);
     }
-    if (isTypingModalOpen) {
-      fetchSellers();
-    }
-  }, [isTypingModalOpen, companyId, role]);
+    fetchSellers();
+  }, [companyId, role]);
 
   if (loading) return (
     <div className="p-6 flex items-center justify-center min-h-[400px]">
@@ -2146,6 +2162,63 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                           <p className="text-sm font-bold text-slate-700">{formatDate(selectedOrder.created_at)}</p>
                         )}
                       </div>
+
+                      <div className={`p-4 rounded-2xl border col-span-2 ${selectedOrder.seller_id ? 'bg-slate-50 border-slate-100' : 'bg-rose-50/50 border-rose-100 animate-pulse'}`}>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1 flex items-center justify-between">
+                          <span className="flex items-center gap-1.5"><UserIcon size={12} className={selectedOrder.seller_id ? 'text-slate-400' : 'text-rose-400'} /> Vendedor Responsável</span>
+                          {role === 'company' && !editingSeller && (
+                            <button 
+                              onClick={() => {
+                                setTempSellerId(selectedOrder.seller_id || '');
+                                setEditingSeller(true);
+                              }}
+                              className="text-primary hover:text-primary/80 font-bold text-[10px] uppercase tracking-wider flex items-center gap-1 bg-white px-2 py-1 rounded-lg border border-slate-200/60 shadow-sm"
+                            >
+                              <Edit2 size={10} /> Alterar Vendedor
+                            </button>
+                          )}
+                        </p>
+                        {editingSeller ? (
+                          <div className="flex items-center gap-2 mt-1">
+                            <select
+                              value={tempSellerId}
+                              onChange={(e) => setTempSellerId(e.target.value)}
+                              className="flex-1 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 px-3 py-2 focus:ring-2 focus:ring-primary/20 outline-none"
+                            >
+                              <option value="">Sem Vendedor (Vendas Diretas)</option>
+                              {typingSellers.map(s => (
+                                <option key={s.id} value={s.id}>{s.nome} {s.ativo ? '' : '(Inativo)'}</option>
+                              ))}
+                            </select>
+                            <button 
+                              onClick={() => handleSellerChange(selectedOrder.id, tempSellerId)}
+                              className="p-2 bg-primary text-white rounded-xl hover:bg-primary/90 transition-all flex items-center justify-center shadow-sm"
+                              title="Salvar"
+                            >
+                              <Check size={16} />
+                            </button>
+                            <button 
+                              onClick={() => setEditingSeller(false)}
+                              className="p-2 bg-slate-200 text-slate-500 rounded-xl hover:bg-slate-300 transition-all flex items-center justify-center"
+                              title="Cancelar"
+                            >
+                              <X size={16} />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-between mt-0.5">
+                            <p className={`text-sm font-black uppercase tracking-tight ${selectedOrder.seller_id ? 'text-slate-700' : 'text-rose-600'}`}>
+                              {typingSellers.find(s => s.id === selectedOrder.seller_id)?.nome || 'Sem Vendedor (Vendas Diretas)'}
+                            </p>
+                            {!selectedOrder.seller_id && (
+                              <span className="text-[9px] font-black uppercase tracking-widest text-rose-500 bg-rose-100/50 px-2.5 py-1 rounded-full border border-rose-100">
+                                Requer Atenção
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
                       <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10 col-span-2">
                         <p className="text-[10px] font-bold uppercase tracking-widest text-primary/60 mb-3">Resumo de Valores</p>
                         
@@ -2674,7 +2747,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                               className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-11 pr-4 py-3 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-primary/20 outline-none appearance-none"
                             >
                               <option value="">Nenhum Vendedor (Empresa)</option>
-                              {typingSellers.map(s => (
+                              {typingSellers.filter(s => s.ativo).map(s => (
                                 <option key={s.id} value={s.id}>{s.nome}</option>
                               ))}
                             </select>

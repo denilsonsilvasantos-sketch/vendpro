@@ -1863,7 +1863,20 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                     </td>
                   )}
                   <td className="p-6">
-                    <span className="font-mono text-xs font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-lg">#{filteredOrders.length - index}</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className={`font-mono text-xs font-bold px-2 py-1 rounded-lg border transition-all ${
+                        order.seller_id 
+                          ? 'text-slate-400 bg-slate-100 border-transparent' 
+                          : 'text-rose-600 bg-rose-50 border-rose-100 font-extrabold animate-pulse'
+                      }`}>
+                        #{filteredOrders.length - index}
+                      </span>
+                      {!order.seller_id && (
+                        <span title="Sem vendedor associado" className="inline-flex">
+                          <AlertCircle size={14} className="text-rose-500 shrink-0" />
+                        </span>
+                      )}
+                    </div>
                   </td>
                   {role !== 'customer' && (
                     <>

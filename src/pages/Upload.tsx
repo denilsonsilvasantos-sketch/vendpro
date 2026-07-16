@@ -447,6 +447,25 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
       const margin = brandData?.margin_percentage || 0;
       const { data: initialCategories } = await supabase.from('categories').select('id, nome').eq('company_id', companyId).eq('brand_id', selectedBrandId);
       let categories: { id: string, nome: string }[] = (initialCategories || []).map(c => ({ id: String(c.id), nome: c.nome }));
+
+      // Buscando todos os produtos da marca em memória para otimizar a performance e dar suporte completo a variações de SKU
+      const { data: brandProducts } = await supabase.from('products')
+        .select('id, nome, preco_unitario, imagem, sku, barcode')
+        .eq('company_id', companyId)
+        .eq('brand_id', selectedBrandId);
+
+      const productsMap = new Map<string, any>();
+      if (brandProducts) {
+        for (const p of brandProducts) {
+          const skuClean = p.sku.toUpperCase().trim();
+          productsMap.set(skuClean, p);
+          const skuNoDots = skuClean.replace(/\./g, '');
+          if (skuNoDots !== skuClean) {
+            productsMap.set(skuNoDots, p);
+          }
+        }
+      }
+
       const processedSkus: string[] = [];
       let totalProducts = 0;
       let lowConfidenceCount = 0;
@@ -485,7 +504,19 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
         for (const extracted of extractedProducts) {
           const sku = extracted.sku;
           processedSkus.push(sku);
-          const { data: existing } = await supabase.from('products').select('id, nome, preco_unitario, imagem, sku').eq('company_id', companyId).eq('brand_id', selectedBrandId).ilike('sku', sku).maybeSingle();
+
+          const skuUpper = sku.toUpperCase().trim();
+          const skuNoDots = skuUpper.replace(/\./g, '');
+          let existing = productsMap.get(skuUpper) || productsMap.get(skuNoDots);
+
+          if (!existing && brandProducts) {
+            existing = brandProducts.find(p => {
+              const pSkuClean = p.sku.toUpperCase().trim();
+              return pSkuClean.replace(/\./g, '') === skuNoDots;
+            });
+          }
+
+          const targetSku = existing ? existing.sku : sku;
 
           // Itens de baixa confiança (PDF) só criam produto novo; nunca sobrescrevem
           // um produto já cadastrado, pra não arriscar corromper dado real com um "chute".
@@ -496,7 +527,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
 
           if (existing && catalogType === 'replenishment' && (existing.preco_unitario || 0) !== extracted.preco_unitario) {
             const m = margin > 0 ? (1 + margin / 100) : 1;
-            setPriceChanges(prev => [...prev, { sku, old: (existing.preco_unitario || 0) * m, new: extracted.preco_unitario * m }]);
+            setPriceChanges(prev => [...prev, { sku: targetSku, old: (existing.preco_unitario || 0) * m, new: extracted.preco_unitario * m }]);
           }
 
           let categoriaId = extracted.low_confidence ? null : categoriaIdParaArquivo;
@@ -513,7 +544,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
           const productData: any = {
             company_id: companyId,
             brand_id: selectedBrandId,
-            sku,
+            sku: targetSku,
             nome: extracted.nome,
             preco_unitario: extracted.preco_unitario,
             preco_box: extracted.preco_box,

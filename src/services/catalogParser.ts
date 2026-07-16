@@ -148,13 +148,13 @@ export function parseHtmlCatalog(html: string): ParsedCatalogProduct[] {
 
 // ---------- PDF (texto bruto, sem IA) ----------
 
-async function getPdfLines(file: File): Promise<string[]> {
+async function getPdfPagesLines(file: File): Promise<string[][]> {
   const pdfjsLib = await import('pdfjs-dist');
   pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
   const buffer = await file.arrayBuffer();
   const doc = await pdfjsLib.getDocument({ data: buffer }).promise;
-  const lines: string[] = [];
+  const pagesLines: string[][] = [];
 
   for (let pageNum = 1; pageNum <= doc.numPages; pageNum++) {
     const page = await doc.getPage(pageNum);
@@ -168,14 +168,16 @@ async function getPdfLines(file: File): Promise<string[]> {
       rows.get(y)!.push({ x: item.transform[4], str: item.str });
     }
 
+    const pageLines: string[] = [];
     const sortedYs = Array.from(rows.keys()).sort((a, b) => b - a);
     for (const y of sortedYs) {
       const line = rows.get(y)!.sort((a, b) => a.x - b.x).map(r => r.str).join(' ').replace(/\s+/g, ' ').trim();
-      if (line) lines.push(line);
+      if (line) pageLines.push(line);
     }
+    pagesLines.push(pageLines);
   }
 
-  return lines;
+  return pagesLines;
 }
 
 function parseLinesIntoProducts(lines: string[]): ParsedCatalogProduct[] {
@@ -236,8 +238,109 @@ function parseLinesIntoProducts(lines: string[]): ParsedCatalogProduct[] {
 }
 
 export async function parsePdfCatalog(file: File): Promise<ParsedCatalogProduct[]> {
-  const lines = await getPdfLines(file);
-  return parseLinesIntoProducts(lines);
+  const pagesLines = await getPdfPagesLines(file);
+
+  // Detect if this is the dotted/labeled Catalog format
+  let isCatalogFormat = false;
+  let catalogMatches = 0;
+  for (const pageL of pagesLines) {
+    const pageText = pageL.join(' ');
+    const hasBoxOrPct = /(?:BOX|PCT):\s*[\d.,]+/i.test(pageText);
+    const hasUni = /UNI:\s*[\d.,]+/i.test(pageText);
+    const hasSkuCandidate = /\b\d{1,4}(?:\.\d{1,4}){2,3}\b/.test(pageText);
+    if ((hasBoxOrPct || hasUni) && hasSkuCandidate) {
+      catalogMatches++;
+    }
+  }
+  if (catalogMatches >= Math.min(2, pagesLines.length)) {
+    isCatalogFormat = true;
+  }
+
+  if (isCatalogFormat) {
+    console.log('Detected Vivai/JB Catalog PDF format. Parsing page-by-page...');
+    const results: ParsedCatalogProduct[] = [];
+    const seen = new Set<string>();
+
+    for (const pageL of pagesLines) {
+      const pageText = pageL.join(' ');
+
+      // Look for a SKU candidate (dotted sequence of numbers, excluding common date formats like DD/MM/YYYY)
+      const skuMatches = pageText.match(/\b\d{1,4}(?:\.\d{1,4}){2,3}\b/g) || [];
+      let sku = '';
+      for (const cand of skuMatches) {
+        if (!/^\d{2}\.\d{2}\.\d{4}$/.test(cand)) {
+          sku = cand.trim().toUpperCase();
+          break;
+        }
+      }
+      if (!sku) continue;
+
+      if (seen.has(sku)) continue;
+      seen.add(sku);
+
+      // BOX or PCT price
+      const bpMatch = pageText.match(/(?:BOX|PCT):\s*([\d.,]+)/i);
+      const boxPrice = bpMatch ? parseNumber(bpMatch[1]) : 0;
+
+      // UNI price
+      const upMatch = pageText.match(/UNI:\s*([\d.,]+)/i);
+      const unitPrice = upMatch ? parseNumber(upMatch[1]) : 0;
+
+      // BOX C/12 quantity (e.g. "BOX C/12", "PCT C/12", "BOX C/24", etc.)
+      const bqMatch = pageText.match(/(?:BOX|PCT|C)\s*\/(\d+)/i) || pageText.match(/(?:BOX|PCT)\s+C\/(\d+)/i) || pageText.match(/C\/(\d+)/i);
+      const boxQty = bqMatch ? parseInt(bqMatch[1]) : 12;
+
+      let finalUnitPrice = unitPrice;
+      let finalBoxPrice = boxPrice;
+      if (finalUnitPrice === 0 && finalBoxPrice > 0 && boxQty > 0) {
+        finalUnitPrice = finalBoxPrice / boxQty;
+      }
+      if (finalBoxPrice === 0 && finalUnitPrice > 0 && boxQty > 0) {
+        finalBoxPrice = finalUnitPrice * boxQty;
+      }
+
+      // Name extraction: Usually, the name is on the second line (after the SKU) or contains description words
+      let nome = '';
+      if (pageL.length > 1) {
+        const cleanLines = pageL.filter(l => 
+          !l.includes(sku) && 
+          !/(?:BOX|PCT|UNI):\s*[\d.,]+/i.test(l) && 
+          !/(?:BOX|PCT|C)\s*\/(\d+)/i.test(l) &&
+          !/BOX\s+C/i.test(l) &&
+          !/PCT\s+C/i.test(l) &&
+          !/^\d{2}\.\d{2}\.\d{4}$/.test(l)
+        );
+        if (cleanLines.length > 0) {
+          nome = cleanLines[0];
+          if (cleanLines.length > 1 && cleanLines[1].length > nome.length && cleanLines[1].length < 50) {
+            nome = cleanLines[1];
+          }
+        }
+      }
+      if (!nome) nome = `Produto ${sku}`;
+
+      nome = decodeHtmlEntities(nome.trim());
+
+      results.push({
+        sku,
+        nome,
+        preco_unitario: finalUnitPrice,
+        preco_box: finalBoxPrice,
+        qtd_box: boxQty,
+        unidade: pageText.toUpperCase().includes('PCT') ? 'UN' : 'UN',
+        multiplo_venda: 1,
+        status_estoque: 'normal',
+        source: 'pdf',
+        low_confidence: false,
+      });
+    }
+    return results;
+  }
+
+  // Fallback to old line-by-line parsing
+  const flatLines: string[] = [];
+  pagesLines.forEach(pl => flatLines.push(...pl));
+  return parseLinesIntoProducts(flatLines);
 }
 
 // ---------- Roteador por tipo de arquivo ----------

@@ -69,7 +69,7 @@ export async function parseExcelCatalog(file: File): Promise<ParsedCatalogProduc
       const s = String(val).toLowerCase();
       if (/sku|codigo|cod|ref|referencia/i.test(s)) matches++;
       if (/nome|produto|descrição|description|detalhe/i.test(s)) matches++;
-      if (/preço|preco|valor|price|unitario|custo|venda/i.test(s)) matches++;
+      if (/preço|preco|valor|price|unitario|custo|venda|vl\./i.test(s)) matches++;
     }
     if (matches > maxMatches) {
       maxMatches = matches;
@@ -82,8 +82,17 @@ export async function parseExcelCatalog(file: File): Promise<ParsedCatalogProduc
 
   const skuIdx = headerKeys.findIndex(h => /sku|codigo|cod|ref|referencia/i.test(h));
   const nomeIdx = headerKeys.findIndex(h => /nome|produto|descrição|description|detalhe/i.test(h));
-  const precoIdx = headerKeys.findIndex(h => /preço|preco|valor|price|unitario|venda|tabela\s*1/i.test(h));
-  const precoBoxIdx = headerKeys.findIndex(h => /box|tabela\s*4|tabela4|atacado/i.test(h));
+  
+  // Preço Unitário (e.g. Vl. Unit., Valor Unit., Unitário, Preço Unit., etc.)
+  let precoIdx = headerKeys.findIndex(h => /vl\.?\s*unit|valor\s*unit|preço\s*unit|preco\s*unit|unitario|unitário/i.test(h));
+  if (precoIdx === -1) {
+    precoIdx = headerKeys.findIndex(h => /preço|preco|valor|price|venda|tabela\s*1/i.test(h));
+  }
+
+  // Preço Box (e.g. Vl. Box, Valor Box, Box, Tabela 4, Atacado, etc.)
+  const precoBoxIdx = headerKeys.findIndex(h => /vl\.?\s*box|valor\s*box|preço\s*box|preco\s*box|box|caixa|pct|pacote|tabela\s*4|tabela4|atacado/i.test(h));
+
+  // Quantidade (can be box quantity or stock inventory)
   const qtdIdx = headerKeys.findIndex(h => /quantidade|qtd|estoque|stock|qnt|disponivel|saldo/i.test(h));
   const unidadeIdx = headerKeys.findIndex(h => /unidade|un|tipo/i.test(h));
   const barcodeIdx = headerKeys.findIndex(h => /barcode|codigo de barras|código de barras|bar code|ean|cod\.barras|cod barras/i.test(h));
@@ -103,12 +112,45 @@ export async function parseExcelCatalog(file: File): Promise<ParsedCatalogProduc
     if (!sku || sku === 'UNDEFINED' || sku === 'NULL') continue;
 
     const nome = nomeIdx !== -1 && row[nomeIdx] ? String(row[nomeIdx]).trim() : '';
-    const { qtdBox, multiploVenda } = extractQtdBoxAndMultiplo(nome);
-    const estoque = qtdIdx !== -1 ? parseNumber(row[qtdIdx], 0) : undefined;
+    const { qtdBox: extractedQtdBox, multiploVenda } = extractQtdBoxAndMultiplo(nome);
     const unidade = unidadeIdx !== -1 && row[unidadeIdx] ? String(row[unidadeIdx]).trim().toUpperCase() : 'UN';
     
     let precoUnitario = precoIdx !== -1 ? parseNumber(row[precoIdx]) : 0;
     let precoBox = precoBoxIdx !== -1 ? parseNumber(row[precoBoxIdx]) : 0;
+    
+    let qtdBox = extractedQtdBox || 1;
+    let estoque: number | undefined = undefined;
+
+    if (qtdIdx !== -1 && row[qtdIdx] !== undefined) {
+      const rawQtd = parseNumber(row[qtdIdx], 0);
+      if (rawQtd > 0) {
+        // Se temos preço unitário e preço box, podemos verificar se a quantidade informada é o fator de multiplicação (qtd_box)
+        if (precoUnitario > 0 && precoBox > 0) {
+          const ratio = precoBox / precoUnitario;
+          if (Math.abs(ratio - rawQtd) < 0.5) {
+            qtdBox = Math.round(rawQtd);
+          } else {
+            estoque = rawQtd;
+          }
+        } else {
+          // Por padrão se for um número menor (ex: 6, 12, 24, 36) e não houver estoque explícito, tratamos como qtd_box
+          if (rawQtd <= 144) {
+            qtdBox = Math.round(rawQtd);
+          } else {
+            estoque = rawQtd;
+          }
+        }
+      }
+    }
+
+    // Cálculos de completude de preço
+    if (precoUnitario === 0 && precoBox > 0 && qtdBox > 0) {
+      precoUnitario = precoBox / qtdBox;
+    }
+    if (precoBox === 0 && precoUnitario > 0 && qtdBox > 1) {
+      precoBox = precoUnitario * qtdBox;
+    }
+
     const vendaSomenteBox = unidade === 'BX';
     if (vendaSomenteBox && precoBox === 0 && precoUnitario > 0) {
       precoBox = precoUnitario;
@@ -131,15 +173,20 @@ export async function parseExcelCatalog(file: File): Promise<ParsedCatalogProduc
     });
   }
 
-  // Fallback to old sheet_to_json if header-row offset heuristics resulted in nothing
+  // Fallback to standard sheet_to_json
   if (results.length === 0) {
     const standardRows = XLSX.utils.sheet_to_json<Record<string, any>>(sheet);
     for (const sRow of standardRows) {
       const keys = Object.keys(sRow);
       const sSkuKey = keys.find(k => /sku|codigo|cod|ref|referencia/i.test(k));
       const sNomeKey = keys.find(k => /nome|produto|descrição|description|detalhe/i.test(k));
-      const sPrecoKey = keys.find(k => /preço|preco|valor|price|unitario|venda/i.test(k));
-      const sPrecoBoxKey = keys.find(k => /box|tabela\s*4|tabela4|atacado/i.test(k));
+      
+      let sPrecoKey = keys.find(k => /vl\.?\s*unit|valor\s*unit|preço\s*unit|preco\s*unit|unitario|unitário/i.test(k));
+      if (!sPrecoKey) {
+        sPrecoKey = keys.find(k => /preço|preco|valor|price|venda/i.test(k));
+      }
+
+      const sPrecoBoxKey = keys.find(k => /vl\.?\s*box|valor\s*box|preço\s*box|preco\s*box|box|caixa|pct|pacote|tabela\s*4|tabela4|atacado/i.test(k));
       const sQtdKey = keys.find(k => /quantidade|qtd|estoque|stock|qnt|disponivel/i.test(k));
       const sUnidadeKey = keys.find(k => /unidade|un|tipo/i.test(k));
       const sBarcodeKey = keys.find(k => /barcode|codigo de barras|código de barras|bar code|ean|cod\.barras|cod barras/i.test(k));
@@ -148,11 +195,42 @@ export async function parseExcelCatalog(file: File): Promise<ParsedCatalogProduc
       if (!sSkuKey || !sRow[sSkuKey]) continue;
       const sku = String(sRow[sSkuKey]).trim().toUpperCase();
       const nome = sNomeKey ? String(sRow[sNomeKey]).trim() : '';
-      const { qtdBox, multiploVenda } = extractQtdBoxAndMultiplo(nome);
-      const estoque = sQtdKey ? parseNumber(sRow[sQtdKey], 0) : undefined;
+      const { qtdBox: extractedQtdBox, multiploVenda } = extractQtdBoxAndMultiplo(nome);
       const unidade = sUnidadeKey ? String(sRow[sUnidadeKey]).trim().toUpperCase() : 'UN';
+      
       let precoUnitario = sPrecoKey ? parseNumber(sRow[sPrecoKey]) : 0;
       let precoBox = sPrecoBoxKey ? parseNumber(sRow[sPrecoBoxKey]) : 0;
+
+      let qtdBox = extractedQtdBox || 1;
+      let estoque: number | undefined = undefined;
+
+      if (sQtdKey && sRow[sQtdKey] !== undefined) {
+        const rawQtd = parseNumber(sRow[sQtdKey], 0);
+        if (rawQtd > 0) {
+          if (precoUnitario > 0 && precoBox > 0) {
+            const ratio = precoBox / precoUnitario;
+            if (Math.abs(ratio - rawQtd) < 0.5) {
+              qtdBox = Math.round(rawQtd);
+            } else {
+              estoque = rawQtd;
+            }
+          } else {
+            if (rawQtd <= 144) {
+              qtdBox = Math.round(rawQtd);
+            } else {
+              estoque = rawQtd;
+            }
+          }
+        }
+      }
+
+      if (precoUnitario === 0 && precoBox > 0 && qtdBox > 0) {
+        precoUnitario = precoBox / qtdBox;
+      }
+      if (precoBox === 0 && precoUnitario > 0 && qtdBox > 1) {
+        precoBox = precoUnitario * qtdBox;
+      }
+
       if (unidade === 'BX' && precoBox === 0 && precoUnitario > 0) {
         precoBox = precoUnitario;
         precoUnitario = precoBox / (qtdBox || 1);
@@ -169,7 +247,7 @@ export async function parseExcelCatalog(file: File): Promise<ParsedCatalogProduc
         multiplo_venda: multiploVenda,
         estoque,
         status_estoque: statusFromQtd(estoque),
-        category_name: sCategoriaKey ? decodeHtmlEntities(String(sCategoriaKey).trim()) : undefined,
+        category_name: sCategoriaKey ? decodeHtmlEntities(String(sRow[sCategoriaKey]).trim()) : undefined,
         source: 'excel',
       });
     }

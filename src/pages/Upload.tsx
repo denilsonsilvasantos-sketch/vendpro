@@ -454,15 +454,14 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
         .eq('company_id', companyId)
         .eq('brand_id', selectedBrandId);
 
+      const brandProductsList = brandProducts ? [...brandProducts] : [];
       const productsMap = new Map<string, any>();
-      if (brandProducts) {
-        for (const p of brandProducts) {
-          const skuClean = p.sku.toUpperCase().trim();
-          productsMap.set(skuClean, p);
-          const skuNoDots = skuClean.replace(/\./g, '');
-          if (skuNoDots !== skuClean) {
-            productsMap.set(skuNoDots, p);
-          }
+      for (const p of brandProductsList) {
+        const skuClean = p.sku.toUpperCase().trim();
+        productsMap.set(skuClean, p);
+        const skuNoDots = skuClean.replace(/\./g, '');
+        if (skuNoDots !== skuClean) {
+          productsMap.set(skuNoDots, p);
         }
       }
 
@@ -509,8 +508,8 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
           const skuNoDots = skuUpper.replace(/\./g, '');
           let existing = productsMap.get(skuUpper) || productsMap.get(skuNoDots);
 
-          if (!existing && brandProducts) {
-            existing = brandProducts.find(p => {
+          if (!existing) {
+            existing = brandProductsList.find(p => {
               const pSkuClean = p.sku.toUpperCase().trim();
               return pSkuClean.replace(/\./g, '') === skuNoDots;
             });
@@ -564,14 +563,29 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
 
           let result;
           if (existing) {
-            result = await supabase.from('products').update(productData).eq('id', existing.id);
+            result = await supabase.from('products').update(productData).eq('id', existing.id).select('id, nome, preco_unitario, imagem, sku, barcode');
           } else {
-            result = await supabase.from('products').insert([productData]);
+            result = await supabase.from('products').insert([productData]).select('id, nome, preco_unitario, imagem, sku, barcode');
           }
 
           if (result.error) {
             console.error('Erro ao salvar produto:', result.error);
             throw new Error(`Erro no banco de dados (RLS?): ${result.error.message}`);
+          }
+
+          // Atualiza o estado em memória para evitar erros de restrição de chave única (duplicidade no mesmo arquivo)
+          const savedProduct = result.data?.[0] || {
+            id: existing?.id || `temp-${Date.now()}-${Math.random()}`,
+            ...productData
+          };
+
+          const savedSkuClean = savedProduct.sku.toUpperCase().trim();
+          productsMap.set(savedSkuClean, savedProduct);
+          const savedSkuNoDots = savedSkuClean.replace(/\./g, '');
+          productsMap.set(savedSkuNoDots, savedProduct);
+
+          if (!existing) {
+            brandProductsList.push(savedProduct);
           }
         }
         setProgress(Math.round(((i + 1) / uploadedFiles.length) * 100));

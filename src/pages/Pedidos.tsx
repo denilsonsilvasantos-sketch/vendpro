@@ -359,6 +359,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
       const buffer = await file.arrayBuffer();
       const doc = await pdfjsLib.getDocument({ data: buffer }).promise;
       const lines: string[] = [];
+      const pagesLines: string[][] = [];
 
       for (let pageNum = 1; pageNum <= doc.numPages; pageNum++) {
         const page = await doc.getPage(pageNum);
@@ -372,11 +373,16 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
           rows.get(y)!.push({ x: item.transform[4], str: item.str });
         }
 
+        const pageLines: string[] = [];
         const sortedYs = Array.from(rows.keys()).sort((a, b) => b - a);
         for (const y of sortedYs) {
           const line = rows.get(y)!.sort((a, b) => a.x - b.x).map(r => r.str).join(' ').replace(/\s+/g, ' ').trim();
-          if (line) lines.push(line);
+          if (line) {
+            pageLines.push(line);
+            lines.push(line);
+          }
         }
+        pagesLines.push(pageLines);
       }
 
       const parseBrFloat = (str: string): number => {
@@ -389,6 +395,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
       let orderDateStr = '';
       const parsedItems: {
         sku: string;
+        skuVariations?: string[];
         barcode?: string;
         qty: number;
         unit: string;
@@ -400,210 +407,287 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
 
       const distributorCnpj = '59882849000189';
 
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
+      // Auto-detect Catalog PDF format (e.g. JB / Vivai layout with "BOX:" or "PCT:" and "UNI:" labels)
+      let isCatalogPdf = false;
+      let catalogMatches = 0;
+      for (const pageL of pagesLines) {
+        const pageText = pageL.join(' ');
+        const hasBoxOrPct = /(?:BOX|PCT):\s*[\d.,]+/i.test(pageText);
+        const hasUni = /UNI:\s*[\d.,]+/i.test(pageText);
+        const hasSkuCandidate = /\b\d{1,4}(?:\.\d{1,4}){2,3}\b/.test(pageText);
+        if ((hasBoxOrPct || hasUni) && hasSkuCandidate) {
+          catalogMatches++;
+        }
+      }
+      if (catalogMatches >= Math.min(2, pagesLines.length)) {
+        isCatalogPdf = true;
+      }
 
-        // 1. Check for CNPJ
-        const cnpjMatch = line.match(/(\d{2})\.(\d{3})\.(\d{3})\/(\d{4})-(\d{2})/);
-        if (cnpjMatch) {
-          const cleanCnpj = cnpjMatch[0].replace(/\D/g, '');
-          if (cleanCnpj !== distributorCnpj && !clientCnpj) {
-            clientCnpj = cleanCnpj;
-            const nameMatch = line.match(/(.*?)\s+\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}/);
-            if (nameMatch && nameMatch[1].trim() && !clientName) {
-              clientName = nameMatch[1].trim();
+      if (isCatalogPdf) {
+        console.log('Detected Catalog PDF format. Parsing page-by-page...');
+        for (const pageL of pagesLines) {
+          const pageText = pageL.join(' ');
+          
+          // Match dotted format: e.g. "2040.1.4" or "20.40.1.4" (excluding date formats)
+          const skuMatches = pageText.match(/\b\d{1,4}(?:\.\d{1,4}){2,3}\b/g) || [];
+          let sku = '';
+          for (const cand of skuMatches) {
+            if (!/^\d{2}\.\d{2}\.\d{4}$/.test(cand)) {
+              sku = cand.trim().toUpperCase();
+              break;
             }
           }
-        }
+          if (!sku) continue;
 
-        // 2. Check for CLIENTE label
-        const clientLabelMatch = line.match(/CLIENTE:\s*([^\n\r]+)/i);
-        if (clientLabelMatch && !clientName) {
-          clientName = clientLabelMatch[1].trim();
-        }
-
-        // 3. Check for Date
-        const dpMatch = line.match(/DATA PEDIDO:\s*(\d{2})\/(\d{2})\/(\d{4})/i);
-        if (dpMatch && !orderDateStr) {
-          orderDateStr = `${dpMatch[3]}-${dpMatch[2]}-${dpMatch[1]}`;
-        }
-        const dtMatch = line.match(/(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2}):(\d{2})/);
-        if (dtMatch && !orderDateStr) {
-          orderDateStr = `${dtMatch[3]}-${dtMatch[2]}-${dtMatch[1]}T${dtMatch[4]}:${dtMatch[5]}:${dtMatch[6]}`;
-        }
-
-        // 4. Check for order items
-        const tokens = line.split(/\s+/);
-        // Broad unit regex supporting common abbreviations and optional trailing dot
-        const unitRegex = /^(UN|UND|UNID|PC|PÇ|PÇA|CX|CAIXA|KIT|PCT|PACOTE|BX|BOX|FD|FARDO|JG|JOGO|RL|ROLO|GL|GALAO|LT|LATA|LITRO|KG|KILO|GR|GRAMA|MT|METRO|DZ|DUZIA|PAR|CJ|CONJ|SC|SACO|TB|TUBO|ENV|AMP|FR|PT|POTE|CT|CRT)\.?$/i;
-        const unitIdx = tokens.findIndex(t => unitRegex.test(t));
-        if (unitIdx > 0) {
-          const unit = tokens[unitIdx];
-
-          let qty = NaN;
-          let sku = '';
-          let barcode = '';
-          let numberTokensStartIdx = -1;
-
-          const qtyBeforeVal = tokens[unitIdx - 1];
-          const qtyAfterVal = unitIdx + 1 < tokens.length ? tokens[unitIdx + 1] : '';
-
-          const isQtyBeforeValid = unitIdx > 0 && /^\d+$/.test(qtyBeforeVal);
-          const isQtyAfterValid = unitIdx + 1 < tokens.length && /^\d+$/.test(qtyAfterVal);
-
-          if (isQtyBeforeValid) {
-            qty = parseInt(qtyBeforeVal);
-            const skuCandidates = tokens.slice(0, unitIdx - 1);
-            
-            const foundBarcode = skuCandidates.find(cand => /^\d{12,14}$/.test(cand));
-            if (foundBarcode) {
-              barcode = foundBarcode;
+          const skuVariations = [sku];
+          if (sku.includes('.')) {
+            const parts = sku.split('.');
+            // If SKU has 4 parts like "20.40.1.4", add "2040.1.4"
+            if (parts.length === 4 && parts[0].length === 2 && parts[1].length === 2) {
+              const joined = parts[0] + parts[1] + '.' + parts[2] + '.' + parts[3];
+              skuVariations.push(joined);
             }
+            // If SKU has 3 parts but has dots like "2040.1.4", we can add dotted variant "20.40.1.4"
+            if (parts.length === 3 && parts[0].length === 4) {
+              const dotted = parts[0].slice(0, 2) + '.' + parts[0].slice(2) + '.' + parts[1] + '.' + parts[2];
+              skuVariations.push(dotted);
+            }
+          }
 
-            const cleanCandidates = skuCandidates.filter((cand, idx) => {
-              if (idx === 0 && /^\d{1,3}$/.test(cand) && skuCandidates.length > 1) {
-                const nextCand = skuCandidates[1];
-                if (nextCand && (/^\d{8}$/.test(nextCand) || /^\d{12,14}$/.test(nextCand))) {
-                  return true;
+          const bpMatch = pageText.match(/(?:BOX|PCT):\s*([\d.,]+)/i);
+          const boxPrice = bpMatch ? parseBrFloat(bpMatch[1]) : 0;
+
+          const upMatch = pageText.match(/UNI:\s*([\d.,]+)/i);
+          const unitPrice = upMatch ? parseBrFloat(upMatch[1]) : 0;
+
+          const bqMatch = pageText.match(/(?:BOX|PCT|C)\s*\/(\d+)/i) || pageText.match(/(?:BOX|PCT)\s+C\/(\d+)/i) || pageText.match(/C\/(\d+)/i);
+          const boxQty = bqMatch ? parseInt(bqMatch[1]) : 12;
+
+          let finalUnitPrice = unitPrice;
+          let finalQty = boxQty;
+          if (finalUnitPrice === 0 && boxPrice > 0 && boxQty > 0) {
+            finalUnitPrice = boxPrice / boxQty;
+          }
+
+          const grossTotal = boxPrice > 0 ? boxPrice : (finalUnitPrice * finalQty);
+
+          parsedItems.push({
+            sku,
+            skuVariations,
+            qty: finalQty,
+            unit: 'UN',
+            unitPrice: finalUnitPrice,
+            grossTotal,
+            discount: 0,
+            netTotal: grossTotal
+          });
+        }
+      } else {
+        // Fallback to existing standard invoice line parsing
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i];
+
+          // 1. Check for CNPJ
+          const cnpjMatch = line.match(/(\d{2})\.(\d{3})\.(\d{3})\/(\d{4})-(\d{2})/);
+          if (cnpjMatch) {
+            const cleanCnpj = cnpjMatch[0].replace(/\D/g, '');
+            if (cleanCnpj !== distributorCnpj && !clientCnpj) {
+              clientCnpj = cleanCnpj;
+              const nameMatch = line.match(/(.*?)\s+\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}/);
+              if (nameMatch && nameMatch[1].trim() && !clientName) {
+                clientName = nameMatch[1].trim();
+              }
+            }
+          }
+
+          // 2. Check for CLIENTE label
+          const clientLabelMatch = line.match(/CLIENTE:\s*([^\n\r]+)/i);
+          if (clientLabelMatch && !clientName) {
+            clientName = clientLabelMatch[1].trim();
+          }
+
+          // 3. Check for Date
+          const dpMatch = line.match(/DATA PEDIDO:\s*(\d{2})\/(\d{2})\/(\d{4})/i);
+          if (dpMatch && !orderDateStr) {
+            orderDateStr = `${dpMatch[3]}-${dpMatch[2]}-${dpMatch[1]}`;
+          }
+          const dtMatch = line.match(/(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2}):(\d{2})/);
+          if (dtMatch && !orderDateStr) {
+            orderDateStr = `${dtMatch[3]}-${dtMatch[2]}-${dtMatch[1]}T${dtMatch[4]}:${dtMatch[5]}:${dtMatch[6]}`;
+          }
+
+          // 4. Check for order items
+          const tokens = line.split(/\s+/);
+          const unitRegex = /^(UN|UND|UNID|PC|PÇ|PÇA|CX|CAIXA|KIT|PCT|PACOTE|BX|BOX|FD|FARDO|JG|JOGO|RL|ROLO|GL|GALAO|LT|LATA|LITRO|KG|KILO|GR|GRAMA|MT|METRO|DZ|DUZIA|PAR|CJ|CONJ|SC|SACO|TB|TUBO|ENV|AMP|FR|PT|POTE|CT|CRT)\.?$/i;
+          const unitIdx = tokens.findIndex((t: string) => unitRegex.test(t));
+          if (unitIdx > 0) {
+            const unit = tokens[unitIdx];
+
+            let qty = NaN;
+            let sku = '';
+            let barcode = '';
+            let numberTokensStartIdx = -1;
+
+            const qtyBeforeVal = tokens[unitIdx - 1];
+            const qtyAfterVal = unitIdx + 1 < tokens.length ? tokens[unitIdx + 1] : '';
+
+            const isQtyBeforeValid = unitIdx > 0 && /^\d+$/.test(qtyBeforeVal);
+            const isQtyAfterValid = unitIdx + 1 < tokens.length && /^\d+$/.test(qtyAfterVal);
+
+            if (isQtyBeforeValid) {
+              qty = parseInt(qtyBeforeVal);
+              const skuCandidates = tokens.slice(0, unitIdx - 1);
+              
+              const foundBarcode = skuCandidates.find((cand: string) => /^\d{12,14}$/.test(cand));
+              if (foundBarcode) {
+                barcode = foundBarcode;
+              }
+
+              const cleanCandidates = skuCandidates.filter((cand: string, idx: number) => {
+                if (idx === 0 && /^\d{1,3}$/.test(cand) && skuCandidates.length > 1) {
+                  const nextCand = skuCandidates[1];
+                  if (nextCand && (/^\d{8}$/.test(nextCand) || /^\d{12,14}$/.test(nextCand))) {
+                    return true;
+                  }
+                  return false;
                 }
-                return false;
-              }
-              if (/^(SKU|COD|CÓD|C[OÓ]DIGO|REF|REFERENCIA|REFERÊNCIA)[:.]?$/i.test(cand)) {
-                return false;
-              }
-              return true;
-            });
+                if (/^(SKU|COD|CÓD|C[OÓ]DIGO|REF|REFERENCIA|REFERÊNCIA)[:.]?$/i.test(cand)) {
+                  return false;
+                }
+                return true;
+              });
 
-            if (cleanCandidates.length > 0) {
-              sku = cleanCandidates[0].trim().toUpperCase();
-            } else if (skuCandidates.length > 0) {
-              const candidate = skuCandidates[0].trim().toUpperCase();
-              if (/^\d{1,3}$/.test(candidate) && unitIdx + 1 < tokens.length && !/^\d+$/.test(tokens[unitIdx + 1])) {
-                sku = tokens[unitIdx + 1].trim().toUpperCase();
+              if (cleanCandidates.length > 0) {
+                sku = cleanCandidates[0].trim().toUpperCase();
+              } else if (skuCandidates.length > 0) {
+                const candidate = skuCandidates[0].trim().toUpperCase();
+                if (/^\d{1,3}$/.test(candidate) && unitIdx + 1 < tokens.length && !/^\d+$/.test(tokens[unitIdx + 1])) {
+                  sku = tokens[unitIdx + 1].trim().toUpperCase();
+                } else {
+                  sku = candidate;
+                }
               } else {
-                sku = candidate;
+                if (unitIdx + 1 < tokens.length) {
+                  sku = tokens[unitIdx + 1].trim().toUpperCase();
+                }
               }
-            } else {
-              if (unitIdx + 1 < tokens.length) {
-                sku = tokens[unitIdx + 1].trim().toUpperCase();
-              }
-            }
 
-            if (cleanCandidates.length > 0 || skuCandidates.length > 0) {
-              numberTokensStartIdx = unitIdx + 1;
-            } else {
+              if (cleanCandidates.length > 0 || skuCandidates.length > 0) {
+                numberTokensStartIdx = unitIdx + 1;
+              } else {
+                numberTokensStartIdx = unitIdx + 2;
+              }
+
+            } else if (isQtyAfterValid) {
+              qty = parseInt(qtyAfterVal);
+              const skuCandidates = tokens.slice(0, unitIdx);
+              
+              const foundBarcode = skuCandidates.find((cand: string) => /^\d{12,14}$/.test(cand));
+              if (foundBarcode) {
+                barcode = foundBarcode;
+              }
+
+              const cleanCandidates = skuCandidates.filter((cand: string, idx: number) => {
+                if (idx === 0 && /^\d{1,3}$/.test(cand) && skuCandidates.length > 1) {
+                  const nextCand = skuCandidates[1];
+                  if (nextCand && (/^\d{8}$/.test(nextCand) || /^\d{12,14}$/.test(nextCand))) {
+                    return true;
+                  }
+                  return false;
+                }
+                if (/^(SKU|COD|CÓD|C[OÓ]DIGO|REF|REFERENCIA|REFERÊNCIA)[:.]?$/i.test(cand)) {
+                  return false;
+                }
+                return true;
+              });
+
+              if (cleanCandidates.length > 0) {
+                sku = cleanCandidates[0].trim().toUpperCase();
+              } else if (skuCandidates.length > 0) {
+                sku = skuCandidates[0].trim().toUpperCase();
+              }
+
               numberTokensStartIdx = unitIdx + 2;
             }
 
-          } else if (isQtyAfterValid) {
-            qty = parseInt(qtyAfterVal);
-            const skuCandidates = tokens.slice(0, unitIdx);
-            
-            const foundBarcode = skuCandidates.find(cand => /^\d{12,14}$/.test(cand));
-            if (foundBarcode) {
-              barcode = foundBarcode;
-            }
-
-            const cleanCandidates = skuCandidates.filter((cand, idx) => {
-              if (idx === 0 && /^\d{1,3}$/.test(cand) && skuCandidates.length > 1) {
-                const nextCand = skuCandidates[1];
-                if (nextCand && (/^\d{8}$/.test(nextCand) || /^\d{12,14}$/.test(nextCand))) {
-                  return true;
-                }
-                return false;
-              }
-              if (/^(SKU|COD|CÓD|C[OÓ]DIGO|REF|REFERENCIA|REFERÊNCIA)[:.]?$/i.test(cand)) {
-                return false;
-              }
-              return true;
-            });
-
-            if (cleanCandidates.length > 0) {
-              sku = cleanCandidates[0].trim().toUpperCase();
-            } else if (skuCandidates.length > 0) {
-              sku = skuCandidates[0].trim().toUpperCase();
-            }
-
-            numberTokensStartIdx = unitIdx + 2;
-          }
-
-          if (!isNaN(qty) && sku && qty > 0 && numberTokensStartIdx !== -1) {
-            const numberTokens: string[] = [];
-            for (let j = numberTokensStartIdx; j < tokens.length; j++) {
-              const cleanToken = tokens[j].replace(/R\$\s*/i, '').replace(/%/g, '').trim();
-              
-              // Skip barcodes (12-14 digits) and NCM (8 digits)
-              if (/^\d{8}$/.test(cleanToken) || /^\d{12,14}$/.test(cleanToken)) {
-                continue;
-              }
-
-              if (/^[\d.,]+$/.test(cleanToken)) {
-                numberTokens.push(cleanToken);
-              }
-            }
-
-            if (i + 1 < lines.length) {
-              const nextLineTokens = lines[i + 1].split(/\s+/);
-              if (nextLineTokens.length === 1) {
-                const cleanNextToken = nextLineTokens[0].replace(/R\$\s*/i, '').replace(/%/g, '').trim();
+            if (!isNaN(qty) && sku && qty > 0 && numberTokensStartIdx !== -1) {
+              const numberTokens: string[] = [];
+              for (let j = numberTokensStartIdx; j < tokens.length; j++) {
+                const cleanToken = tokens[j].replace(/R\$\s*/i, '').replace(/%/g, '').trim();
                 
                 // Skip barcodes (12-14 digits) and NCM (8 digits)
-                if (/^\d{8}$/.test(cleanNextToken) || /^\d{12,14}$/.test(cleanNextToken)) {
-                  // Do nothing
-                } else if (/^[\d.,]+$/.test(cleanNextToken)) {
-                  numberTokens.push(cleanNextToken);
+                if (/^\d{8}$/.test(cleanToken) || /^\d{12,14}$/.test(cleanToken)) {
+                  continue;
+                }
+
+                if (/^[\d.,]+$/.test(cleanToken)) {
+                  numberTokens.push(cleanToken);
                 }
               }
-            }
 
-            const numbers = numberTokens.map(parseBrFloat).filter(n => n >= 0 && n < 500000);
+              if (i + 1 < lines.length) {
+                const nextLineTokens = lines[i + 1].split(/\s+/);
+                if (nextLineTokens.length === 1) {
+                  const cleanNextToken = nextLineTokens[0].replace(/R\$\s*/i, '').replace(/%/g, '').trim();
+                  
+                  // Skip barcodes (12-14 digits) and NCM (8 digits)
+                  if (/^\d{8}$/.test(cleanNextToken) || /^\d{12,14}$/.test(cleanNextToken)) {
+                    // Do nothing
+                  } else if (/^[\d.,]+$/.test(cleanNextToken)) {
+                    numberTokens.push(cleanNextToken);
+                  }
+                }
+              }
 
-            if (numbers.length > 0) {
-              const unitPrice = numbers[0];
-              const grossTotal = qty * unitPrice;
-              let discount = 0;
-              let netTotal = grossTotal;
+              const numbers = numberTokens.map(parseBrFloat).filter(n => n >= 0 && n < 500000);
 
-              let pairFound = false;
-              const remaining = numbers.slice(1);
-              for (let a = 0; a < remaining.length; a++) {
-                for (let b = 0; b < remaining.length; b++) {
-                  if (a !== b) {
-                    const dCandidate = remaining[a];
-                    const nCandidate = remaining[b];
-                    if (Math.abs(grossTotal - dCandidate - nCandidate) < 0.05) {
-                      // The smaller candidate is the discount, the larger candidate is the net total
-                      discount = Math.min(dCandidate, nCandidate);
-                      netTotal = Math.max(dCandidate, nCandidate);
+              if (numbers.length > 0) {
+                const unitPrice = numbers[0];
+                const grossTotal = qty * unitPrice;
+                let discount = 0;
+                let netTotal = grossTotal;
+
+                let pairFound = false;
+                const remaining = numbers.slice(1);
+                for (let a = 0; a < remaining.length; a++) {
+                  for (let b = 0; b < remaining.length; b++) {
+                    if (a !== b) {
+                      const dCandidate = remaining[a];
+                      const nCandidate = remaining[b];
+                      if (Math.abs(grossTotal - dCandidate - nCandidate) < 0.05) {
+                        // The smaller candidate is the discount, the larger candidate is the net total
+                        discount = Math.min(dCandidate, nCandidate);
+                        netTotal = Math.max(dCandidate, nCandidate);
+                        pairFound = true;
+                        break;
+                      }
+                    }
+                  }
+                  if (pairFound) break;
+                }
+
+                if (!pairFound) {
+                  for (const num of remaining) {
+                    if (Math.abs(grossTotal - num) < 0.05) {
+                      netTotal = num;
+                      discount = 0;
                       pairFound = true;
                       break;
                     }
                   }
                 }
-                if (pairFound) break;
-              }
 
-              if (!pairFound) {
-                for (const num of remaining) {
-                  if (Math.abs(grossTotal - num) < 0.05) {
-                    netTotal = num;
-                    discount = 0;
-                    pairFound = true;
-                    break;
-                  }
-                }
+                parsedItems.push({
+                  sku,
+                  barcode,
+                  qty,
+                  unit,
+                  unitPrice,
+                  grossTotal,
+                  discount,
+                  netTotal
+                });
               }
-
-              parsedItems.push({
-                sku,
-                barcode,
-                qty,
-                unit,
-                unitPrice,
-                grossTotal,
-                discount,
-                netTotal
-              });
             }
           }
         }
@@ -615,7 +699,20 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
       }
 
       // Fetch matching products from DB using both sku and barcode in case they match either
-      const skus = Array.from(new Set(parsedItems.map(item => item.sku).filter((s): s is string => !!s)));
+      let skusToQuery: string[] = [];
+      if (isCatalogPdf) {
+        parsedItems.forEach((item: any) => {
+          if (item.skuVariations) {
+            skusToQuery.push(...item.skuVariations);
+          } else {
+            skusToQuery.push(item.sku);
+          }
+        });
+      } else {
+        skusToQuery = parsedItems.map(item => item.sku).filter((s): s is string => !!s);
+      }
+      skusToQuery = Array.from(new Set(skusToQuery.map(s => s.toUpperCase())));
+
       const barcodes = Array.from(new Set(parsedItems.map(item => item.barcode).filter((b): b is string => !!b)));
 
       let dbProductsQuery = supabase
@@ -624,11 +721,11 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
         .eq('company_id', companyId);
 
       if (barcodes.length > 0) {
-        const skuFilter = skus.map(s => `"${s.replace(/"/g, '""')}"`).join(',');
+        const skuFilter = skusToQuery.map(s => `"${s.replace(/"/g, '""')}"`).join(',');
         const barcodeFilter = barcodes.map(b => `"${b.replace(/"/g, '""')}"`).join(',');
         dbProductsQuery = dbProductsQuery.or(`sku.in.(${skuFilter}),barcode.in.(${barcodeFilter})`);
       } else {
-        dbProductsQuery = dbProductsQuery.in('sku', skus);
+        dbProductsQuery = dbProductsQuery.in('sku', skusToQuery);
       }
 
       const { data: dbProducts } = await dbProductsQuery;
@@ -643,6 +740,14 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
       for (const p of dbProducts) {
         if (p.sku) {
           productMap.set(p.sku.toUpperCase(), p);
+          // If database has SKU like "2040.1.4", also support variation matching with "20.40.1.4"
+          if (p.sku.includes('.')) {
+            const parts = p.sku.split('.');
+            if (parts.length === 3 && parts[0].length === 4) {
+              const dotted = parts[0].slice(0, 2) + '.' + parts[0].slice(2) + '.' + parts[1] + '.' + parts[2];
+              productMap.set(dotted.toUpperCase(), p);
+            }
+          }
         }
         if (p.barcode) {
           productMap.set(p.barcode.toUpperCase(), p);
@@ -656,10 +761,27 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
         if (item.sku) {
           product = productMap.get(item.sku.toUpperCase());
         }
+        if (!product && (item as any).skuVariations) {
+          for (const variant of (item as any).skuVariations) {
+            product = productMap.get(variant.toUpperCase());
+            if (product) break;
+          }
+        }
         if (!product && item.barcode) {
           product = productMap.get(item.barcode.toUpperCase());
         }
         if (!product) return null;
+
+        // If the product currently has a price of 0 in the database, update it asynchronously to the parsed unitPrice
+        if (supabase && (product.preco_unitario === 0 || !product.preco_unitario) && item.unitPrice > 0) {
+          supabase.from('products')
+            .update({ preco_unitario: item.unitPrice })
+            .eq('id', product.id)
+            .then(({ error }) => {
+              if (error) console.error('Erro ao atualizar preco do produto:', error.message);
+              else console.log(`Preço do produto ${product.sku} atualizado com sucesso para ${item.unitPrice}`);
+            });
+        }
 
         return {
           product_id: product.id,
@@ -707,6 +829,12 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
         let product = null;
         if (item.sku) {
           product = productMap.get(item.sku.toUpperCase());
+        }
+        if (!product && (item as any).skuVariations) {
+          for (const variant of (item as any).skuVariations) {
+            product = productMap.get(variant.toUpperCase());
+            if (product) break;
+          }
         }
         if (!product && item.barcode) {
           product = productMap.get(item.barcode.toUpperCase());

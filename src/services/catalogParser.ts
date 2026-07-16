@@ -242,20 +242,45 @@ async function getPdfPagesLines(file: File): Promise<string[][]> {
   for (let pageNum = 1; pageNum <= doc.numPages; pageNum++) {
     const page = await doc.getPage(pageNum);
     const content = await page.getTextContent();
-    const rows = new Map<number, { x: number, str: string }[]>();
+    
+    // Filtra e mapeia os itens do PDF
+    const items = (content.items as any[])
+      .filter(item => 'str' in item && item.str.trim())
+      .map(item => ({
+        x: item.transform[4],
+        y: item.transform[5],
+        str: item.str
+      }));
 
-    for (const item of content.items as any[]) {
-      if (!('str' in item) || !item.str.trim()) continue;
-      const y = Math.round(item.transform[5]);
-      if (!rows.has(y)) rows.set(y, []);
-      rows.get(y)!.push({ x: item.transform[4], str: item.str });
+    // Agrupa itens em linhas físicas considerando uma tolerância vertical (ex: 5 pixels)
+    const tolerance = 5;
+    const linesWithY: { y: number, items: { x: number, str: string }[] }[] = [];
+
+    for (const item of items) {
+      let foundLine = linesWithY.find(l => Math.abs(l.y - item.y) <= tolerance);
+      if (foundLine) {
+        foundLine.items.push({ x: item.x, str: item.str });
+      } else {
+        linesWithY.push({
+          y: item.y,
+          items: [{ x: item.x, str: item.str }]
+        });
+      }
     }
 
+    // Ordena as linhas de cima para baixo (y descendente)
+    linesWithY.sort((a, b) => b.y - a.y);
+
     const pageLines: string[] = [];
-    const sortedYs = Array.from(rows.keys()).sort((a, b) => b - a);
-    for (const y of sortedYs) {
-      const line = rows.get(y)!.sort((a, b) => a.x - b.x).map(r => r.str).join(' ').replace(/\s+/g, ' ').trim();
-      if (line) pageLines.push(line);
+    // Para cada linha, ordena da esquerda para a direita (x ascendente) e une o texto
+    for (const lineObj of linesWithY) {
+      const lineText = lineObj.items
+        .sort((a, b) => a.x - b.x)
+        .map(r => r.str)
+        .join(' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      if (lineText) pageLines.push(lineText);
     }
     pagesLines.push(pageLines);
   }
@@ -330,52 +355,94 @@ function parseLinesHeuristically(lines: string[]): ParsedCatalogProduct[] {
     'PRECO', 'PREÇO', 'C/12', 'CX', 'TABELA', 'CATALOGO', 'CATÁLOGO', 'PÁGINA',
     'PAGINA', 'TELEFONE', 'CONTATO', 'VIVAI', 'JB', 'COSMETICOS', 'COSMÉTICOS',
     'EMPRESA', 'CLIENTE', 'PEDIDO', 'DATA', 'VENDEDOR', 'MARCA', 'COD', 'REF',
-    'SKU', 'EAN', 'DUN', 'S/D'
+    'SKU', 'EAN', 'DUN', 'S/D', 'QTD', 'QUANTIDADE', 'ESTOQUE', 'DISPONIVEL',
+    'VENCIMENTO', 'LOTE', 'ATIVO', 'INATIVO', 'PRODUTO', 'DESCRICAO', 'NOME'
   ]);
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
     if (!line) continue;
 
-    // Procura por preço no formato brasileiro (ex: R$ 15,90 ou 15,90) ou decimal simples
-    const priceMatch = line.match(/(?:R\$\s*)?(\d{1,4},\d{2})\b/) || line.match(/R\$\s*([\d.,]+)/);
+    // Busca o preço na linha (suporta R$ opcional, formatos 12,90 ou 12.90)
+    const priceMatch = line.match(/(?:R\$\s*)?(\b\d{1,4}[,.]\d{2}\b)/i) || line.match(/R\$\s*([\d.,]+)/i);
     if (!priceMatch) continue;
 
     const priceVal = parseNumber(priceMatch[1]);
-    if (priceVal <= 0) continue;
+    if (priceVal <= 0 || priceVal > 10000) continue; // preços irreais ou zero são ignorados
 
     const tokens = line.split(/\s+/);
     if (tokens.length < 3) continue;
 
-    // Busca um SKU/Código candidato nos primeiros 3 tokens
-    let sku = '';
-    let skuIdx = -1;
+    const priceTokenStr = priceMatch[0];
+    const priceValStr = priceMatch[1];
 
-    for (let j = 0; j < Math.min(3, tokens.length); j++) {
-      const token = tokens[j].toUpperCase().replace(/[:.\-]/g, '');
-      if (
-        tokens[j].length >= 3 && 
-        tokens[j].length <= 15 && 
-        /^[A-Z0-9\-./]+$/i.test(tokens[j]) && 
-        !stopWords.has(token) &&
-        !/^\d{2}\/\d{2}\/\d{4}$/.test(tokens[j]) && 
-        !/^\d{1,4},\d{2}$/.test(tokens[j]) && 
-        !/^R\$$/i.test(tokens[j])
-      ) {
-        sku = tokens[j].toUpperCase().trim();
-        skuIdx = j;
-        break;
+    let bestSku = '';
+    let bestSkuIdx = -1;
+    let maxScore = -1;
+
+    for (let j = 0; j < tokens.length; j++) {
+      const token = tokens[j];
+      const tokenUpper = token.toUpperCase().trim();
+      const tokenClean = tokenUpper.replace(/[:.\-]/g, '');
+
+      // Ignora tokens que são o preço encontrado
+      if (token === priceTokenStr || token.includes(priceValStr)) continue;
+      if (tokenUpper === 'R$' || tokenUpper === '$') continue;
+
+      // Ignora datas (ex: 15/10/2026)
+      if (/^\d{1,2}\/\d{1,2}\/\d{2,4}$/.test(token)) continue;
+
+      // Ignora palavras comuns ou stopWords
+      if (stopWords.has(tokenClean) || tokenClean.length < 3 || tokenClean.length > 20) continue;
+
+      // Só aceita tokens com caracteres alfanuméricos válidos para SKU
+      if (!/^[A-Z0-9\-./]+$/i.test(token)) continue;
+
+      // Calcula pontuação para este token ser o SKU
+      let score = 0;
+
+      // 1. Sequência com pontos (ex: 40.10.12) -> Excelente candidato a SKU
+      if (/\b\d{1,4}(?:\.\d{1,4}){2,3}\b/.test(token)) {
+        score += 100;
+      }
+      // 2. Mistura de letras e números (ex: JB102, H-23) -> Excelente candidato a SKU
+      else if (/[A-Z]/i.test(token) && /[0-9]/.test(token)) {
+        score += 80;
+      }
+      // 3. Contém hífens ou barras e não é data -> Ótimo SKU
+      else if (/[-\/]/.test(token)) {
+        score += 60;
+      }
+      // 4. É puramente numérico e tem entre 4 e 10 dígitos -> Bom SKU
+      else if (/^\d{4,10}$/.test(token)) {
+        score += 50;
+      }
+      // 5. É puramente numérico e tem 3 dígitos -> SKU razoável
+      else if (/^\d{3}$/.test(token)) {
+        score += 30;
+      }
+      // 6. É puramente de texto com 3 a 6 caracteres -> Candidato fraco (pode ser parte do nome, ex: BATOM)
+      else if (/^[A-Z]{3,6}$/i.test(token)) {
+        score += 10;
+      }
+
+      if (score > maxScore) {
+        maxScore = score;
+        bestSku = token.toUpperCase().trim();
+        bestSkuIdx = j;
       }
     }
 
-    if (!sku || skuIdx === -1) continue;
-    if (seen.has(sku)) continue;
+    // Só aceitamos SKUs com pontuação mínima de 30 para evitar confundir palavras do nome do produto com SKU
+    if (!bestSku || maxScore < 30) continue;
+    if (seen.has(bestSku)) continue;
 
-    // Extrai o nome limpando as informações do SKU, do Preço, de R$, etc.
+    // Extrai o nome limpando as informações do SKU, do Preço, etc.
     const cleanTokens = tokens.filter((t, idx) => {
-      if (idx === skuIdx) return false;
-      if (t === priceMatch[0] || t.includes(priceMatch[1])) return false;
+      if (idx === bestSkuIdx) return false;
+      if (t === priceTokenStr || t.includes(priceValStr)) return false;
       if (t.toUpperCase() === 'R$') return false;
+      
       const upper = t.toUpperCase().replace(/[.:]/g, '');
       if (['UN', 'UND', 'UNID', 'PC', 'PÇ', 'PÇA', 'CX', 'CAIXA', 'KIT', 'PCT', 'PACOTE'].includes(upper)) return false;
       return true;
@@ -384,9 +451,9 @@ function parseLinesHeuristically(lines: string[]): ParsedCatalogProduct[] {
     const nome = cleanTokens.join(' ').trim();
     if (!nome || nome.length < 3) continue;
 
-    seen.add(sku);
+    seen.add(bestSku);
     results.push({
-      sku,
+      sku: bestSku,
       nome: decodeHtmlEntities(nome),
       preco_unitario: priceVal,
       preco_box: 0,
@@ -404,42 +471,28 @@ function parseLinesHeuristically(lines: string[]): ParsedCatalogProduct[] {
 
 export async function parsePdfCatalog(file: File): Promise<ParsedCatalogProduct[]> {
   const pagesLines = await getPdfPagesLines(file);
+  const results: ParsedCatalogProduct[] = [];
+  const seen = new Set<string>();
 
-  // Detecta se este arquivo possui o formato de catálogo com marcadores BOX/PCT e UNI (ex: Vivai, JB Cosméticos)
-  let isCatalogFormat = false;
-  let catalogMatches = 0;
-  for (const pageL of pagesLines) {
+  const stopWords = new Set([
+    'BOX', 'PCT', 'UNI', 'UND', 'UN', 'PAG', 'FOLHA', 'R$', 'VALOR', 'TOTAL', 
+    'PRECO', 'PREÇO', 'C/12', 'CX', 'TABELA', 'CATALOGO', 'CATÁLOGO', 'PÁGINA',
+    'PAGINA', 'TELEFONE', 'CONTATO', 'VIVAI', 'JB', 'COSMETICOS', 'COSMÉTICOS',
+    'EMPRESA', 'CLIENTE', 'PEDIDO', 'DATA', 'VENDEDOR', 'MARCA', 'COD', 'REF',
+    'SKU', 'EAN', 'DUN', 'S/D'
+  ]);
+
+  for (let pIdx = 0; pIdx < pagesLines.length; pIdx++) {
+    const pageL = pagesLines[pIdx];
     const pageText = pageL.join(' ');
-    // Tornamos os dois pontos opcionais e adicionamos suporte a "R$" para dar suporte a variações de impressão
+
+    // Verifica se esta página específica se comporta como uma página de catálogo (fotos com BOX/PCT e UNI)
     const hasBoxOrPct = /(?:BOX|PCT)\s*:?\s*(?:R\$\s*)?[\d.,]+/i.test(pageText);
     const hasUni = /UNI\s*:?\s*(?:R\$\s*)?[\d.,]+/i.test(pageText);
     const hasSkuCandidate = /\b\d{1,4}(?:\.\d{1,4}){2,3}\b/.test(pageText) || /\b[A-Z0-9-]{3,12}\b/i.test(pageText);
+
     if ((hasBoxOrPct || hasUni) && hasSkuCandidate) {
-      catalogMatches++;
-    }
-  }
-
-  if (catalogMatches >= Math.min(2, pagesLines.length)) {
-    isCatalogFormat = true;
-  }
-
-  if (isCatalogFormat) {
-    console.log('Detected Vivai/JB Catalog PDF format. Parsing page-by-page...');
-    const results: ParsedCatalogProduct[] = [];
-    const seen = new Set<string>();
-
-    const stopWords = new Set([
-      'BOX', 'PCT', 'UNI', 'UND', 'UN', 'PAG', 'FOLHA', 'R$', 'VALOR', 'TOTAL', 
-      'PRECO', 'PREÇO', 'C/12', 'CX', 'TABELA', 'CATALOGO', 'CATÁLOGO', 'PÁGINA',
-      'PAGINA', 'TELEFONE', 'CONTATO', 'VIVAI', 'JB', 'COSMETICOS', 'COSMÉTICOS',
-      'EMPRESA', 'CLIENTE', 'PEDIDO', 'DATA', 'VENDEDOR', 'MARCA', 'COD', 'REF',
-      'SKU', 'EAN', 'DUN', 'S/D'
-    ]);
-
-    for (const pageL of pagesLines) {
-      const pageText = pageL.join(' ');
-
-      // Extração de SKU flexível para páginas do Catálogo
+      // --- PROCESSAMENTO COMO PÁGINA DE CATÁLOGO ---
       let sku = '';
       
       // 1. Procurar por rótulos explícitos primeiro
@@ -470,81 +523,91 @@ export async function parsePdfCatalog(file: File): Promise<ParsedCatalogProduct[
         }
       }
 
-      if (!sku) continue;
-      if (seen.has(sku)) continue;
-      seen.add(sku);
+      if (sku && !seen.has(sku)) {
+        seen.add(sku);
 
-      // Preço de BOX / PCT (suporta dois pontos opcionais e cifra de R$)
-      const bpMatch = pageText.match(/(?:BOX|PCT)\s*:?\s*(?:R\$\s*)?([\d.,]+)/i);
-      const boxPrice = bpMatch ? parseNumber(bpMatch[1]) : 0;
+        // Preço de BOX / PCT (suporta dois pontos opcionais e cifra de R$)
+        const bpMatch = pageText.match(/(?:BOX|PCT)\s*:?\s*(?:R\$\s*)?([\d.,]+)/i);
+        const boxPrice = bpMatch ? parseNumber(bpMatch[1]) : 0;
 
-      // Preço UNI (suporta dois pontos opcionais e cifra de R$)
-      const upMatch = pageText.match(/UNI\s*:?\s*(?:R\$\s*)?([\d.,]+)/i);
-      const unitPrice = upMatch ? parseNumber(upMatch[1]) : 0;
+        // Preço UNI (suporta dois pontos opcionais e cifra de R$)
+        const upMatch = pageText.match(/UNI\s*:?\s*(?:R\$\s*)?([\d.,]+)/i);
+        const unitPrice = upMatch ? parseNumber(upMatch[1]) : 0;
 
-      // Quantidade no BOX (ex: "BOX C/12", "C/24", etc.)
-      const bqMatch = pageText.match(/(?:BOX|PCT|C)\s*\/(\d+)/i) || pageText.match(/(?:BOX|PCT)\s+C\/(\d+)/i) || pageText.match(/C\/(\d+)/i);
-      const boxQty = bqMatch ? parseInt(bqMatch[1]) : 12;
+        // Quantidade no BOX (ex: "BOX C/12", "C/24", etc.)
+        const bqMatch = pageText.match(/(?:BOX|PCT|C)\s*\/(\d+)/i) || pageText.match(/(?:BOX|PCT)\s+C\/(\d+)/i) || pageText.match(/C\/(\d+)/i);
+        const boxQty = bqMatch ? parseInt(bqMatch[1]) : 12;
 
-      let finalUnitPrice = unitPrice;
-      let finalBoxPrice = boxPrice;
-      if (finalUnitPrice === 0 && finalBoxPrice > 0 && boxQty > 0) {
-        finalUnitPrice = finalBoxPrice / boxQty;
-      }
-      if (finalBoxPrice === 0 && finalUnitPrice > 0 && boxQty > 0) {
-        finalBoxPrice = finalUnitPrice * boxQty;
-      }
+        let finalUnitPrice = unitPrice;
+        let finalBoxPrice = boxPrice;
+        if (finalUnitPrice === 0 && finalBoxPrice > 0 && boxQty > 0) {
+          finalUnitPrice = finalBoxPrice / boxQty;
+        }
+        if (finalBoxPrice === 0 && finalUnitPrice > 0 && boxQty > 0) {
+          finalBoxPrice = finalUnitPrice * boxQty;
+        }
 
-      // Nome do produto da página
-      let nome = '';
-      if (pageL.length > 1) {
-        const cleanLines = pageL.filter(l => 
-          !l.includes(sku) && 
-          !/(?:BOX|PCT|UNI)\s*:?/i.test(l) && 
-          !/(?:BOX|PCT|C)\s*\/(\d+)/i.test(l) &&
-          !/BOX\s+C/i.test(l) &&
-          !/PCT\s+C/i.test(l) &&
-          !/^\d{2}\.\d{2}\.\d{4}$/.test(l)
-        );
-        if (cleanLines.length > 0) {
-          nome = cleanLines[0];
-          if (cleanLines.length > 1 && cleanLines[1].length > nome.length && cleanLines[1].length < 50) {
-            nome = cleanLines[1];
+        // Nome do produto da página
+        let nome = '';
+        if (pageL.length > 1) {
+          const cleanLines = pageL.filter(l => 
+            !l.includes(sku) && 
+            !/(?:BOX|PCT|UNI)\s*:?/i.test(l) && 
+            !/(?:BOX|PCT|C)\s*\/(\d+)/i.test(l) &&
+            !/BOX\s+C/i.test(l) &&
+            !/PCT\s+C/i.test(l) &&
+            !/^\d{2}\.\d{2}\.\d{4}$/.test(l)
+          );
+          if (cleanLines.length > 0) {
+            nome = cleanLines[0];
+            if (cleanLines.length > 1 && cleanLines[1].length > nome.length && cleanLines[1].length < 50) {
+              nome = cleanLines[1];
+            }
           }
         }
+        if (!nome) nome = `Produto ${sku}`;
+
+        nome = decodeHtmlEntities(nome.trim());
+
+        results.push({
+          sku,
+          nome,
+          preco_unitario: finalUnitPrice,
+          preco_box: finalBoxPrice,
+          qtd_box: boxQty,
+          unidade: 'UN',
+          multiplo_venda: 1,
+          status_estoque: 'normal',
+          source: 'pdf',
+          low_confidence: false,
+        });
+        continue; // processamento concluído para esta página
       }
-      if (!nome) nome = `Produto ${sku}`;
-
-      nome = decodeHtmlEntities(nome.trim());
-
-      results.push({
-        sku,
-        nome,
-        preco_unitario: finalUnitPrice,
-        preco_box: finalBoxPrice,
-        qtd_box: boxQty,
-        unidade: pageText.toUpperCase().includes('PCT') ? 'UN' : 'UN',
-        multiplo_venda: 1,
-        status_estoque: 'normal',
-        source: 'pdf',
-        low_confidence: false,
-      });
     }
-    return results;
+
+    // --- SE NÃO FOR PÁGINA DE CATÁLOGO OU NÃO CONSEGUIU SKU, TENTA PROCESSAR COMO LINHAS DE TABELA ---
+    // Tenta primeiro o parser de linha tradicional para esta página
+    const pageTraditional = parseLinesIntoProducts(pageL);
+    if (pageTraditional.length > 0) {
+      for (const prod of pageTraditional) {
+        if (!seen.has(prod.sku)) {
+          seen.add(prod.sku);
+          results.push(prod);
+        }
+      }
+    } else {
+      // Se não obteve nada, tenta o heurístico de tabela para as linhas desta página
+      const pageHeuristic = parseLinesHeuristically(pageL);
+      for (const prod of pageHeuristic) {
+        if (!seen.has(prod.sku)) {
+          seen.add(prod.sku);
+          results.push(prod);
+        }
+      }
+    }
   }
 
-  // Fallback para leitura linha a linha
-  const flatLines: string[] = [];
-  pagesLines.forEach(pl => flatLines.push(...pl));
-
-  // Tenta o parser de linha tradicional primeiro
-  const traditionalResults = parseLinesIntoProducts(flatLines);
-  if (traditionalResults.length > 0) {
-    return traditionalResults;
-  }
-
-  // Se o tradicional não obteve nada (linhas sem SKU/COD de rótulo explícito), tenta a heurística de tabela
-  return parseLinesHeuristically(flatLines);
+  return results;
 }
 
 // ---------- Roteador por tipo de arquivo ----------

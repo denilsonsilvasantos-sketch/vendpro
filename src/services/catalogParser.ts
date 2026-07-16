@@ -48,28 +48,67 @@ function extractQtdBoxAndMultiplo(nome: string): { qtdBox: number, multiploVenda
 export async function parseExcelCatalog(file: File): Promise<ParsedCatalogProduct[]> {
   const data = await file.arrayBuffer();
   const workbook = XLSX.read(data);
-  const rows = XLSX.utils.sheet_to_json<Record<string, any>>(workbook.Sheets[workbook.SheetNames[0]]);
+  const sheetName = workbook.SheetNames[0];
+  const sheet = workbook.Sheets[sheetName];
+
+  // Read as array of arrays first to find the header row at any offset
+  const allRows = XLSX.utils.sheet_to_json<any[]>(sheet, { header: 1 });
+  if (allRows.length === 0) return [];
+
+  // Find the header row (the one that has columns like sku, codigo, etc.)
+  let headerRowIdx = 0;
+  let maxMatches = 0;
+
+  for (let r = 0; r < Math.min(15, allRows.length); r++) {
+    const row = allRows[r];
+    if (!Array.isArray(row)) continue;
+    
+    let matches = 0;
+    for (const val of row) {
+      if (!val) continue;
+      const s = String(val).toLowerCase();
+      if (/sku|codigo|cod|ref|referencia/i.test(s)) matches++;
+      if (/nome|produto|descrição|description|detalhe/i.test(s)) matches++;
+      if (/preço|preco|valor|price|unitario|custo|venda/i.test(s)) matches++;
+    }
+    if (matches > maxMatches) {
+      maxMatches = matches;
+      headerRowIdx = r;
+    }
+  }
+
+  const headers = (maxMatches > 0 ? allRows[headerRowIdx] : allRows[0]) || [];
+  const headerKeys = headers.map((h: any) => String(h || '').trim().toLowerCase());
+
+  const skuIdx = headerKeys.findIndex(h => /sku|codigo|cod|ref|referencia/i.test(h));
+  const nomeIdx = headerKeys.findIndex(h => /nome|produto|descrição|description|detalhe/i.test(h));
+  const precoIdx = headerKeys.findIndex(h => /preço|preco|valor|price|unitario|venda|tabela\s*1/i.test(h));
+  const precoBoxIdx = headerKeys.findIndex(h => /box|tabela\s*4|tabela4|atacado/i.test(h));
+  const qtdIdx = headerKeys.findIndex(h => /quantidade|qtd|estoque|stock|qnt|disponivel|saldo/i.test(h));
+  const unidadeIdx = headerKeys.findIndex(h => /unidade|un|tipo/i.test(h));
+  const barcodeIdx = headerKeys.findIndex(h => /barcode|codigo de barras|código de barras|bar code|ean|cod\.barras|cod barras/i.test(h));
+  const categoriaIdx = headerKeys.findIndex(h => /categoria|category|grupo/i.test(h));
+
   const results: ParsedCatalogProduct[] = [];
+  const startRow = maxMatches > 0 ? headerRowIdx + 1 : 1;
 
-  for (const row of rows) {
-    const keys = Object.keys(row);
-    const skuKey = keys.find(k => /sku|codigo|cod|ref|referencia/i.test(k));
-    const nomeKey = keys.find(k => /nome|produto|descrição|description/i.test(k));
-    const precoKey = keys.find(k => /preço|preco|valor|price|unitario|padrao/i.test(k));
-    const precoBoxKey = keys.find(k => /box|tabela 4|tabela4/i.test(k));
-    const qtdKey = keys.find(k => /quantidade|qtd|estoque|stock|qnt|disponivel/i.test(k));
-    const unidadeKey = keys.find(k => /unidade|un|tipo/i.test(k));
-    const barcodeKey = keys.find(k => /barcode|codigo de barras|código de barras|bar code|ean|cod\.barras|cod barras/i.test(k));
-    const categoriaKey = keys.find(k => /categoria|category|grupo/i.test(k));
+  for (let r = startRow; r < allRows.length; r++) {
+    const row = allRows[r];
+    if (!Array.isArray(row) || row.length === 0) continue;
 
-    if (!skuKey || !row[skuKey]) continue;
-    const sku = String(row[skuKey]).trim().toUpperCase();
-    const nome = nomeKey ? String(row[nomeKey]).trim() : '';
+    const rawSku = skuIdx !== -1 ? row[skuIdx] : null;
+    if (!rawSku) continue;
+
+    const sku = String(rawSku).trim().toUpperCase();
+    if (!sku || sku === 'UNDEFINED' || sku === 'NULL') continue;
+
+    const nome = nomeIdx !== -1 && row[nomeIdx] ? String(row[nomeIdx]).trim() : '';
     const { qtdBox, multiploVenda } = extractQtdBoxAndMultiplo(nome);
-    const estoque = qtdKey ? parseNumber(row[qtdKey], 0) : undefined;
-    const unidade = unidadeKey ? String(row[unidadeKey]).trim().toUpperCase() : 'UN';
-    let precoUnitario = precoKey ? parseNumber(row[precoKey]) : 0;
-    let precoBox = precoBoxKey ? parseNumber(row[precoBoxKey]) : 0;
+    const estoque = qtdIdx !== -1 ? parseNumber(row[qtdIdx], 0) : undefined;
+    const unidade = unidadeIdx !== -1 && row[unidadeIdx] ? String(row[unidadeIdx]).trim().toUpperCase() : 'UN';
+    
+    let precoUnitario = precoIdx !== -1 ? parseNumber(row[precoIdx]) : 0;
+    let precoBox = precoBoxIdx !== -1 ? parseNumber(row[precoBoxIdx]) : 0;
     const vendaSomenteBox = unidade === 'BX';
     if (vendaSomenteBox && precoBox === 0 && precoUnitario > 0) {
       precoBox = precoUnitario;
@@ -79,7 +118,7 @@ export async function parseExcelCatalog(file: File): Promise<ParsedCatalogProduc
     results.push({
       sku,
       nome: decodeHtmlEntities(nome || `Produto ${sku}`),
-      barcode: barcodeKey ? String(row[barcodeKey]).trim() : undefined,
+      barcode: barcodeIdx !== -1 && row[barcodeIdx] ? String(row[barcodeIdx]).trim() : undefined,
       preco_unitario: precoUnitario,
       preco_box: precoBox,
       qtd_box: qtdBox,
@@ -87,9 +126,53 @@ export async function parseExcelCatalog(file: File): Promise<ParsedCatalogProduc
       multiplo_venda: multiploVenda,
       estoque,
       status_estoque: statusFromQtd(estoque),
-      category_name: categoriaKey ? decodeHtmlEntities(String(row[categoriaKey]).trim()) : undefined,
+      category_name: categoriaIdx !== -1 && row[categoriaIdx] ? decodeHtmlEntities(String(row[categoriaIdx]).trim()) : undefined,
       source: 'excel',
     });
+  }
+
+  // Fallback to old sheet_to_json if header-row offset heuristics resulted in nothing
+  if (results.length === 0) {
+    const standardRows = XLSX.utils.sheet_to_json<Record<string, any>>(sheet);
+    for (const sRow of standardRows) {
+      const keys = Object.keys(sRow);
+      const sSkuKey = keys.find(k => /sku|codigo|cod|ref|referencia/i.test(k));
+      const sNomeKey = keys.find(k => /nome|produto|descrição|description|detalhe/i.test(k));
+      const sPrecoKey = keys.find(k => /preço|preco|valor|price|unitario|venda/i.test(k));
+      const sPrecoBoxKey = keys.find(k => /box|tabela\s*4|tabela4|atacado/i.test(k));
+      const sQtdKey = keys.find(k => /quantidade|qtd|estoque|stock|qnt|disponivel/i.test(k));
+      const sUnidadeKey = keys.find(k => /unidade|un|tipo/i.test(k));
+      const sBarcodeKey = keys.find(k => /barcode|codigo de barras|código de barras|bar code|ean|cod\.barras|cod barras/i.test(k));
+      const sCategoriaKey = keys.find(k => /categoria|category|grupo/i.test(k));
+
+      if (!sSkuKey || !sRow[sSkuKey]) continue;
+      const sku = String(sRow[sSkuKey]).trim().toUpperCase();
+      const nome = sNomeKey ? String(sRow[sNomeKey]).trim() : '';
+      const { qtdBox, multiploVenda } = extractQtdBoxAndMultiplo(nome);
+      const estoque = sQtdKey ? parseNumber(sRow[sQtdKey], 0) : undefined;
+      const unidade = sUnidadeKey ? String(sRow[sUnidadeKey]).trim().toUpperCase() : 'UN';
+      let precoUnitario = sPrecoKey ? parseNumber(sRow[sPrecoKey]) : 0;
+      let precoBox = sPrecoBoxKey ? parseNumber(sRow[sPrecoBoxKey]) : 0;
+      if (unidade === 'BX' && precoBox === 0 && precoUnitario > 0) {
+        precoBox = precoUnitario;
+        precoUnitario = precoBox / (qtdBox || 1);
+      }
+
+      results.push({
+        sku,
+        nome: decodeHtmlEntities(nome || `Produto ${sku}`),
+        barcode: sBarcodeKey ? String(sRow[sBarcodeKey]).trim() : undefined,
+        preco_unitario: precoUnitario,
+        preco_box: precoBox,
+        qtd_box: qtdBox,
+        unidade,
+        multiplo_venda: multiploVenda,
+        estoque,
+        status_estoque: statusFromQtd(estoque),
+        category_name: sCategoriaKey ? decodeHtmlEntities(String(sCategoriaKey).trim()) : undefined,
+        source: 'excel',
+      });
+    }
   }
 
   return results;
@@ -237,21 +320,105 @@ function parseLinesIntoProducts(lines: string[]): ParsedCatalogProduct[] {
   return results;
 }
 
+// Fallback heurístico inteligente para PDFs de tabelas sem rótulos explícitos (ex: "Código / SKU / Ref")
+function parseLinesHeuristically(lines: string[]): ParsedCatalogProduct[] {
+  const results: ParsedCatalogProduct[] = [];
+  const seen = new Set<string>();
+
+  const stopWords = new Set([
+    'BOX', 'PCT', 'UNI', 'UND', 'UN', 'PAG', 'FOLHA', 'R$', 'VALOR', 'TOTAL', 
+    'PRECO', 'PREÇO', 'C/12', 'CX', 'TABELA', 'CATALOGO', 'CATÁLOGO', 'PÁGINA',
+    'PAGINA', 'TELEFONE', 'CONTATO', 'VIVAI', 'JB', 'COSMETICOS', 'COSMÉTICOS',
+    'EMPRESA', 'CLIENTE', 'PEDIDO', 'DATA', 'VENDEDOR', 'MARCA', 'COD', 'REF',
+    'SKU', 'EAN', 'DUN', 'S/D'
+  ]);
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+
+    // Procura por preço no formato brasileiro (ex: R$ 15,90 ou 15,90) ou decimal simples
+    const priceMatch = line.match(/(?:R\$\s*)?(\d{1,4},\d{2})\b/) || line.match(/R\$\s*([\d.,]+)/);
+    if (!priceMatch) continue;
+
+    const priceVal = parseNumber(priceMatch[1]);
+    if (priceVal <= 0) continue;
+
+    const tokens = line.split(/\s+/);
+    if (tokens.length < 3) continue;
+
+    // Busca um SKU/Código candidato nos primeiros 3 tokens
+    let sku = '';
+    let skuIdx = -1;
+
+    for (let j = 0; j < Math.min(3, tokens.length); j++) {
+      const token = tokens[j].toUpperCase().replace(/[:.\-]/g, '');
+      if (
+        tokens[j].length >= 3 && 
+        tokens[j].length <= 15 && 
+        /^[A-Z0-9\-./]+$/i.test(tokens[j]) && 
+        !stopWords.has(token) &&
+        !/^\d{2}\/\d{2}\/\d{4}$/.test(tokens[j]) && 
+        !/^\d{1,4},\d{2}$/.test(tokens[j]) && 
+        !/^R\$$/i.test(tokens[j])
+      ) {
+        sku = tokens[j].toUpperCase().trim();
+        skuIdx = j;
+        break;
+      }
+    }
+
+    if (!sku || skuIdx === -1) continue;
+    if (seen.has(sku)) continue;
+
+    // Extrai o nome limpando as informações do SKU, do Preço, de R$, etc.
+    const cleanTokens = tokens.filter((t, idx) => {
+      if (idx === skuIdx) return false;
+      if (t === priceMatch[0] || t.includes(priceMatch[1])) return false;
+      if (t.toUpperCase() === 'R$') return false;
+      const upper = t.toUpperCase().replace(/[.:]/g, '');
+      if (['UN', 'UND', 'UNID', 'PC', 'PÇ', 'PÇA', 'CX', 'CAIXA', 'KIT', 'PCT', 'PACOTE'].includes(upper)) return false;
+      return true;
+    });
+
+    const nome = cleanTokens.join(' ').trim();
+    if (!nome || nome.length < 3) continue;
+
+    seen.add(sku);
+    results.push({
+      sku,
+      nome: decodeHtmlEntities(nome),
+      preco_unitario: priceVal,
+      preco_box: 0,
+      qtd_box: 1,
+      unidade: 'UN',
+      multiplo_venda: 1,
+      status_estoque: 'normal',
+      source: 'pdf',
+      low_confidence: true,
+    });
+  }
+
+  return results;
+}
+
 export async function parsePdfCatalog(file: File): Promise<ParsedCatalogProduct[]> {
   const pagesLines = await getPdfPagesLines(file);
 
-  // Detect if this is the dotted/labeled Catalog format
+  // Detecta se este arquivo possui o formato de catálogo com marcadores BOX/PCT e UNI (ex: Vivai, JB Cosméticos)
   let isCatalogFormat = false;
   let catalogMatches = 0;
   for (const pageL of pagesLines) {
     const pageText = pageL.join(' ');
-    const hasBoxOrPct = /(?:BOX|PCT):\s*[\d.,]+/i.test(pageText);
-    const hasUni = /UNI:\s*[\d.,]+/i.test(pageText);
-    const hasSkuCandidate = /\b\d{1,4}(?:\.\d{1,4}){2,3}\b/.test(pageText);
+    // Tornamos os dois pontos opcionais e adicionamos suporte a "R$" para dar suporte a variações de impressão
+    const hasBoxOrPct = /(?:BOX|PCT)\s*:?\s*(?:R\$\s*)?[\d.,]+/i.test(pageText);
+    const hasUni = /UNI\s*:?\s*(?:R\$\s*)?[\d.,]+/i.test(pageText);
+    const hasSkuCandidate = /\b\d{1,4}(?:\.\d{1,4}){2,3}\b/.test(pageText) || /\b[A-Z0-9-]{3,12}\b/i.test(pageText);
     if ((hasBoxOrPct || hasUni) && hasSkuCandidate) {
       catalogMatches++;
     }
   }
+
   if (catalogMatches >= Math.min(2, pagesLines.length)) {
     isCatalogFormat = true;
   }
@@ -261,32 +428,61 @@ export async function parsePdfCatalog(file: File): Promise<ParsedCatalogProduct[
     const results: ParsedCatalogProduct[] = [];
     const seen = new Set<string>();
 
+    const stopWords = new Set([
+      'BOX', 'PCT', 'UNI', 'UND', 'UN', 'PAG', 'FOLHA', 'R$', 'VALOR', 'TOTAL', 
+      'PRECO', 'PREÇO', 'C/12', 'CX', 'TABELA', 'CATALOGO', 'CATÁLOGO', 'PÁGINA',
+      'PAGINA', 'TELEFONE', 'CONTATO', 'VIVAI', 'JB', 'COSMETICOS', 'COSMÉTICOS',
+      'EMPRESA', 'CLIENTE', 'PEDIDO', 'DATA', 'VENDEDOR', 'MARCA', 'COD', 'REF',
+      'SKU', 'EAN', 'DUN', 'S/D'
+    ]);
+
     for (const pageL of pagesLines) {
       const pageText = pageL.join(' ');
 
-      // Look for a SKU candidate (dotted sequence of numbers, excluding common date formats like DD/MM/YYYY)
-      const skuMatches = pageText.match(/\b\d{1,4}(?:\.\d{1,4}){2,3}\b/g) || [];
+      // Extração de SKU flexível para páginas do Catálogo
       let sku = '';
-      for (const cand of skuMatches) {
-        if (!/^\d{2}\.\d{2}\.\d{4}$/.test(cand)) {
-          sku = cand.trim().toUpperCase();
-          break;
+      
+      // 1. Procurar por rótulos explícitos primeiro
+      const labelMatch = pageText.match(/(?:SKU|C[OÓ]D(?:IGO)?|REF(?:ER[EÊ]NCIA)?)\s*[:.\-]?\s*([A-Z0-9-]{3,12})/i);
+      if (labelMatch) {
+        sku = labelMatch[1].trim().toUpperCase();
+      } else {
+        // 2. Procurar por formato com pontos (ex: 10.20.30)
+        const dottedMatches = pageText.match(/\b\d{1,4}(?:\.\d{1,4}){2,3}\b/g) || [];
+        for (const cand of dottedMatches) {
+          if (!/^\d{2}\.\d{2}\.\d{4}$/.test(cand)) { // ignora datas comuns
+            sku = cand.trim().toUpperCase();
+            break;
+          }
+        }
+        // 3. Heurística: primeiro token de linha que se parece com código
+        if (!sku) {
+          for (const l of pageL) {
+            const firstToken = l.split(/\s+/)[0];
+            if (firstToken && /^[A-Z0-9-]{3,12}$/i.test(firstToken)) {
+              const upper = firstToken.toUpperCase().replace(/[:.\-]/g, '');
+              if (!stopWords.has(upper) && !/^\d{1,4},\d{2}$/.test(firstToken)) {
+                sku = firstToken.toUpperCase().trim();
+                break;
+              }
+            }
+          }
         }
       }
-      if (!sku) continue;
 
+      if (!sku) continue;
       if (seen.has(sku)) continue;
       seen.add(sku);
 
-      // BOX or PCT price
-      const bpMatch = pageText.match(/(?:BOX|PCT):\s*([\d.,]+)/i);
+      // Preço de BOX / PCT (suporta dois pontos opcionais e cifra de R$)
+      const bpMatch = pageText.match(/(?:BOX|PCT)\s*:?\s*(?:R\$\s*)?([\d.,]+)/i);
       const boxPrice = bpMatch ? parseNumber(bpMatch[1]) : 0;
 
-      // UNI price
-      const upMatch = pageText.match(/UNI:\s*([\d.,]+)/i);
+      // Preço UNI (suporta dois pontos opcionais e cifra de R$)
+      const upMatch = pageText.match(/UNI\s*:?\s*(?:R\$\s*)?([\d.,]+)/i);
       const unitPrice = upMatch ? parseNumber(upMatch[1]) : 0;
 
-      // BOX C/12 quantity (e.g. "BOX C/12", "PCT C/12", "BOX C/24", etc.)
+      // Quantidade no BOX (ex: "BOX C/12", "C/24", etc.)
       const bqMatch = pageText.match(/(?:BOX|PCT|C)\s*\/(\d+)/i) || pageText.match(/(?:BOX|PCT)\s+C\/(\d+)/i) || pageText.match(/C\/(\d+)/i);
       const boxQty = bqMatch ? parseInt(bqMatch[1]) : 12;
 
@@ -299,12 +495,12 @@ export async function parsePdfCatalog(file: File): Promise<ParsedCatalogProduct[
         finalBoxPrice = finalUnitPrice * boxQty;
       }
 
-      // Name extraction: Usually, the name is on the second line (after the SKU) or contains description words
+      // Nome do produto da página
       let nome = '';
       if (pageL.length > 1) {
         const cleanLines = pageL.filter(l => 
           !l.includes(sku) && 
-          !/(?:BOX|PCT|UNI):\s*[\d.,]+/i.test(l) && 
+          !/(?:BOX|PCT|UNI)\s*:?/i.test(l) && 
           !/(?:BOX|PCT|C)\s*\/(\d+)/i.test(l) &&
           !/BOX\s+C/i.test(l) &&
           !/PCT\s+C/i.test(l) &&
@@ -337,10 +533,18 @@ export async function parsePdfCatalog(file: File): Promise<ParsedCatalogProduct[
     return results;
   }
 
-  // Fallback to old line-by-line parsing
+  // Fallback para leitura linha a linha
   const flatLines: string[] = [];
   pagesLines.forEach(pl => flatLines.push(...pl));
-  return parseLinesIntoProducts(flatLines);
+
+  // Tenta o parser de linha tradicional primeiro
+  const traditionalResults = parseLinesIntoProducts(flatLines);
+  if (traditionalResults.length > 0) {
+    return traditionalResults;
+  }
+
+  // Se o tradicional não obteve nada (linhas sem SKU/COD de rótulo explícito), tenta a heurística de tabela
+  return parseLinesHeuristically(flatLines);
 }
 
 // ---------- Roteador por tipo de arquivo ----------

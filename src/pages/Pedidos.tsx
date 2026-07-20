@@ -2160,8 +2160,8 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
             <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }}
               className="bg-white w-full max-w-2xl rounded-[32px] shadow-2xl relative z-10 overflow-hidden flex flex-col max-h-[90vh]">
 
-              <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-                <div className="flex-1">
+              <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 gap-4">
+                <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <h3 className="text-2xl font-black text-slate-900 tracking-tight">Detalhes do Pedido</h3>
                     {canEditOrder && !editingCustomer && (
@@ -2178,11 +2178,11 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                   </div>
                   
                   {editingCustomer ? (
-                    <div className="flex items-center gap-2 mt-2 max-w-md">
+                    <div className="flex items-center gap-2 mt-2 w-full max-w-md min-w-0">
                       <select
                         value={tempCustomerId}
                         onChange={e => setTempCustomerId(e.target.value)}
-                        className="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-primary/20 outline-none"
+                        className="flex-1 min-w-0 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-primary/20 outline-none truncate"
                       >
                         <option value="">Selecionar Empresa</option>
                         {customers.map(c => {
@@ -2199,29 +2199,31 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                       </select>
                       <button 
                         onClick={() => handleCustomerChange(selectedOrder.id, tempCustomerId)}
-                        className="p-2 bg-emerald-500 text-white rounded-xl hover:bg-emerald-600 transition-all"
+                        className="p-2 bg-emerald-500 text-white rounded-xl hover:bg-emerald-600 transition-all flex-shrink-0"
+                        title="Confirmar"
                       >
                         <Check size={16} />
                       </button>
                       <button 
                         onClick={() => setEditingCustomer(false)}
-                        className="p-2 bg-slate-200 text-slate-500 rounded-xl hover:bg-slate-300 transition-all"
+                        className="p-2 bg-slate-200 text-slate-500 rounded-xl hover:bg-slate-300 transition-all flex-shrink-0"
+                        title="Cancelar"
                       >
                         <X size={16} />
                       </button>
                     </div>
                   ) : (
-                    <div className="mt-1">
-                      <p className="text-primary font-black text-xs uppercase tracking-tight">
+                    <div className="mt-1 truncate">
+                      <p className="text-primary font-black text-xs uppercase tracking-tight truncate">
                         {selectedOrder.customer?.nome_empresa || 'Empresa não definida'}
                       </p>
-                      <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">
+                      <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest truncate">
                         Responsável: {selectedOrder.customer?.nome || selectedOrder.client_name || '—'}
                       </p>
                     </div>
                   )}
                 </div>
-                <div className="flex items-center gap-2 ml-4">
+                <div className="flex items-center gap-2 flex-shrink-0">
                   <button
                     onClick={() => handleDownloadPDF(selectedOrder)}
                     disabled={isGeneratingPDF}

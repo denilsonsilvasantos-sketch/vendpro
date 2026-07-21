@@ -37,6 +37,8 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
   const [availableCategories, setAvailableCategories] = useState<any[]>([]);
   const [includeOutOfStock, setIncludeOutOfStock] = useState(false);
   const [includeLastUnits, setIncludeLastUnits] = useState(true);
+  const [onlyNew, setOnlyNew] = useState(false);
+  const [onlyBackInStock, setOnlyBackInStock] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -688,13 +690,42 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
       if (categoriesRes.error) throw categoriesRes.error;
       if (companyRes.error) throw companyRes.error;
 
-      const products = productsRes.data || [];
+      let products = productsRes.data || [];
       const company = companyRes.data;
       const brandsMap = new Map((brandsRes.data || []).map(b => [b.id, b]));
       const categoriesMap = new Map((categoriesRes.data || []).map(c => [c.id, c.nome]));
 
+      const now = new Date();
+      const isNovidade = (p: any) => {
+        if (p.is_new) {
+          if (!p.new_until) return true;
+          return new Date(p.new_until) > now;
+        }
+        return p.new_until ? new Date(p.new_until) > now : false;
+      };
+
+      const isReposicao = (p: any) => {
+        if (p.is_back_in_stock) {
+          if (!p.back_in_stock_until) return true;
+          return new Date(p.back_in_stock_until) > now;
+        }
+        return p.back_in_stock_until ? new Date(p.back_in_stock_until) > now : false;
+      };
+
+      if (onlyNew && onlyBackInStock) {
+        products = products.filter(p => isNovidade(p) || isReposicao(p));
+      } else if (onlyNew) {
+        products = products.filter(p => isNovidade(p));
+      } else if (onlyBackInStock) {
+        products = products.filter(p => isReposicao(p));
+      }
+
       if (products.length === 0) {
-        throw new Error('Nenhum produto encontrado com os filtros selecionados.');
+        let msg = 'Nenhum produto encontrado com os filtros selecionados.';
+        if (onlyNew && onlyBackInStock) msg = 'Nenhuma Novidade ou Reposição encontrada para as marcas selecionadas.';
+        else if (onlyNew) msg = 'Nenhuma Novidade/Lançamento encontrada para as marcas selecionadas.';
+        else if (onlyBackInStock) msg = 'Nenhuma Reposição de estoque encontrada para as marcas selecionadas.';
+        throw new Error(msg);
       }
 
       const doc = new jsPDF();
@@ -759,15 +790,27 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
           }
         }
 
+        let catalogSubTitle = '';
+        if (onlyNew && onlyBackInStock) catalogSubTitle = 'Novidades & Reposições de Estoque';
+        else if (onlyNew) catalogSubTitle = 'Novidades & Lançamentos';
+        else if (onlyBackInStock) catalogSubTitle = 'Reposições de Estoque';
+
         doc.setFontSize(32);
         doc.setTextColor(236, 72, 153);
         doc.setFont('helvetica', 'bold');
-        doc.text('Catálogo de Produtos', pageWidth / 2, pageHeight / 2 + 20, { align: 'center' });
+        doc.text('Catálogo de Produtos', pageWidth / 2, pageHeight / 2 + 15, { align: 'center' });
         
-        doc.setFontSize(14);
+        if (catalogSubTitle) {
+          doc.setFontSize(14);
+          doc.setTextColor(245, 158, 11);
+          doc.setFont('helvetica', 'bold');
+          doc.text(catalogSubTitle.toUpperCase(), pageWidth / 2, pageHeight / 2 + 27, { align: 'center' });
+        }
+
+        doc.setFontSize(12);
         doc.setTextColor(148, 163, 184);
         doc.setFont('helvetica', 'normal');
-        doc.text(company.nome, pageWidth / 2, pageHeight / 2 + 35, { align: 'center' });
+        doc.text(company.nome, pageWidth / 2, pageHeight / 2 + 40, { align: 'center' });
 
         doc.setFontSize(12);
         doc.text(new Date().toLocaleDateString('pt-BR'), pageWidth / 2, pageHeight - 30, { align: 'center' });
@@ -884,7 +927,24 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
             }
 
             // Status Badge
-            if (p.status_estoque === 'esgotado' || p.is_last_units) {
+            const pIsNew = isNovidade(p);
+            const pIsBack = isReposicao(p);
+
+            if (pIsNew) {
+              doc.setFillColor(245, 158, 11);
+              doc.roundedRect(x + 3, y + 78, 25, 3.5, 0.5, 0.5, 'F');
+              doc.setTextColor(255, 255, 255);
+              doc.setFontSize(5);
+              doc.setFont('helvetica', 'bold');
+              doc.text('NOVIDADE', x + 15.5, y + 80.5, { align: 'center' });
+            } else if (pIsBack) {
+              doc.setFillColor(16, 185, 129);
+              doc.roundedRect(x + 3, y + 78, 25, 3.5, 0.5, 0.5, 'F');
+              doc.setTextColor(255, 255, 255);
+              doc.setFontSize(5);
+              doc.setFont('helvetica', 'bold');
+              doc.text('REPOSIÇÃO', x + 15.5, y + 80.5, { align: 'center' });
+            } else if (p.status_estoque === 'esgotado' || p.is_last_units) {
               const statusText = p.status_estoque === 'esgotado' ? 'ESGOTADO' : 'ÚLTIMAS';
               const badgeColor = p.status_estoque === 'esgotado' ? [15, 23, 42] : [244, 63, 94];
               doc.setFillColor(badgeColor[0], badgeColor[1], badgeColor[2]);
@@ -1013,8 +1073,24 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
 
             <div className="space-y-3">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Filtros do Catálogo</p>
-              <div className="flex flex-wrap gap-3">
-                <label className="flex items-center gap-2 cursor-pointer group">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <label className="flex items-center gap-2 p-2 rounded-lg border border-slate-100 bg-slate-50 cursor-pointer group hover:border-amber-200 transition-all">
+                  <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${onlyNew ? 'bg-amber-500 border-amber-500' : 'bg-white border-slate-200 group-hover:border-slate-300'}`}>
+                    {onlyNew && <CheckCircle2 size={10} className="text-white" strokeWidth={3} />}
+                  </div>
+                  <input type="checkbox" className="hidden" checked={onlyNew} onChange={e => setOnlyNew(e.target.checked)} />
+                  <span className="text-[10px] font-black text-slate-700 uppercase tracking-tight">Somente Novidades</span>
+                </label>
+
+                <label className="flex items-center gap-2 p-2 rounded-lg border border-slate-100 bg-slate-50 cursor-pointer group hover:border-emerald-200 transition-all">
+                  <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${onlyBackInStock ? 'bg-emerald-500 border-emerald-500' : 'bg-white border-slate-200 group-hover:border-slate-300'}`}>
+                    {onlyBackInStock && <CheckCircle2 size={10} className="text-white" strokeWidth={3} />}
+                  </div>
+                  <input type="checkbox" className="hidden" checked={onlyBackInStock} onChange={e => setOnlyBackInStock(e.target.checked)} />
+                  <span className="text-[10px] font-black text-slate-700 uppercase tracking-tight">Somente Reposições</span>
+                </label>
+
+                <label className="flex items-center gap-2 p-2 rounded-lg border border-slate-100 bg-slate-50 cursor-pointer group hover:border-rose-200 transition-all">
                   <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${includeOutOfStock ? 'bg-rose-500 border-rose-500' : 'bg-white border-slate-200 group-hover:border-slate-300'}`}>
                     {includeOutOfStock && <CheckCircle2 size={10} className="text-white" strokeWidth={3} />}
                   </div>
@@ -1022,7 +1098,7 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
                   <span className="text-[10px] font-bold text-slate-600 uppercase tracking-tight">Incluir Esgotados</span>
                 </label>
 
-                <label className="flex items-center gap-2 cursor-pointer group">
+                <label className="flex items-center gap-2 p-2 rounded-lg border border-slate-100 bg-slate-50 cursor-pointer group hover:border-amber-200 transition-all">
                   <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${includeLastUnits ? 'bg-amber-500 border-amber-500' : 'bg-white border-slate-200 group-hover:border-slate-300'}`}>
                     {includeLastUnits && <CheckCircle2 size={10} className="text-white" strokeWidth={3} />}
                   </div>
@@ -1030,6 +1106,15 @@ export default function UploadPage({ companyId, onRefresh }: { companyId: string
                   <span className="text-[10px] font-bold text-slate-600 uppercase tracking-tight">Incluir Últimas Unidades</span>
                 </label>
               </div>
+
+              {(onlyNew || onlyBackInStock) && (
+                <div className="p-2.5 bg-amber-50 border border-amber-200/60 rounded-lg text-[10px] font-bold text-amber-800 flex items-center gap-2">
+                  <Sparkles size={12} className="text-amber-600 shrink-0" />
+                  <span>
+                    O PDF gerado conterá {onlyNew && onlyBackInStock ? 'somente Novidades e Reposições' : onlyNew ? 'somente Novidades (Lançamentos)' : 'somente Reposições de estoque'}.
+                  </span>
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">

@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { supabase } from '../integrations/supabaseClient';
-import { X, Eye, ShoppingBag, TrendingUp, AlertTriangle, PackageSearch, Calendar, CreditCard, Filter, Trash2, AlertCircle, Search, Send, Edit2, Check, Plus, FileSpreadsheet, Keyboard, Upload, User as UserIcon, ChevronRight, ChevronLeft, FileText } from 'lucide-react';
+import { X, Eye, ShoppingBag, TrendingUp, AlertTriangle, PackageSearch, Calendar, CreditCard, Filter, Trash2, AlertCircle, Search, Send, Edit2, Check, Plus, FileSpreadsheet, Keyboard, Upload, User as UserIcon, ChevronRight, ChevronLeft, FileText, RotateCcw } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 import { getCartItemPrice } from '../utils/prices';
@@ -62,6 +62,9 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
   const [tempCustomerId, setTempCustomerId] = useState('');
   const [tempDiscountValue, setTempDiscountValue] = useState(0);
   const [tempDiscountType, setTempDiscountType] = useState<'fixed' | 'percentage'>('fixed');
+  const [tempSurchargeValue, setTempSurchargeValue] = useState(0);
+  const [tempSurchargeType, setTempSurchargeType] = useState<'fixed' | 'percentage'>('fixed');
+  const [restoringItem, setRestoringItem] = useState<string | null>(null);
 
   const [newSku, setNewSku] = useState('');
   const [newQuantity, setNewQuantity] = useState<number | ''>('');
@@ -1142,33 +1145,76 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
     }
   };
 
-  const handleDiscountChange = async (orderId: string, value: number, type: 'fixed' | 'percentage') => {
+  const calculateOrderTotal = (
+    subtotal: number,
+    discVal: number = 0,
+    discType: string = 'fixed',
+    surchVal: number = 0,
+    surchType: string = 'fixed'
+  ) => {
+    let discountAmt = 0;
+    if (discType === 'percentage') {
+      discountAmt = (subtotal * (discVal || 0)) / 100;
+    } else {
+      discountAmt = discVal || 0;
+    }
+
+    let surchargeAmt = 0;
+    if (surchType === 'percentage') {
+      surchargeAmt = (subtotal * (surchVal || 0)) / 100;
+    } else {
+      surchargeAmt = surchVal || 0;
+    }
+
+    return Math.max(0, subtotal - discountAmt + surchargeAmt);
+  };
+
+  const handleDiscountSurchargeChange = async (
+    orderId: string, 
+    discValue: number, 
+    discType: 'fixed' | 'percentage',
+    surchValue: number,
+    surchType: 'fixed' | 'percentage'
+  ) => {
     if (!supabase || !selectedOrder) return;
     
     const subtotal = Number(selectedOrder.subtotal || selectedOrder.total || 0);
-    let discountAmount = 0;
-    if (type === 'percentage') {
-      discountAmount = (subtotal * value) / 100;
-    } else {
-      discountAmount = value;
-    }
-    
-    const newTotal = Math.max(0, subtotal - discountAmount);
+    const newTotal = calculateOrderTotal(subtotal, discValue, discType, surchValue, surchType);
 
-    const { error } = await supabase.from('orders').update({ 
-      discount_value: value, 
-      discount_type: type,
+    const updates: any = { 
+      discount_value: discValue, 
+      discount_type: discType,
+      surcharge_value: surchValue,
+      surcharge_type: surchType,
       total: newTotal
-    }).eq('id', orderId);
+    };
+
+    const { error } = await supabase.from('orders').update(updates).eq('id', orderId);
 
     if (error) { 
-      console.error('Discount Update Error:', error);
-      alert('Erro ao atualizar desconto: ' + (error.message || 'Erro desconhecido')); 
-      return; 
+      console.error('Discount/Surcharge Update Error:', error);
+      const fallbackUpdates: any = {
+        discount_value: discValue,
+        discount_type: discType,
+        total: newTotal
+      };
+      const { error: fallbackErr } = await supabase.from('orders').update(fallbackUpdates).eq('id', orderId);
+      if (fallbackErr) {
+        alert('Erro ao atualizar valores: ' + (fallbackErr.message || 'Erro desconhecido')); 
+        return; 
+      }
     }
     
-    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, discount_value: value, discount_type: type, total: newTotal } : o));
-    setSelectedOrder((prev: any) => ({ ...prev, discount_value: value, discount_type: type, total: newTotal }));
+    const updatedFields = {
+      discount_value: discValue,
+      discount_type: discType,
+      surcharge_value: surchValue,
+      surcharge_type: surchType,
+      total: newTotal
+    };
+
+    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, ...updatedFields } : o));
+    setSelectedOrder((prev: any) => ({ ...prev, ...updatedFields }));
     setEditingDiscount(false);
   };
 
@@ -1244,15 +1290,13 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
       // 4. Update order subtotal and total
       const currentSubtotal = Number(selectedOrder.subtotal) || Number(selectedOrder.total) || 0;
       const newSubtotal = currentSubtotal + subtotalItem;
-      
-      let newTotal = newSubtotal;
-      if (selectedOrder.discount_value > 0) {
-        if (selectedOrder.discount_type === 'percentage') {
-          newTotal = newSubtotal * (1 - selectedOrder.discount_value / 100);
-        } else {
-          newTotal = newSubtotal - selectedOrder.discount_value;
-        }
-      }
+      const newTotal = calculateOrderTotal(
+        newSubtotal,
+        selectedOrder.discount_value,
+        selectedOrder.discount_type,
+        selectedOrder.surcharge_value,
+        selectedOrder.surcharge_type
+      );
 
       const { error: updateError } = await supabase
         .from('orders')
@@ -1322,6 +1366,8 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
     setEditingDate(false);
     setTempDiscountValue(order.discount_value || 0);
     setTempDiscountType(order.discount_type || 'fixed');
+    setTempSurchargeValue(order.surcharge_value || 0);
+    setTempSurchargeType(order.surcharge_type || 'fixed');
     if (!supabase) { setItemsError('Conexão indisponível.'); setLoadingItems(false); return; }
     try {
       const [{ data: items, error: e1 }, { data: removed, error: e2 }] = await Promise.all([
@@ -1372,14 +1418,13 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
         .filter(i => i.id !== item.id)
         .reduce((acc: number, i: any) => acc + Number(i.subtotal), 0);
 
-      let newTotal = newSubtotal;
-      if (selectedOrder.discount_value > 0) {
-        if (selectedOrder.discount_type === 'percentage') {
-          newTotal = newSubtotal * (1 - selectedOrder.discount_value / 100);
-        } else {
-          newTotal = newSubtotal - selectedOrder.discount_value;
-        }
-      }
+      const newTotal = calculateOrderTotal(
+        newSubtotal,
+        selectedOrder.discount_value,
+        selectedOrder.discount_type,
+        selectedOrder.surcharge_value,
+        selectedOrder.surcharge_type
+      );
 
       await supabase.from('orders').update({ 
         subtotal: newSubtotal,
@@ -1394,6 +1439,57 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
       alert(`Erro ao remover item: ${err.message}`);
     } finally {
       setDeletingItem(null);
+    }
+  };
+
+  const handleRestoreItem = async (item: any) => {
+    if (!supabase || !selectedOrder) return;
+    setRestoringItem(item.id);
+    try {
+      const { data: newItem, error: insertErr } = await supabase.from('order_items').insert({
+        order_id: selectedOrder.id,
+        product_id: item.product_id,
+        nome: item.nome,
+        sku: item.sku,
+        quantidade: item.quantidade,
+        preco_unitario: item.preco_unitario,
+        subtotal: item.subtotal,
+        variacoes: item.variacoes,
+        company_id: companyId
+      }).select().single();
+
+      if (insertErr) throw insertErr;
+
+      const { error: deleteErr } = await supabase.from('order_removed_items').delete().eq('id', item.id);
+      if (deleteErr) throw deleteErr;
+
+      const updatedOrderItems = [...orderItems, newItem];
+      const newSubtotal = updatedOrderItems.reduce((acc: number, i: any) => acc + Number(i.subtotal), 0);
+      const newTotal = calculateOrderTotal(
+        newSubtotal,
+        selectedOrder.discount_value,
+        selectedOrder.discount_type,
+        selectedOrder.surcharge_value,
+        selectedOrder.surcharge_type
+      );
+
+      const { error: updateError } = await supabase.from('orders').update({
+        subtotal: newSubtotal,
+        total: newTotal
+      }).eq('id', selectedOrder.id);
+
+      if (updateError) {
+        console.error('Erro ao atualizar pedido:', updateError);
+      }
+
+      setOrderItems(updatedOrderItems);
+      setRemovedItems(prev => prev.filter(i => i.id !== item.id));
+      setSelectedOrder((prev: any) => ({ ...prev, subtotal: newSubtotal, total: newTotal }));
+      setOrders(prev => prev.map(o => o.id === selectedOrder.id ? { ...o, subtotal: newSubtotal, total: newTotal } : o));
+    } catch (err: any) {
+      alert(`Erro ao restaurar item: ${err.message}`);
+    } finally {
+      setRestoringItem(null);
     }
   };
 
@@ -1421,14 +1517,13 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
       const newItems = orderItems.map(i => i.id === item.id ? { ...i, quantidade: newQty, preco_unitario: newPrice, subtotal: newSubtotalItem } : i);
       const newSubtotal = newItems.reduce((acc: number, i: any) => acc + Number(i.subtotal), 0);
       
-      let newTotal = newSubtotal;
-      if (selectedOrder.discount_value > 0) {
-        if (selectedOrder.discount_type === 'percentage') {
-          newTotal = newSubtotal * (1 - selectedOrder.discount_value / 100);
-        } else {
-          newTotal = newSubtotal - selectedOrder.discount_value;
-        }
-      }
+      const newTotal = calculateOrderTotal(
+        newSubtotal,
+        selectedOrder.discount_value,
+        selectedOrder.discount_type,
+        selectedOrder.surcharge_value,
+        selectedOrder.surcharge_type
+      );
 
       const { error: orderError } = await supabase
         .from('orders')
@@ -1667,22 +1762,35 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
       doc.setTextColor(30, 41, 59);
       doc.text(`R$ ${Number(order.subtotal || order.total).toFixed(2)}`, 196, finalY, { align: 'right' });
 
+      let yOffset = 5;
       if (order.discount_value > 0) {
         const discountAmount = order.discount_type === 'percentage' 
           ? (Number(order.subtotal || 0) * order.discount_value) / 100
           : order.discount_value;
         
         doc.setTextColor(244, 63, 94); // rose-500
-        doc.text(`Desconto (${order.discount_type === 'percentage' ? `${order.discount_value}%` : `R$ ${order.discount_value}`}):`, summaryX, finalY + 5);
-        doc.text(`- R$ ${discountAmount.toFixed(2)}`, 196, finalY + 5, { align: 'right' });
+        doc.text(`Desconto (${order.discount_type === 'percentage' ? `${order.discount_value}%` : `R$ ${order.discount_value}`}):`, summaryX, finalY + yOffset);
+        doc.text(`- R$ ${discountAmount.toFixed(2)}`, 196, finalY + yOffset, { align: 'right' });
+        yOffset += 5;
+      }
+
+      if (order.surcharge_value > 0) {
+        const surchargeAmount = order.surcharge_type === 'percentage'
+          ? (Number(order.subtotal || 0) * order.surcharge_value) / 100
+          : order.surcharge_value;
+
+        doc.setTextColor(16, 185, 129); // emerald-500
+        doc.text(`Acréscimo (${order.surcharge_type === 'percentage' ? `${order.surcharge_value}%` : `R$ ${order.surcharge_value}`}):`, summaryX, finalY + yOffset);
+        doc.text(`+ R$ ${surchargeAmount.toFixed(2)}`, 196, finalY + yOffset, { align: 'right' });
+        yOffset += 5;
       }
 
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(30, 41, 59);
-      doc.text('TOTAL FINAL:', summaryX, finalY + 12);
+      doc.text('TOTAL FINAL:', summaryX, finalY + yOffset + 2);
       doc.setTextColor(236, 72, 153); // pink-500
-      doc.text(`R$ ${Number(order.total).toFixed(2)}`, 196, finalY + 12, { align: 'right' });
+      doc.text(`R$ ${Number(order.total).toFixed(2)}`, 196, finalY + yOffset + 2, { align: 'right' });
 
       // Footer extra info
       doc.setFontSize(7);
@@ -2365,61 +2473,112 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                       <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10 col-span-2">
                         <p className="text-[10px] font-bold uppercase tracking-widest text-primary/60 mb-3">Resumo de Valores</p>
                         
-                        <div className="space-y-2">
+                        <div className="space-y-2.5">
                           <div className="flex justify-between text-sm">
-                            <span className="text-slate-500">Subtotal:</span>
+                            <span className="text-slate-500 font-medium">Subtotal:</span>
                             <span className="font-bold text-slate-700">R$ {Number(selectedOrder.subtotal || selectedOrder.total || 0).toFixed(2)}</span>
                           </div>
 
                           {canEditOrder ? (
-                            <div className="flex justify-between text-sm items-center gap-2">
-                              <span className="text-rose-500 font-medium shrink-0">Desconto:</span>
-                              <div className="flex items-center gap-1.5">
-                                <input
-                                  type="number"
-                                  min="0"
-                                  value={tempDiscountValue || ''}
-                                  placeholder="0"
-                                  onChange={e => setTempDiscountValue(Number(e.target.value))}
-                                  className="w-20 px-2 py-1 border border-slate-200 rounded-lg text-right text-xs font-bold bg-white focus:outline-none focus:border-primary"
-                                />
-                                <select
-                                  value={tempDiscountType}
-                                  onChange={e => setTempDiscountType(e.target.value as any)}
-                                  className="px-2 py-1 border border-slate-200 rounded-lg text-xs font-bold bg-white focus:outline-none focus:border-primary"
-                                >
-                                  <option value="fixed">R$</option>
-                                  <option value="percentage">%</option>
-                                </select>
-                                <button
-                                  onClick={() => handleDiscountChange(selectedOrder.id, tempDiscountValue, tempDiscountType)}
-                                  className="w-7 h-7 flex items-center justify-center bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors"
-                                  title="Confirmar desconto"
-                                >
-                                  <Check size={13} />
-                                </button>
-                                {(tempDiscountValue > 0 || selectedOrder.discount_value > 0) && (
-                                  <button
-                                    onClick={() => { setTempDiscountValue(0); handleDiscountChange(selectedOrder.id, 0, tempDiscountType); }}
-                                    className="w-7 h-7 flex items-center justify-center bg-slate-100 text-slate-400 rounded-lg hover:bg-rose-50 hover:text-rose-400 transition-colors"
-                                    title="Remover desconto"
+                            <div className="space-y-2 pt-1 border-t border-slate-200/60">
+                              {/* Desconto Row */}
+                              <div className="flex justify-between text-xs items-center gap-2">
+                                <span className="text-rose-600 font-semibold shrink-0">Desconto (-):</span>
+                                <div className="flex items-center gap-1.5">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={tempDiscountValue || ''}
+                                    placeholder="0"
+                                    onChange={e => setTempDiscountValue(Number(e.target.value))}
+                                    className="w-20 px-2 py-1 border border-slate-200 rounded-lg text-right text-xs font-bold bg-white focus:outline-none focus:border-primary"
+                                  />
+                                  <select
+                                    value={tempDiscountType}
+                                    onChange={e => setTempDiscountType(e.target.value as any)}
+                                    className="px-2 py-1 border border-slate-200 rounded-lg text-xs font-bold bg-white focus:outline-none focus:border-primary"
                                   >
-                                    <X size={13} />
+                                    <option value="fixed">R$</option>
+                                    <option value="percentage">%</option>
+                                  </select>
+                                </div>
+                              </div>
+
+                              {/* Acréscimo / Juros Row */}
+                              <div className="flex justify-between text-xs items-center gap-2">
+                                <span className="text-emerald-600 font-semibold shrink-0">Acréscimo / Juros (+):</span>
+                                <div className="flex items-center gap-1.5">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={tempSurchargeValue || ''}
+                                    placeholder="0"
+                                    onChange={e => setTempSurchargeValue(Number(e.target.value))}
+                                    className="w-20 px-2 py-1 border border-slate-200 rounded-lg text-right text-xs font-bold bg-white focus:outline-none focus:border-primary"
+                                  />
+                                  <select
+                                    value={tempSurchargeType}
+                                    onChange={e => setTempSurchargeType(e.target.value as any)}
+                                    className="px-2 py-1 border border-slate-200 rounded-lg text-xs font-bold bg-white focus:outline-none focus:border-primary"
+                                  >
+                                    <option value="fixed">R$</option>
+                                    <option value="percentage">%</option>
+                                  </select>
+                                </div>
+                              </div>
+
+                              {/* Action buttons */}
+                              <div className="flex justify-end pt-1 gap-2">
+                                {(tempDiscountValue > 0 || tempSurchargeValue > 0 || selectedOrder.discount_value > 0 || selectedOrder.surcharge_value > 0) && (
+                                  <button
+                                    onClick={() => {
+                                      setTempDiscountValue(0);
+                                      setTempSurchargeValue(0);
+                                      handleDiscountSurchargeChange(selectedOrder.id, 0, tempDiscountType, 0, tempSurchargeType);
+                                    }}
+                                    className="px-2.5 py-1 bg-slate-100 text-slate-500 rounded-lg text-xs font-bold hover:bg-rose-50 hover:text-rose-600 transition-colors flex items-center gap-1"
+                                    title="Zerar descontos e acréscimos"
+                                  >
+                                    <X size={12} /> Zerar
                                   </button>
                                 )}
+                                <button
+                                  onClick={() => handleDiscountSurchargeChange(selectedOrder.id, tempDiscountValue, tempDiscountType, tempSurchargeValue, tempSurchargeType)}
+                                  className="px-3 py-1 bg-emerald-500 text-white rounded-lg text-xs font-bold hover:bg-emerald-600 transition-colors flex items-center gap-1 shadow-sm"
+                                  title="Aplicar alterações nos valores"
+                                >
+                                  <Check size={12} /> Aplicar Ajustes
+                                </button>
                               </div>
                             </div>
-                          ) : selectedOrder.discount_value > 0 ? (
-                            <div className="flex justify-between text-sm">
-                              <span className="text-rose-500">Desconto:</span>
-                              <span className="font-bold text-rose-500">
-                                - R$ {selectedOrder.discount_type === 'percentage'
-                                  ? ((Number(selectedOrder.subtotal || 0) * selectedOrder.discount_value) / 100).toFixed(2)
-                                  : Number(selectedOrder.discount_value).toFixed(2)}
-                                <span className="text-[10px] ml-1">({selectedOrder.discount_value}{selectedOrder.discount_type === 'percentage' ? '%' : ' R$'})</span>
-                              </span>
-                            </div>
-                          ) : null}
+                          ) : (
+                            <>
+                              {selectedOrder.discount_value > 0 && (
+                                <div className="flex justify-between text-sm">
+                                  <span className="text-rose-500">Desconto:</span>
+                                  <span className="font-bold text-rose-500">
+                                    - R$ {selectedOrder.discount_type === 'percentage'
+                                      ? ((Number(selectedOrder.subtotal || 0) * selectedOrder.discount_value) / 100).toFixed(2)
+                                      : Number(selectedOrder.discount_value).toFixed(2)}
+                                    <span className="text-[10px] ml-1">({selectedOrder.discount_value}{selectedOrder.discount_type === 'percentage' ? '%' : ' R$'})</span>
+                                  </span>
+                                </div>
+                              )}
+                              {selectedOrder.surcharge_value > 0 && (
+                                <div className="flex justify-between text-sm">
+                                  <span className="text-emerald-600">Acréscimo / Juros:</span>
+                                  <span className="font-bold text-emerald-600">
+                                    + R$ {selectedOrder.surcharge_type === 'percentage'
+                                      ? ((Number(selectedOrder.subtotal || 0) * selectedOrder.surcharge_value) / 100).toFixed(2)
+                                      : Number(selectedOrder.surcharge_value).toFixed(2)}
+                                    <span className="text-[10px] ml-1">({selectedOrder.surcharge_value}{selectedOrder.surcharge_type === 'percentage' ? '%' : ' R$'})</span>
+                                  </span>
+                                </div>
+                              )}
+                            </>
+                          )}
 
                           <div className="pt-2 border-t border-primary/10 flex justify-between items-end">
                             <span className="text-xs font-bold text-slate-900">Total Líquido:</span>
@@ -2689,7 +2848,26 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
                                 )}
                                 <p className="text-xs text-rose-400 mt-1">{item.quantidade} x R$ {Number(item.preco_unitario).toFixed(2)}</p>
                               </div>
-                              <p className="font-black text-rose-400 line-through">R$ {Number(item.subtotal).toFixed(2)}</p>
+                              <div className="flex items-center gap-3">
+                                <p className="font-black text-rose-400 line-through">R$ {Number(item.subtotal).toFixed(2)}</p>
+                                {canEditOrder && (
+                                  <button
+                                    onClick={() => handleRestoreItem(item)}
+                                    disabled={restoringItem === item.id}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500 text-white rounded-xl text-xs font-bold hover:bg-emerald-600 transition-all shadow-sm shadow-emerald-500/20 disabled:opacity-50 shrink-0"
+                                    title="Restaurar este item de volta ao pedido"
+                                  >
+                                    {restoringItem === item.id ? (
+                                      <div className="w-3.5 h-3.5 border-b-2 border-white rounded-full animate-spin" />
+                                    ) : (
+                                      <>
+                                        <RotateCcw size={13} />
+                                        <span>Restaurar</span>
+                                      </>
+                                    )}
+                                  </button>
+                                )}
+                              </div>
                             </div>
                           ))}
                         </div>

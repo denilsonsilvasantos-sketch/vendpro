@@ -137,6 +137,8 @@ export interface Order {
   subtotal?: number;
   discount_type?: string;
   discount_value?: number;
+  surcharge_type?: string;
+  surcharge_value?: number;
   status: 'pending' | 'typed' | 'finished' | 'cancelled';
   whatsapp_sent: boolean;
   client_name?: string;

@@ -19,10 +19,16 @@ export default function BrandFormModal({ onClose, onSave, brand, companyId }: { 
   const [error, setError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isRemovingBackground, setIsRemovingBackground] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement> | React.DragEvent) => {
+    let file: File | undefined;
+    if ('files' in event.target && event.target.files) {
+      file = event.target.files[0];
+    } else if ('dataTransfer' in event && event.dataTransfer.files) {
+      file = event.dataTransfer.files[0];
+    }
     if (!file) return;
 
     const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
@@ -52,6 +58,21 @@ export default function BrandFormModal({ onClose, onSave, brand, companyId }: { 
     } finally {
       setIsUploading(false);
     }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    handleImageUpload(e);
   };
 
   const handleRemoveBackground = async () => {
@@ -219,8 +240,13 @@ export default function BrandFormModal({ onClose, onSave, brand, companyId }: { 
           )}
           <div className="flex flex-col items-center gap-6">
             <div 
-              className="w-32 h-32 bg-slate-50 rounded-[40px] flex items-center justify-center border-2 border-dashed border-slate-200 cursor-pointer overflow-hidden group relative shadow-inner hover:border-primary/30 transition-all"
+              className={`w-32 h-32 rounded-[40px] flex items-center justify-center border-2 border-dashed cursor-pointer overflow-hidden group relative shadow-inner transition-all ${
+                isDragging ? 'border-primary bg-primary/10 scale-105 shadow-lg' : 'bg-slate-50 border-slate-200 hover:border-primary/30'
+              }`}
               onClick={() => fileInputRef.current?.click()}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
             >
               {formData.logo_url ? (
                 <img src={formData.logo_url} alt="Logo" className="w-full h-full object-contain p-4 group-hover:scale-110 transition-transform duration-500" />

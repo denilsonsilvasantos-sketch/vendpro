@@ -39,6 +39,7 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
   const [loading, setLoading] = useState(false);
   const [zoomImage, setZoomImage] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number }>({ current: 0, total: 0 });
   const [isRemovingBackground, setIsRemovingBackground] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -65,15 +66,15 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
   }, [companyId, formData.brand_id]);
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement> | React.DragEvent) => {
-    let file: File | undefined;
+    let files: File[] = [];
     
     if ('files' in event.target && event.target.files) {
-      file = event.target.files[0];
+      files = Array.from(event.target.files);
     } else if ('dataTransfer' in event && event.dataTransfer.files) {
-      file = event.dataTransfer.files[0];
+      files = Array.from(event.dataTransfer.files);
     }
 
-    if (!file) return;
+    if (files.length === 0) return;
 
     const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
     const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
@@ -84,28 +85,47 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
     }
 
     setIsUploading(true);
-    const formDataUpload = new FormData();
-    formDataUpload.append('file', file);
-    formDataUpload.append('upload_preset', uploadPreset);
+    setUploadProgress({ current: 0, total: files.length });
+    const uploadedUrls: string[] = [];
 
     try {
-      const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
-        method: 'POST',
-        body: formDataUpload,
-      });
-      const data = await response.json();
-      if (data.secure_url) {
-        setFormData(prev => ({ 
-          ...prev, 
-          imagem: data.secure_url, 
-          imagens: [data.secure_url, ...(prev.imagens || [])] 
-        }));
+      for (let i = 0; i < files.length; i++) {
+        setUploadProgress({ current: i + 1, total: files.length });
+        const file = files[i];
+        const formDataUpload = new FormData();
+        formDataUpload.append('file', file);
+        formDataUpload.append('upload_preset', uploadPreset);
+
+        const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+          method: 'POST',
+          body: formDataUpload,
+        });
+        const data = await response.json();
+        if (data.secure_url) {
+          uploadedUrls.push(data.secure_url);
+        }
+      }
+
+      if (uploadedUrls.length > 0) {
+        setFormData(prev => {
+          const currentList = prev.imagens || [];
+          const combined = [...currentList];
+          uploadedUrls.forEach(url => {
+            if (!combined.includes(url)) combined.push(url);
+          });
+          return {
+            ...prev,
+            imagem: prev.imagem || uploadedUrls[0],
+            imagens: combined
+          };
+        });
       }
     } catch (error) {
       console.error('Erro no upload:', error);
-      alert('Erro ao fazer upload da imagem.');
+      alert('Erro ao fazer upload da(s) imagem(ns).');
     } finally {
       setIsUploading(false);
+      setUploadProgress({ current: 0, total: 0 });
     }
   };
 
@@ -348,59 +368,99 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
             <div className="space-y-6">
               <div className="relative group">
                 <div 
-                  className={`aspect-square rounded-[10px] flex items-center justify-center overflow-hidden border-2 transition-all cursor-zoom-in group-hover:border-primary/20 relative ${
-                    isDragging ? 'border-primary bg-primary/5 scale-[0.98]' : 'bg-slate-50 border-slate-100 shadow-inner'
+                  className={`aspect-square rounded-[10px] flex items-center justify-center overflow-hidden border-2 transition-all cursor-pointer relative ${
+                    isDragging ? 'border-primary bg-primary/10 scale-[0.99] ring-4 ring-primary/20' : 'bg-slate-50 border-slate-100 shadow-inner hover:border-primary/30'
                   }`}
-                  onClick={() => formData.imagem && setZoomImage(formData.imagem)}
+                  onClick={() => formData.imagem ? setZoomImage(formData.imagem) : fileInputRef.current?.click()}
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
                 >
                   {formData.imagem ? (
-                    <img src={formData.imagem} alt="Produto" className="w-full h-full object-contain p-4 bg-white transition-transform duration-500 group-hover:scale-110" />
+                    <img src={formData.imagem} alt="Produto" className="w-full h-full object-contain p-4 bg-white transition-transform duration-500 group-hover:scale-105" />
                   ) : (
-                    <ImageIcon className="text-slate-200" size={64} strokeWidth={1} />
+                    <div className="flex flex-col items-center gap-3 text-center p-6">
+                      <div className="w-16 h-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shadow-inner">
+                        <Upload size={32} strokeWidth={2} />
+                      </div>
+                      <p className="text-xs font-bold text-slate-600">Arraste e solte a imagem aqui</p>
+                      <p className="text-[10px] text-slate-400 font-medium">ou clique para selecionar do seu computador</p>
+                    </div>
                   )}
+
+                  {isDragging && (
+                    <div className="absolute inset-0 bg-primary/95 text-white flex items-center justify-center flex-col gap-2 p-4 text-center backdrop-blur-sm z-20">
+                      <Upload className="animate-bounce" size={40} strokeWidth={2.5} />
+                      <span className="text-xs font-black uppercase tracking-wider">Solte para adicionar as imagens</span>
+                    </div>
+                  )}
+
                   {(isUploading || isRemovingBackground) && (
-                    <div className="absolute inset-0 bg-white/90 backdrop-blur-sm flex items-center justify-center flex-col gap-3">
+                    <div className="absolute inset-0 bg-white/95 backdrop-blur-sm flex items-center justify-center flex-col gap-3 z-30">
                       <Loader2 className="animate-spin text-primary" size={32} strokeWidth={3} />
-                      {isRemovingBackground && <span className="text-[8px] font-black text-primary uppercase tracking-[2px]">Processando...</span>}
+                      {isUploading && (
+                        <span className="text-[10px] font-black text-primary uppercase tracking-[2px]">
+                          {uploadProgress.total > 1 
+                            ? `Enviando ${uploadProgress.current} de ${uploadProgress.total}...` 
+                            : 'Enviando imagem...'}
+                        </span>
+                      )}
+                      {isRemovingBackground && <span className="text-[8px] font-black text-primary uppercase tracking-[2px]">Processando IA...</span>}
                     </div>
                   )}
                 </div>
-                <div className="absolute -bottom-3 -right-3 flex flex-col gap-2">
+                <div className="absolute -bottom-3 -right-3 flex flex-col gap-2 z-10">
                   <button 
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="bg-primary text-white p-4 rounded-[6px] shadow-2xl shadow-primary/40 hover:scale-110 transition-transform flex items-center justify-center border-4 border-white active:scale-95"
-                    title="Upload de Imagem"
+                    className="bg-primary text-white p-3.5 rounded-[8px] shadow-xl shadow-primary/30 hover:scale-110 transition-transform flex items-center justify-center border-2 border-white active:scale-95"
+                    title="Upload de Imagem (Arraste ou Clique)"
                   >
-                    <Upload size={20} strokeWidth={3} />
+                    <Upload size={18} strokeWidth={3} />
                   </button>
                   {formData.imagem && (
                     <button 
                       type="button"
                       onClick={handleRemoveBackground}
                       disabled={isRemovingBackground}
-                      className="bg-amber-500 text-white p-4 rounded-[6px] shadow-2xl shadow-amber-500/40 hover:scale-110 transition-transform flex items-center justify-center border-4 border-white active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
+                      className="bg-amber-500 text-white p-3.5 rounded-[8px] shadow-xl shadow-amber-500/30 hover:scale-110 transition-transform flex items-center justify-center border-2 border-white active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
                       title="Remover Fundo com IA"
                     >
-                      <Wand2 size={20} strokeWidth={3} />
+                      <Wand2 size={18} strokeWidth={3} />
                     </button>
                   )}
                 </div>
               </div>
-              <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
+              <input type="file" ref={fileInputRef} className="hidden" accept="image/*" multiple onChange={handleImageUpload} />
               
+              {/* Drag & Drop Quick Drop Zone */}
+              <div 
+                className={`p-3 rounded-xl border-2 border-dashed transition-all text-center cursor-pointer flex items-center justify-center gap-2.5 ${
+                  isDragging ? 'border-primary bg-primary/10 text-primary scale-102' : 'border-slate-200 bg-slate-50/80 hover:border-primary/40 text-slate-500'
+                }`}
+                onClick={() => fileInputRef.current?.click()}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
+                <Upload size={16} className="text-primary shrink-0" />
+                <span className="text-[11px] font-bold">Arraste fotos aqui para adicionar</span>
+              </div>
+
               <div className="space-y-4">
                 <div className="flex items-center justify-between px-2">
                   <label className="text-[9px] font-black text-slate-400 uppercase tracking-[2px]">Galeria de Imagens</label>
-                  <span className="text-[8px] font-bold text-slate-300">{(formData.imagens || []).length} fotos</span>
+                  <span className="text-[8px] font-bold text-slate-400">{(formData.imagens || []).length} fotos (aceita múltiplos arquivos)</span>
                 </div>
                 
-                <div className="grid grid-cols-4 gap-2">
+                <div 
+                  className="grid grid-cols-4 gap-2 p-1 border-2 border-transparent rounded-xl transition-all"
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                >
                   {(formData.imagens || []).map((img, idx) => (
-                    <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border border-slate-100 group/img">
+                    <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border border-slate-200 group/img shadow-sm">
                       <img src={img} className="w-full h-full object-cover" alt={`Galeria ${idx}`} />
                       <div className="absolute top-1 right-1 bg-black/60 text-white text-[10px] font-black w-5 h-5 flex items-center justify-center rounded-md backdrop-blur-sm border border-white/20">
                         {idx + 1}
@@ -438,9 +498,11 @@ export default function ProductFormModal({ onClose, onSave, product, companyId }
                   <button 
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="aspect-square rounded-lg border-2 border-dashed border-slate-200 flex items-center justify-center text-slate-300 hover:border-primary/30 hover:text-primary transition-all"
+                    className="aspect-square rounded-lg border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 hover:border-primary hover:text-primary transition-all hover:bg-primary/5"
+                    title="Adicionar mais fotos (arraste ou clique)"
                   >
                     <Plus size={20} />
+                    <span className="text-[8px] font-bold mt-1">Mais</span>
                   </button>
                 </div>
               </div>

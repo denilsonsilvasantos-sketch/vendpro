@@ -356,11 +356,44 @@ export default function App() {
   };
 
   const handleSendOrder = async (manualClientName?: string, paymentMethod?: string, selectedCustomerId?: string, selectedSellerId?: string, notes?: string) => {
+    if (cart.length === 0) {
+      alert('Seu carrinho está vazio.');
+      return;
+    }
+
+    // Determine company_id and brand_id safely
+    let targetCompanyId = activeCompanyId || user?.company_id || (availableCompanies.length > 0 ? availableCompanies[0].id : null);
+    if (!targetCompanyId) {
+      targetCompanyId = '5b9c0765-25c2-46af-8690-d5f25f94f956';
+    }
+
+    const targetBrandId = selectedBrand || cart[0]?.brand_id || (brands.length > 0 ? brands[0].id : null);
+    let resolvedSellerId = selectedSellerId || (role === 'seller' ? user?.id : (user?.seller_id || user?.vendedor_id || null));
+    const resolvedCustomerId = selectedCustomerId || (role === 'customer' ? user?.id : null);
+
+    // If customer and seller_id not yet resolved, lookup customer record
+    if (role === 'customer' && !resolvedSellerId && user?.id && supabase) {
+      try {
+        const { data: custInfo } = await supabase.from('customers').select('seller_id, company_id').eq('id', user.id).maybeSingle();
+        if (custInfo?.seller_id) resolvedSellerId = custInfo.seller_id;
+        if (custInfo?.company_id) targetCompanyId = custInfo.company_id;
+      } catch (e) {
+        console.error('Erro ao resolver vendedor do cliente:', e);
+      }
+    }
+
     let whatsappNumber = '';
-    
     if (role === 'customer' && user) {
       // Customer sends to seller or company
       whatsappNumber = user.vendedor_whatsapp || company?.telefone || '';
+      if (!whatsappNumber && resolvedSellerId && supabase) {
+        try {
+          const { data: sellerData } = await supabase.from('sellers').select('whatsapp').eq('id', resolvedSellerId).maybeSingle();
+          if (sellerData?.whatsapp) whatsappNumber = sellerData.whatsapp;
+        } catch (e) {
+          console.error('Erro ao buscar WhatsApp do vendedor:', e);
+        }
+      }
     } else if (role === 'seller' && selectedCustomerId) {
       // Seller sends to selected customer
       const targetCustomer = customers.find(c => c.id === selectedCustomerId);
@@ -373,52 +406,51 @@ export default function App() {
       whatsappNumber = company.telefone;
     }
 
-    if (whatsappNumber) {
-      if (cart.length === 0) {
-        alert('Seu carrinho está vazio.');
-        return;
-      }
+    const clientName = manualClientName || (role === 'customer' ? (user?.nome_empresa ? `${user.nome_empresa}${user?.nome ? ` (${user.nome})` : ''}` : user?.nome || 'Cliente') : (role === 'seller' ? `Vendedor: ${user?.nome}` : (company?.nome || 'Empresa')));
 
-      const clientName = manualClientName || (role === 'customer' ? user?.nome : (role === 'seller' ? `Vendedor: ${user?.nome}` : ''));
-      
-      if (supabase && activeCompanyId && selectedBrand) {
-        try {
-          const orderData = {
-            company_id: activeCompanyId,
-            customer_id: selectedCustomerId || (role === 'customer' ? user.id : null),
-            seller_id: selectedSellerId || (role === 'customer' ? user.seller_id : (role === 'seller' ? user.id : null)),
-            brand_id: selectedBrand,
-            subtotal: total,
-            discount_value: 0,
-            discount_type: 'fixed',
-            total: total,
-            status: 'pending',
-            whatsapp_sent: true,
-            client_name: clientName,
-            payment_method: paymentMethod || null,
-            observacoes: notes || null
-          };
+    // Always attempt database save first
+    if (supabase && targetCompanyId) {
+      try {
+        const orderData = {
+          company_id: targetCompanyId,
+          customer_id: resolvedCustomerId,
+          seller_id: resolvedSellerId,
+          brand_id: targetBrandId,
+          subtotal: total,
+          discount_value: 0,
+          discount_type: 'fixed',
+          total: total,
+          status: 'pending',
+          whatsapp_sent: Boolean(whatsappNumber),
+          client_name: clientName,
+          payment_method: paymentMethod || null,
+          observacoes: notes || null
+        };
 
-          const { data: order, error: orderError } = await supabase
-            .from('orders')
-            .insert([orderData])
-            .select('id')
-            .single();
+        const { data: order, error: orderError } = await supabase
+          .from('orders')
+          .insert([orderData])
+          .select('id')
+          .single();
 
-          if (orderError) throw orderError;
+        if (orderError) {
+          console.error("Erro ao inserir pedido em orders:", orderError);
+          throw orderError;
+        }
 
+        if (order && order.id) {
           const orderItems = cart.map(item => {
             const unitPrice = getCartItemPrice(item);
-            
             return {
               order_id: order.id,
-              product_id: item.id,
-              sku: item.sku,
-              nome: item.nome,
-              quantidade: item.quantity,
+              product_id: item.id || null,
+              sku: item.sku || '',
+              nome: item.nome || '',
+              quantidade: Number(item.quantity) || 1,
               preco_unitario: unitPrice,
-              subtotal: item.quantity * unitPrice,
-              variacoes: item.selected_variation || null
+              subtotal: (Number(item.quantity) || 1) * unitPrice,
+              variacoes: item.selected_variation || {},
+              company_id: targetCompanyId
             };
           });
 
@@ -426,24 +458,31 @@ export default function App() {
             .from('order_items')
             .insert(orderItems);
 
-          if (itemsError) throw itemsError;
+          if (itemsError) {
+            console.error("Erro ao inserir order_items:", itemsError);
+            throw itemsError;
+          }
           
-          console.log("Pedido salvo com sucesso no banco de dados.");
-        } catch (err: any) {
-          console.error("Erro ao salvar pedido no banco de dados:", err);
-          alert(`O pedido foi enviado via WhatsApp, mas houve um erro ao salvar no histórico: ${err.message || 'Erro desconhecido'}`);
+          console.log("Pedido salvo com sucesso no banco de dados. ID:", order.id);
         }
+      } catch (err: any) {
+        console.error("Erro ao salvar pedido no banco de dados:", err);
+        alert(`Atenção: Houve um erro ao salvar o pedido no histórico: ${err.message || 'Erro desconhecido'}.`);
       }
+    }
 
-      const currentBrand = brands.find(b => b.id === selectedBrand);
-      const message = formatWhatsAppMessage(cart, clientName, currentBrand?.name, notes);
+    const currentBrand = (targetBrandId && brands.find(b => b.id === targetBrandId)) || brands.find(b => b.id === selectedBrand);
+    const message = formatWhatsAppMessage(cart, clientName, currentBrand?.name, notes);
+
+    if (whatsappNumber) {
       const whatsappUrl = `https://wa.me/${whatsappNumber.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
       window.open(whatsappUrl, '_blank');
-      clearCart();
-      setActiveTab('catalog');
     } else {
-      alert('Número de WhatsApp não encontrado para enviar o pedido.');
+      alert('Pedido registrado com sucesso no sistema! Número de WhatsApp de destino não estava configurado.');
     }
+
+    clearCart();
+    setActiveTab(role === 'customer' ? 'pedidos' : 'catalog');
   };
 
   const loadData = async () => {

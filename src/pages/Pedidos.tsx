@@ -935,10 +935,7 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
 
     console.log('fetchOrders - Iniciando busca para empresa:', companyId);
 
-    if (role === 'seller' && user?.id) {
-      console.log('fetchOrders - Filtrando por vendedor:', user.id);
-      query = query.eq('seller_id', user.id);
-    } else if (role === 'customer' && user?.id) {
+    if (role === 'customer' && user?.id) {
       console.log('fetchOrders - Filtrando por cliente:', user.id);
       query = query.eq('customer_id', user.id);
     }
@@ -965,7 +962,16 @@ export default function Pedidos({ companyId, role, user }: { companyId: string |
       return { ...order, customer };
     });
 
-    setOrders(mergedOrders);
+    let finalOrders = mergedOrders;
+    if (role === 'seller' && user?.id) {
+      console.log('fetchOrders - Filtrando pedidos para vendedor:', user.id);
+      finalOrders = mergedOrders.filter(order => 
+        String(order.seller_id) === String(user.id) || 
+        String(order.customer?.seller_id) === String(user.id)
+      );
+    }
+
+    setOrders(finalOrders);
     
     if (role === 'customer' && mergedOrders.length > 0) {
       fetchAbcCurve(mergedOrders.map((o: any) => o.id));

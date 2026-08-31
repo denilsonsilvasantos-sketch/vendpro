@@ -189,3 +189,19 @@ export interface AuthState {
   user: any;
   sellerCode?: string;
 }
+
+export interface ActiveCart {
+  customer_id: string;
+  customer_name: string;
+  customer_empresa?: string;
+  customer_whatsapp?: string;
+  seller_id?: string;
+  company_id?: string;
+  brand_id?: string;
+  brand_name?: string;
+  total: number;
+  item_count: number;
+  product_count: number;
+  items: CartItem[];
+  updated_at: string;
+}

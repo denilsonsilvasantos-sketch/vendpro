@@ -43,10 +43,13 @@ import {
   Bell,
   BellRing,
   Mic,
-  Camera
+  Camera,
+  MessageCircle
 } from 'lucide-react';
 import { useCart } from './hooks/useCart';
 import { useNotifications } from './hooks/useNotifications';
+import { broadcastCartUpdate, broadcastCartCleared } from './services/cartSyncService';
+import ActiveCartsModal from './components/ActiveCartsModal';
 import { subscribeToPush, isPushSupported } from './services/pushService';
 import SalesAIChat from './components/SalesAIChat';
 import { Product, Category, Seller, Customer, UserRole, CartItem, Company, Brand, BannerData } from './types';
@@ -324,12 +327,40 @@ export default function App() {
     }
   }, [brands, selectedBrand]);
 
-  const { notifications, unreadCount, markAllRead, requestBrowserPermission } = useNotifications(
+  const { 
+    notifications, 
+    activeCarts, 
+    latestToast, 
+    dismissToast, 
+    unreadCount, 
+    markAllRead, 
+    removeActiveCart, 
+    requestBrowserPermission 
+  } = useNotifications(
     activeCompanyId, role, role === 'seller' ? user?.id : null
   );
+  const [isCartTrackerOpen, setIsCartTrackerOpen] = useState(false);
   const [showNotifPanel, setShowNotifPanel] = useState(false);
   const [pushPromptDismissed, setPushPromptDismissed] = useState(() => localStorage.getItem('vendpro_push_dismissed') === '1');
   const [pushSubscribed, setPushSubscribed] = useState(false);
+
+  // Broadcast customer's cart activity in realtime to seller/company
+  useEffect(() => {
+    if (role === 'customer' && user?.id && activeCompanyId) {
+      const currentBrand = brands.find(b => b.id === selectedBrand);
+      if (cart.length > 0) {
+        broadcastCartUpdate(activeCompanyId, {
+          id: user.id,
+          nome: user.nome,
+          nome_empresa: user.nome_empresa,
+          whatsapp: user.whatsapp,
+          seller_id: user.seller_id
+        }, cart, total, currentBrand);
+      } else {
+        broadcastCartCleared(activeCompanyId, user.id);
+      }
+    }
+  }, [cart, total, role, user, activeCompanyId, selectedBrand, brands]);
 
   async function handleEnablePush() {
     if (!user?.id || !activeCompanyId) return;
@@ -482,6 +513,9 @@ export default function App() {
     }
 
     clearCart();
+    if (role === 'customer' && user?.id && activeCompanyId) {
+      broadcastCartCleared(activeCompanyId, user.id);
+    }
     setActiveTab(role === 'customer' ? 'pedidos' : 'catalog');
   };
 
@@ -1022,6 +1056,22 @@ export default function App() {
 
         <div className="flex items-center gap-2 md:gap-6 shrink-0">
           <div className="flex items-center gap-2 md:gap-4">
+            {(role === 'seller' || role === 'company') && activeCarts.length > 0 && (
+              <button
+                onClick={() => setIsCartTrackerOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 border border-amber-500/30 rounded-full text-xs font-bold transition-all shadow-sm"
+                title="Clientes que adicionaram itens no carrinho"
+              >
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                </span>
+                <ShoppingCart size={14} />
+                <span className="hidden sm:inline">{activeCarts.length} {activeCarts.length === 1 ? 'Carrinho Aberto' : 'Carrinhos Abertos'}</span>
+                <span className="sm:hidden">{activeCarts.length}</span>
+              </button>
+            )}
+
             {(role === 'seller' || role === 'company') && (
               <button
                 onClick={() => { setShowNotifPanel(p => !p); if (unreadCount > 0) markAllRead(); requestBrowserPermission(); }}
@@ -1061,11 +1111,11 @@ export default function App() {
       {showNotifPanel && (role === 'seller' || role === 'company') && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setShowNotifPanel(false)} />
-          <div className="fixed top-16 right-4 z-50 w-80 max-w-[calc(100vw-2rem)] bg-white rounded-2xl shadow-2xl shadow-slate-900/20 border border-slate-100 overflow-hidden">
+          <div className="fixed top-16 right-4 z-50 w-88 max-w-[calc(100vw-2rem)] bg-white rounded-2xl shadow-2xl shadow-slate-900/20 border border-slate-100 overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50">
               <div className="flex items-center gap-2">
                 <Bell size={15} className="text-primary" />
-                <p className="text-sm font-black text-slate-800">Notificações</p>
+                <p className="text-sm font-black text-slate-800">Notificações & Atividades</p>
               </div>
               {notifications.some(n => !n.read) && (
                 <button onClick={markAllRead} className="text-[10px] font-bold text-primary hover:underline">Marcar todas lidas</button>
@@ -1077,28 +1127,92 @@ export default function App() {
                   <Bell size={28} className="mx-auto mb-2 text-slate-200" />
                   <p className="text-sm text-slate-400 font-medium">Nenhuma notificação</p>
                 </div>
-              ) : notifications.map(n => (
-                <button
-                  key={n.id}
-                  onClick={() => { setActiveTab('pedidos'); setShowNotifPanel(false); }}
-                  className={`w-full text-left px-4 py-3 hover:bg-slate-50 transition-colors flex items-start gap-3 ${!n.read ? 'bg-primary/5' : ''}`}
-                >
-                  <div className={`w-2 h-2 rounded-full mt-2 shrink-0 ${!n.read ? 'bg-primary' : 'bg-slate-200'}`} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-bold text-slate-800 truncate">Novo pedido — {n.client_name}</p>
-                    <p className="text-xs text-primary font-black">R$ {n.total.toFixed(2)}</p>
-                    <p className="text-[10px] text-slate-400 font-medium mt-0.5">
-                      {new Date(n.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                    </p>
+              ) : notifications.map(n => {
+                const isCart = n.type === 'cart';
+                return (
+                  <div
+                    key={n.id}
+                    className={`w-full px-4 py-3 hover:bg-slate-50 transition-colors flex items-start gap-3 ${!n.read ? (isCart ? 'bg-amber-50/40' : 'bg-primary/5') : ''}`}
+                  >
+                    <div className={`w-2 h-2 rounded-full mt-2 shrink-0 ${!n.read ? (isCart ? 'bg-amber-500' : 'bg-primary') : 'bg-slate-200'}`} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-1">
+                        <p className="text-xs font-bold text-slate-800 truncate">
+                          {isCart ? `🛒 Carrinho — ${n.client_name}` : `🛍 Pedido — ${n.client_name}`}
+                        </p>
+                        {isCart && (
+                          <span className="text-[9px] font-black uppercase text-amber-700 bg-amber-100/80 px-1.5 py-0.5 rounded shrink-0">
+                            No Carrinho
+                          </span>
+                        )}
+                      </div>
+
+                      <p className="text-xs font-black text-slate-900 mt-0.5">
+                        R$ {n.total.toFixed(2)} {isCart && n.product_count ? `(${n.product_count} peças)` : ''}
+                      </p>
+
+                      <div className="flex items-center justify-between mt-2">
+                        <p className="text-[10px] text-slate-400 font-medium">
+                          {new Date(n.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                        </p>
+
+                        {isCart ? (
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={() => {
+                                setIsCartTrackerOpen(true);
+                                setShowNotifPanel(false);
+                              }}
+                              className="text-[10px] font-bold text-amber-700 hover:text-amber-800 hover:underline"
+                            >
+                              Ver Carrinho
+                            </button>
+                            {n.client_whatsapp && (
+                              <button
+                                onClick={() => {
+                                  const cleanPhone = (n.client_whatsapp || '').replace(/\D/g, '');
+                                  const msg = `Olá ${n.client_name.split(' ')[0]}! Vi que você começou a montar um pedido no nosso catálogo online (Total: R$ ${n.total.toFixed(2)}). Teve alguma dúvida sobre modelos, tamanhos ou pagamento? Posso te ajudar a finalizar seu pedido! 😊`;
+                                  const url = `https://wa.me/${cleanPhone.startsWith('55') ? cleanPhone : '55' + cleanPhone}?text=${encodeURIComponent(msg)}`;
+                                  window.open(url, '_blank');
+                                  setShowNotifPanel(false);
+                                }}
+                                className="px-2 py-0.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded text-[10px] font-bold flex items-center gap-1"
+                              >
+                                <MessageCircle size={10} />
+                                Ajudar
+                              </button>
+                            )}
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => { setActiveTab('pedidos'); setShowNotifPanel(false); }}
+                            className="text-[10px] font-bold text-primary hover:underline"
+                          >
+                            Ver Pedido
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                </button>
-              ))}
+                );
+              })}
             </div>
-            <div className="px-4 py-3 border-t border-slate-100">
-              <button onClick={() => { setActiveTab('pedidos'); setShowNotifPanel(false); }}
-                className="w-full text-center text-xs font-bold text-primary hover:underline">
+            <div className="px-4 py-3 border-t border-slate-100 bg-slate-50 flex items-center justify-between">
+              <button 
+                onClick={() => { setActiveTab('pedidos'); setShowNotifPanel(false); }}
+                className="text-xs font-bold text-primary hover:underline"
+              >
                 Ver todos os pedidos
               </button>
+              {activeCarts.length > 0 && (
+                <button 
+                  onClick={() => { setIsCartTrackerOpen(true); setShowNotifPanel(false); }}
+                  className="text-xs font-bold text-amber-700 hover:underline flex items-center gap-1"
+                >
+                  <ShoppingCart size={12} />
+                  Carrinhos ({activeCarts.length})
+                </button>
+              )}
             </div>
           </div>
         </>
@@ -1137,6 +1251,15 @@ export default function App() {
                 {effectiveRole !== 'customer' && (
                   <>
                     <SidebarItem icon={<LayoutGrid size={16}/>} label="Dashboard" active={activeTab === 'dashboard'} onClick={() => { setActiveTab('dashboard'); setIsSidebarOpen(false); }} />
+                    
+                    {!isMaster && (
+                      <SidebarItem 
+                        icon={<ShoppingCart size={16}/>} 
+                        label="Carrinhos em Aberto" 
+                        badge={activeCarts.length > 0 ? String(activeCarts.length) : undefined}
+                        onClick={() => { setIsCartTrackerOpen(true); setIsSidebarOpen(false); }} 
+                      />
+                    )}
                     
                     {role !== 'seller' && (
                       <>
@@ -1359,7 +1482,16 @@ export default function App() {
         
         <div className="max-w-7xl mx-auto px-4 md:px-8 py-8">
           <Suspense fallback={<PageLoader />}>
-            {activeTab === 'dashboard' && <Dashboard companyId={activeCompanyId} role={role} user={user} banners={banners} />}
+            {activeTab === 'dashboard' && (
+              <Dashboard 
+                companyId={activeCompanyId} 
+                role={role} 
+                user={user} 
+                banners={banners} 
+                activeCarts={activeCarts}
+                onOpenActiveCarts={() => setIsCartTrackerOpen(true)}
+              />
+            )}
             {activeTab === 'banners' && role === 'company' && <BannerManager companyId={activeCompanyId!} />}
             {activeTab === 'produtos' && <Produtos companyId={activeCompanyId} onRefresh={loadData} searchTerm={search} />}
             {activeTab === 'upload' && <Upload companyId={activeCompanyId} onRefresh={loadData} />}
@@ -1461,6 +1593,82 @@ export default function App() {
       </footer>
 
       <SalesAIChat companyId={activeCompanyId} role={role} />
+
+      {/* Realtime Active Carts Modal */}
+      <ActiveCartsModal
+        isOpen={isCartTrackerOpen}
+        onClose={() => setIsCartTrackerOpen(false)}
+        activeCarts={activeCarts}
+        onRemoveCart={removeActiveCart}
+      />
+
+      {/* Floating Realtime Notification Toast */}
+      <AnimatePresence>
+        {latestToast && (role === 'seller' || role === 'company') && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            className="fixed bottom-6 right-6 z-50 max-w-sm w-full bg-white rounded-2xl shadow-2xl border border-slate-100 p-4 flex items-start gap-3.5"
+          >
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 text-white ${latestToast.type === 'cart' ? 'bg-amber-500 shadow-amber-500/20' : 'bg-primary shadow-primary/20'} shadow-lg`}>
+              {latestToast.type === 'cart' ? <ShoppingCart size={20} /> : <CheckCircle2 size={20} />}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                  {latestToast.type === 'cart' ? '🛒 Cliente no Carrinho' : '🛍 Novo Pedido'}
+                </p>
+                <button onClick={dismissToast} className="text-slate-400 hover:text-slate-600 p-1">
+                  <X size={14} />
+                </button>
+              </div>
+              <p className="text-xs font-bold text-slate-800 truncate mt-0.5">{latestToast.client_name}</p>
+              <p className="text-xs font-black text-amber-600">R$ {latestToast.total.toFixed(2)}</p>
+              <div className="flex items-center gap-2 mt-2">
+                {latestToast.type === 'cart' ? (
+                  <>
+                    <button
+                      onClick={() => {
+                        setIsCartTrackerOpen(true);
+                        dismissToast();
+                      }}
+                      className="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-bold rounded-lg transition-colors"
+                    >
+                      Ver Carrinho
+                    </button>
+                    {latestToast.client_whatsapp && (
+                      <button
+                        onClick={() => {
+                          const cleanPhone = (latestToast.client_whatsapp || '').replace(/\D/g, '');
+                          const msg = `Olá ${latestToast.client_name.split(' ')[0]}! Vi que você começou a montar um pedido no nosso catálogo online (Total: R$ ${latestToast.total.toFixed(2)}). Teve alguma dúvida sobre modelos, tamanhos ou pagamento? Posso te ajudar a finalizar seu pedido! 😊`;
+                          const url = `https://wa.me/${cleanPhone.startsWith('55') ? cleanPhone : '55' + cleanPhone}?text=${encodeURIComponent(msg)}`;
+                          window.open(url, '_blank');
+                          dismissToast();
+                        }}
+                        className="px-2.5 py-1 bg-emerald-500 hover:bg-emerald-600 text-white text-[11px] font-bold rounded-lg transition-colors flex items-center gap-1"
+                      >
+                        <MessageCircle size={12} />
+                        Ajudar
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setActiveTab('pedidos');
+                      dismissToast();
+                    }}
+                    className="px-2.5 py-1 bg-primary hover:bg-primary/90 text-white text-[11px] font-bold rounded-lg transition-colors"
+                  >
+                    Ver Pedido
+                  </button>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
